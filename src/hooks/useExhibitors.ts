@@ -23,7 +23,7 @@ export function useExhibitors(eventId?: string) {
           .order('business_name')
 
         if (error) throw error
-        setExhibitors((data as ExhibitorWithBooth[]) ?? [])
+        setExhibitors((data as unknown as ExhibitorWithBooth[]) ?? [])
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load exhibitors')
       } finally {
