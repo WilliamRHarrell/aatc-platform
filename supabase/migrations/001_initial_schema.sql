@@ -22,15 +22,6 @@ begin
 end;
 $$;
 
--- ── Helper: is current user admin? ───────────────────────────
-create or replace function is_admin()
-returns boolean language sql security definer as $$
-  select exists (
-    select 1 from profiles
-    where id = auth.uid() and role = 'admin'
-  );
-$$;
-
 -- ============================================================
 -- TABLES
 -- ============================================================
@@ -85,6 +76,15 @@ $$;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function handle_new_user();
+
+-- ── Helper: is current user admin? (must come after profiles table) ──
+create or replace function is_admin()
+returns boolean language sql security definer as $$
+  select exists (
+    select 1 from profiles
+    where id = auth.uid() and role = 'admin'
+  );
+$$;
 
 -- ── applications ─────────────────────────────────────────────
 create table applications (
