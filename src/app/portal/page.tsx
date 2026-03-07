@@ -175,7 +175,7 @@ export default function PortalPage() {
         const { data: emailMatch } = await supabase
           .from('sponsorships')
           .select('id')
-          .eq('email', user.email)
+          .eq('email', user.email!)
           .eq('status', 'confirmed')
           .is('user_id', null)
           .single()
