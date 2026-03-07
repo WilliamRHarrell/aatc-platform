@@ -102,6 +102,10 @@ export interface Database {
           id_doc_url: string | null
           veteran_id_url: string | null
           notes: string | null
+          artists: Array<{ name: string; id_url: string | null; id_later?: boolean; nickname?: string; instagram?: string; portfolio_urls?: string[]; styles?: string[] }> | null
+          artists_ids_later: boolean
+          logo_url: string | null
+          portfolio_image_urls: string[]
           created_at: string
           updated_at: string
         }
@@ -128,6 +132,10 @@ export interface Database {
           id_doc_url?: string | null
           veteran_id_url?: string | null
           notes?: string | null
+          artists?: Array<{ name: string; id_url: string | null; id_later?: boolean; nickname?: string; instagram?: string; portfolio_urls?: string[]; styles?: string[] }> | null
+          artists_ids_later?: boolean
+          logo_url?: string | null
+          portfolio_image_urls?: string[]
           created_at?: string
           updated_at?: string
         }
@@ -154,6 +162,10 @@ export interface Database {
           id_doc_url?: string | null
           veteran_id_url?: string | null
           notes?: string | null
+          artists?: Array<{ name: string; id_url: string | null; id_later?: boolean; nickname?: string; instagram?: string; portfolio_urls?: string[]; styles?: string[] }> | null
+          artists_ids_later?: boolean
+          logo_url?: string | null
+          portfolio_image_urls?: string[]
           created_at?: string
           updated_at?: string
         }
@@ -264,10 +276,12 @@ export interface Database {
       invoices: {
         Row: {
           id: string
-          application_id: string
+          application_id: string | null
+          sponsorship_id: string | null
           stripe_payment_intent_id: string | null
           stripe_invoice_id: string | null
           amount: number
+          amount_paid: number
           status: 'pending' | 'paid' | 'overdue' | 'cancelled'
           due_date: string | null
           paid_at: string | null
@@ -276,10 +290,12 @@ export interface Database {
         }
         Insert: {
           id?: string
-          application_id: string
+          application_id?: string | null
+          sponsorship_id?: string | null
           stripe_payment_intent_id?: string | null
           stripe_invoice_id?: string | null
           amount: number
+          amount_paid?: number
           status?: 'pending' | 'paid' | 'overdue' | 'cancelled'
           due_date?: string | null
           paid_at?: string | null
@@ -288,10 +304,12 @@ export interface Database {
         }
         Update: {
           id?: string
-          application_id?: string
+          application_id?: string | null
+          sponsorship_id?: string | null
           stripe_payment_intent_id?: string | null
           stripe_invoice_id?: string | null
           amount?: number
+          amount_paid?: number
           status?: 'pending' | 'paid' | 'overdue' | 'cancelled'
           due_date?: string | null
           paid_at?: string | null
@@ -333,16 +351,74 @@ export interface Database {
         }
         Relationships: []
       }
+      contest_entries: {
+        Row: {
+          id: string
+          contest_id: string
+          collector_name: string
+          artist_name: string | null
+          photo_url: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          contest_id: string
+          collector_name: string
+          artist_name?: string | null
+          photo_url?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          contest_id?: string
+          collector_name?: string
+          artist_name?: string | null
+          photo_url?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      contest_votes: {
+        Row: {
+          id: string
+          entry_id: string
+          contest_id: string
+          voter_token: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          entry_id: string
+          contest_id: string
+          voter_token: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          entry_id?: string
+          contest_id?: string
+          voter_token?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       sponsorships: {
         Row: {
           id: string
           event_id: string
           sponsor_name: string
-          tier: 'platinum' | 'gold' | 'silver' | 'bronze'
+          tier: 'title' | 'platinum' | 'gold' | 'silver' | 'brass' | 'collectible_coin' | 'vip_bag' | 'collectors_choice' | 'artist_lounge' | 'rafter_banner'
           logo_url: string | null
           website: string | null
           amount: number
           status: 'pending' | 'confirmed' | 'cancelled'
+          contact_name: string | null
+          email: string | null
+          phone: string | null
+          instagram: string | null
+          facebook: string | null
+          notes: string | null
+          user_id: string | null
           created_at: string
           updated_at: string
         }
@@ -350,11 +426,18 @@ export interface Database {
           id?: string
           event_id: string
           sponsor_name: string
-          tier: 'platinum' | 'gold' | 'silver' | 'bronze'
+          tier: 'title' | 'platinum' | 'gold' | 'silver' | 'brass' | 'collectible_coin' | 'vip_bag' | 'collectors_choice' | 'artist_lounge' | 'rafter_banner'
           logo_url?: string | null
           website?: string | null
           amount?: number
           status?: 'pending' | 'confirmed' | 'cancelled'
+          contact_name?: string | null
+          email?: string | null
+          phone?: string | null
+          instagram?: string | null
+          facebook?: string | null
+          notes?: string | null
+          user_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -362,11 +445,18 @@ export interface Database {
           id?: string
           event_id?: string
           sponsor_name?: string
-          tier?: 'platinum' | 'gold' | 'silver' | 'bronze'
+          tier?: 'title' | 'platinum' | 'gold' | 'silver' | 'brass' | 'collectible_coin' | 'vip_bag' | 'collectors_choice' | 'artist_lounge' | 'rafter_banner'
           logo_url?: string | null
           website?: string | null
           amount?: number
           status?: 'pending' | 'confirmed' | 'cancelled'
+          contact_name?: string | null
+          email?: string | null
+          phone?: string | null
+          instagram?: string | null
+          facebook?: string | null
+          notes?: string | null
+          user_id?: string | null
           created_at?: string
           updated_at?: string
         }
