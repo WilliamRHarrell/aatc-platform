@@ -50,7 +50,7 @@ export async function proxy(req: NextRequest) {
   }
 
   // ── Protected exhibitor routes ────────────────────────────────
-  if (pathname.startsWith('/apply/artist') || pathname.startsWith('/apply/vendor')) {
+  if (pathname.startsWith('/apply/artist') || pathname.startsWith('/apply/vendor') || pathname.startsWith('/portal')) {
     if (!session) {
       const loginUrl = new URL('/auth/login', req.url)
       loginUrl.searchParams.set('redirect', pathname)
@@ -71,6 +71,8 @@ export const config = {
     '/admin/:path*',
     '/apply/artist/:path*',
     '/apply/vendor/:path*',
+    '/portal/:path*',
+    '/portal',
     '/auth/login',
     '/auth/signup',
   ],

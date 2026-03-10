@@ -1,0 +1,212 @@
+'use client'
+
+import PublicNav from '@/components/PublicNav'
+
+const WHAT_INCLUDED = [
+  {
+    title: 'Meet TV Tattoo Artists',
+    description: 'Get face-to-face with tattoo artists you have seen on your favorite TV shows. This is your chance for a personal conversation, not just a wave from across the floor.',
+  },
+  {
+    title: 'Autographs & Photos',
+    description: 'Bring your favorite prints, books, or merchandise to get signed. Personal photos with the artists are welcome and encouraged.',
+  },
+  {
+    title: 'Exclusive AATC Poster',
+    description: 'Every VIP attendee at the meet and greet receives an exclusive limited-edition AATC convention poster, signed by the featured artists.',
+  },
+  {
+    title: 'Early Convention Access',
+    description: 'The meet and greet takes place during VIP early admission, giving you 30 minutes on the convention floor before general admission doors open at 10:30 AM.',
+  },
+]
+
+const FEATURED_ARTISTS = [
+  {
+    name: 'Artist Announcement Coming Soon',
+    bio: 'Featured TV tattoo artists will be announced as they are confirmed. Follow our social media channels for the latest announcements.',
+  },
+  {
+    name: 'Artist Announcement Coming Soon',
+    bio: 'We are in active discussions with well-known artists from popular tattoo competition shows. Check back for updates.',
+  },
+  {
+    name: 'Artist Announcement Coming Soon',
+    bio: 'Additional featured guests will be revealed in the weeks leading up to the convention.',
+  },
+]
+
+export default function VipMeetGreetPage() {
+  return (
+    <div className="min-h-screen">
+      <PublicNav />
+
+      {/* Header */}
+      <div className="border-b px-4 pb-10 pt-8 text-center" style={{ borderColor: '#2a2a2a' }}>
+        <p className="mb-2 text-xs font-bold uppercase tracking-[0.3em]" style={{ color: '#8B7355' }}>
+          <span className="text-emboss">An Exclusive Experience</span>
+        </p>
+        <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">
+          <span className="text-emboss">Gold Star VIP Meet & Greet</span>
+        </h1>
+        <p className="mx-auto mt-0 max-w-xl text-sm" style={{ color: '#999' }}>
+          <span className="text-emboss">An exclusive Saturday morning experience reserved for VIP 3-Day Pass holders. Meet renowned TV tattoo artists, get autographs, and take home a signed limited-edition poster before the convention floor opens to the public.</span>
+        </p>
+      </div>
+
+      {/* Event Details */}
+      <section className="px-4 py-12">
+        <div className="mx-auto max-w-4xl">
+          <h2 className="mb-6 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
+            <span className="text-emboss">Event Details</span>
+          </h2>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: 'Date', value: 'Saturday, April 17' },
+              { label: 'Time', value: '10:00 AM - 10:30 AM' },
+              { label: 'Location', value: 'VIP Lounge' },
+              { label: 'Access', value: 'VIP 3-Day Pass Only' },
+            ].map(item => (
+              <div
+                key={item.label}
+                className="rounded-2xl p-5 text-center"
+                style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
+              >
+                <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#666' }}>{item.label}</p>
+                <p className="mt-2 text-sm font-medium text-white">{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* What's Included */}
+      <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
+        <div className="mx-auto max-w-4xl">
+          <h2 className="mb-6 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
+            <span className="text-emboss">What Is Included</span>
+          </h2>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {WHAT_INCLUDED.map(item => (
+              <div
+                key={item.title}
+                className="rounded-2xl p-6"
+                style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
+              >
+                <h3 className="text-sm font-bold text-white">{item.title}</h3>
+                <p className="mt-2 text-xs leading-relaxed" style={{ color: '#999' }}>{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Artists */}
+      <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
+        <div className="mx-auto max-w-4xl">
+          <h2 className="mb-2 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
+            <span className="text-emboss">Featured Artists</span>
+          </h2>
+          <p className="mb-8 text-center text-xs" style={{ color: '#666' }}>
+            <span className="text-emboss">Artist announcements are coming soon. Follow us on social media for updates.</span>
+          </p>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            {FEATURED_ARTISTS.map((artist, i) => (
+              <div
+                key={i}
+                className="rounded-2xl p-6 text-center"
+                style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
+              >
+                <div
+                  className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full"
+                  style={{ backgroundColor: '#2a2a2a' }}
+                >
+                  <span className="text-2xl font-bold" style={{ color: '#555' }}>?</span>
+                </div>
+                <h3 className="text-sm font-bold text-white">{artist.name}</h3>
+                <p className="mt-2 text-xs leading-relaxed" style={{ color: '#999' }}>{artist.bio}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* VIP Pass Info */}
+      <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
+        <div className="mx-auto max-w-3xl">
+          <h2 className="mb-6 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
+            <span className="text-emboss">How to Get Access</span>
+          </h2>
+
+          <div
+            className="rounded-2xl p-6"
+            style={{ backgroundColor: '#1a1a1a', border: '2px solid #8B7355' }}
+          >
+            <h3 className="text-lg font-bold text-white">VIP 3-Day Pass</h3>
+            <p className="mt-1 text-2xl font-bold" style={{ color: '#C4A882' }}>$70</p>
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: '#999' }}>
+              The Gold Star VIP Meet & Greet is included with every VIP 3-Day Pass. Your VIP pass also includes a special convention badge, swag bag, meet and greet poster, official AATC t-shirt, 30-minute early admission each day, and complimentary entry to all after parties.
+            </p>
+            <div className="mt-5">
+              <a
+                href="/tickets#vip"
+                className="inline-block rounded-lg px-6 py-3 text-xs font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: '#8B7355' }}
+              >
+                Get Your VIP Pass
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Additional VIP Benefits */}
+      <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
+        <div className="mx-auto max-w-3xl">
+          <h2 className="mb-6 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
+            <span className="text-emboss">Full VIP Benefits</span>
+          </h2>
+
+          <div
+            className="rounded-2xl p-6"
+            style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
+          >
+            <ul className="space-y-2.5">
+              {[
+                'Gold Star VIP Meet & Greet with TV tattoo artists (Saturday morning)',
+                '30-minute early admission to the convention floor each day',
+                'Exclusive VIP convention badge',
+                'Official AATC swag bag with sponsor goodies',
+                'Limited-edition signed convention poster',
+                'Official AATC convention t-shirt',
+                'Complimentary entry to all three after parties',
+                'Full 3-day access to all convention events, panels, and contests',
+              ].map((item, i) => (
+                <li key={i} className="flex items-center gap-2 text-xs" style={{ color: '#999' }}>
+                  <span className="h-1 w-1 shrink-0 rounded-full" style={{ backgroundColor: '#8B7355' }} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <div className="border-t px-4 py-10 text-center" style={{ borderColor: '#2a2a2a' }}>
+        <p className="mb-2 text-sm font-semibold text-white">
+          <span className="text-emboss">Questions about the VIP experience?</span>
+        </p>
+        <p className="text-sm" style={{ color: '#999' }}>
+          <span className="text-emboss">Contact us at{' '}
+          <a href="mailto:info@allamericantattooconvention.com" style={{ color: '#C4A882' }}>
+            info@allamericantattooconvention.com
+          </a></span>
+        </p>
+      </div>
+    </div>
+  )
+}

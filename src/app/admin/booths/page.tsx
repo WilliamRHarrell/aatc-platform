@@ -3,6 +3,9 @@
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
+import { calculatePricing, type BoothSize, type ExhibitorType } from '@/lib/pricing'
+import { formatCurrency } from '@/lib/utils'
+import toast from 'react-hot-toast'
 
 interface ApprovedApp {
   id: string
@@ -51,6 +54,7 @@ interface BoothRow {
 }
 
 const SLOTS: Record<string, number> = { single: 1, double: 2, triple: 3, quad: 4 }
+const MAX_ARTISTS: Record<string, number> = { single: 2, double: 4, triple: 6, quad: 8 }
 
 const STATUS_COLOR: Record<string, { bg: string; border: string; text: string; opacity?: number }> = {
   available: { bg: '#1a1a1a',  border: '#2a2a2a', text: '#888' },
@@ -67,6 +71,116 @@ export default function AdminBoothsPage() {
   const [gridOpen, setGridOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'assigned' | 'unassigned'>('all')
+
+  // Add A Booth modal
+  const [showAddModal, setShowAddModal] = useState(false)
+  interface BoothEntry { size: BoothSize; is_corner: boolean; artist_count: number }
+  const [addForm, setAddForm] = useState({
+    business_name: '',
+    contact_name: '',
+    email: '',
+    phone: '',
+    exhibitor_type: 'artist' as ExhibitorType,
+    booths: [{ size: 'single' as BoothSize, is_corner: false, artist_count: 1 }] as BoothEntry[],
+    is_veteran: false,
+    deposit: '',
+    payFull: false,
+  })
+  const [addSaving, setAddSaving] = useState(false)
+
+  const boothPricings = addForm.booths.map(b => calculatePricing({
+    exhibitorType: addForm.exhibitor_type,
+    boothSize: b.size,
+    artistCount: addForm.exhibitor_type === 'artist' ? b.artist_count : 0,
+    isCorner: b.is_corner,
+    isVeteran: addForm.is_veteran,
+  }))
+
+  const totalAllBooths = boothPricings.reduce((sum, p) => sum + p.total, 0)
+
+  const depositCents = addForm.payFull
+    ? totalAllBooths
+    : Math.round(Math.max(0, parseFloat(addForm.deposit) || 0) * 100)
+
+  const handleAddBooth = async () => {
+    if (!addForm.business_name || !addForm.contact_name || !addForm.email) {
+      toast.error('Please fill in business name, contact name, and email')
+      return
+    }
+    if (depositCents > totalAllBooths) {
+      toast.error('Deposit cannot exceed total amount')
+      return
+    }
+    setAddSaving(true)
+
+    // Get active event
+    const { data: event } = await supabase
+      .from('events')
+      .select('id')
+      .eq('is_active', true)
+      .single()
+    if (!event) {
+      toast.error('No active event found')
+      setAddSaving(false)
+      return
+    }
+
+    // Create one application per booth entry
+    const appIds: string[] = []
+    for (let i = 0; i < addForm.booths.length; i++) {
+      const b = addForm.booths[i]
+      const pricing = boothPricings[i]
+      const { data: appRow, error: appErr } = await supabase.from('applications').insert({
+        event_id: event.id,
+        exhibitor_type: addForm.exhibitor_type,
+        business_name: addForm.business_name,
+        contact_name: addForm.contact_name,
+        email: addForm.email,
+        phone: addForm.phone || null,
+        booth_size: b.size,
+        artist_count: addForm.exhibitor_type === 'artist' ? b.artist_count : 0,
+        is_corner: b.is_corner,
+        is_veteran: addForm.is_veteran,
+        total_amount: pricing.total,
+        status: 'approved',
+      }).select('id').single()
+
+      if (appErr || !appRow) {
+        toast.error(`Failed to create application for booth ${i + 1}`)
+        setAddSaving(false)
+        return
+      }
+      appIds.push(appRow.id)
+    }
+
+    // Create invoices — split deposit proportionally across booth entries
+    for (let i = 0; i < appIds.length; i++) {
+      const pricing = boothPricings[i]
+      const proportion = totalAllBooths > 0 ? pricing.total / totalAllBooths : 0
+      const thisDeposit = i === appIds.length - 1
+        ? depositCents - appIds.slice(0, -1).reduce((sum, _, j) => sum + Math.round(depositCents * (boothPricings[j].total / totalAllBooths)), 0)
+        : Math.round(depositCents * proportion)
+      const fullyPaid = thisDeposit >= pricing.total
+      await supabase.from('invoices').insert({
+        application_id: appIds[i],
+        amount: pricing.total,
+        amount_paid: Math.min(thisDeposit, pricing.total),
+        status: fullyPaid ? 'paid' : 'pending',
+        paid_at: fullyPaid ? new Date().toISOString() : null,
+      })
+    }
+
+    const boothLabel = addForm.booths.length > 1 ? `${addForm.booths.length} booths` : 'booth'
+    toast.success(`${addForm.business_name} added (${boothLabel})${depositCents > 0 ? ` — ${formatCurrency(depositCents)} deposit recorded` : ''}`)
+    setShowAddModal(false)
+    setAddForm({
+      business_name: '', contact_name: '', email: '', phone: '',
+      exhibitor_type: 'artist', booths: [{ size: 'single', is_corner: false, artist_count: 1 }],
+      is_veteran: false, deposit: '', payFull: false,
+    })
+    setAddSaving(false)
+    window.location.reload()
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -144,11 +258,23 @@ export default function AdminBoothsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">Booth Assignment</h1>
-        <p className="mt-1 text-sm" style={{ color: '#999' }}>
-          {apps.length} approved exhibitor{apps.length !== 1 ? 's' : ''} · {assignedCount} assigned · {apps.length - assignedCount} unassigned
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">Booth Assignment</h1>
+          <p className="mt-1 text-sm" style={{ color: '#999' }}>
+            {apps.length} approved exhibitor{apps.length !== 1 ? 's' : ''} · {assignedCount} assigned · {apps.length - assignedCount} unassigned
+          </p>
+        </div>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+          style={{ backgroundColor: '#8B7355' }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Add A Booth
+        </button>
       </div>
 
       {/* Filters */}
@@ -379,6 +505,262 @@ export default function AdminBoothsPage() {
           </div>
         )}
       </div>
+
+      {/* Add A Booth Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div
+            className="w-full max-w-lg overflow-y-auto rounded-2xl p-6"
+            style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a', maxHeight: '90vh' }}
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="font-display text-lg font-bold text-white">Add A Booth</h2>
+              <button onClick={() => setShowAddModal(false)} className="text-sm" style={{ color: '#666' }}>✕</button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Business Name */}
+              <div>
+                <label className="mb-1 block text-xs font-semibold" style={{ color: '#999' }}>Business Name *</label>
+                <input
+                  type="text"
+                  value={addForm.business_name}
+                  onChange={e => setAddForm(f => ({ ...f, business_name: e.target.value }))}
+                  className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
+                  style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
+                />
+              </div>
+
+              {/* Contact Name */}
+              <div>
+                <label className="mb-1 block text-xs font-semibold" style={{ color: '#999' }}>Contact Name *</label>
+                <input
+                  type="text"
+                  value={addForm.contact_name}
+                  onChange={e => setAddForm(f => ({ ...f, contact_name: e.target.value }))}
+                  className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
+                  style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="mb-1 block text-xs font-semibold" style={{ color: '#999' }}>Email *</label>
+                <input
+                  type="email"
+                  value={addForm.email}
+                  onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))}
+                  className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
+                  style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
+                />
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label className="mb-1 block text-xs font-semibold" style={{ color: '#999' }}>Phone</label>
+                <input
+                  type="tel"
+                  value={addForm.phone}
+                  onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))}
+                  className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
+                  style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
+                />
+              </div>
+
+              {/* Type Toggle */}
+              <div>
+                <label className="mb-1 block text-xs font-semibold" style={{ color: '#999' }}>Exhibitor Type</label>
+                <div className="inline-flex rounded-lg p-1" style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}>
+                  {(['artist', 'vendor'] as const).map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setAddForm(f => ({
+                        ...f,
+                        exhibitor_type: t,
+                        booths: t === 'vendor' ? f.booths.map(b => ({ ...b, artist_count: 0 })) : f.booths.map(b => ({ ...b, artist_count: Math.max(1, b.artist_count) })),
+                      }))}
+                      className="rounded-md px-4 py-1.5 text-xs font-bold capitalize transition-colors"
+                      style={{
+                        backgroundColor: addForm.exhibitor_type === t ? '#8B7355' : 'transparent',
+                        color: addForm.exhibitor_type === t ? '#fff' : '#666',
+                      }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Booth Entries */}
+              {addForm.booths.map((booth, idx) => (
+                <div key={idx} className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#8B7355' }}>
+                      Booth {addForm.booths.length > 1 ? `#${idx + 1}` : 'Size'}
+                    </p>
+                    {addForm.booths.length > 1 && (
+                      <button
+                        onClick={() => setAddForm(f => ({ ...f, booths: f.booths.filter((_, i) => i !== idx) }))}
+                        className="text-xs font-semibold transition-opacity hover:opacity-80"
+                        style={{ color: '#f87171' }}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="inline-flex rounded-lg p-1" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+                    {(['single', 'double', 'triple', 'quad'] as const).map(s => (
+                      <button
+                        key={s}
+                        onClick={() => setAddForm(f => ({ ...f, booths: f.booths.map((b, i) => i === idx ? { ...b, size: s, artist_count: Math.min(b.artist_count, MAX_ARTISTS[s] ?? 2) } : b) }))}
+                        className="rounded-md px-3 py-1.5 text-xs font-bold capitalize transition-colors"
+                        style={{
+                          backgroundColor: booth.size === s ? '#8B7355' : 'transparent',
+                          color: booth.size === s ? '#fff' : '#666',
+                        }}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-wrap gap-4">
+                    <label className="flex items-center gap-2 text-sm text-white">
+                      <input
+                        type="checkbox"
+                        checked={booth.is_corner}
+                        onChange={e => setAddForm(f => ({ ...f, booths: f.booths.map((b, i) => i === idx ? { ...b, is_corner: e.target.checked } : b) }))}
+                      />
+                      Corner
+                    </label>
+                    {addForm.exhibitor_type === 'artist' && (
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-semibold" style={{ color: '#999' }}>Artists</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={MAX_ARTISTS[booth.size] ?? 2}
+                          value={booth.artist_count}
+                          onChange={e => setAddForm(f => ({ ...f, booths: f.booths.map((b, i) => i === idx ? { ...b, artist_count: Math.min(MAX_ARTISTS[b.size] ?? 2, Math.max(1, parseInt(e.target.value) || 1)) } : b) }))}
+                          className="w-16 rounded-lg px-2 py-1 text-sm text-white outline-none"
+                          style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
+                        />
+                        <span className="text-[10px]" style={{ color: '#555' }}>max {MAX_ARTISTS[booth.size] ?? 2}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Per-booth pricing */}
+                  <div className="text-xs" style={{ color: '#999' }}>
+                    Subtotal: <span className="font-bold text-white">{formatCurrency(boothPricings[idx]?.total ?? 0)}</span>
+                  </div>
+                </div>
+              ))}
+
+              {/* Add More Booths */}
+              <button
+                onClick={() => setAddForm(f => ({ ...f, booths: [...f.booths, { size: 'single', is_corner: false, artist_count: 1 }] }))}
+                className="text-xs font-bold transition-opacity hover:opacity-80"
+                style={{ color: '#C4A882' }}
+              >
+                + Add More Booths
+              </button>
+
+              {/* Veteran Discount */}
+              <label className="flex items-center gap-2 text-sm text-white">
+                <input
+                  type="checkbox"
+                  checked={addForm.is_veteran}
+                  onChange={e => setAddForm(f => ({ ...f, is_veteran: e.target.checked }))}
+                />
+                Veteran Discount
+              </label>
+
+              {/* Combined Pricing */}
+              <div className="rounded-xl p-4" style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wider" style={{ color: '#8B7355' }}>Pricing</p>
+                {boothPricings.map((pricing, idx) => (
+                  <div key={idx}>
+                    {addForm.booths.length > 1 && (
+                      <p className="mt-1 text-[10px] font-bold uppercase" style={{ color: '#666' }}>
+                        Booth #{idx + 1} ({addForm.booths[idx].size})
+                      </p>
+                    )}
+                    {pricing.itemized.map((item, i) => (
+                      <div key={i} className="flex justify-between text-sm">
+                        <span style={{ color: '#999' }}>{item.label}</span>
+                        <span className="font-medium text-white">{formatCurrency(item.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+                <div className="mt-2 flex justify-between border-t pt-2 text-sm font-bold" style={{ borderColor: '#2a2a2a' }}>
+                  <span style={{ color: '#C4A882' }}>Total</span>
+                  <span style={{ color: '#C4A882' }}>{formatCurrency(totalAllBooths)}</span>
+                </div>
+              </div>
+
+              {/* Payment / Deposit */}
+              <div className="rounded-xl p-4" style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}>
+                <p className="mb-3 text-xs font-bold uppercase tracking-wider" style={{ color: '#8B7355' }}>Payment</p>
+
+                <label className="mb-3 flex items-center gap-2 text-sm text-white">
+                  <input
+                    type="checkbox"
+                    checked={addForm.payFull}
+                    onChange={e => setAddForm(f => ({ ...f, payFull: e.target.checked, deposit: '' }))}
+                  />
+                  Pay in Full — {formatCurrency(totalAllBooths)}
+                </label>
+
+                {!addForm.payFull && (
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold" style={{ color: '#999' }}>Deposit Amount</label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-white">$</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        placeholder="0.00"
+                        value={addForm.deposit}
+                        onChange={e => setAddForm(f => ({ ...f, deposit: e.target.value }))}
+                        className="w-32 rounded-lg px-3 py-2 text-sm text-white outline-none"
+                        style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
+                      />
+                    </div>
+                    {depositCents > 0 && (
+                      <p className="mt-2 text-xs" style={{ color: '#999' }}>
+                        Balance remaining: {formatCurrency(totalAllBooths - depositCents)}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="rounded-lg px-4 py-2 text-sm font-semibold"
+                style={{ color: '#999' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddBooth}
+                disabled={addSaving}
+                className="rounded-lg px-5 py-2 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: '#8B7355' }}
+              >
+                {addSaving ? 'Saving…' : `Add Booth${depositCents > 0 ? ` + ${formatCurrency(depositCents)} Deposit` : ''}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

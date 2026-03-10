@@ -31,120 +31,6 @@ const TIER_META: Record<string, { label: string; color: string; borderColor: str
   rafter_banner:     { label: 'Rafter Banner Sponsor',  color: '#C4A882', borderColor: 'rgba(196,168,130,0.3)' },
 }
 
-interface TierPackage {
-  name: string
-  price: string
-  color: string
-  perks: string[]
-  group: 'main' | 'individual'
-}
-
-const PACKAGES: TierPackage[] = [
-  {
-    name: 'Title Sponsor', price: '$20,000', color: '#ffd700', group: 'main',
-    perks: [
-      'Four (4) 10\'x10\' booths at the main entrance',
-      'Logo on all social media graphics leading up to the event',
-      'Title sponsorship on the "Best In Show" tattoo contest award',
-      'Logo on all printed material leading up to and during the event',
-      'Banner placement on the main stage for the duration of the event',
-      'Logo and information prominently displayed on the website homepage',
-      '4 posts monthly on all social media channels promoting your brand',
-      'Title sponsor on the cover of the event guide',
-      'Full-page ad in the event guide',
-      'Featured on the AATC sponsor page',
-      'Ten (10) weekend passes',
-    ],
-  },
-  {
-    name: 'Platinum', price: '$8,000', color: '#e5e4e2', group: 'main',
-    perks: [
-      'Two (2) 10\'x10\' booths at the entrance',
-      'Logo on most printed material including souvenir signature poster',
-      'Banner placement in the main entrance',
-      'Logo and information on the website and some social media graphics',
-      'Multiple posts on all social media channels promoting your brand',
-      'Ad in the event guide and sponsor page',
-      'Featured on the AATC sponsor page',
-      'Five (5) weekend passes',
-    ],
-  },
-  {
-    name: 'Gold', price: '$3,000', color: '#C4A882', group: 'main',
-    perks: [
-      'Two (2) 10\'x10\' booths',
-      'Banner placement in the main entrance',
-      'Logo and information on the website',
-      'Multiple posts on all social media channels promoting your brand',
-      'Ad in the event guide and sponsor page',
-      'Featured on the AATC sponsor page',
-      'Five (5) weekend passes',
-    ],
-  },
-  {
-    name: 'Silver', price: '$1,000', color: '#a8a8a8', group: 'main',
-    perks: [
-      'One (1) 10\'x10\' vendor only booth',
-      'Banner placement in the main entrance',
-      'One promotional post on all social media channels',
-      'Ad in the event guide and sponsor page',
-      'Featured on the AATC sponsor page',
-      'Three (3) weekend passes',
-    ],
-  },
-  {
-    name: 'Brass', price: '$500', color: '#cd7f32', group: 'main',
-    perks: [
-      'Table presence at the entrance (manned or unmanned)',
-      'Ad in the event guide and sponsor page',
-      'Featured on the AATC sponsor page',
-      'Two (2) weekend passes',
-    ],
-  },
-  {
-    name: 'Collectible Coin Sponsor', price: '$2,500', color: '#C4A882', group: 'individual',
-    perks: [
-      'Your logo on the collectible AATC Challenge coin (one side AATC, one side sponsor)',
-      'Coin included in every artist and vendor booth package',
-      'Limited to 1,500 coins per year — only one of these sold annually',
-    ],
-  },
-  {
-    name: 'VIP Bag Sponsor', price: '$800', color: '#C4A882', group: 'individual',
-    perks: [
-      'Place materials inside every VIP bag',
-      'Add your logo, information, or product samples',
-      'Option to name the VIP bag pickup table after your company',
-    ],
-  },
-  {
-    name: "Collector's Choice Sponsor", price: '$1,500', color: '#C4A882', group: 'individual',
-    perks: [
-      'Your logo on every vote page of our website',
-      'Award named after your company',
-      '$500 prize to the winning collector, FREE booth for the winning artist next year',
-      '30 days of online voting after the show',
-      'Option to add your own prize package for the winners',
-    ],
-  },
-  {
-    name: 'Artist Lounge Sponsor', price: '$1,000', color: '#C4A882', group: 'individual',
-    perks: [
-      'VIP access to the artist lounge for up to 25 guests',
-      'The lounge will be named after your company for the event',
-      'Exclusive access to the artist area for your VIP guests',
-    ],
-  },
-  {
-    name: 'Rafter Banner', price: '$750', color: '#C4A882', group: 'individual',
-    perks: [
-      'Hang a 15\'x25\' banner above your booth or along the wall',
-      'Includes banner printing and hanging fee',
-      'Continuous visibility all weekend by all convention goers',
-    ],
-  },
-]
-
 export default function SponsorsPage() {
   const supabase = createClient()
   const [sponsors, setSponsors] = useState<Sponsor[]>([])
@@ -181,20 +67,20 @@ export default function SponsorsPage() {
   }, {})
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#0a0a0a' }}>
+    <div className="min-h-screen">
       <PublicNav />
 
       {/* Header */}
       <div className="border-b px-4 pb-10 pt-8 text-center" style={{ borderColor: '#2a2a2a' }}>
         <p className="mb-2 text-xs font-bold uppercase tracking-[0.3em]" style={{ color: '#8B7355' }}>
-          Support Our Tattooed Military
+          <span className="text-emboss">Support Our Tattooed Military</span>
         </p>
         <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">
-          Our Sponsors
+          <span className="text-emboss">Sponsor Directory</span>
         </h1>
-        <p className="mx-auto mt-3 max-w-xl text-sm" style={{ color: '#999' }}>
-          Thank you to our incredible sponsors who make the Armed &amp; Artistic Tattoo Convention possible.
-          Your support directly benefits our tattooed military community.
+        <p className="mx-auto mt-0 max-w-xl text-sm" style={{ color: '#999' }}>
+          <span className="text-emboss">Thank you to our incredible sponsors who make the All American Tattoo Convention possible.
+          Your support directly benefits our tattooed military community.</span>
         </p>
       </div>
 
@@ -208,54 +94,97 @@ export default function SponsorsPage() {
               return (
                 <div key={tier} className="mb-10">
                   <h2 className="mb-5 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: meta.color }}>
-                    {meta.label}
+                    <span className="text-emboss">{meta.label}</span>
                   </h2>
-                  <div className={`flex flex-wrap justify-center gap-6 ${isTitle ? '' : ''}`}>
+                  <div className="flex flex-wrap justify-center gap-6">
                     {tierSponsors.map(s => (
-                      <a
+                      <div
                         key={s.id}
-                        href={s.website ?? '#'}
-                        target={s.website ? '_blank' : undefined}
-                        rel="noopener noreferrer"
-                        className="group flex flex-col items-center transition-transform hover:scale-105"
+                        className="group flex flex-col items-center"
                       >
-                        <div
-                          className="flex items-center justify-center overflow-hidden rounded-2xl"
-                          style={{
-                            width: isTitle ? 200 : tier === 'platinum' ? 160 : 120,
-                            height: isTitle ? 200 : tier === 'platinum' ? 160 : 120,
-                            backgroundColor: '#111',
-                            border: `2px solid ${meta.borderColor}`,
-                          }}
+                        <a
+                          href={s.website ?? '#'}
+                          target={s.website ? '_blank' : undefined}
+                          rel="noopener noreferrer"
+                          className="flex flex-col items-center transition-transform hover:scale-105"
                         >
-                          {s.logo_url ? (
-                            <img src={s.logo_url} alt={s.sponsor_name} className="h-full w-full object-contain p-3" />
-                          ) : (
-                            <span className="font-display text-3xl font-bold" style={{ color: meta.color }}>
-                              {s.sponsor_name.charAt(0).toUpperCase()}
-                            </span>
+                          <div
+                            className="flex items-center justify-center overflow-hidden rounded-2xl"
+                            style={{
+                              width: isTitle ? 200 : tier === 'platinum' ? 160 : 120,
+                              height: isTitle ? 200 : tier === 'platinum' ? 160 : 120,
+                              backgroundColor: '#111',
+                              border: `2px solid ${meta.borderColor}`,
+                            }}
+                          >
+                            {s.logo_url ? (
+                              <img src={s.logo_url} alt={s.sponsor_name} className="h-full w-full object-contain p-3" />
+                            ) : (
+                              <span className="font-display text-3xl font-bold" style={{ color: meta.color }}>
+                                {s.sponsor_name.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-2 text-center text-sm font-medium text-white group-hover:underline">
+                            {s.sponsor_name}
+                          </p>
+                        </a>
+                        {/* Social icons */}
+                        <div className="mt-1.5 flex items-center gap-2">
+                          {s.website && (
+                            <a
+                              href={s.website.startsWith('http') ? s.website : `https://${s.website}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Website"
+                              className="flex h-7 w-7 items-center justify-center rounded-full transition-colors"
+                              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+                              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(139,115,85,0.25)')}
+                              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(255,255,255,0.06)')}
+                            >
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="2" y1="12" x2="22" y2="12"/>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                              </svg>
+                            </a>
                           )}
-                        </div>
-                        <p className="mt-2 text-center text-sm font-medium text-white group-hover:underline">
-                          {s.sponsor_name}
-                        </p>
-                        <div className="mt-1 flex items-center justify-center gap-2">
                           {s.instagram && (
-                            <a href={`https://instagram.com/${s.instagram.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer"
-                               className="text-xs hover:underline" style={{ color: '#999' }}
-                               onClick={e => e.stopPropagation()}>
-                              @{s.instagram.replace(/^@/, '')}
+                            <a
+                              href={`https://instagram.com/${s.instagram.replace(/^@/, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Instagram"
+                              className="flex h-7 w-7 items-center justify-center rounded-full transition-colors"
+                              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+                              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(139,115,85,0.25)')}
+                              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(255,255,255,0.06)')}
+                            >
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+                                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+                                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+                              </svg>
                             </a>
                           )}
                           {s.facebook && (
-                            <a href={s.facebook.startsWith('http') ? s.facebook : `https://facebook.com/${s.facebook}`} target="_blank" rel="noopener noreferrer"
-                               className="text-xs hover:underline" style={{ color: '#999' }}
-                               onClick={e => e.stopPropagation()}>
-                              Facebook
+                            <a
+                              href={s.facebook.startsWith('http') ? s.facebook : `https://facebook.com/${s.facebook}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Facebook"
+                              className="flex h-7 w-7 items-center justify-center rounded-full transition-colors"
+                              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+                              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(139,115,85,0.25)')}
+                              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(255,255,255,0.06)')}
+                            >
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+                              </svg>
                             </a>
                           )}
                         </div>
-                      </a>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -271,87 +200,24 @@ export default function SponsorsPage() {
         </div>
       )}
 
-      {/* Sponsorship Packages */}
-      <div className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-10 text-center">
-            <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
-              Become a Sponsor
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl text-sm" style={{ color: '#999' }}>
-              Partner with us and get your brand in front of thousands of tattoo enthusiasts, artists, and military
-              supporters. Choose the sponsorship level that fits your goals.
-            </p>
-          </div>
-
-          {/* Main Tier Packages */}
-          <h3 className="mb-6 text-center text-xs font-bold uppercase tracking-[0.25em]" style={{ color: '#8B7355' }}>
-            Sponsorship Tiers
-          </h3>
-          <div className="mb-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {PACKAGES.filter(p => p.group === 'main').map(pkg => (
-              <div
-                key={pkg.name}
-                className="rounded-2xl p-5"
-                style={{ backgroundColor: '#1a1a1a', border: `1px solid ${pkg.color}30` }}
-              >
-                <div className="mb-3 flex items-baseline justify-between">
-                  <h4 className="font-display text-lg font-bold" style={{ color: pkg.color }}>{pkg.name}</h4>
-                  <span className="text-lg font-bold text-white">{pkg.price}</span>
-                </div>
-                <ul className="space-y-2">
-                  {pkg.perks.map((perk, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs" style={{ color: '#bbb' }}>
-                      <span className="mt-0.5 shrink-0" style={{ color: pkg.color }}>&#10003;</span>
-                      {perk}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          {/* Individual Sponsorship Items */}
-          <h3 className="mb-6 text-center text-xs font-bold uppercase tracking-[0.25em]" style={{ color: '#8B7355' }}>
-            Individual Sponsorship Items
-          </h3>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {PACKAGES.filter(p => p.group === 'individual').map(pkg => (
-              <div
-                key={pkg.name}
-                className="rounded-2xl p-5"
-                style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
-              >
-                <div className="mb-3 flex items-baseline justify-between">
-                  <h4 className="font-display text-sm font-bold text-white">{pkg.name}</h4>
-                  <span className="text-sm font-bold" style={{ color: '#C4A882' }}>{pkg.price}</span>
-                </div>
-                <ul className="space-y-2">
-                  {pkg.perks.map((perk, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs" style={{ color: '#bbb' }}>
-                      <span className="mt-0.5 shrink-0" style={{ color: '#C4A882' }}>&#10003;</span>
-                      {perk}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          {/* CTA */}
-          <div className="mt-12 text-center">
-            <p className="mb-4 text-sm" style={{ color: '#999' }}>
-              Interested in sponsoring AATC 2027? Apply now to get started.
-            </p>
-            <Link
-              href="/apply/sponsor"
-              className="inline-flex items-center gap-2 rounded-xl px-8 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
-              style={{ backgroundColor: '#8B7355' }}
-            >
-              Apply for Sponsorship
-            </Link>
-          </div>
+      {!loading && sponsors.length === 0 && (
+        <div className="flex h-40 flex-col items-center justify-center gap-3 px-4">
+          <p className="text-sm" style={{ color: '#555' }}><span className="text-emboss">No sponsors confirmed yet for this event.</span></p>
         </div>
+      )}
+
+      {/* CTA */}
+      <div className="border-t px-4 py-10 text-center" style={{ borderColor: '#2a2a2a' }}>
+        <p className="mb-4 text-sm" style={{ color: '#999' }}>
+          <span className="text-emboss">Interested in sponsoring AATC 2027?</span>
+        </p>
+        <Link
+          href="/sponsors/packages"
+          className="inline-flex items-center gap-2 rounded-xl px-8 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
+          style={{ backgroundColor: '#8B7355' }}
+        >
+          View Sponsorship Packages
+        </Link>
       </div>
     </div>
   )

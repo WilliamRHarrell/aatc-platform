@@ -82,7 +82,7 @@ export interface Database {
         Row: {
           id: string
           event_id: string
-          user_id: string
+          user_id: string | null
           exhibitor_type: 'artist' | 'vendor'
           business_name: string
           contact_name: string
@@ -112,7 +112,7 @@ export interface Database {
         Insert: {
           id?: string
           event_id: string
-          user_id: string
+          user_id?: string | null
           exhibitor_type: 'artist' | 'vendor'
           business_name: string
           contact_name: string
@@ -142,7 +142,7 @@ export interface Database {
         Update: {
           id?: string
           event_id?: string
-          user_id?: string
+          user_id?: string | null
           exhibitor_type?: 'artist' | 'vendor'
           business_name?: string
           contact_name?: string
@@ -278,6 +278,7 @@ export interface Database {
           id: string
           application_id: string | null
           sponsorship_id: string | null
+          food_truck_id: string | null
           stripe_payment_intent_id: string | null
           stripe_invoice_id: string | null
           amount: number
@@ -292,6 +293,7 @@ export interface Database {
           id?: string
           application_id?: string | null
           sponsorship_id?: string | null
+          food_truck_id?: string | null
           stripe_payment_intent_id?: string | null
           stripe_invoice_id?: string | null
           amount: number
@@ -306,6 +308,7 @@ export interface Database {
           id?: string
           application_id?: string | null
           sponsorship_id?: string | null
+          food_truck_id?: string | null
           stripe_payment_intent_id?: string | null
           stripe_invoice_id?: string | null
           amount?: number
@@ -402,6 +405,105 @@ export interface Database {
         }
         Relationships: []
       }
+      panels: {
+        Row: {
+          id: string
+          event_id: string
+          title: string
+          description: string
+          panel_date: string
+          panel_time: string
+          location: string
+          panelists: string
+          is_free: boolean
+          cost: number
+          signup_type: 'none' | 'aatc_invoice' | 'email_host' | 'free_registration'
+          host_email: string | null
+          max_capacity: number | null
+          is_published: boolean
+          image_url: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          title: string
+          description?: string
+          panel_date?: string
+          panel_time?: string
+          location?: string
+          panelists?: string
+          is_free?: boolean
+          cost?: number
+          signup_type?: 'none' | 'aatc_invoice' | 'email_host' | 'free_registration'
+          host_email?: string | null
+          max_capacity?: number | null
+          is_published?: boolean
+          image_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          title?: string
+          description?: string
+          panel_date?: string
+          panel_time?: string
+          location?: string
+          panelists?: string
+          is_free?: boolean
+          cost?: number
+          signup_type?: 'none' | 'aatc_invoice' | 'email_host' | 'free_registration'
+          host_email?: string | null
+          max_capacity?: number | null
+          is_published?: boolean
+          image_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      panel_registrations: {
+        Row: {
+          id: string
+          panel_id: string
+          name: string
+          email: string
+          phone: string | null
+          social_media: string | null
+          attendee_type: 'artist' | 'vendor' | 'patron'
+          payment_status: string
+          stripe_payment_intent_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          panel_id: string
+          name: string
+          email: string
+          phone?: string | null
+          social_media?: string | null
+          attendee_type?: 'artist' | 'vendor' | 'patron'
+          payment_status?: string
+          stripe_payment_intent_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          panel_id?: string
+          name?: string
+          email?: string
+          phone?: string | null
+          social_media?: string | null
+          attendee_type?: 'artist' | 'vendor' | 'patron'
+          payment_status?: string
+          stripe_payment_intent_id?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       sponsorships: {
         Row: {
           id: string
@@ -419,6 +521,8 @@ export interface Database {
           facebook: string | null
           notes: string | null
           user_id: string | null
+          additional_items: string[]
+          featured_footer: boolean
           created_at: string
           updated_at: string
         }
@@ -438,6 +542,8 @@ export interface Database {
           facebook?: string | null
           notes?: string | null
           user_id?: string | null
+          additional_items?: string[]
+          featured_footer?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -457,6 +563,71 @@ export interface Database {
           facebook?: string | null
           notes?: string | null
           user_id?: string | null
+          additional_items?: string[]
+          featured_footer?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      food_trucks: {
+        Row: {
+          id: string
+          event_id: string
+          user_id: string | null
+          business_name: string
+          contact_name: string
+          email: string
+          phone: string | null
+          website: string | null
+          instagram: string | null
+          facebook: string | null
+          cuisine_type: string
+          description: string
+          logo_url: string | null
+          days: string[]
+          thursday_setup: boolean
+          is_published: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          user_id?: string | null
+          business_name: string
+          contact_name: string
+          email: string
+          phone?: string | null
+          website?: string | null
+          instagram?: string | null
+          facebook?: string | null
+          cuisine_type?: string
+          description?: string
+          logo_url?: string | null
+          days?: string[]
+          thursday_setup?: boolean
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          user_id?: string | null
+          business_name?: string
+          contact_name?: string
+          email?: string
+          phone?: string | null
+          website?: string | null
+          instagram?: string | null
+          facebook?: string | null
+          cuisine_type?: string
+          description?: string
+          logo_url?: string | null
+          days?: string[]
+          thursday_setup?: boolean
+          is_published?: boolean
           created_at?: string
           updated_at?: string
         }

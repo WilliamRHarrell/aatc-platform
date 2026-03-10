@@ -25,6 +25,8 @@ interface Sponsorship {
   facebook: string | null
   notes: string | null
   user_id: string | null
+  additional_items: string[]
+  featured_footer: boolean
 }
 
 interface SponsorInvoice {
@@ -367,6 +369,24 @@ export default function AdminSponsorshipsPage() {
     )
     toast.success(`${s.sponsor_name} approved`)
     setApprovingId(null)
+  }
+
+  const toggleFooter = async (s: Sponsorship) => {
+    const newVal = !s.featured_footer
+    const currentFeatured = sponsorships.filter(sp => sp.featured_footer && sp.id !== s.id).length
+    if (newVal && currentFeatured >= 5) {
+      toast.error('Max 5 footer sponsors — remove one first')
+      return
+    }
+    const { error } = await supabase
+      .from('sponsorships')
+      .update({ featured_footer: newVal })
+      .eq('id', s.id)
+    if (error) { toast.error('Failed to update'); return }
+    setSponsorships(prev =>
+      prev.map(sp => sp.id === s.id ? { ...sp, featured_footer: newVal } : sp)
+    )
+    toast.success(newVal ? `${s.sponsor_name} added to footer` : `${s.sponsor_name} removed from footer`)
   }
 
   const inputClass = 'w-full rounded-lg px-4 py-3 text-sm text-white outline-none transition-colors'
@@ -724,6 +744,11 @@ export default function AdminSponsorshipsPage() {
                     {s.email && (
                       <p className="text-xs" style={{ color: '#666' }}>{s.contact_name} · {s.email}</p>
                     )}
+                    {s.additional_items && s.additional_items.length > 0 && (
+                      <p className="text-xs" style={{ color: '#8B7355' }}>
+                        + {s.additional_items.map(i => TIER_INFO[i as SponsorTier]?.label ?? i).join(', ')}
+                      </p>
+                    )}
                   </div>
 
                   {/* Invoice status */}
@@ -749,6 +774,23 @@ export default function AdminSponsorshipsPage() {
                       <span className="text-xs" style={{ color: '#555' }}>No invoice</span>
                     )}
                   </div>
+
+                  {/* Footer toggle */}
+                  <button
+                    onClick={() => toggleFooter(s)}
+                    title={s.featured_footer ? 'Remove from site footer' : 'Show in site footer'}
+                    className="hidden shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80 sm:inline-flex items-center gap-1.5"
+                    style={{
+                      backgroundColor: s.featured_footer ? 'rgba(139,115,85,0.2)' : 'transparent',
+                      color: s.featured_footer ? '#C4A882' : '#555',
+                      border: `1px solid ${s.featured_footer ? 'rgba(139,115,85,0.4)' : '#2a2a2a'}`,
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill={s.featured_footer ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                    Footer
+                  </button>
 
                   {/* Status */}
                   <span

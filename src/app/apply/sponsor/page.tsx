@@ -23,6 +23,85 @@ const TIER_INFO: Record<SponsorTier, { label: string; color: string; amount: num
 }
 
 const ALL_TIERS: SponsorTier[] = ['title', 'platinum', 'gold', 'silver', 'brass', 'collectible_coin', 'vip_bag', 'collectors_choice', 'artist_lounge', 'rafter_banner']
+const MAIN_TIERS = ALL_TIERS.filter(t => TIER_INFO[t].group === 'main')
+const INDIVIDUAL_ITEMS = ALL_TIERS.filter(t => TIER_INFO[t].group === 'individual')
+
+// ── Perks per tier/item ──────────────────────────────────────
+const TIER_PERKS: Record<SponsorTier, string[]> = {
+  title: [
+    'Four (4) 10\'x10\' booths at the main entrance',
+    'Logo on all social media graphics leading up to the event',
+    'Title sponsorship on the "Best In Show" tattoo contest award',
+    'Logo on all printed material leading up to and during the event',
+    'Banner placement on the main stage for the duration of the event',
+    'Logo and information prominently displayed on the website homepage',
+    '4 posts monthly on all social media channels promoting your brand',
+    'Title sponsor on the cover of the event guide',
+    'Full-page ad in the event guide',
+    'Featured on the AATC sponsor page',
+    'Ten (10) weekend passes',
+  ],
+  platinum: [
+    'Two (2) 10\'x10\' booths at the entrance',
+    'Logo on most printed material including souvenir signature poster',
+    'Banner placement in the main entrance',
+    'Logo and information on the website and some social media graphics',
+    'Multiple posts on all social media channels promoting your brand',
+    'Ad in the event guide and sponsor page',
+    'Featured on the AATC sponsor page',
+    'Five (5) weekend passes',
+  ],
+  gold: [
+    'Two (2) 10\'x10\' booths',
+    'Banner placement in the main entrance',
+    'Logo and information on the website',
+    'Multiple posts on all social media channels promoting your brand',
+    'Ad in the event guide and sponsor page',
+    'Featured on the AATC sponsor page',
+    'Five (5) weekend passes',
+  ],
+  silver: [
+    'One (1) 10\'x10\' vendor only booth',
+    'Banner placement in the main entrance',
+    'One promotional post on all social media channels',
+    'Ad in the event guide and sponsor page',
+    'Featured on the AATC sponsor page',
+    'Three (3) weekend passes',
+  ],
+  brass: [
+    'Table presence at the entrance (manned or unmanned)',
+    'Ad in the event guide and sponsor page',
+    'Featured on the AATC sponsor page',
+    'Two (2) weekend passes',
+  ],
+  collectible_coin: [
+    'Your logo on the collectible AATC Challenge coin (one side AATC, one side sponsor)',
+    'Coin included in every artist and vendor booth package',
+    'Limited to 1,500 coins per year — only one of these sold annually',
+  ],
+  vip_bag: [
+    'Place materials inside every VIP bag',
+    'Add your logo, information, or product samples',
+    'Option to name the VIP bag pickup table after your company',
+  ],
+  collectors_choice: [
+    'Your logo on every vote page of our website',
+    'Award named after your company',
+    '$500 prize to the winning collector, FREE booth for the winning artist next year',
+    '30 days of online voting after the show',
+    'Option to add your own prize package for the winners',
+  ],
+  artist_lounge: [
+    'VIP access to the artist lounge for up to 25 guests',
+    'The lounge will be named after your company for the event',
+    'Exclusive access to the artist area for your VIP guests',
+  ],
+  rafter_banner: [
+    'Hang a 15\'x25\' banner above your booth or along the wall',
+    'Includes banner printing and hanging fee',
+    'Continuous visibility all weekend by all convention goers',
+  ],
+}
 
 interface FormState {
   sponsor_name: string
@@ -32,7 +111,8 @@ interface FormState {
   website: string
   instagram: string
   facebook: string
-  tier: SponsorTier
+  tier: SponsorTier | null
+  items: SponsorTier[]
   logo_file: File | null
   notes: string
 }
@@ -45,7 +125,8 @@ const INITIAL_FORM: FormState = {
   website: '',
   instagram: '',
   facebook: '',
-  tier: 'gold',
+  tier: null,
+  items: [],
   logo_file: null,
   notes: '',
 }
@@ -64,6 +145,27 @@ function onBlurGray(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>)
   e.currentTarget.style.borderColor = '#2a2a2a'
 }
 
+// ── Perks list component ─────────────────────────────────────
+function PerksList({ tier }: { tier: SponsorTier }) {
+  const perks = TIER_PERKS[tier]
+  const info = TIER_INFO[tier]
+  return (
+    <div
+      className="mt-2 rounded-lg p-4"
+      style={{ backgroundColor: '#0a0a0a', border: `1px solid ${info.color}30` }}
+    >
+      <ul className="space-y-1.5">
+        {perks.map((perk, i) => (
+          <li key={i} className="flex items-start gap-2 text-xs" style={{ color: '#bbb' }}>
+            <span className="mt-0.5 shrink-0" style={{ color: info.color }}>&#10003;</span>
+            {perk}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 // ── Component ────────────────────────────────────────────────
 export default function SponsorApplicationPage() {
   const supabase = createClient()
@@ -74,6 +176,21 @@ export default function SponsorApplicationPage() {
 
   const set = <K extends keyof FormState>(key: K, val: FormState[K]) =>
     setForm(f => ({ ...f, [key]: val }))
+
+  const toggleItem = (item: SponsorTier) => {
+    setForm(f => ({
+      ...f,
+      items: f.items.includes(item) ? f.items.filter(i => i !== item) : [...f.items, item],
+    }))
+  }
+
+  const selectTier = (tier: SponsorTier) => {
+    setForm(f => ({ ...f, tier: f.tier === tier ? null : tier }))
+  }
+
+  // Calculate total amount
+  const totalAmount = (form.tier ? TIER_INFO[form.tier].amount : 0) +
+    form.items.reduce((sum, item) => sum + TIER_INFO[item].amount, 0)
 
   // ── Logo upload ────────────────────────────────────────────
   const uploadLogo = async (file: File): Promise<string | null> => {
@@ -95,6 +212,7 @@ export default function SponsorApplicationPage() {
     if (!form.sponsor_name.trim()) return toast.error('Company/Sponsor name is required.')
     if (!form.contact_name.trim()) return toast.error('Contact name is required.')
     if (!form.email.trim()) return toast.error('Email is required.')
+    if (!form.tier && form.items.length === 0) return toast.error('Please select at least one sponsorship tier or item.')
 
     setSubmitting(true)
     try {
@@ -119,8 +237,12 @@ export default function SponsorApplicationPage() {
         }
       }
 
-      // Insert sponsorship record
-      const tierInfo = TIER_INFO[form.tier]
+      // Determine primary tier: main tier if selected, otherwise highest-value item
+      const primaryTier = form.tier ?? form.items.sort((a, b) => TIER_INFO[b].amount - TIER_INFO[a].amount)[0]
+
+      // Additional items (individual items selected alongside the tier)
+      const additionalItems = form.items.length > 0 ? form.items : []
+
       const { error: insertErr } = await supabase.from('sponsorships').insert({
         event_id: event.id,
         sponsor_name: form.sponsor_name.trim(),
@@ -130,10 +252,11 @@ export default function SponsorApplicationPage() {
         website: form.website.trim() || null,
         instagram: form.instagram.trim() || null,
         facebook: form.facebook.trim() || null,
-        tier: form.tier,
-        amount: tierInfo.amount,
+        tier: primaryTier,
+        amount: totalAmount,
         logo_url,
         notes: form.notes.trim() || null,
+        additional_items: additionalItems,
         status: 'pending',
       })
 
@@ -157,7 +280,7 @@ export default function SponsorApplicationPage() {
   // ── Success screen ─────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="min-h-screen" style={{ backgroundColor: '#0a0a0a' }}>
+      <div className="min-h-screen">
         <PublicNav />
         <div className="mx-auto max-w-lg px-4 py-24 text-center">
           <div
@@ -180,15 +303,15 @@ export default function SponsorApplicationPage() {
 
   // ── Form ───────────────────────────────────────────────────
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#0a0a0a' }}>
+    <div className="min-h-screen">
       <PublicNav />
 
       <div className="mx-auto max-w-2xl px-4 py-12">
         {/* Header */}
         <div className="mb-10 text-center">
-          <h1 className="mb-2 text-3xl font-bold text-white">Sponsor Application</h1>
+          <h1 className="mb-2 text-3xl font-bold text-white"><span className="text-emboss">Sponsor Application</span></h1>
           <p className="text-sm" style={{ color: '#777' }}>
-            Partner with us and get your brand in front of thousands of attendees.
+            <span className="text-emboss">Partner with us and get your brand in front of thousands of attendees.</span>
           </p>
         </div>
 
@@ -200,7 +323,6 @@ export default function SponsorApplicationPage() {
           >
             <h2 className="mb-5 text-base font-semibold text-white">Contact Information</h2>
             <div className="space-y-4">
-              {/* Sponsor name */}
               <div>
                 <label className="mb-1.5 block text-xs font-medium" style={{ color: '#888' }}>
                   Company / Sponsor Name <span style={{ color: '#C4A882' }}>*</span>
@@ -216,8 +338,6 @@ export default function SponsorApplicationPage() {
                   placeholder="Acme Corp"
                 />
               </div>
-
-              {/* Contact name */}
               <div>
                 <label className="mb-1.5 block text-xs font-medium" style={{ color: '#888' }}>
                   Contact Name <span style={{ color: '#C4A882' }}>*</span>
@@ -233,8 +353,6 @@ export default function SponsorApplicationPage() {
                   placeholder="Jane Doe"
                 />
               </div>
-
-              {/* Email */}
               <div>
                 <label className="mb-1.5 block text-xs font-medium" style={{ color: '#888' }}>
                   Email <span style={{ color: '#C4A882' }}>*</span>
@@ -250,12 +368,8 @@ export default function SponsorApplicationPage() {
                   placeholder="jane@acmecorp.com"
                 />
               </div>
-
-              {/* Phone */}
               <div>
-                <label className="mb-1.5 block text-xs font-medium" style={{ color: '#888' }}>
-                  Phone
-                </label>
+                <label className="mb-1.5 block text-xs font-medium" style={{ color: '#888' }}>Phone</label>
                 <input
                   type="tel"
                   value={form.phone}
@@ -267,12 +381,8 @@ export default function SponsorApplicationPage() {
                   placeholder="(555) 123-4567"
                 />
               </div>
-
-              {/* Website */}
               <div>
-                <label className="mb-1.5 block text-xs font-medium" style={{ color: '#888' }}>
-                  Website
-                </label>
+                <label className="mb-1.5 block text-xs font-medium" style={{ color: '#888' }}>Website</label>
                 <input
                   type="url"
                   value={form.website}
@@ -284,13 +394,9 @@ export default function SponsorApplicationPage() {
                   placeholder="https://acmecorp.com"
                 />
               </div>
-
-              {/* Social — two columns */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium" style={{ color: '#888' }}>
-                    Instagram
-                  </label>
+                  <label className="mb-1.5 block text-xs font-medium" style={{ color: '#888' }}>Instagram</label>
                   <input
                     type="text"
                     value={form.instagram}
@@ -303,9 +409,7 @@ export default function SponsorApplicationPage() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium" style={{ color: '#888' }}>
-                    Facebook
-                  </label>
+                  <label className="mb-1.5 block text-xs font-medium" style={{ color: '#888' }}>Facebook</label>
                   <input
                     type="text"
                     value={form.facebook}
@@ -326,20 +430,24 @@ export default function SponsorApplicationPage() {
             className="rounded-xl p-6"
             style={{ backgroundColor: '#111', border: '1px solid #1a1a1a' }}
           >
-            <h2 className="mb-5 text-base font-semibold text-white">Preferred Sponsorship Tier</h2>
-
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: '#666' }}>
-              Main Tiers
+            <h2 className="mb-2 text-base font-semibold text-white">Sponsorship Selection</h2>
+            <p className="mb-5 text-xs" style={{ color: '#666' }}>
+              Choose one main tier and/or add individual sponsorship items.
             </p>
-            <div className="mb-3 flex flex-wrap gap-2">
-              {ALL_TIERS.filter(t => TIER_INFO[t].group === 'main').map(t => {
+
+            {/* Main Tiers — radio behavior */}
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: '#666' }}>
+              Main Tiers <span className="normal-case font-normal">(select one)</span>
+            </p>
+            <div className="mb-2 flex flex-wrap gap-2">
+              {MAIN_TIERS.map(t => {
                 const info = TIER_INFO[t]
                 const active = form.tier === t
                 return (
                   <button
                     key={t}
                     type="button"
-                    onClick={() => set('tier', t)}
+                    onClick={() => selectTier(t)}
                     className="rounded-lg px-3 py-2 text-xs font-semibold transition-colors"
                     style={{
                       backgroundColor: active ? `${info.color}25` : 'rgba(255,255,255,0.04)',
@@ -352,19 +460,23 @@ export default function SponsorApplicationPage() {
                 )
               })}
             </div>
+            {form.tier && TIER_INFO[form.tier].group === 'main' && (
+              <PerksList tier={form.tier} />
+            )}
 
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: '#666' }}>
-              Individual Items
+            {/* Individual Items — checkbox behavior */}
+            <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider" style={{ color: '#666' }}>
+              Individual Items <span className="normal-case font-normal">(select any)</span>
             </p>
             <div className="flex flex-wrap gap-2">
-              {ALL_TIERS.filter(t => TIER_INFO[t].group === 'individual').map(t => {
+              {INDIVIDUAL_ITEMS.map(t => {
                 const info = TIER_INFO[t]
-                const active = form.tier === t
+                const active = form.items.includes(t)
                 return (
                   <button
                     key={t}
                     type="button"
-                    onClick={() => set('tier', t)}
+                    onClick={() => toggleItem(t)}
                     className="rounded-lg px-3 py-2 text-xs font-semibold transition-colors"
                     style={{
                       backgroundColor: active ? 'rgba(139,115,85,0.2)' : 'rgba(255,255,255,0.04)',
@@ -372,11 +484,29 @@ export default function SponsorApplicationPage() {
                       border: `1px solid ${active ? 'rgba(139,115,85,0.5)' : '#2a2a2a'}`,
                     }}
                   >
-                    {info.label} · {formatCurrency(info.amount)}
+                    {active ? '✓ ' : ''}{info.label} · {formatCurrency(info.amount)}
                   </button>
                 )
               })}
             </div>
+            {form.items.map(item => (
+              <PerksList key={item} tier={item} />
+            ))}
+
+            {/* Total */}
+            {totalAmount > 0 && (
+              <div
+                className="mt-5 flex items-center justify-between rounded-lg px-4 py-3"
+                style={{ backgroundColor: '#0a0a0a', border: '1px solid rgba(139,115,85,0.3)' }}
+              >
+                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#888' }}>
+                  Total
+                </span>
+                <span className="text-lg font-bold" style={{ color: '#C4A882' }}>
+                  {formatCurrency(totalAmount)}
+                </span>
+              </div>
+            )}
           </section>
 
           {/* ── Logo Upload ────────────────────────────────── */}

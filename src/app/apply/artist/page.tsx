@@ -8,6 +8,7 @@ import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import type { BoothSize } from '@/lib/pricing'
 import type { Event } from '@/types'
+import BoothTypeToggle from '@/components/BoothTypeToggle'
 
 // ── Types ────────────────────────────────────────────────────
 interface ContactFields {
@@ -28,10 +29,20 @@ interface BoothFields {
   is_veteran: boolean
 }
 
+interface ArtistEntry {
+  name: string
+  nickname: string
+  instagram: string
+  styles: string[]
+  id_file: File | null
+  id_later: boolean
+  portfolio_files: File[]
+}
+
 interface DetailFields {
   tv_show: string
+  tv_show_flag: boolean
   notes: string
-  id_doc_file: File | null
   veteran_id_file: File | null
 }
 
@@ -57,6 +68,13 @@ const BOOTH_SIZES: { value: BoothSize; label: string; sqft: string; artistPrice:
 ]
 
 const ACCEPTED_FILE_TYPES = 'image/jpeg,image/png,image/webp,application/pdf'
+
+const TATTOO_STYLES = [
+  'American Traditional', 'Neo-Traditional', 'Japanese', 'Realism',
+  'Watercolor', 'Blackwork', 'Dotwork', 'Geometric', 'Tribal',
+  'New School', 'Illustrative', 'Fine Line', 'Surrealism', 'Horror / Dark Art',
+  'Biomechanical', 'Lettering / Script', 'Floral', 'Minimalist', 'Portrait', 'Cover-up',
+]
 
 // ── Step indicator ────────────────────────────────────────────
 function StepIndicator({ current, total }: { current: number; total: number }) {
@@ -191,6 +209,71 @@ function FileUploadField({
   )
 }
 
+// ── Portfolio upload ───────────────────────────────────────────
+function PortfolioUpload({ files, onChange }: { files: File[]; onChange: (files: File[]) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-white">
+        Portfolio images <span style={{ color: '#555' }}>(optional)</span>
+      </label>
+      <p className="mb-2 text-xs" style={{ color: '#999999' }}>
+        Upload up to 10 photos of your work (JPG, PNG, WebP)
+      </p>
+      {files.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {files.map((f, fi) => (
+            <div key={fi} className="relative h-16 w-16 overflow-hidden rounded-lg" style={{ border: '1px solid #2a2a2a' }}>
+              <img
+                src={URL.createObjectURL(f)}
+                alt={f.name}
+                className="h-full w-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => onChange(files.filter((_, idx) => idx !== fi))}
+                className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[10px]"
+                style={{ backgroundColor: 'rgba(0,0,0,0.7)', color: '#fff' }}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      {files.length < 10 && (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm transition-colors"
+          style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a', color: '#555' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#8B7355'; (e.currentTarget as HTMLElement).style.color = '#C4A882' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#2a2a2a'; (e.currentTarget as HTMLElement).style.color = '#555' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Add photos{files.length > 0 ? ` (${files.length}/10)` : ''}
+        </button>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={e => {
+          const newFiles = Array.from(e.target.files ?? [])
+          onChange([...files, ...newFiles].slice(0, 10))
+          e.target.value = ''
+        }}
+      />
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────
 export default function ArtistApplyPage() {
   const supabase = createClient()
@@ -221,10 +304,13 @@ export default function ArtistApplyPage() {
 
   const [details, setDetails] = useState<DetailFields>({
     tv_show: '',
+    tv_show_flag: false,
     notes: '',
-    id_doc_file: null,
     veteran_id_file: null,
   })
+
+  const [artistEntries, setArtistEntries] = useState<ArtistEntry[]>([{ name: '', nickname: '', instagram: '', styles: [], id_file: null, id_later: false, portfolio_files: [] }])
+  const [artistErrors, setArtistErrors] = useState<boolean[]>([])
 
   // Load active event + pre-fill from auth
   useEffect(() => {
@@ -255,6 +341,18 @@ export default function ArtistApplyPage() {
     }
   }, [booth.booth_size, maxArtists])
 
+  // Keep artistEntries array in sync with artist_count
+  useEffect(() => {
+    setArtistEntries(prev => {
+      const n = booth.artist_count
+      if (prev.length === n) return prev
+      if (prev.length < n) {
+        return [...prev, ...Array.from({ length: n - prev.length }, () => ({ name: '', nickname: '', instagram: '', styles: [], id_file: null, id_later: false, portfolio_files: [] }))]
+      }
+      return prev.slice(0, n)
+    })
+  }, [booth.artist_count])
+
   const pricing = useMemo(
     () =>
       calculatePricing({
@@ -269,10 +367,6 @@ export default function ArtistApplyPage() {
 
   const handleSubmit = async () => {
     if (!event) return
-    if (!details.id_doc_file) {
-      toast.error('Please upload your ID document')
-      return
-    }
     setSubmitting(true)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -282,17 +376,26 @@ export default function ArtistApplyPage() {
       return
     }
 
-    // Upload ID doc
     const ts = Date.now()
-    const idExt = details.id_doc_file.name.split('.').pop()
-    const { data: idUpload, error: idErr } = await supabase.storage
-      .from('application-docs')
-      .upload(`${user.id}/${ts}-id.${idExt}`, details.id_doc_file)
 
-    if (idErr) {
-      toast.error('Failed to upload ID document. Please try again.')
-      setSubmitting(false)
-      return
+    // Upload each artist's ID (skipped when artistsIdsLater is true)
+    const artistsData: Array<{ name: string; nickname: string; instagram: string; styles: string[]; id_url: string | null; id_later: boolean; portfolio_urls: string[] }> = []
+    for (let i = 0; i < artistEntries.length; i++) {
+      const entry = artistEntries[i]
+      let id_url: string | null = null
+      if (!entry.id_later && entry.id_file) {
+        const ext = entry.id_file.name.split('.').pop()
+        const { data: up, error: upErr } = await supabase.storage
+          .from('application-docs')
+          .upload(`${user.id}/${ts}-artist-${i + 1}-id.${ext}`, entry.id_file)
+        if (upErr) {
+          toast.error(`Failed to upload ID for artist ${i + 1}. Please try again.`)
+          setSubmitting(false)
+          return
+        }
+        id_url = up.path
+      }
+      artistsData.push({ name: entry.name, nickname: entry.nickname, instagram: entry.instagram, styles: entry.styles, id_url, id_later: entry.id_later, portfolio_urls: [] })
     }
 
     // Upload veteran ID if applicable
@@ -310,7 +413,7 @@ export default function ArtistApplyPage() {
       veteranIdUrl = vetUpload.path
     }
 
-    const { error } = await supabase.from('applications').insert({
+    const { data: appRow, error } = await supabase.from('applications').insert({
       event_id: event.id,
       user_id: user.id,
       exhibitor_type: 'artist' as const,
@@ -328,16 +431,42 @@ export default function ArtistApplyPage() {
       is_veteran: booth.is_veteran,
       total_amount: pricing.total,
       tv_show: details.tv_show || null,
-      id_doc_url: idUpload.path,
       veteran_id_url: veteranIdUrl,
       notes: details.notes || null,
+      artists: artistsData,
+      artists_ids_later: artistEntries.some(e => e.id_later),
       status: 'pending' as const,
-    })
+    }).select('id').single()
 
-    if (error) {
+    if (error || !appRow) {
       toast.error('Failed to submit application. Please try again.')
       setSubmitting(false)
       return
+    }
+
+    // Upload portfolio images for each artist
+    const hasPortfolio = artistEntries.some(e => e.portfolio_files.length > 0)
+    if (hasPortfolio) {
+      const updatedArtists = [...artistsData]
+      for (let i = 0; i < artistEntries.length; i++) {
+        const entry = artistEntries[i]
+        if (entry.portfolio_files.length === 0) continue
+        const urls: string[] = []
+        for (let j = 0; j < entry.portfolio_files.length; j++) {
+          const f = entry.portfolio_files[j]
+          const ext = f.name.split('.').pop()
+          const path = `${appRow.id}/artists/${i}/${ts}-${j}.${ext}`
+          const { data: up, error: upErr } = await supabase.storage
+            .from('exhibitor-media')
+            .upload(path, f)
+          if (!upErr && up) {
+            const { data: urlData } = supabase.storage.from('exhibitor-media').getPublicUrl(up.path)
+            urls.push(urlData.publicUrl)
+          }
+        }
+        updatedArtists[i] = { ...updatedArtists[i], portfolio_urls: urls }
+      }
+      await supabase.from('applications').update({ artists: updatedArtists }).eq('id', appRow.id)
     }
 
     setSubmitted(true)
@@ -346,7 +475,7 @@ export default function ArtistApplyPage() {
   // ── Loading ────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#0a0a0a' }}>
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div
             className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"
@@ -361,7 +490,7 @@ export default function ArtistApplyPage() {
   // ── Success ────────────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center px-4" style={{ backgroundColor: '#0a0a0a' }}>
+      <div className="flex min-h-screen flex-col items-center justify-center px-4">
         <div
           className="w-full max-w-md rounded-2xl p-8 text-center"
           style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
@@ -390,7 +519,7 @@ export default function ArtistApplyPage() {
   }
 
   return (
-    <div className="min-h-screen px-4 py-10" style={{ backgroundColor: '#0a0a0a' }}>
+    <div className="min-h-screen px-4 py-10">
       {/* Header */}
       <div className="mx-auto mb-8 max-w-5xl">
         <Link
@@ -406,11 +535,12 @@ export default function ArtistApplyPage() {
           Back
         </Link>
         <div className="mt-4">
-          <p className="mb-1 text-sm font-medium uppercase tracking-widest" style={{ color: '#8B7355' }}>Artist Application</p>
-          <h1 className="font-display text-3xl font-bold text-white sm:text-4xl">Apply for AATC 2027</h1>
+          <BoothTypeToggle active="artist" />
+          <p className="mb-1 text-sm font-medium uppercase tracking-widest" style={{ color: '#8B7355' }}><span className="text-emboss">Artist Application</span></p>
+          <h1 className="font-display text-3xl font-bold text-white sm:text-4xl"><span className="text-emboss">Apply for AATC 2027</span></h1>
           {event && (
             <p className="mt-1 text-sm" style={{ color: '#999999' }}>
-              {event.venue} · {event.city}, {event.state} · April 16–18, 2027
+              <span className="text-emboss">{event.venue} · {event.city}, {event.state} · April 16–18, 2027</span>
             </p>
           )}
         </div>
@@ -667,24 +797,185 @@ export default function ArtistApplyPage() {
             {/* ── Step 3: Documents & Additional Details ────────────────────── */}
             {step === 3 && (
               <div>
-                <h2 className="font-display mb-1 text-xl font-bold text-white">Documents & Details</h2>
-                <p className="mb-6 text-sm" style={{ color: '#999999' }}>Upload required documents and share a bit more about yourself.</p>
+                <h2 className="font-display mb-1 text-xl font-bold text-white">Artist IDs & Details</h2>
+                <p className="mb-6 text-sm" style={{ color: '#999999' }}>
+                  Fill in what you know now — all artist info can be added later. Government-issued IDs are required for health department permitting.
+                </p>
 
-                <div className="space-y-5">
-                  {/* ID doc upload */}
-                  <FileUploadField
-                    label="Government-issued ID"
-                    hint="Required for permitting purposes only. Your information is kept confidential."
-                    required
-                    file={details.id_doc_file}
-                    onChange={f => setDetails(d => ({ ...d, id_doc_file: f }))}
-                  />
+                <div className="space-y-6">
+                  {/* Per-artist entries */}
+                  <div className="space-y-4">
+                    {artistEntries.map((entry, i) => (
+                      <div
+                        key={i}
+                        className="rounded-xl overflow-hidden"
+                        style={{ backgroundColor: '#0a0a0a', border: `1px solid ${artistErrors[i] ? '#ef4444' : entry.id_later ? 'rgba(234,179,8,0.3)' : '#2a2a2a'}` }}
+                      >
+                        {/* Card header with "Update later" toggle */}
+                        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: `1px solid ${artistErrors[i] ? 'rgba(239,68,68,0.2)' : entry.id_later ? 'rgba(234,179,8,0.15)' : '#1a1a1a'}` }}>
+                          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#8B7355' }}>
+                            Artist {i + 1}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setArtistEntries(prev =>
+                                prev.map((a, idx) => idx === i ? { ...a, id_later: !a.id_later, id_file: null } : a)
+                              )
+                              setArtistErrors(prev => prev.map((e, idx) => idx === i ? false : e))
+                            }}
+                            className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-all"
+                            style={{
+                              backgroundColor: entry.id_later ? 'rgba(234,179,8,0.12)' : 'transparent',
+                              color: entry.id_later ? '#eab308' : '#555',
+                              border: `1px solid ${entry.id_later ? 'rgba(234,179,8,0.3)' : '#2a2a2a'}`,
+                            }}
+                          >
+                            <div
+                              className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded"
+                              style={{
+                                backgroundColor: entry.id_later ? '#eab308' : 'transparent',
+                                border: `1.5px solid ${entry.id_later ? '#eab308' : '#555'}`,
+                              }}
+                            >
+                              {entry.id_later && (
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                              )}
+                            </div>
+                            Update info later
+                          </button>
+                        </div>
 
-                  {/* Veteran ID upload — only shown when veteran discount selected */}
+                        {entry.id_later ? (
+                          <div className="px-4 py-5">
+                            <p className="text-sm" style={{ color: '#666' }}>
+                              Artist info will be added later through the applicant portal.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="space-y-4 p-4">
+                            {/* Name + Nickname */}
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <div>
+                                <label className="mb-1.5 block text-sm font-medium text-white">Legal name <span style={{ color: '#555' }}>(optional)</span></label>
+                                <input
+                                  type="text"
+                                  value={entry.name}
+                                  onChange={e => setArtistEntries(prev =>
+                                    prev.map((a, idx) => idx === i ? { ...a, name: e.target.value } : a)
+                                  )}
+                                  className={inputClass()} style={inputStyle()}
+                                  onFocus={onFocusGold} onBlur={onBlurGray}
+                                  placeholder="Full legal name"
+                                />
+                              </div>
+                              <div>
+                                <label className="mb-1.5 block text-sm font-medium text-white">Artist Name <span style={{ color: '#555' }}>(optional)</span></label>
+                                <input
+                                  type="text"
+                                  value={entry.nickname}
+                                  onChange={e => setArtistEntries(prev =>
+                                    prev.map((a, idx) => idx === i ? { ...a, nickname: e.target.value } : a)
+                                  )}
+                                  className={inputClass()} style={inputStyle()}
+                                  onFocus={onFocusGold} onBlur={onBlurGray}
+                                  placeholder="If you want something other than your legal name displayed, enter it here"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Instagram */}
+                            <div>
+                              <label className="mb-1.5 block text-sm font-medium text-white">Instagram handle <span style={{ color: '#555' }}>(optional)</span></label>
+                              <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#555' }}>@</span>
+                                <input
+                                  type="text"
+                                  value={entry.instagram}
+                                  onChange={e => setArtistEntries(prev =>
+                                    prev.map((a, idx) => idx === i ? { ...a, instagram: e.target.value.replace(/^@/, '') } : a)
+                                  )}
+                                  className={inputClass()} style={{ ...inputStyle(), paddingLeft: '2rem' }}
+                                  onFocus={onFocusGold} onBlur={onBlurGray}
+                                  placeholder="yourhandle"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Tattoo styles */}
+                            <div>
+                              <label className="mb-2 block text-sm font-medium text-white">
+                                Tattoo styles <span style={{ color: '#555' }}>(select all that apply)</span>
+                              </label>
+                              <div className="flex flex-wrap gap-1.5">
+                                {TATTOO_STYLES.map(style => {
+                                  const selected = entry.styles.includes(style)
+                                  return (
+                                    <button
+                                      key={style}
+                                      type="button"
+                                      onClick={() => setArtistEntries(prev => prev.map((a, idx) => {
+                                        if (idx !== i) return a
+                                        return {
+                                          ...a,
+                                          styles: selected ? a.styles.filter(s => s !== style) : [...a.styles, style],
+                                        }
+                                      }))}
+                                      className="rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
+                                      style={{
+                                        backgroundColor: selected ? 'rgba(139,115,85,0.2)' : 'rgba(255,255,255,0.04)',
+                                        color: selected ? '#C4A882' : '#555',
+                                        border: `1px solid ${selected ? 'rgba(139,115,85,0.5)' : '#2a2a2a'}`,
+                                      }}
+                                    >
+                                      {style}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+
+                            {/* ID upload */}
+                            <FileUploadField
+                              label="Government-issued ID"
+                              hint="Driver's license, passport, or state ID. Kept confidential — permitting use only. Can be uploaded later."
+                              required={false}
+                              file={entry.id_file}
+                              onChange={f => setArtistEntries(prev =>
+                                prev.map((a, idx) => idx === i ? { ...a, id_file: f } : a)
+                              )}
+                            />
+
+                            {/* Portfolio images */}
+                            <PortfolioUpload
+                              files={entry.portfolio_files}
+                              onChange={files => setArtistEntries(prev =>
+                                prev.map((a, idx) => idx === i ? { ...a, portfolio_files: files } : a)
+                              )}
+                            />
+                          </div>
+                        )}
+
+                        {/* Error message */}
+                        {artistErrors[i] && !entry.id_later && (
+                          <div className="px-4 pb-3">
+                            <p className="text-xs" style={{ color: '#ef4444' }}>
+                              Please fill in at least one field, or check &ldquo;Update info later&rdquo; to continue.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Veteran ID upload — required when veteran discount selected */}
                   {booth.is_veteran && (
                     <FileUploadField
                       label="Veteran ID / proof of service"
                       hint="Upload your DD-214 or military ID to verify your veteran discount."
+                      required
                       file={details.veteran_id_file}
                       onChange={f => setDetails(d => ({ ...d, veteran_id_file: f }))}
                     />
@@ -692,17 +983,37 @@ export default function ArtistApplyPage() {
 
                   {/* TV show experience */}
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-white">Tattoo TV show experience</label>
-                    <p className="mb-2 text-xs" style={{ color: '#999999' }}>
-                      Were you on a tattoo TV show? (Ink Master, Best Ink, Miami Ink, etc.)
-                    </p>
-                    <input
-                      type="text" value={details.tv_show}
-                      onChange={e => setDetails(d => ({ ...d, tv_show: e.target.value }))}
-                      className={inputClass()} style={inputStyle()}
-                      onFocus={onFocusGold} onBlur={onBlurGray}
-                      placeholder="e.g. Ink Master Season 12"
-                    />
+                    <p className="mb-2 text-sm font-medium text-white">Were you featured on a tattoo TV show?</p>
+                    <p className="mb-3 text-xs" style={{ color: '#999999' }}>e.g. Ink Master, Best Ink, Miami Ink, etc.</p>
+                    <div className="flex gap-3">
+                      {[{ label: 'Yes', val: true }, { label: 'No', val: false }].map(({ label, val }) => {
+                        const active = val ? !!details.tv_show_flag : !details.tv_show_flag
+                        return (
+                          <button
+                            key={label}
+                            type="button"
+                            onClick={() => setDetails(d => ({ ...d, tv_show_flag: val, tv_show: val ? d.tv_show : '' }))}
+                            className="rounded-lg px-5 py-2 text-sm font-semibold transition-colors"
+                            style={{
+                              backgroundColor: active ? 'rgba(139,115,85,0.2)' : 'rgba(255,255,255,0.04)',
+                              color: active ? '#C4A882' : '#666',
+                              border: `1px solid ${active ? 'rgba(139,115,85,0.5)' : '#2a2a2a'}`,
+                            }}
+                          >
+                            {label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {details.tv_show_flag && (
+                      <input
+                        type="text" value={details.tv_show}
+                        onChange={e => setDetails(d => ({ ...d, tv_show: e.target.value }))}
+                        className={`mt-3 ${inputClass()}`} style={inputStyle()}
+                        onFocus={onFocusGold} onBlur={onBlurGray}
+                        placeholder="Which show and season? (e.g. Ink Master Season 12)"
+                      />
+                    )}
                   </div>
 
                   {/* Additional notes */}
@@ -727,8 +1038,18 @@ export default function ArtistApplyPage() {
                   >← Back</button>
                   <button
                     onClick={() => {
-                      if (!details.id_doc_file) {
-                        toast.error('Please upload your government-issued ID')
+                      // Validate: each artist must either check "update later" or fill in something
+                      const errors = artistEntries.map(e =>
+                        !e.id_later && !e.name && !e.nickname && e.styles.length === 0 && !e.id_file && e.portfolio_files.length === 0
+                      )
+                      if (errors.some(Boolean)) {
+                        setArtistErrors(errors)
+                        toast.error('Please fill in artist info or check "Update info later" for each artist')
+                        return
+                      }
+                      setArtistErrors([])
+                      if (booth.is_veteran && !details.veteran_id_file) {
+                        toast.error('Please upload your veteran ID to claim the veteran discount')
                         return
                       }
                       setStep(4)
@@ -784,17 +1105,21 @@ export default function ArtistApplyPage() {
                 {/* Documents summary */}
                 <div className="mb-4 rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
                   <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#8B7355' }}>Documents</p>
+                    <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#8B7355' }}>Artists & Documents</p>
                     <button onClick={() => setStep(3)} className="text-xs transition-colors" style={{ color: '#555' }}
                       onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#C4A882')}
                       onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#555')}
                     >Edit</button>
                   </div>
-                  <p className="text-sm" style={{ color: '#999' }}>ID: {details.id_doc_file?.name}</p>
+                  {artistEntries.map((a, i) => (
+                    <p key={i} className="text-sm" style={{ color: a.id_later ? '#eab308' : '#999' }}>
+                      Artist {i + 1}: {a.name || '(name TBD)'}{a.nickname ? ` · "${a.nickname}"` : ''} · {a.id_later ? 'ID to be provided later' : (a.id_file?.name ?? 'no ID')}
+                    </p>
+                  ))}
                   {booth.is_veteran && details.veteran_id_file && (
                     <p className="text-sm" style={{ color: '#999' }}>Veteran ID: {details.veteran_id_file.name}</p>
                   )}
-                  {details.tv_show && <p className="text-sm" style={{ color: '#999' }}>TV: {details.tv_show}</p>}
+                  {details.tv_show && <p className="mt-1 text-sm" style={{ color: '#999' }}>TV: {details.tv_show}</p>}
                   {details.notes && <p className="mt-1 text-sm" style={{ color: '#999' }}>Notes: {details.notes}</p>}
                 </div>
 

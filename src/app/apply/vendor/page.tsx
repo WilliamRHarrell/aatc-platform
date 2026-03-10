@@ -8,6 +8,7 @@ import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import type { BoothSize } from '@/lib/pricing'
 import type { Event } from '@/types'
+import BoothTypeToggle from '@/components/BoothTypeToggle'
 
 // ── Types ────────────────────────────────────────────────────
 interface ContactFields {
@@ -332,7 +333,7 @@ export default function VendorApplyPage() {
   // ── Loading ────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#0a0a0a' }}>
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div
             className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-t-transparent"
@@ -347,7 +348,7 @@ export default function VendorApplyPage() {
   // ── Success ────────────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center px-4" style={{ backgroundColor: '#0a0a0a' }}>
+      <div className="flex min-h-screen flex-col items-center justify-center px-4">
         <div
           className="w-full max-w-md rounded-2xl p-8 text-center"
           style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
@@ -376,7 +377,7 @@ export default function VendorApplyPage() {
   }
 
   return (
-    <div className="min-h-screen px-4 py-10" style={{ backgroundColor: '#0a0a0a' }}>
+    <div className="min-h-screen px-4 py-10">
       {/* Header */}
       <div className="mx-auto mb-8 max-w-5xl">
         <Link
@@ -392,11 +393,12 @@ export default function VendorApplyPage() {
           Back
         </Link>
         <div className="mt-4">
-          <p className="mb-1 text-sm font-medium uppercase tracking-widest" style={{ color: '#8B7355' }}>Vendor Application</p>
-          <h1 className="font-display text-3xl font-bold text-white sm:text-4xl">Apply for AATC 2027</h1>
+          <BoothTypeToggle active="vendor" />
+          <p className="mb-1 text-sm font-medium uppercase tracking-widest" style={{ color: '#8B7355' }}><span className="text-emboss">Vendor Application</span></p>
+          <h1 className="font-display text-3xl font-bold text-white sm:text-4xl"><span className="text-emboss">Apply for AATC 2027</span></h1>
           {event && (
             <p className="mt-1 text-sm" style={{ color: '#999999' }}>
-              {event.venue} · {event.city}, {event.state} · April 16–18, 2027
+              <span className="text-emboss">{event.venue} · {event.city}, {event.state} · April 16–18, 2027</span>
             </p>
           )}
         </div>

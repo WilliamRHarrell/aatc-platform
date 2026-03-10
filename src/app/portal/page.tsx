@@ -79,6 +79,23 @@ interface Sponsorship {
   email: string | null
 }
 
+interface FoodTruck {
+  id: string
+  business_name: string
+  contact_name: string
+  email: string
+  cuisine_type: string
+  description: string
+  website: string | null
+  instagram: string | null
+  facebook: string | null
+  logo_url: string | null
+  days: string[]
+  thursday_setup: boolean
+}
+
+const DAY_LABELS: Record<string, string> = { friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday' }
+
 const STATUS_STYLE = {
   pending:    { bg: 'rgba(234,179,8,0.12)',  border: 'rgba(234,179,8,0.3)',  color: '#eab308', label: 'Under Review' },
   approved:   { bg: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.3)', color: '#4ade80', label: 'Approved' },
@@ -116,9 +133,11 @@ export default function PortalPage() {
   const justPaid = searchParams.get('paid') === '1'
 
   const [loading, setLoading] = useState(true)
-  const [application, setApplication] = useState<Application | null>(null)
+  const [applications, setApplications] = useState<Application[]>([])
+  const [selectedAppIdx, setSelectedAppIdx] = useState(0)
   const [booths, setBooths] = useState<Booth[]>([])
   const [invoice, setInvoice] = useState<Invoice | null>(null)
+  const [sponsorInvoice, setSponsorInvoice] = useState<Invoice | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [paying, setPaying] = useState(false)
   const [payFull, setPayFull] = useState(false)
@@ -129,6 +148,32 @@ export default function PortalPage() {
   const [sponsorship, setSponsorship] = useState<Sponsorship | null>(null)
   const [sponsorProfile, setSponsorProfile] = useState({ website: '', instagram: '', facebook: '' })
   const [savingSponsorProfile, setSavingSponsorProfile] = useState(false)
+  const [foodTruck, setFoodTruck] = useState<FoodTruck | null>(null)
+  const [foodTruckInvoice, setFoodTruckInvoice] = useState<Invoice | null>(null)
+  const [editingFoodTruck, setEditingFoodTruck] = useState(false)
+  const [foodTruckForm, setFoodTruckForm] = useState({
+    business_name: '',
+    cuisine_type: '',
+    description: '',
+    website: '',
+    instagram: '',
+    facebook: '',
+  })
+  const [foodTruckLogoFile, setFoodTruckLogoFile] = useState<File | null>(null)
+  const [savingFoodTruck, setSavingFoodTruck] = useState(false)
+
+  const application = applications[selectedAppIdx] ?? null
+  const setApplication = (updater: Application | null | ((prev: Application | null) => Application | null)) => {
+    setApplications(prev => {
+      const newApps = [...prev]
+      if (typeof updater === 'function') {
+        newApps[selectedAppIdx] = updater(newApps[selectedAppIdx] ?? null) as Application
+      } else if (updater) {
+        newApps[selectedAppIdx] = updater
+      }
+      return newApps
+    })
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -136,14 +181,14 @@ export default function PortalPage() {
       if (!user) { router.push('/auth/login?redirect=/portal'); return }
       setUserEmail(user.email ?? null)
 
-      // Get this user's most recent application for the active event
-      const { data: app } = await supabase
+      // Get all applications for this user
+      const { data: allApps } = await supabase
         .from('applications')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single()
+
+      const app = allApps?.[0] ?? null
 
       // Check if user is a sponsor
       const { data: sponData } = await supabase
@@ -167,7 +212,38 @@ export default function PortalPage() {
           .select('id, amount, amount_paid, status, due_date, paid_at')
           .eq('sponsorship_id', sponData.id)
           .single()
-        if (sponInvoice) setInvoice(sponInvoice as Invoice)
+        if (sponInvoice) setSponsorInvoice(sponInvoice as Invoice)
+      }
+
+      // Check for food truck
+      const { data: truckData } = await supabase
+        .from('food_trucks')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+      if (truckData) {
+        const truck = truckData as FoodTruck
+        setFoodTruck(truck)
+        setFoodTruckForm({
+          business_name: truck.business_name,
+          cuisine_type: truck.cuisine_type,
+          description: truck.description,
+          website: truck.website || '',
+          instagram: truck.instagram || '',
+          facebook: truck.facebook || '',
+        })
+
+        // Fetch food truck invoice
+        const { data: ftInv } = await supabase
+          .from('invoices')
+          .select('*')
+          .eq('food_truck_id', truck.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+
+        if (ftInv) setFoodTruckInvoice(ftInv as Invoice)
       }
 
       if (!app && !sponData) {
@@ -194,7 +270,7 @@ export default function PortalPage() {
       }
 
       if (!app) { setLoading(false); return }
-      setApplication(app as unknown as Application)
+      setApplications((allApps ?? []) as unknown as Application[])
 
       // Fetch booth assignment and invoice in parallel
       const [{ data: boothData }, { data: invoiceData }] = await Promise.all([
@@ -217,15 +293,43 @@ export default function PortalPage() {
     load()
   }, [])
 
+  const switchApp = async (idx: number) => {
+    const app = applications[idx]
+    if (!app) return
+    setSelectedAppIdx(idx)
+    setEditingArtistIdx(null)
+    setArtistDraft(null)
+    setPayFull(false)
+    setCustomAmount('')
+
+    // Reload booth/invoice for the selected application
+    const [{ data: boothData }, { data: invoiceData }] = await Promise.all([
+      supabase
+        .from('booths')
+        .select('booth_number, is_corner')
+        .eq('application_id', app.id)
+        .order('booth_number', { ascending: true }),
+      supabase
+        .from('invoices')
+        .select('id, amount, amount_paid, status, due_date, paid_at')
+        .eq('application_id', app.id)
+        .single(),
+    ])
+
+    setBooths(boothData && boothData.length > 0 ? (boothData as unknown as Booth[]) : [])
+    setInvoice(invoiceData ? (invoiceData as Invoice) : null)
+  }
+
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push('/apply')
   }
 
-  const handlePay = async () => {
-    if (!invoice) return
+  const handlePay = async (targetInvoice?: Invoice | null) => {
+    const inv = targetInvoice ?? invoice
+    if (!inv) return
 
-    const balance = invoice.amount - (invoice.amount_paid ?? 0)
+    const balance = inv.amount - (inv.amount_paid ?? 0)
     let payAmountCents: number
 
     if (payFull) {
@@ -252,7 +356,7 @@ export default function PortalPage() {
       const res = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invoiceId: invoice.id, amount: payAmountCents }),
+        body: JSON.stringify({ invoiceId: inv.id, amount: payAmountCents }),
       })
       const data = await res.json() as { url?: string; error?: string }
       if (data.url) {
@@ -372,16 +476,66 @@ export default function PortalPage() {
     setSavingSponsorProfile(false)
   }
 
+  const handleSaveFoodTruck = async () => {
+    if (!foodTruck) return
+    setSavingFoodTruck(true)
+
+    try {
+      const updates: Record<string, unknown> = {
+        business_name: foodTruckForm.business_name,
+        cuisine_type: foodTruckForm.cuisine_type,
+        description: foodTruckForm.description,
+        website: foodTruckForm.website || null,
+        instagram: foodTruckForm.instagram || null,
+        facebook: foodTruckForm.facebook || null,
+      }
+
+      // Upload logo if new file selected
+      if (foodTruckLogoFile) {
+        const ext = foodTruckLogoFile.name.split('.').pop() || 'jpg'
+        const path = `${foodTruck.id}/logo.${ext}`
+        const { error: uploadErr } = await supabase.storage
+          .from('food-truck-logos')
+          .upload(path, foodTruckLogoFile, { upsert: true })
+
+        if (uploadErr) {
+          toast.error('Failed to upload logo')
+          setSavingFoodTruck(false)
+          return
+        }
+        updates.logo_url = path
+      }
+
+      const { error } = await supabase
+        .from('food_trucks')
+        .update(updates)
+        .eq('id', foodTruck.id)
+
+      if (error) {
+        toast.error('Failed to save changes')
+      } else {
+        toast.success('Profile updated!')
+        setFoodTruck({ ...foodTruck, ...updates } as FoodTruck)
+        setEditingFoodTruck(false)
+        setFoodTruckLogoFile(null)
+      }
+    } catch {
+      toast.error('Something went wrong')
+    }
+
+    setSavingFoodTruck(false)
+  }
+
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#0a0a0a' }}>
+      <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2" style={{ borderColor: '#8B7355', borderTopColor: 'transparent' }} />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen px-4 py-10" style={{ backgroundColor: '#0a0a0a' }}>
+    <div className="min-h-screen px-4 py-10">
       <div className="mx-auto max-w-2xl">
 
         {/* Nav bar */}
@@ -396,10 +550,10 @@ export default function PortalPage() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6"/>
             </svg>
-            Back
+            <span className="text-emboss">Back</span>
           </Link>
           <div className="flex items-center gap-4">
-            {userEmail && <p className="hidden text-xs sm:block" style={{ color: '#555' }}>{userEmail}</p>}
+            {userEmail && <p className="text-emboss hidden text-xs sm:block" style={{ color: '#555' }}>{userEmail}</p>}
             <button
               onClick={handleSignOut}
               className="text-sm transition-colors"
@@ -407,7 +561,7 @@ export default function PortalPage() {
               onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#C4A882')}
               onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#666')}
             >
-              Sign out
+              <span className="text-emboss">Sign out</span>
             </button>
           </div>
         </div>
@@ -427,35 +581,61 @@ export default function PortalPage() {
           </div>
         )}
 
+        {/* Application switcher */}
+        {applications.length > 1 && (
+          <div
+            className="mb-6 inline-flex rounded-xl p-1"
+            style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
+          >
+            {applications.map((app, i) => (
+              <button
+                key={app.id}
+                onClick={() => switchApp(i)}
+                className="rounded-lg px-4 py-2 text-xs font-bold capitalize transition-colors"
+                style={{
+                  backgroundColor: selectedAppIdx === i ? '#8B7355' : 'transparent',
+                  color: selectedAppIdx === i ? '#fff' : '#666',
+                }}
+              >
+                {app.exhibitor_type} Booth
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-8">
           <p className="mb-1 text-sm font-medium uppercase tracking-widest" style={{ color: '#8B7355' }}>
-            {sponsorship && !application ? 'My Sponsorship' : 'My Application'}
+            <span className="text-emboss">{sponsorship && !application ? 'My Sponsorship' : foodTruck && !application && !sponsorship ? 'Food Truck Vendor' : 'My Application'}</span>
           </p>
           <h1 className="font-display text-3xl font-bold text-white sm:text-4xl">
-            {application ? application.business_name : sponsorship ? sponsorship.sponsor_name : 'Applicant Portal'}
+            <span className="text-emboss">{application ? application.business_name : sponsorship ? sponsorship.sponsor_name : foodTruck ? foodTruck.business_name : 'Applicant Portal'}</span>
           </h1>
           {application && (
-            <p className="mt-1 text-sm capitalize" style={{ color: '#999' }}>
-              {application.exhibitor_type} · {application.booth_size} booth ·{' '}
-              Submitted {new Date(application.created_at).toLocaleDateString()}
+            <p className="mt-0 text-sm capitalize" style={{ color: '#999' }}>
+              <span className="text-emboss">
+                {application.exhibitor_type} · {application.booth_size} booth ·{' '}
+                Submitted {new Date(application.created_at).toLocaleDateString()}
+              </span>
             </p>
           )}
           {sponsorship && !application && (
-            <p className="mt-1 text-sm" style={{ color: '#999' }}>
-              <span
-                className="mr-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
-                style={{ backgroundColor: 'rgba(139,115,85,0.15)', color: '#C4A882' }}
-              >
-                {sponsorship.tier}
+            <p className="mt-0 text-sm" style={{ color: '#999' }}>
+              <span className="text-emboss">
+                <span
+                  className="mr-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
+                  style={{ backgroundColor: 'rgba(139,115,85,0.15)', color: '#C4A882' }}
+                >
+                  {sponsorship.tier}
+                </span>
+                Sponsor
               </span>
-              Sponsor
             </p>
           )}
         </div>
 
-        {/* No application and no sponsorship */}
-        {!application && !sponsorship && (
+        {/* No application, no sponsorship, and no food truck */}
+        {!application && !sponsorship && !foodTruck && (
           <Card>
             <p className="mb-4 text-sm" style={{ color: '#999' }}>
               You haven&apos;t submitted an application yet.
@@ -684,7 +864,7 @@ export default function PortalPage() {
                       </div>
 
                       <button
-                        onClick={handlePay}
+                        onClick={() => handlePay()}
                         disabled={paying || (!payFull && !customAmount)}
                         className="w-full rounded-xl py-3 text-sm font-bold tracking-wide text-white transition-opacity disabled:opacity-60"
                         style={{ backgroundColor: '#8B7355' }}
@@ -1000,7 +1180,8 @@ export default function PortalPage() {
             })()}
 
             {/* Sponsor invoice & payment */}
-            {invoice && (() => {
+            {sponsorInvoice && (() => {
+              const invoice = sponsorInvoice
               const amountPaid = invoice.amount_paid ?? 0
               const balance = invoice.amount - amountPaid
               const hasPartial = amountPaid > 0 && amountPaid < invoice.amount
@@ -1107,7 +1288,7 @@ export default function PortalPage() {
                       </div>
 
                       <button
-                        onClick={handlePay}
+                        onClick={() => handlePay(sponsorInvoice)}
                         disabled={paying || (!payFull && !customAmount)}
                         className="w-full rounded-xl py-3 text-sm font-bold tracking-wide text-white transition-opacity disabled:opacity-60"
                         style={{ backgroundColor: '#8B7355' }}
@@ -1241,6 +1422,416 @@ export default function PortalPage() {
                   </div>
                 ))}
               </dl>
+            </Card>
+
+          </div>
+        )}
+
+        {/* Food Truck Vendor */}
+        {foodTruck && (
+          <div className="space-y-4" style={{ marginTop: application || sponsorship ? '1rem' : undefined }}>
+
+            {/* Header */}
+            <div className="mb-2">
+              <p className="mb-1 text-sm font-medium uppercase tracking-widest" style={{ color: '#8B7355' }}>
+                Food Truck Vendor
+              </p>
+              <h2 className="font-display text-2xl font-bold text-white">
+                {foodTruck.business_name}
+              </h2>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <span className="text-sm" style={{ color: '#999' }}>{foodTruck.cuisine_type}</span>
+                {foodTruck.days && foodTruck.days.length > 0 && (
+                  <>
+                    <span style={{ color: '#333' }}>·</span>
+                    {foodTruck.days.map(d => (
+                      <span
+                        key={d}
+                        className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                        style={{ backgroundColor: 'rgba(139,115,85,0.15)', color: '#C4A882' }}
+                      >
+                        {DAY_LABELS[d] || d}
+                      </span>
+                    ))}
+                  </>
+                )}
+                {foodTruck.thursday_setup && (
+                  <>
+                    <span style={{ color: '#333' }}>·</span>
+                    <span className="text-xs" style={{ color: '#999' }}>Thursday setup</span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Food truck invoice & payment */}
+            {foodTruckInvoice && (() => {
+              const inv = foodTruckInvoice
+              const amountPaid = inv.amount_paid ?? 0
+              const balance = inv.amount - amountPaid
+              const hasPartial = amountPaid > 0 && amountPaid < inv.amount
+              const isPayable = inv.status === 'pending' || inv.status === 'overdue'
+
+              return (
+                <Card>
+                  <SectionLabel>Invoice</SectionLabel>
+
+                  <div className="rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
+                    <div className="flex justify-between text-sm">
+                      <span style={{ color: '#999' }}>Invoice total</span>
+                      <span className="font-medium text-white">{formatCurrency(inv.amount)}</span>
+                    </div>
+                    {amountPaid > 0 && (
+                      <div className="mt-2 flex justify-between text-sm">
+                        <span style={{ color: '#999' }}>Paid so far</span>
+                        <span className="font-medium" style={{ color: '#4ade80' }}>
+                          -{formatCurrency(amountPaid)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="mt-2 flex justify-between border-t pt-2 text-sm" style={{ borderColor: '#2a2a2a' }}>
+                      <span className="font-semibold" style={{ color: inv.status === 'paid' ? '#4ade80' : '#C4A882' }}>
+                        {inv.status === 'paid' ? 'Paid in full' : 'Balance due'}
+                      </span>
+                      <span className="font-bold" style={{ color: inv.status === 'paid' ? '#4ade80' : '#C4A882' }}>
+                        {inv.status === 'paid' ? formatCurrency(0) : formatCurrency(balance)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center gap-2">
+                    <span
+                      className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                      style={{
+                        backgroundColor: INVOICE_STATUS_STYLE[inv.status]?.color ? `${INVOICE_STATUS_STYLE[inv.status].color}20` : 'rgba(153,153,153,0.15)',
+                        color: INVOICE_STATUS_STYLE[inv.status]?.color ?? '#999',
+                      }}
+                    >
+                      {INVOICE_STATUS_STYLE[inv.status]?.label}
+                    </span>
+                    {hasPartial && inv.status !== 'paid' && (
+                      <span
+                        className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                        style={{ backgroundColor: 'rgba(96,165,250,0.15)', color: '#60a5fa' }}
+                      >
+                        Deposit received
+                      </span>
+                    )}
+                    {inv.paid_at && (
+                      <span className="text-xs" style={{ color: '#555' }}>
+                        {new Date(inv.paid_at).toLocaleDateString()}
+                      </span>
+                    )}
+                    {inv.due_date && inv.status !== 'paid' && (
+                      <span className="text-xs" style={{ color: '#555' }}>
+                        Due {new Date(inv.due_date).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+
+                  {isPayable && (
+                    <div className="mt-5 space-y-4">
+                      <div className="rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
+                        <label className="flex cursor-pointer items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={payFull}
+                            onChange={e => { setPayFull(e.target.checked); if (e.target.checked) setCustomAmount('') }}
+                            className="h-4 w-4 rounded accent-[#8B7355]"
+                          />
+                          <span className="text-sm font-medium text-white">
+                            Pay full balance — {formatCurrency(balance)}
+                          </span>
+                        </label>
+
+                        {!payFull && (
+                          <div className="mt-4">
+                            <label className="mb-1.5 block text-sm font-medium text-white">
+                              Or enter a payment amount
+                            </label>
+                            <p className="mb-2 text-xs" style={{ color: '#999' }}>
+                              Minimum payment: $250
+                            </p>
+                            <div className="relative">
+                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-white">$</span>
+                              <input
+                                type="number"
+                                min="250"
+                                step="0.01"
+                                max={(balance / 100).toFixed(2)}
+                                value={customAmount}
+                                onChange={e => setCustomAmount(e.target.value)}
+                                placeholder="250.00"
+                                className="w-full rounded-lg py-3 pl-8 pr-4 text-sm text-white outline-none transition-colors"
+                                style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
+                                onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
+                                onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => handlePay(foodTruckInvoice)}
+                        disabled={paying || (!payFull && !customAmount)}
+                        className="w-full rounded-xl py-3 text-sm font-bold tracking-wide text-white transition-opacity disabled:opacity-60"
+                        style={{ backgroundColor: '#8B7355' }}
+                      >
+                        {paying
+                          ? 'Redirecting to Stripe...'
+                          : payFull
+                            ? `Pay ${formatCurrency(balance)} Now`
+                            : customAmount
+                              ? `Pay ${formatCurrency(Math.round(parseFloat(customAmount) * 100) || 0)} Now`
+                              : 'Enter Amount to Pay'
+                        }
+                      </button>
+                    </div>
+                  )}
+
+                  {inv.status === 'paid' && (
+                    <div className="mt-4 flex items-center justify-center gap-2 rounded-xl py-3" style={{ backgroundColor: 'rgba(74,222,128,0.1)' }}>
+                      <span style={{ color: '#4ade80' }}>✓</span>
+                      <span className="text-sm font-semibold" style={{ color: '#4ade80' }}>Payment confirmed — you&apos;re all set!</span>
+                    </div>
+                  )}
+                </Card>
+              )
+            })()}
+
+            {/* Food truck profile */}
+            <Card>
+              <SectionLabel>Vendor Profile</SectionLabel>
+
+              {!editingFoodTruck ? (
+                <div className="space-y-4">
+                  {/* Logo */}
+                  {foodTruck.logo_url && (
+                    <div>
+                      <img
+                        src={supabase.storage.from('food-truck-logos').getPublicUrl(foodTruck.logo_url).data.publicUrl}
+                        alt={foodTruck.business_name}
+                        className="h-20 w-20 rounded-lg object-contain"
+                        style={{ border: '1px solid #2a2a2a', backgroundColor: '#111' }}
+                      />
+                    </div>
+                  )}
+
+                  <dl className="space-y-2">
+                    {[
+                      { label: 'Business', value: foodTruck.business_name },
+                      { label: 'Cuisine', value: foodTruck.cuisine_type },
+                      { label: 'Description', value: foodTruck.description },
+                    ].filter(r => r.value).map(r => (
+                      <div key={r.label} className="flex gap-4 text-sm">
+                        <dt className="w-28 shrink-0 font-medium" style={{ color: '#666' }}>{r.label}</dt>
+                        <dd className="text-white">{r.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+
+                  {/* Social links */}
+                  {(foodTruck.website || foodTruck.instagram || foodTruck.facebook) && (
+                    <div className="flex flex-wrap gap-3">
+                      {foodTruck.website && (
+                        <a
+                          href={foodTruck.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
+                          style={{ backgroundColor: 'rgba(139,115,85,0.12)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}
+                        >
+                          Website
+                        </a>
+                      )}
+                      {foodTruck.instagram && (
+                        <a
+                          href={foodTruck.instagram.startsWith('http') ? foodTruck.instagram : `https://instagram.com/${foodTruck.instagram.replace('@', '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
+                          style={{ backgroundColor: 'rgba(139,115,85,0.12)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}
+                        >
+                          Instagram
+                        </a>
+                      )}
+                      {foodTruck.facebook && (
+                        <a
+                          href={foodTruck.facebook.startsWith('http') ? foodTruck.facebook : `https://facebook.com/${foodTruck.facebook}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
+                          style={{ backgroundColor: 'rgba(139,115,85,0.12)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}
+                        >
+                          Facebook
+                        </a>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => setEditingFoodTruck(true)}
+                    className="rounded-lg px-5 py-2 text-sm font-semibold transition-opacity hover:opacity-80"
+                    style={{ backgroundColor: 'rgba(139,115,85,0.15)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}
+                  >
+                    Edit Profile
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Business name */}
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Business Name</label>
+                    <input
+                      type="text"
+                      value={foodTruckForm.business_name}
+                      onChange={e => setFoodTruckForm(f => ({ ...f, business_name: e.target.value }))}
+                      placeholder="Business name"
+                      className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
+                      style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
+                      onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
+                      onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
+                    />
+                  </div>
+
+                  {/* Cuisine type */}
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Cuisine Type</label>
+                    <input
+                      type="text"
+                      value={foodTruckForm.cuisine_type}
+                      onChange={e => setFoodTruckForm(f => ({ ...f, cuisine_type: e.target.value }))}
+                      placeholder="e.g. Mexican, BBQ, Asian Fusion"
+                      className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
+                      style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
+                      onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
+                      onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Description</label>
+                    <textarea
+                      value={foodTruckForm.description}
+                      onChange={e => setFoodTruckForm(f => ({ ...f, description: e.target.value }))}
+                      placeholder="Tell attendees about your food"
+                      rows={3}
+                      className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none resize-none"
+                      style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
+                      onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
+                      onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
+                    />
+                  </div>
+
+                  {/* Website */}
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Website</label>
+                    <input
+                      type="url"
+                      value={foodTruckForm.website}
+                      onChange={e => setFoodTruckForm(f => ({ ...f, website: e.target.value }))}
+                      placeholder="https://yoursite.com"
+                      className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
+                      style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
+                      onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
+                      onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
+                    />
+                  </div>
+
+                  {/* Instagram */}
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Instagram</label>
+                    <input
+                      type="text"
+                      value={foodTruckForm.instagram}
+                      onChange={e => setFoodTruckForm(f => ({ ...f, instagram: e.target.value }))}
+                      placeholder="@handle"
+                      className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
+                      style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
+                      onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
+                      onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
+                    />
+                  </div>
+
+                  {/* Facebook */}
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Facebook</label>
+                    <input
+                      type="text"
+                      value={foodTruckForm.facebook}
+                      onChange={e => setFoodTruckForm(f => ({ ...f, facebook: e.target.value }))}
+                      placeholder="Facebook page URL or name"
+                      className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
+                      style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
+                      onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
+                      onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
+                    />
+                  </div>
+
+                  {/* Logo upload */}
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Logo</label>
+                    <div className="flex items-center gap-4">
+                      {foodTruck.logo_url && !foodTruckLogoFile && (
+                        <img
+                          src={supabase.storage.from('food-truck-logos').getPublicUrl(foodTruck.logo_url).data.publicUrl}
+                          alt="Current logo"
+                          className="h-16 w-16 rounded-lg object-contain"
+                          style={{ border: '1px solid #2a2a2a', backgroundColor: '#111' }}
+                        />
+                      )}
+                      <div>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                          id="food-truck-logo-upload"
+                          className="hidden"
+                          onChange={e => { if (e.target.files?.[0]) setFoodTruckLogoFile(e.target.files[0]); e.target.value = '' }}
+                        />
+                        <label
+                          htmlFor="food-truck-logo-upload"
+                          className="inline-flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold"
+                          style={{ backgroundColor: 'rgba(139,115,85,0.12)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}
+                        >
+                          {foodTruckLogoFile ? `✓ ${foodTruckLogoFile.name}` : foodTruck.logo_url ? 'Replace Logo' : 'Upload Logo'}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Save / Cancel */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleSaveFoodTruck}
+                      disabled={savingFoodTruck}
+                      className="rounded-lg px-5 py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
+                      style={{ backgroundColor: '#8B7355' }}
+                    >
+                      {savingFoodTruck ? 'Saving…' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingFoodTruck(false)
+                        setFoodTruckLogoFile(null)
+                        setFoodTruckForm({
+                          business_name: foodTruck.business_name,
+                          cuisine_type: foodTruck.cuisine_type,
+                          description: foodTruck.description,
+                          website: foodTruck.website || '',
+                          instagram: foodTruck.instagram || '',
+                          facebook: foodTruck.facebook || '',
+                        })
+                      }}
+                      className="text-sm"
+                      style={{ color: '#555' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </Card>
 
           </div>

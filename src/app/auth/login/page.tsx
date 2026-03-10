@@ -35,7 +35,6 @@ export default function LoginPage() {
   return (
     <div
       className="flex min-h-screen flex-col items-center justify-center px-4"
-      style={{ backgroundColor: '#0a0a0a' }}
     >
       {/* Header */}
       <div className="mb-8 text-center">
@@ -43,9 +42,9 @@ export default function LoginPage() {
           {['★', '★', '★', '★', '★'].map((s, i) => <span key={i}>{s}</span>)}
         </div>
         <Link href="/apply">
-          <h1 className="font-display text-2xl font-bold text-white">ALL AMERICAN</h1>
+          <h1 className="font-display text-2xl font-bold text-white"><span className="text-emboss">ALL AMERICAN</span></h1>
           <p className="font-display text-sm font-semibold" style={{ color: '#8B7355' }}>
-            TATTOO CONVENTION
+            <span className="text-emboss">TATTOO CONVENTION</span>
           </p>
         </Link>
       </div>
@@ -159,7 +158,7 @@ export default function LoginPage() {
       </div>
 
       <p className="mt-8 text-xs" style={{ color: '#555555' }}>
-        © {new Date().getFullYear()} All American Tattoo Convention
+        <span className="text-emboss">© {new Date().getFullYear()} All American Tattoo Convention</span>
       </p>
     </div>
   )

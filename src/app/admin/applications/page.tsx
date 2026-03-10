@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -50,6 +51,31 @@ function Field({ label, value }: { label: string; value?: string | number | bool
   )
 }
 
+function InstagramLink({ handle }: { handle: string | null }) {
+  if (!handle) return null
+  const clean = handle.replace(/^@/, '')
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#8B7355' }}>Instagram</p>
+      <a
+        href={`https://instagram.com/${clean}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-0.5 inline-flex items-center gap-1 text-sm transition-colors"
+        style={{ color: '#C4A882' }}
+        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#fff')}
+        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#C4A882')}
+      >
+        @{clean}
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+      </a>
+    </div>
+  )
+}
+
 // ── Detail Drawer ─────────────────────────────────────────────
 function DetailDrawer({
   app,
@@ -62,18 +88,41 @@ function DetailDrawer({
 }) {
   const supabase = createClient()
   const [working, setWorking] = useState(false)
-  const [idDocUrl, setIdDocUrl]         = useState<string | null>(null)
-  const [veteranIdUrl, setVeteranIdUrl] = useState<string | null>(null)
+  const [artistSignedUrls, setArtistSignedUrls] = useState<(string | null)[]>([])
+  const [veteranIdUrl, setVeteranIdUrl]         = useState<string | null>(null)
+  const [discountEnabled, setDiscountEnabled]   = useState(false)
+  const [discountDollars, setDiscountDollars]   = useState('')
+  const [compEnabled, setCompEnabled]           = useState(false)
+
+  // Computed invoice amount (cents)
+  const discountCents = discountEnabled && discountDollars
+    ? Math.round(Math.max(0, parseFloat(discountDollars) || 0) * 100)
+    : 0
+  const invoiceAmount = compEnabled ? 0 : Math.max(0, app.total_amount - discountCents)
 
   // Generate signed URLs for documents
   useEffect(() => {
     const getUrls = async () => {
-      if (app.id_doc_url) {
+      // Per-artist IDs (new format)
+      if (app.artists && app.artists.length > 0) {
+        const urls = await Promise.all(
+          app.artists.map(async (a) => {
+            if (!a.id_url) return null
+            const { data } = await supabase.storage
+              .from('application-docs')
+              .createSignedUrl(a.id_url, 3600)
+            return data?.signedUrl ?? null
+          })
+        )
+        setArtistSignedUrls(urls)
+      } else if (app.id_doc_url) {
+        // Legacy single ID doc
         const { data } = await supabase.storage
           .from('application-docs')
           .createSignedUrl(app.id_doc_url, 3600)
-        setIdDocUrl(data?.signedUrl ?? null)
+        setArtistSignedUrls([data?.signedUrl ?? null])
       }
+      // Veteran ID
       if (app.veteran_id_url) {
         const { data } = await supabase.storage
           .from('application-docs')
@@ -108,10 +157,19 @@ function DetailDrawer({
       if (!existing) {
         await supabase.from('invoices').insert({
           application_id: app.id,
-          amount: app.total_amount,
-          status: 'pending',
+          amount: invoiceAmount,
+          status: compEnabled ? 'paid' : 'pending',
         })
       }
+    }
+
+    // Send email notification for terminal status changes
+    if (newStatus === 'approved' || newStatus === 'rejected' || newStatus === 'waitlisted') {
+      fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId: app.id, status: newStatus }),
+      }).catch(err => console.error('Email send failed:', err))
     }
 
     toast.success(`Application ${newStatus}`)
@@ -167,7 +225,7 @@ function DetailDrawer({
               <Field label="Email"        value={app.email} />
               <Field label="Phone"        value={app.phone} />
               <Field label="Website"      value={app.website} />
-              <Field label="Instagram"    value={app.instagram ? `@${app.instagram}` : null} />
+              <InstagramLink handle={app.instagram} />
               <Field label="Facebook"     value={app.facebook} />
               <Field label="Other links"  value={app.other_links} />
             </div>
@@ -219,29 +277,41 @@ function DetailDrawer({
           )}
 
           {/* Documents */}
-          {(app.id_doc_url || app.veteran_id_url) && (
+          {(app.artists || app.id_doc_url || app.veteran_id_url || app.artists_ids_later) && (
             <>
               <div style={{ borderTop: '1px solid #2a2a2a' }} />
               <section>
                 <p className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: '#555' }}>Documents</p>
                 <div className="space-y-2">
-                  {idDocUrl && (
-                    <a
-                      href={idDocUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition-colors"
-                      style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a', color: '#C4A882' }}
-                      onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = '#8B7355')}
-                      onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = '#2a2a2a')}
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                      </svg>
-                      View Government ID
-                    </a>
+                  {/* Per-artist IDs */}
+                  {app.artists_ids_later && (
+                    <p className="text-sm" style={{ color: '#eab308' }}>Artist IDs pending — to be collected before event</p>
                   )}
+                  {app.artists && app.artists.map((a, i) => (
+                    <div key={i} className="rounded-lg px-4 py-3" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
+                      <p className="mb-1 text-xs font-semibold" style={{ color: '#8B7355' }}>Artist {i + 1}{a.name ? ` — ${a.name}` : ''}</p>
+                      {artistSignedUrls[i] ? (
+                        <a
+                          href={artistSignedUrls[i]!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm transition-colors"
+                          style={{ color: '#C4A882' }}
+                          onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#fff')}
+                          onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#C4A882')}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                          </svg>
+                          View ID
+                        </a>
+                      ) : (
+                        <p className="text-xs" style={{ color: '#555' }}>No ID uploaded</p>
+                      )}
+                    </div>
+                  ))}
+                  {/* Veteran ID */}
                   {veteranIdUrl && (
                     <a
                       href={veteranIdUrl}
@@ -267,36 +337,118 @@ function DetailDrawer({
 
         {/* Action buttons */}
         {app.status === 'pending' && (
-          <div className="flex gap-3 px-6 py-5" style={{ borderTop: '1px solid #2a2a2a' }}>
-            <button
-              onClick={() => updateStatus('rejected')}
-              disabled={working}
-              className="flex-1 rounded-lg py-3 text-sm font-semibold transition-colors disabled:opacity-50"
-              style={{ backgroundColor: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}
-            >
-              Reject
-            </button>
-            <button
-              onClick={() => updateStatus('waitlisted')}
-              disabled={working}
-              className="flex-1 rounded-lg py-3 text-sm font-semibold transition-colors disabled:opacity-50"
-              style={{ backgroundColor: 'rgba(96,165,250,0.15)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.3)' }}
-            >
-              Waitlist
-            </button>
-            <button
-              onClick={() => updateStatus('approved')}
-              disabled={working}
-              className="flex-1 rounded-lg py-3 text-sm font-semibold transition-colors disabled:opacity-50"
-              style={{ backgroundColor: 'rgba(74,222,128,0.15)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }}
-            >
-              {working ? 'Saving…' : 'Approve'}
-            </button>
+          <div className="px-6 py-5 space-y-4" style={{ borderTop: '1px solid #2a2a2a' }}>
+
+            {/* Discount / Comp options */}
+            <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
+              {/* Discount row */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="discount-check"
+                  checked={discountEnabled}
+                  onChange={e => {
+                    setDiscountEnabled(e.target.checked)
+                    if (e.target.checked) setCompEnabled(false)
+                  }}
+                  className="h-4 w-4 cursor-pointer rounded"
+                  style={{ accentColor: '#8B7355' }}
+                />
+                <label htmlFor="discount-check" className="cursor-pointer text-sm font-semibold text-white">
+                  Discount Booth
+                </label>
+                {discountEnabled && (
+                  <div className="ml-auto flex items-center gap-1.5">
+                    <span className="text-sm font-semibold" style={{ color: '#8B7355' }}>$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="0"
+                      value={discountDollars}
+                      onChange={e => setDiscountDollars(e.target.value)}
+                      className="w-24 rounded-lg px-3 py-1.5 text-sm text-white outline-none"
+                      style={{ backgroundColor: '#1a1a1a', border: '1px solid #8B7355' }}
+                    />
+                    <span className="text-xs" style={{ color: '#555' }}>off</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Comp row */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="comp-check"
+                  checked={compEnabled}
+                  onChange={e => {
+                    setCompEnabled(e.target.checked)
+                    if (e.target.checked) { setDiscountEnabled(false); setDiscountDollars('') }
+                  }}
+                  className="h-4 w-4 cursor-pointer rounded"
+                  style={{ accentColor: '#8B7355' }}
+                />
+                <label htmlFor="comp-check" className="cursor-pointer text-sm font-semibold text-white">
+                  Comp Booth
+                </label>
+                <span className="text-xs" style={{ color: '#555' }}>waives full amount — auto-marks invoice paid</span>
+              </div>
+
+              {/* Running total */}
+              {(discountEnabled || compEnabled) && (
+                <div className="flex items-center justify-between pt-1" style={{ borderTop: '1px solid #2a2a2a' }}>
+                  <span className="text-xs" style={{ color: '#999' }}>Invoice total after adjustment</span>
+                  <span className="text-sm font-bold" style={{ color: invoiceAmount === 0 ? '#4ade80' : '#C4A882' }}>
+                    {invoiceAmount === 0 ? 'COMPED' : formatCurrency(invoiceAmount)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => updateStatus('rejected')}
+                disabled={working}
+                className="flex-1 rounded-lg py-3 text-sm font-semibold transition-colors disabled:opacity-50"
+                style={{ backgroundColor: 'rgba(248,113,113,0.15)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}
+              >
+                Reject
+              </button>
+              <button
+                onClick={() => updateStatus('waitlisted')}
+                disabled={working}
+                className="flex-1 rounded-lg py-3 text-sm font-semibold transition-colors disabled:opacity-50"
+                style={{ backgroundColor: 'rgba(96,165,250,0.15)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.3)' }}
+              >
+                Waitlist
+              </button>
+              <button
+                onClick={() => updateStatus('approved')}
+                disabled={working}
+                className="flex-1 rounded-lg py-3 text-sm font-semibold transition-colors disabled:opacity-50"
+                style={{ backgroundColor: 'rgba(74,222,128,0.15)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }}
+              >
+                {working ? 'Saving…' : compEnabled ? 'Comp & Approve' : 'Approve'}
+              </button>
+            </div>
           </div>
         )}
 
         {app.status !== 'pending' && (
-          <div className="px-6 py-5" style={{ borderTop: '1px solid #2a2a2a' }}>
+          <div className="flex flex-col gap-2 px-6 py-5" style={{ borderTop: '1px solid #2a2a2a' }}>
+            {app.status === 'approved' && (
+              <Link
+                href="/admin/booths"
+                className="flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold transition-opacity"
+                style={{ backgroundColor: 'rgba(74,222,128,0.15)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }}
+              >
+                Assign Booth
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </Link>
+            )}
             <button
               onClick={() => updateStatus('pending')}
               disabled={working}

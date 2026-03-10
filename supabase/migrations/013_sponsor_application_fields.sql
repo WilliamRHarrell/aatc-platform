@@ -12,11 +12,19 @@ CREATE INDEX IF NOT EXISTS idx_sponsorships_user_id ON sponsorships(user_id);
 CREATE INDEX IF NOT EXISTS idx_sponsorships_email ON sponsorships(email);
 
 -- Allow public inserts for the application form (no auth required)
-CREATE POLICY IF NOT EXISTS "Anyone can submit sponsor application"
-  ON sponsorships FOR INSERT
-  WITH CHECK (status = 'pending');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Anyone can submit sponsor application' AND tablename = 'sponsorships') THEN
+    CREATE POLICY "Anyone can submit sponsor application"
+      ON sponsorships FOR INSERT
+      WITH CHECK (status = 'pending');
+  END IF;
+END $$;
 
 -- Allow sponsors to read their own sponsorship
-CREATE POLICY IF NOT EXISTS "Sponsors can read own sponsorship"
-  ON sponsorships FOR SELECT
-  USING (user_id = auth.uid() OR is_admin());
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Sponsors can read own sponsorship' AND tablename = 'sponsorships') THEN
+    CREATE POLICY "Sponsors can read own sponsorship"
+      ON sponsorships FOR SELECT
+      USING (user_id = auth.uid() OR is_admin());
+  END IF;
+END $$;

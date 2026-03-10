@@ -93,14 +93,14 @@ export default function FindArtistPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#0a0a0a' }}>
+      <div className="flex min-h-screen items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2" style={{ borderColor: '#8B7355', borderTopColor: 'transparent' }} />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#0a0a0a' }}>
+    <div className="min-h-screen">
       <PublicNav />
 
       {/* Header */}
@@ -120,10 +120,10 @@ export default function FindArtistPage() {
           </Link>
         </div>
         <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">
-          Find an Artist
+          <span className="text-emboss">Find an Artist</span>
         </h1>
         <p className="mt-2 text-sm" style={{ color: '#999' }}>
-          AATC 2027 · {filtered.length} artist{filtered.length !== 1 ? 's' : ''} {selectedStyles.length > 0 || search ? 'match your search' : 'attending'}
+          <span className="text-emboss">AATC 2027 · {filtered.length} artist{filtered.length !== 1 ? 's' : ''} {selectedStyles.length > 0 || search ? 'match your search' : 'attending'}</span>
         </p>
       </div>
 
@@ -179,9 +179,11 @@ export default function FindArtistPage() {
       <div className="mx-auto max-w-5xl px-4 py-8">
         {filtered.length === 0 ? (
           <p className="py-24 text-center text-sm" style={{ color: '#555' }}>
-            {artists.length === 0
-              ? 'Artist profiles will appear here once applications are approved.'
-              : 'No artists match your search.'}
+            <span className="text-emboss">
+              {artists.length === 0
+                ? 'Artist profiles will appear here once applications are approved.'
+                : 'No artists match your search.'}
+            </span>
           </p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -194,9 +196,9 @@ export default function FindArtistPage() {
 
       {/* Footer */}
       <footer className="border-t px-4 py-10 text-center" style={{ borderColor: '#2a2a2a' }}>
-        <p className="font-display text-sm font-bold text-white">ALL AMERICAN TATTOO CONVENTION</p>
+        <p className="font-display text-sm font-bold text-white"><span className="text-emboss">ALL AMERICAN TATTOO CONVENTION</span></p>
         <p className="mt-1 text-xs" style={{ color: '#555' }}>
-          Crown Complex Event Center · Fayetteville, NC
+          <span className="text-emboss">Crown Complex Event Center · Fayetteville, NC</span>
         </p>
       </footer>
 
