@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
@@ -126,7 +126,9 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
-export default function PortalPage() {
+// ── Inner component (uses useSearchParams) ────────────────────────────────────
+
+function PortalContent() {
   const supabase = createClient()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -181,7 +183,6 @@ export default function PortalPage() {
       if (!user) { router.push('/auth/login?redirect=/portal'); return }
       setUserEmail(user.email ?? null)
 
-      // Get all applications for this user
       const { data: allApps } = await supabase
         .from('applications')
         .select('*')
@@ -190,7 +191,6 @@ export default function PortalPage() {
 
       const app = allApps?.[0] ?? null
 
-      // Check if user is a sponsor
       const { data: sponData } = await supabase
         .from('sponsorships')
         .select('*')
@@ -206,7 +206,6 @@ export default function PortalPage() {
           instagram: (sponData as unknown as Sponsorship).instagram ?? '',
           facebook: (sponData as unknown as Sponsorship).facebook ?? '',
         })
-        // Fetch sponsor invoice
         const { data: sponInvoice } = await supabase
           .from('invoices')
           .select('id, amount, amount_paid, status, due_date, paid_at')
@@ -215,7 +214,6 @@ export default function PortalPage() {
         if (sponInvoice) setSponsorInvoice(sponInvoice as Invoice)
       }
 
-      // Check for food truck
       const { data: truckData } = await supabase
         .from('food_trucks')
         .select('*')
@@ -234,7 +232,6 @@ export default function PortalPage() {
           facebook: truck.facebook || '',
         })
 
-        // Fetch food truck invoice
         const { data: ftInv } = await supabase
           .from('invoices')
           .select('*')
@@ -247,7 +244,6 @@ export default function PortalPage() {
       }
 
       if (!app && !sponData) {
-        // Try to link sponsor by email
         const { data: emailMatch } = await supabase
           .from('sponsorships')
           .select('id')
@@ -257,13 +253,11 @@ export default function PortalPage() {
           .single()
 
         if (emailMatch) {
-          // Link this user to the sponsorship
           await supabase
             .from('sponsorships')
             .update({ user_id: user.id })
             .eq('id', emailMatch.id)
 
-          // Reload to pick up the sponsorship
           window.location.reload()
           return
         }
@@ -272,7 +266,6 @@ export default function PortalPage() {
       if (!app) { setLoading(false); return }
       setApplications((allApps ?? []) as unknown as Application[])
 
-      // Fetch booth assignment and invoice in parallel
       const [{ data: boothData }, { data: invoiceData }] = await Promise.all([
         supabase
           .from('booths')
@@ -302,7 +295,6 @@ export default function PortalPage() {
     setPayFull(false)
     setCustomAmount('')
 
-    // Reload booth/invoice for the selected application
     const [{ data: boothData }, { data: invoiceData }] = await Promise.all([
       supabase
         .from('booths')
@@ -406,7 +398,6 @@ export default function PortalPage() {
       id_url = up.path
     }
 
-    // Upload new portfolio images
     const newPortfolioUrls: string[] = []
     for (let j = 0; j < artistDraft.portfolio_files.length; j++) {
       const f = artistDraft.portfolio_files[j]
@@ -490,7 +481,6 @@ export default function PortalPage() {
         facebook: foodTruckForm.facebook || null,
       }
 
-      // Upload logo if new file selected
       if (foodTruckLogoFile) {
         const ext = foodTruckLogoFile.name.split('.').pop() || 'jpg'
         const path = `${foodTruck.id}/logo.${ext}`
@@ -718,7 +708,7 @@ export default function PortalPage() {
               )
             })()}
 
-            {/* Booth assignment — show when approved */}
+            {/* Booth assignment */}
             {application.status === 'approved' && (
               <Card>
                 <SectionLabel>Booth Assignment</SectionLabel>
@@ -762,7 +752,6 @@ export default function PortalPage() {
                 <Card>
                   <SectionLabel>Invoice</SectionLabel>
 
-                  {/* Summary breakdown */}
                   <div className="rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
                     <div className="flex justify-between text-sm">
                       <span style={{ color: '#999' }}>Invoice total</span>
@@ -786,7 +775,6 @@ export default function PortalPage() {
                     </div>
                   </div>
 
-                  {/* Status line */}
                   <div className="mt-3 flex items-center gap-2">
                     <span
                       className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
@@ -817,11 +805,9 @@ export default function PortalPage() {
                     )}
                   </div>
 
-                  {/* Payment form */}
                   {isPayable && (
                     <div className="mt-5 space-y-4">
                       <div className="rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
-                        {/* Pay in full checkbox */}
                         <label className="flex cursor-pointer items-center gap-3">
                           <input
                             type="checkbox"
@@ -834,7 +820,6 @@ export default function PortalPage() {
                           </span>
                         </label>
 
-                        {/* Custom amount */}
                         {!payFull && (
                           <div className="mt-4">
                             <label className="mb-1.5 block text-sm font-medium text-white">
@@ -910,7 +895,6 @@ export default function PortalPage() {
                         className="rounded-xl overflow-hidden"
                         style={{ backgroundColor: '#0a0a0a', border: `1px solid ${isEditing ? 'rgba(139,115,85,0.4)' : '#2a2a2a'}` }}
                       >
-                        {/* Row header */}
                         <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: isEditing ? '1px solid #1a1a1a' : 'none' }}>
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#8B7355' }}>Artist {i + 1}</p>
@@ -958,7 +942,6 @@ export default function PortalPage() {
                           </div>
                         </div>
 
-                        {/* Edit form */}
                         {isEditing && artistDraft && (
                           <div className="space-y-4 p-4">
                             <div className="grid gap-3 sm:grid-cols-2">
@@ -1040,7 +1023,6 @@ export default function PortalPage() {
                               </label>
                             </div>
 
-                            {/* Portfolio images */}
                             <div>
                               <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Portfolio Images</label>
                               <p className="mb-2 text-xs" style={{ color: '#666' }}>Up to 10 photos of your work (JPG, PNG, WebP)</p>
@@ -1139,11 +1121,10 @@ export default function PortalPage() {
 
           </div>
         )}
+
         {/* Sponsor portal */}
         {sponsorship && (
           <div className="space-y-4">
-
-            {/* Sponsor status card */}
             {(() => {
               const confirmed = sponsorship.status === 'confirmed'
               return (
@@ -1179,133 +1160,68 @@ export default function PortalPage() {
               )
             })()}
 
-            {/* Sponsor invoice & payment */}
             {sponsorInvoice && (() => {
-              const invoice = sponsorInvoice
-              const amountPaid = invoice.amount_paid ?? 0
-              const balance = invoice.amount - amountPaid
-              const hasPartial = amountPaid > 0 && amountPaid < invoice.amount
-              const isPayable = invoice.status === 'pending' || invoice.status === 'overdue'
+              const inv = sponsorInvoice
+              const amountPaid = inv.amount_paid ?? 0
+              const balance = inv.amount - amountPaid
+              const hasPartial = amountPaid > 0 && amountPaid < inv.amount
+              const isPayable = inv.status === 'pending' || inv.status === 'overdue'
 
               return (
                 <Card>
                   <SectionLabel>Invoice</SectionLabel>
-
                   <div className="rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
                     <div className="flex justify-between text-sm">
                       <span style={{ color: '#999' }}>Invoice total</span>
-                      <span className="font-medium text-white">{formatCurrency(invoice.amount)}</span>
+                      <span className="font-medium text-white">{formatCurrency(inv.amount)}</span>
                     </div>
                     {amountPaid > 0 && (
                       <div className="mt-2 flex justify-between text-sm">
                         <span style={{ color: '#999' }}>Paid so far</span>
-                        <span className="font-medium" style={{ color: '#4ade80' }}>
-                          -{formatCurrency(amountPaid)}
-                        </span>
+                        <span className="font-medium" style={{ color: '#4ade80' }}>-{formatCurrency(amountPaid)}</span>
                       </div>
                     )}
                     <div className="mt-2 flex justify-between border-t pt-2 text-sm" style={{ borderColor: '#2a2a2a' }}>
-                      <span className="font-semibold" style={{ color: invoice.status === 'paid' ? '#4ade80' : '#C4A882' }}>
-                        {invoice.status === 'paid' ? 'Paid in full' : 'Balance due'}
+                      <span className="font-semibold" style={{ color: inv.status === 'paid' ? '#4ade80' : '#C4A882' }}>
+                        {inv.status === 'paid' ? 'Paid in full' : 'Balance due'}
                       </span>
-                      <span className="font-bold" style={{ color: invoice.status === 'paid' ? '#4ade80' : '#C4A882' }}>
-                        {invoice.status === 'paid' ? formatCurrency(0) : formatCurrency(balance)}
+                      <span className="font-bold" style={{ color: inv.status === 'paid' ? '#4ade80' : '#C4A882' }}>
+                        {inv.status === 'paid' ? formatCurrency(0) : formatCurrency(balance)}
                       </span>
                     </div>
                   </div>
-
                   <div className="mt-3 flex items-center gap-2">
-                    <span
-                      className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                      style={{
-                        backgroundColor: INVOICE_STATUS_STYLE[invoice.status]?.color ? `${INVOICE_STATUS_STYLE[invoice.status].color}20` : 'rgba(153,153,153,0.15)',
-                        color: INVOICE_STATUS_STYLE[invoice.status]?.color ?? '#999',
-                      }}
-                    >
-                      {INVOICE_STATUS_STYLE[invoice.status]?.label}
+                    <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: `${INVOICE_STATUS_STYLE[inv.status]?.color ?? '#999'}20`, color: INVOICE_STATUS_STYLE[inv.status]?.color ?? '#999' }}>
+                      {INVOICE_STATUS_STYLE[inv.status]?.label}
                     </span>
-                    {hasPartial && invoice.status !== 'paid' && (
-                      <span
-                        className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                        style={{ backgroundColor: 'rgba(96,165,250,0.15)', color: '#60a5fa' }}
-                      >
-                        Deposit received
-                      </span>
-                    )}
-                    {invoice.paid_at && (
-                      <span className="text-xs" style={{ color: '#555' }}>
-                        {new Date(invoice.paid_at).toLocaleDateString()}
-                      </span>
-                    )}
-                    {invoice.due_date && invoice.status !== 'paid' && (
-                      <span className="text-xs" style={{ color: '#555' }}>
-                        Due {new Date(invoice.due_date).toLocaleDateString()}
-                      </span>
-                    )}
+                    {hasPartial && inv.status !== 'paid' && <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: 'rgba(96,165,250,0.15)', color: '#60a5fa' }}>Deposit received</span>}
+                    {inv.paid_at && <span className="text-xs" style={{ color: '#555' }}>{new Date(inv.paid_at).toLocaleDateString()}</span>}
+                    {inv.due_date && inv.status !== 'paid' && <span className="text-xs" style={{ color: '#555' }}>Due {new Date(inv.due_date).toLocaleDateString()}</span>}
                   </div>
-
                   {isPayable && (
                     <div className="mt-5 space-y-4">
                       <div className="rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
                         <label className="flex cursor-pointer items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={payFull}
-                            onChange={e => { setPayFull(e.target.checked); if (e.target.checked) setCustomAmount('') }}
-                            className="h-4 w-4 rounded accent-[#8B7355]"
-                          />
-                          <span className="text-sm font-medium text-white">
-                            Pay full balance — {formatCurrency(balance)}
-                          </span>
+                          <input type="checkbox" checked={payFull} onChange={e => { setPayFull(e.target.checked); if (e.target.checked) setCustomAmount('') }} className="h-4 w-4 rounded accent-[#8B7355]" />
+                          <span className="text-sm font-medium text-white">Pay full balance — {formatCurrency(balance)}</span>
                         </label>
-
                         {!payFull && (
                           <div className="mt-4">
-                            <label className="mb-1.5 block text-sm font-medium text-white">
-                              Or enter a payment amount
-                            </label>
-                            <p className="mb-2 text-xs" style={{ color: '#999' }}>
-                              Minimum payment: $250
-                            </p>
+                            <label className="mb-1.5 block text-sm font-medium text-white">Or enter a payment amount</label>
+                            <p className="mb-2 text-xs" style={{ color: '#999' }}>Minimum payment: $250</p>
                             <div className="relative">
                               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-white">$</span>
-                              <input
-                                type="number"
-                                min="250"
-                                step="0.01"
-                                max={(balance / 100).toFixed(2)}
-                                value={customAmount}
-                                onChange={e => setCustomAmount(e.target.value)}
-                                placeholder="250.00"
-                                className="w-full rounded-lg py-3 pl-8 pr-4 text-sm text-white outline-none transition-colors"
-                                style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
-                                onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
-                                onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
-                              />
+                              <input type="number" min="250" step="0.01" max={(balance / 100).toFixed(2)} value={customAmount} onChange={e => setCustomAmount(e.target.value)} placeholder="250.00" className="w-full rounded-lg py-3 pl-8 pr-4 text-sm text-white outline-none transition-colors" style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }} onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')} onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')} />
                             </div>
                           </div>
                         )}
                       </div>
-
-                      <button
-                        onClick={() => handlePay(sponsorInvoice)}
-                        disabled={paying || (!payFull && !customAmount)}
-                        className="w-full rounded-xl py-3 text-sm font-bold tracking-wide text-white transition-opacity disabled:opacity-60"
-                        style={{ backgroundColor: '#8B7355' }}
-                      >
-                        {paying
-                          ? 'Redirecting to Stripe...'
-                          : payFull
-                            ? `Pay ${formatCurrency(balance)} Now`
-                            : customAmount
-                              ? `Pay ${formatCurrency(Math.round(parseFloat(customAmount) * 100) || 0)} Now`
-                              : 'Enter Amount to Pay'
-                        }
+                      <button onClick={() => handlePay(sponsorInvoice)} disabled={paying || (!payFull && !customAmount)} className="w-full rounded-xl py-3 text-sm font-bold tracking-wide text-white transition-opacity disabled:opacity-60" style={{ backgroundColor: '#8B7355' }}>
+                        {paying ? 'Redirecting to Stripe...' : payFull ? `Pay ${formatCurrency(balance)} Now` : customAmount ? `Pay ${formatCurrency(Math.round(parseFloat(customAmount) * 100) || 0)} Now` : 'Enter Amount to Pay'}
                       </button>
                     </div>
                   )}
-
-                  {invoice.status === 'paid' && (
+                  {inv.status === 'paid' && (
                     <div className="mt-4 flex items-center justify-center gap-2 rounded-xl py-3" style={{ backgroundColor: 'rgba(74,222,128,0.1)' }}>
                       <span style={{ color: '#4ade80' }}>✓</span>
                       <span className="text-sm font-semibold" style={{ color: '#4ade80' }}>Sponsorship paid — thank you!</span>
@@ -1315,98 +1231,37 @@ export default function PortalPage() {
               )
             })()}
 
-            {/* Sponsor profile */}
             <Card>
               <SectionLabel>Sponsor Profile</SectionLabel>
               <div className="space-y-4">
-                {/* Logo */}
                 <div>
                   <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Logo</label>
                   <div className="flex items-center gap-4">
-                    {sponsorship.logo_url && (
-                      <img
-                        src={sponsorship.logo_url}
-                        alt="Sponsor logo"
-                        className="h-16 w-16 rounded-lg object-contain"
-                        style={{ border: '1px solid #2a2a2a', backgroundColor: '#111' }}
-                      />
-                    )}
+                    {sponsorship.logo_url && <img src={sponsorship.logo_url} alt="Sponsor logo" className="h-16 w-16 rounded-lg object-contain" style={{ border: '1px solid #2a2a2a', backgroundColor: '#111' }} />}
                     <div>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,image/svg+xml"
-                        id="sponsor-logo-upload"
-                        className="hidden"
-                        onChange={e => { if (e.target.files?.[0]) uploadSponsorLogo(e.target.files[0]); e.target.value = '' }}
-                      />
-                      <label
-                        htmlFor="sponsor-logo-upload"
-                        className="inline-flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold"
-                        style={{ backgroundColor: 'rgba(139,115,85,0.12)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}
-                      >
+                      <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" id="sponsor-logo-upload" className="hidden" onChange={e => { if (e.target.files?.[0]) uploadSponsorLogo(e.target.files[0]); e.target.value = '' }} />
+                      <label htmlFor="sponsor-logo-upload" className="inline-flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold" style={{ backgroundColor: 'rgba(139,115,85,0.12)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}>
                         {sponsorship.logo_url ? 'Replace Logo' : 'Upload Logo'}
                       </label>
                     </div>
                   </div>
                 </div>
-
-                {/* Website */}
-                <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Website</label>
-                  <input
-                    type="url"
-                    value={sponsorProfile.website}
-                    onChange={e => setSponsorProfile(p => ({ ...p, website: e.target.value }))}
-                    placeholder="https://yoursite.com"
-                    className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
-                    style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
-                    onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
-                    onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
-                  />
-                </div>
-
-                {/* Instagram */}
-                <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Instagram</label>
-                  <input
-                    type="text"
-                    value={sponsorProfile.instagram}
-                    onChange={e => setSponsorProfile(p => ({ ...p, instagram: e.target.value }))}
-                    placeholder="@handle"
-                    className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
-                    style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
-                    onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
-                    onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
-                  />
-                </div>
-
-                {/* Facebook */}
-                <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Facebook</label>
-                  <input
-                    type="text"
-                    value={sponsorProfile.facebook}
-                    onChange={e => setSponsorProfile(p => ({ ...p, facebook: e.target.value }))}
-                    placeholder="Facebook page URL or name"
-                    className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
-                    style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
-                    onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
-                    onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
-                  />
-                </div>
-
-                <button
-                  onClick={saveSponsorProfileFn}
-                  disabled={savingSponsorProfile}
-                  className="rounded-lg px-5 py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
-                  style={{ backgroundColor: '#8B7355' }}
-                >
+                {[
+                  { key: 'website', label: 'Website', type: 'url', placeholder: 'https://yoursite.com' },
+                  { key: 'instagram', label: 'Instagram', type: 'text', placeholder: '@handle' },
+                  { key: 'facebook', label: 'Facebook', type: 'text', placeholder: 'Facebook page URL or name' },
+                ].map(f => (
+                  <div key={f.key}>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>{f.label}</label>
+                    <input type={f.type} value={sponsorProfile[f.key as keyof typeof sponsorProfile]} onChange={e => setSponsorProfile(p => ({ ...p, [f.key]: e.target.value }))} placeholder={f.placeholder} className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none" style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }} onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')} onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')} />
+                  </div>
+                ))}
+                <button onClick={saveSponsorProfileFn} disabled={savingSponsorProfile} className="rounded-lg px-5 py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-50" style={{ backgroundColor: '#8B7355' }}>
                   {savingSponsorProfile ? 'Saving…' : 'Save Profile'}
                 </button>
               </div>
             </Card>
 
-            {/* Sponsorship details */}
             <Card>
               <SectionLabel>Sponsorship Details</SectionLabel>
               <dl className="space-y-2">
@@ -1423,173 +1278,70 @@ export default function PortalPage() {
                 ))}
               </dl>
             </Card>
-
           </div>
         )}
 
         {/* Food Truck Vendor */}
         {foodTruck && (
           <div className="space-y-4" style={{ marginTop: application || sponsorship ? '1rem' : undefined }}>
-
-            {/* Header */}
             <div className="mb-2">
-              <p className="mb-1 text-sm font-medium uppercase tracking-widest" style={{ color: '#8B7355' }}>
-                Food Truck Vendor
-              </p>
-              <h2 className="font-display text-2xl font-bold text-white">
-                {foodTruck.business_name}
-              </h2>
+              <p className="mb-1 text-sm font-medium uppercase tracking-widest" style={{ color: '#8B7355' }}>Food Truck Vendor</p>
+              <h2 className="font-display text-2xl font-bold text-white">{foodTruck.business_name}</h2>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 <span className="text-sm" style={{ color: '#999' }}>{foodTruck.cuisine_type}</span>
                 {foodTruck.days && foodTruck.days.length > 0 && (
-                  <>
-                    <span style={{ color: '#333' }}>·</span>
-                    {foodTruck.days.map(d => (
-                      <span
-                        key={d}
-                        className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                        style={{ backgroundColor: 'rgba(139,115,85,0.15)', color: '#C4A882' }}
-                      >
-                        {DAY_LABELS[d] || d}
-                      </span>
-                    ))}
-                  </>
+                  <>{foodTruck.days.map(d => (<span key={d} className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: 'rgba(139,115,85,0.15)', color: '#C4A882' }}>{DAY_LABELS[d] || d}</span>))}</>
                 )}
-                {foodTruck.thursday_setup && (
-                  <>
-                    <span style={{ color: '#333' }}>·</span>
-                    <span className="text-xs" style={{ color: '#999' }}>Thursday setup</span>
-                  </>
-                )}
+                {foodTruck.thursday_setup && <span className="text-xs" style={{ color: '#999' }}>Thursday setup</span>}
               </div>
             </div>
 
-            {/* Food truck invoice & payment */}
             {foodTruckInvoice && (() => {
               const inv = foodTruckInvoice
               const amountPaid = inv.amount_paid ?? 0
               const balance = inv.amount - amountPaid
               const hasPartial = amountPaid > 0 && amountPaid < inv.amount
               const isPayable = inv.status === 'pending' || inv.status === 'overdue'
-
               return (
                 <Card>
                   <SectionLabel>Invoice</SectionLabel>
-
                   <div className="rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
-                    <div className="flex justify-between text-sm">
-                      <span style={{ color: '#999' }}>Invoice total</span>
-                      <span className="font-medium text-white">{formatCurrency(inv.amount)}</span>
-                    </div>
-                    {amountPaid > 0 && (
-                      <div className="mt-2 flex justify-between text-sm">
-                        <span style={{ color: '#999' }}>Paid so far</span>
-                        <span className="font-medium" style={{ color: '#4ade80' }}>
-                          -{formatCurrency(amountPaid)}
-                        </span>
-                      </div>
-                    )}
+                    <div className="flex justify-between text-sm"><span style={{ color: '#999' }}>Invoice total</span><span className="font-medium text-white">{formatCurrency(inv.amount)}</span></div>
+                    {amountPaid > 0 && <div className="mt-2 flex justify-between text-sm"><span style={{ color: '#999' }}>Paid so far</span><span className="font-medium" style={{ color: '#4ade80' }}>-{formatCurrency(amountPaid)}</span></div>}
                     <div className="mt-2 flex justify-between border-t pt-2 text-sm" style={{ borderColor: '#2a2a2a' }}>
-                      <span className="font-semibold" style={{ color: inv.status === 'paid' ? '#4ade80' : '#C4A882' }}>
-                        {inv.status === 'paid' ? 'Paid in full' : 'Balance due'}
-                      </span>
-                      <span className="font-bold" style={{ color: inv.status === 'paid' ? '#4ade80' : '#C4A882' }}>
-                        {inv.status === 'paid' ? formatCurrency(0) : formatCurrency(balance)}
-                      </span>
+                      <span className="font-semibold" style={{ color: inv.status === 'paid' ? '#4ade80' : '#C4A882' }}>{inv.status === 'paid' ? 'Paid in full' : 'Balance due'}</span>
+                      <span className="font-bold" style={{ color: inv.status === 'paid' ? '#4ade80' : '#C4A882' }}>{inv.status === 'paid' ? formatCurrency(0) : formatCurrency(balance)}</span>
                     </div>
                   </div>
-
                   <div className="mt-3 flex items-center gap-2">
-                    <span
-                      className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                      style={{
-                        backgroundColor: INVOICE_STATUS_STYLE[inv.status]?.color ? `${INVOICE_STATUS_STYLE[inv.status].color}20` : 'rgba(153,153,153,0.15)',
-                        color: INVOICE_STATUS_STYLE[inv.status]?.color ?? '#999',
-                      }}
-                    >
-                      {INVOICE_STATUS_STYLE[inv.status]?.label}
-                    </span>
-                    {hasPartial && inv.status !== 'paid' && (
-                      <span
-                        className="rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                        style={{ backgroundColor: 'rgba(96,165,250,0.15)', color: '#60a5fa' }}
-                      >
-                        Deposit received
-                      </span>
-                    )}
-                    {inv.paid_at && (
-                      <span className="text-xs" style={{ color: '#555' }}>
-                        {new Date(inv.paid_at).toLocaleDateString()}
-                      </span>
-                    )}
-                    {inv.due_date && inv.status !== 'paid' && (
-                      <span className="text-xs" style={{ color: '#555' }}>
-                        Due {new Date(inv.due_date).toLocaleDateString()}
-                      </span>
-                    )}
+                    <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: `${INVOICE_STATUS_STYLE[inv.status]?.color ?? '#999'}20`, color: INVOICE_STATUS_STYLE[inv.status]?.color ?? '#999' }}>{INVOICE_STATUS_STYLE[inv.status]?.label}</span>
+                    {hasPartial && inv.status !== 'paid' && <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: 'rgba(96,165,250,0.15)', color: '#60a5fa' }}>Deposit received</span>}
+                    {inv.paid_at && <span className="text-xs" style={{ color: '#555' }}>{new Date(inv.paid_at).toLocaleDateString()}</span>}
+                    {inv.due_date && inv.status !== 'paid' && <span className="text-xs" style={{ color: '#555' }}>Due {new Date(inv.due_date).toLocaleDateString()}</span>}
                   </div>
-
                   {isPayable && (
                     <div className="mt-5 space-y-4">
                       <div className="rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
                         <label className="flex cursor-pointer items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={payFull}
-                            onChange={e => { setPayFull(e.target.checked); if (e.target.checked) setCustomAmount('') }}
-                            className="h-4 w-4 rounded accent-[#8B7355]"
-                          />
-                          <span className="text-sm font-medium text-white">
-                            Pay full balance — {formatCurrency(balance)}
-                          </span>
+                          <input type="checkbox" checked={payFull} onChange={e => { setPayFull(e.target.checked); if (e.target.checked) setCustomAmount('') }} className="h-4 w-4 rounded accent-[#8B7355]" />
+                          <span className="text-sm font-medium text-white">Pay full balance — {formatCurrency(balance)}</span>
                         </label>
-
                         {!payFull && (
                           <div className="mt-4">
-                            <label className="mb-1.5 block text-sm font-medium text-white">
-                              Or enter a payment amount
-                            </label>
-                            <p className="mb-2 text-xs" style={{ color: '#999' }}>
-                              Minimum payment: $250
-                            </p>
+                            <label className="mb-1.5 block text-sm font-medium text-white">Or enter a payment amount</label>
+                            <p className="mb-2 text-xs" style={{ color: '#999' }}>Minimum payment: $250</p>
                             <div className="relative">
                               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-white">$</span>
-                              <input
-                                type="number"
-                                min="250"
-                                step="0.01"
-                                max={(balance / 100).toFixed(2)}
-                                value={customAmount}
-                                onChange={e => setCustomAmount(e.target.value)}
-                                placeholder="250.00"
-                                className="w-full rounded-lg py-3 pl-8 pr-4 text-sm text-white outline-none transition-colors"
-                                style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
-                                onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
-                                onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
-                              />
+                              <input type="number" min="250" step="0.01" max={(balance / 100).toFixed(2)} value={customAmount} onChange={e => setCustomAmount(e.target.value)} placeholder="250.00" className="w-full rounded-lg py-3 pl-8 pr-4 text-sm text-white outline-none" style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }} onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')} onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')} />
                             </div>
                           </div>
                         )}
                       </div>
-
-                      <button
-                        onClick={() => handlePay(foodTruckInvoice)}
-                        disabled={paying || (!payFull && !customAmount)}
-                        className="w-full rounded-xl py-3 text-sm font-bold tracking-wide text-white transition-opacity disabled:opacity-60"
-                        style={{ backgroundColor: '#8B7355' }}
-                      >
-                        {paying
-                          ? 'Redirecting to Stripe...'
-                          : payFull
-                            ? `Pay ${formatCurrency(balance)} Now`
-                            : customAmount
-                              ? `Pay ${formatCurrency(Math.round(parseFloat(customAmount) * 100) || 0)} Now`
-                              : 'Enter Amount to Pay'
-                        }
+                      <button onClick={() => handlePay(foodTruckInvoice)} disabled={paying || (!payFull && !customAmount)} className="w-full rounded-xl py-3 text-sm font-bold tracking-wide text-white transition-opacity disabled:opacity-60" style={{ backgroundColor: '#8B7355' }}>
+                        {paying ? 'Redirecting to Stripe...' : payFull ? `Pay ${formatCurrency(balance)} Now` : customAmount ? `Pay ${formatCurrency(Math.round(parseFloat(customAmount) * 100) || 0)} Now` : 'Enter Amount to Pay'}
                       </button>
                     </div>
                   )}
-
                   {inv.status === 'paid' && (
                     <div className="mt-4 flex items-center justify-center gap-2 rounded-xl py-3" style={{ backgroundColor: 'rgba(74,222,128,0.1)' }}>
                       <span style={{ color: '#4ade80' }}>✓</span>
@@ -1600,24 +1352,13 @@ export default function PortalPage() {
               )
             })()}
 
-            {/* Food truck profile */}
             <Card>
               <SectionLabel>Vendor Profile</SectionLabel>
-
               {!editingFoodTruck ? (
                 <div className="space-y-4">
-                  {/* Logo */}
                   {foodTruck.logo_url && (
-                    <div>
-                      <img
-                        src={supabase.storage.from('food-truck-logos').getPublicUrl(foodTruck.logo_url).data.publicUrl}
-                        alt={foodTruck.business_name}
-                        className="h-20 w-20 rounded-lg object-contain"
-                        style={{ border: '1px solid #2a2a2a', backgroundColor: '#111' }}
-                      />
-                    </div>
+                    <img src={supabase.storage.from('food-truck-logos').getPublicUrl(foodTruck.logo_url).data.publicUrl} alt={foodTruck.business_name} className="h-20 w-20 rounded-lg object-contain" style={{ border: '1px solid #2a2a2a', backgroundColor: '#111' }} />
                   )}
-
                   <dl className="space-y-2">
                     {[
                       { label: 'Business', value: foodTruck.business_name },
@@ -1630,213 +1371,69 @@ export default function PortalPage() {
                       </div>
                     ))}
                   </dl>
-
-                  {/* Social links */}
                   {(foodTruck.website || foodTruck.instagram || foodTruck.facebook) && (
                     <div className="flex flex-wrap gap-3">
-                      {foodTruck.website && (
-                        <a
-                          href={foodTruck.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
-                          style={{ backgroundColor: 'rgba(139,115,85,0.12)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}
-                        >
-                          Website
-                        </a>
-                      )}
-                      {foodTruck.instagram && (
-                        <a
-                          href={foodTruck.instagram.startsWith('http') ? foodTruck.instagram : `https://instagram.com/${foodTruck.instagram.replace('@', '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
-                          style={{ backgroundColor: 'rgba(139,115,85,0.12)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}
-                        >
-                          Instagram
-                        </a>
-                      )}
-                      {foodTruck.facebook && (
-                        <a
-                          href={foodTruck.facebook.startsWith('http') ? foodTruck.facebook : `https://facebook.com/${foodTruck.facebook}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
-                          style={{ backgroundColor: 'rgba(139,115,85,0.12)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}
-                        >
-                          Facebook
-                        </a>
-                      )}
+                      {foodTruck.website && <a href={foodTruck.website} target="_blank" rel="noopener noreferrer" className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80" style={{ backgroundColor: 'rgba(139,115,85,0.12)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}>Website</a>}
+                      {foodTruck.instagram && <a href={foodTruck.instagram.startsWith('http') ? foodTruck.instagram : `https://instagram.com/${foodTruck.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80" style={{ backgroundColor: 'rgba(139,115,85,0.12)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}>Instagram</a>}
+                      {foodTruck.facebook && <a href={foodTruck.facebook.startsWith('http') ? foodTruck.facebook : `https://facebook.com/${foodTruck.facebook}`} target="_blank" rel="noopener noreferrer" className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80" style={{ backgroundColor: 'rgba(139,115,85,0.12)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}>Facebook</a>}
                     </div>
                   )}
-
-                  <button
-                    onClick={() => setEditingFoodTruck(true)}
-                    className="rounded-lg px-5 py-2 text-sm font-semibold transition-opacity hover:opacity-80"
-                    style={{ backgroundColor: 'rgba(139,115,85,0.15)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}
-                  >
-                    Edit Profile
-                  </button>
+                  <button onClick={() => setEditingFoodTruck(true)} className="rounded-lg px-5 py-2 text-sm font-semibold transition-opacity hover:opacity-80" style={{ backgroundColor: 'rgba(139,115,85,0.15)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}>Edit Profile</button>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Business name */}
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Business Name</label>
-                    <input
-                      type="text"
-                      value={foodTruckForm.business_name}
-                      onChange={e => setFoodTruckForm(f => ({ ...f, business_name: e.target.value }))}
-                      placeholder="Business name"
-                      className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
-                      style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
-                      onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
-                      onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
-                    />
-                  </div>
-
-                  {/* Cuisine type */}
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Cuisine Type</label>
-                    <input
-                      type="text"
-                      value={foodTruckForm.cuisine_type}
-                      onChange={e => setFoodTruckForm(f => ({ ...f, cuisine_type: e.target.value }))}
-                      placeholder="e.g. Mexican, BBQ, Asian Fusion"
-                      className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
-                      style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
-                      onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
-                      onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
-                    />
-                  </div>
-
-                  {/* Description */}
+                  {[
+                    { key: 'business_name', label: 'Business Name', type: 'text', placeholder: 'Business name' },
+                    { key: 'cuisine_type', label: 'Cuisine Type', type: 'text', placeholder: 'e.g. Mexican, BBQ, Asian Fusion' },
+                    { key: 'website', label: 'Website', type: 'url', placeholder: 'https://yoursite.com' },
+                    { key: 'instagram', label: 'Instagram', type: 'text', placeholder: '@handle' },
+                    { key: 'facebook', label: 'Facebook', type: 'text', placeholder: 'Facebook page URL or name' },
+                  ].map(f => (
+                    <div key={f.key}>
+                      <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>{f.label}</label>
+                      <input type={f.type} value={foodTruckForm[f.key as keyof typeof foodTruckForm]} onChange={e => setFoodTruckForm(fm => ({ ...fm, [f.key]: e.target.value }))} placeholder={f.placeholder} className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none" style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }} onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')} onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')} />
+                    </div>
+                  ))}
                   <div>
                     <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Description</label>
-                    <textarea
-                      value={foodTruckForm.description}
-                      onChange={e => setFoodTruckForm(f => ({ ...f, description: e.target.value }))}
-                      placeholder="Tell attendees about your food"
-                      rows={3}
-                      className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none resize-none"
-                      style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
-                      onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
-                      onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
-                    />
+                    <textarea value={foodTruckForm.description} onChange={e => setFoodTruckForm(f => ({ ...f, description: e.target.value }))} placeholder="Tell attendees about your food" rows={3} className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none resize-none" style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }} onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')} onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')} />
                   </div>
-
-                  {/* Website */}
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Website</label>
-                    <input
-                      type="url"
-                      value={foodTruckForm.website}
-                      onChange={e => setFoodTruckForm(f => ({ ...f, website: e.target.value }))}
-                      placeholder="https://yoursite.com"
-                      className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
-                      style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
-                      onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
-                      onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
-                    />
-                  </div>
-
-                  {/* Instagram */}
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Instagram</label>
-                    <input
-                      type="text"
-                      value={foodTruckForm.instagram}
-                      onChange={e => setFoodTruckForm(f => ({ ...f, instagram: e.target.value }))}
-                      placeholder="@handle"
-                      className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
-                      style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
-                      onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
-                      onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
-                    />
-                  </div>
-
-                  {/* Facebook */}
-                  <div>
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Facebook</label>
-                    <input
-                      type="text"
-                      value={foodTruckForm.facebook}
-                      onChange={e => setFoodTruckForm(f => ({ ...f, facebook: e.target.value }))}
-                      placeholder="Facebook page URL or name"
-                      className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
-                      style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
-                      onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
-                      onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
-                    />
-                  </div>
-
-                  {/* Logo upload */}
                   <div>
                     <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Logo</label>
                     <div className="flex items-center gap-4">
-                      {foodTruck.logo_url && !foodTruckLogoFile && (
-                        <img
-                          src={supabase.storage.from('food-truck-logos').getPublicUrl(foodTruck.logo_url).data.publicUrl}
-                          alt="Current logo"
-                          className="h-16 w-16 rounded-lg object-contain"
-                          style={{ border: '1px solid #2a2a2a', backgroundColor: '#111' }}
-                        />
-                      )}
+                      {foodTruck.logo_url && !foodTruckLogoFile && <img src={supabase.storage.from('food-truck-logos').getPublicUrl(foodTruck.logo_url).data.publicUrl} alt="Current logo" className="h-16 w-16 rounded-lg object-contain" style={{ border: '1px solid #2a2a2a', backgroundColor: '#111' }} />}
                       <div>
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp,image/svg+xml"
-                          id="food-truck-logo-upload"
-                          className="hidden"
-                          onChange={e => { if (e.target.files?.[0]) setFoodTruckLogoFile(e.target.files[0]); e.target.value = '' }}
-                        />
-                        <label
-                          htmlFor="food-truck-logo-upload"
-                          className="inline-flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold"
-                          style={{ backgroundColor: 'rgba(139,115,85,0.12)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}
-                        >
+                        <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" id="food-truck-logo-upload" className="hidden" onChange={e => { if (e.target.files?.[0]) setFoodTruckLogoFile(e.target.files[0]); e.target.value = '' }} />
+                        <label htmlFor="food-truck-logo-upload" className="inline-flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold" style={{ backgroundColor: 'rgba(139,115,85,0.12)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}>
                           {foodTruckLogoFile ? `✓ ${foodTruckLogoFile.name}` : foodTruck.logo_url ? 'Replace Logo' : 'Upload Logo'}
                         </label>
                       </div>
                     </div>
                   </div>
-
-                  {/* Save / Cancel */}
                   <div className="flex items-center gap-3">
-                    <button
-                      onClick={handleSaveFoodTruck}
-                      disabled={savingFoodTruck}
-                      className="rounded-lg px-5 py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
-                      style={{ backgroundColor: '#8B7355' }}
-                    >
-                      {savingFoodTruck ? 'Saving…' : 'Save'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditingFoodTruck(false)
-                        setFoodTruckLogoFile(null)
-                        setFoodTruckForm({
-                          business_name: foodTruck.business_name,
-                          cuisine_type: foodTruck.cuisine_type,
-                          description: foodTruck.description,
-                          website: foodTruck.website || '',
-                          instagram: foodTruck.instagram || '',
-                          facebook: foodTruck.facebook || '',
-                        })
-                      }}
-                      className="text-sm"
-                      style={{ color: '#555' }}
-                    >
-                      Cancel
-                    </button>
+                    <button onClick={handleSaveFoodTruck} disabled={savingFoodTruck} className="rounded-lg px-5 py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-50" style={{ backgroundColor: '#8B7355' }}>{savingFoodTruck ? 'Saving…' : 'Save'}</button>
+                    <button onClick={() => { setEditingFoodTruck(false); setFoodTruckLogoFile(null); setFoodTruckForm({ business_name: foodTruck.business_name, cuisine_type: foodTruck.cuisine_type, description: foodTruck.description, website: foodTruck.website || '', instagram: foodTruck.instagram || '', facebook: foodTruck.facebook || '' }) }} className="text-sm" style={{ color: '#555' }}>Cancel</button>
                   </div>
                 </div>
               )}
             </Card>
-
           </div>
         )}
       </div>
     </div>
+  )
+}
+
+// ── Suspense wrapper — required because useSearchParams() is used above ────────
+
+export default function PortalPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2" style={{ borderColor: '#8B7355', borderTopColor: 'transparent' }} />
+      </div>
+    }>
+      <PortalContent />
+    </Suspense>
   )
 }

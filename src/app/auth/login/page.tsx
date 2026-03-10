@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 
-export default function LoginPage() {
+function LoginContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -33,9 +33,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      className="flex min-h-screen flex-col items-center justify-center px-4"
-    >
+    <div className="flex min-h-screen flex-col items-center justify-center px-4">
       {/* Header */}
       <div className="mb-8 text-center">
         <div className="mb-3 flex justify-center gap-2 text-sm" style={{ color: '#8B7355' }}>
@@ -73,10 +71,7 @@ export default function LoginPage() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               className="w-full rounded-lg px-4 py-3 text-sm text-white outline-none transition-colors"
-              style={{
-                backgroundColor: '#0a0a0a',
-                border: '1px solid #2a2a2a',
-              }}
+              style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}
               onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
               onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
               placeholder="you@example.com"
@@ -107,10 +102,7 @@ export default function LoginPage() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full rounded-lg px-4 py-3 text-sm text-white outline-none transition-colors"
-              style={{
-                backgroundColor: '#0a0a0a',
-                border: '1px solid #2a2a2a',
-              }}
+              style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}
               onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
               onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
               placeholder="••••••••"
@@ -123,12 +115,8 @@ export default function LoginPage() {
             disabled={loading}
             className="mt-2 w-full rounded-lg py-3 text-sm font-semibold text-white transition-all duration-150 disabled:opacity-50"
             style={{ backgroundColor: '#8B7355' }}
-            onMouseEnter={e => {
-              if (!loading) (e.currentTarget as HTMLElement).style.backgroundColor = '#C4A882'
-            }}
-            onMouseLeave={e => {
-              ;(e.currentTarget as HTMLElement).style.backgroundColor = '#8B7355'
-            }}
+            onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLElement).style.backgroundColor = '#C4A882' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = '#8B7355' }}
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
@@ -137,9 +125,7 @@ export default function LoginPage() {
         {/* Divider */}
         <div className="my-6 flex items-center gap-3">
           <div className="h-px flex-1" style={{ backgroundColor: '#2a2a2a' }} />
-          <span className="text-xs" style={{ color: '#555555' }}>
-            or
-          </span>
+          <span className="text-xs" style={{ color: '#555555' }}>or</span>
           <div className="h-px flex-1" style={{ backgroundColor: '#2a2a2a' }} />
         </div>
 
@@ -161,5 +147,18 @@ export default function LoginPage() {
         <span className="text-emboss">© {new Date().getFullYear()} All American Tattoo Convention</span>
       </p>
     </div>
+  )
+}
+
+// Suspense wrapper — required because useSearchParams() is used above
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2" style={{ borderColor: '#8B7355', borderTopColor: 'transparent' }} />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   )
 }

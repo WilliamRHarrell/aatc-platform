@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import PublicNav from '@/components/PublicNav'
@@ -30,7 +30,7 @@ interface RegistrationForm {
   attendeeType: 'artist' | 'vendor' | 'patron'
 }
 
-export default function TattooPanelsPage() {
+function TattooPanelsContent() {
   const searchParams = useSearchParams()
   const [panels, setPanels] = useState<Panel[]>([])
   const [loading, setLoading] = useState(true)
@@ -198,7 +198,7 @@ export default function TattooPanelsPage() {
                     className="mb-4 border-b pb-3 text-sm font-bold uppercase tracking-[0.2em]"
                     style={{ color: '#C4A882', borderColor: '#2a2a2a' }}
                   >
-                    <span className="text-emboss">{day}</span>
+                    <span className="text-emboss">{formatPanelDate(day)}</span>
                   </h2>
                   <div className="space-y-4">
                     {dayPanels.map(panel => (
@@ -261,7 +261,6 @@ export default function TattooPanelsPage() {
                               </span>
                             )}
 
-                            {/* Signup section */}
                             {panel.signup_type === 'email_host' && panel.host_email && (
                               <a
                                 href={`mailto:${panel.host_email}?subject=Panel Registration: ${encodeURIComponent(panel.title)}`}
@@ -490,5 +489,21 @@ export default function TattooPanelsPage() {
         </div>
       )}
     </div>
+  )
+}
+
+// Suspense wrapper — required because useSearchParams() is used above
+export default function TattooPanelsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-2"
+          style={{ borderColor: '#8B7355', borderTopColor: 'transparent' }}
+        />
+      </div>
+    }>
+      <TattooPanelsContent />
+    </Suspense>
   )
 }
