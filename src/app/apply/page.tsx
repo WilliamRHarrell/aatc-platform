@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import PublicNav from '@/components/PublicNav'
 
-const REGISTRATION_OPENS = new Date('2026-04-19T00:00:00')
+const REGISTRATION_OPENS = new Date('2026-06-01T00:00:00')
 
 function useCountdown(target: Date) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
@@ -118,7 +118,7 @@ export default function ApplyPage() {
             <CountdownUnit value={timeLeft.seconds} label="Seconds" />
           </div>
           <p className="mt-6 text-sm font-bold uppercase tracking-wider" style={{ color: '#C4A882' }}>
-            Opening April 19, 2026 —{' '}
+            Opening June 1, 2026 —{' '}
             <a
               href={`data:text/calendar;charset=utf-8,${encodeURIComponent(
                 [

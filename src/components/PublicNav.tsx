@@ -186,7 +186,7 @@ export default function PublicNav() {
           className="text-sm font-medium uppercase tracking-widest"
           style={{ color: '#C4A882' }}
         >
-          #AATC26
+          #AATC27
         </Link>
 
         {/* Links */}
