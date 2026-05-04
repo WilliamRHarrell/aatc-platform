@@ -3,10 +3,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
-import { calculatePricing, getMaxArtists } from '@/lib/pricing'
+import { calculatePricing, getMaxArtists, type AddOn, type AddOnTerm } from '@/lib/pricing'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
-import type { BoothSize } from '@/lib/pricing'
 import type { Event } from '@/types'
 import BoothTypeToggle from '@/components/BoothTypeToggle'
 
@@ -23,9 +22,11 @@ interface ContactFields {
 }
 
 interface BoothFields {
-  booth_size: BoothSize
+  artist_single_qty: number
+  artist_double_qty: number
+  corner_count: number
+  add_ons: AddOn[]
   artist_count: number
-  is_corner: boolean
   is_veteran: boolean
 }
 
@@ -60,12 +61,10 @@ function onBlurGray(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>)
   e.currentTarget.style.borderColor = '#2a2a2a'
 }
 
-const BOOTH_SIZES: { value: BoothSize; label: string; sqft: string; artistPrice: number }[] = [
-  { value: 'single', label: 'Single', sqft: '10×10', artistPrice: 70000 },
-  { value: 'double', label: 'Double', sqft: '10×20', artistPrice: 110000 },
-  { value: 'triple', label: 'Triple', sqft: '10×30', artistPrice: 180000 },
-  { value: 'quad', label: 'Quad', sqft: '10×40', artistPrice: 220000 },
-]
+const ARTIST_BOOTHS = [
+  { kind: 'single' as const, label: 'Single', sqft: '10×10', price: 80000 },
+  { kind: 'double' as const, label: 'Double', sqft: '10×20', price: 120000 },
+] as const
 
 const ACCEPTED_FILE_TYPES = 'image/jpeg,image/png,image/webp,application/pdf'
 
@@ -110,10 +109,14 @@ function PricingSidebar({ fields }: { fields: BoothFields }) {
     () =>
       calculatePricing({
         exhibitorType: 'artist',
-        boothSize: fields.booth_size,
+        artistSingleQty: fields.artist_single_qty,
+        artistDoubleQty: fields.artist_double_qty,
+        vendorSingleQty: 0,
+        vendorDoubleQty: 0,
+        cornerCount: fields.corner_count,
         artistCount: fields.artist_count,
-        isCorner: fields.is_corner,
         isVeteran: fields.is_veteran,
+        addOns: fields.add_ons,
       }),
     [fields]
   )
@@ -296,9 +299,11 @@ export default function ArtistApplyPage() {
   })
 
   const [booth, setBooth] = useState<BoothFields>({
-    booth_size: 'single',
+    artist_single_qty: 1,
+    artist_double_qty: 0,
+    corner_count: 0,
+    add_ons: [],
     artist_count: 1,
-    is_corner: false,
     is_veteran: false,
   })
 
@@ -332,14 +337,14 @@ export default function ArtistApplyPage() {
     init()
   }, [])
 
-  const maxArtists = getMaxArtists(booth.booth_size)
+  const maxArtists = getMaxArtists({ artistSingleQty: booth.artist_single_qty, artistDoubleQty: booth.artist_double_qty })
 
   // Clamp artist_count when size changes
   useEffect(() => {
     if (booth.artist_count > maxArtists) {
       setBooth(b => ({ ...b, artist_count: maxArtists }))
     }
-  }, [booth.booth_size, maxArtists])
+  }, [booth.artist_single_qty, booth.artist_double_qty, maxArtists])
 
   // Keep artistEntries array in sync with artist_count
   useEffect(() => {
@@ -357,10 +362,14 @@ export default function ArtistApplyPage() {
     () =>
       calculatePricing({
         exhibitorType: 'artist',
-        boothSize: booth.booth_size,
+        artistSingleQty: booth.artist_single_qty,
+        artistDoubleQty: booth.artist_double_qty,
+        vendorSingleQty: 0,
+        vendorDoubleQty: 0,
+        cornerCount: booth.corner_count,
         artistCount: booth.artist_count,
-        isCorner: booth.is_corner,
         isVeteran: booth.is_veteran,
+        addOns: booth.add_ons,
       }),
     [booth]
   )
@@ -425,9 +434,15 @@ export default function ArtistApplyPage() {
       instagram: contact.instagram || null,
       facebook: contact.facebook || null,
       other_links: contact.other_links || null,
-      booth_size: booth.booth_size,
+      booth_size: null,
+      artist_single_qty: booth.artist_single_qty,
+      artist_double_qty: booth.artist_double_qty,
+      vendor_single_qty: 0,
+      vendor_double_qty: 0,
+      corner_count: booth.corner_count,
+      add_ons: booth.add_ons,
       artist_count: booth.artist_count,
-      is_corner: booth.is_corner,
+      is_corner: booth.corner_count > 0,
       is_veteran: booth.is_veteran,
       total_amount: pricing.total,
       tv_show: details.tv_show || null,
@@ -681,40 +696,120 @@ export default function ArtistApplyPage() {
             {step === 2 && (
               <div>
                 <h2 className="font-display mb-1 text-xl font-bold text-white">Booth Selection</h2>
-                <p className="mb-6 text-sm" style={{ color: '#999999' }}>Choose your booth size and options.</p>
+                <p className="mb-6 text-sm" style={{ color: '#999999' }}>Choose your booth quantities and options.</p>
 
-                {/* Booth size grid */}
-                <div className="mb-6">
-                  <label className="mb-3 block text-sm font-medium text-white">Booth size</label>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {BOOTH_SIZES.map(size => (
-                      <button
-                        key={size.value}
-                        type="button"
-                        onClick={() => setBooth(b => ({ ...b, booth_size: size.value }))}
-                        className="rounded-xl p-4 text-left transition-all"
+                {/* Booth quantity steppers */}
+                <div className="mb-2 space-y-3">
+                  <label className="mb-3 block text-sm font-medium text-white">Booth quantities</label>
+                  {ARTIST_BOOTHS.map(b => {
+                    const fieldKey = b.kind === 'single' ? 'artist_single_qty' : 'artist_double_qty'
+                    const qty = booth[fieldKey] as number
+                    return (
+                      <div key={b.kind} className="flex items-center justify-between rounded-xl p-5"
                         style={{
-                          backgroundColor: booth.booth_size === size.value ? 'rgba(139,115,85,0.15)' : '#0a0a0a',
-                          border: `2px solid ${booth.booth_size === size.value ? '#8B7355' : '#2a2a2a'}`,
-                        }}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <p className="font-semibold text-white">{size.label}</p>
-                            <p className="text-xs" style={{ color: '#999999' }}>{size.sqft} ft</p>
-                            <p className="mt-1 text-xs" style={{ color: '#999999' }}>Up to {getMaxArtists(size.value)} artists</p>
-                          </div>
-                          <span className="font-display font-bold" style={{ color: '#C4A882' }}>
-                            {formatCurrency(size.artistPrice)}
-                          </span>
+                          backgroundColor: qty > 0 ? 'rgba(139,115,85,0.15)' : '#0a0a0a',
+                          border: `2px solid ${qty > 0 ? '#8B7355' : '#2a2a2a'}`,
+                        }}>
+                        <div>
+                          <p className="font-semibold text-white">{b.label} <span className="text-xs" style={{ color: '#999999' }}>({b.sqft})</span></p>
+                          <p className="text-sm" style={{ color: '#C4A882' }}>${b.price / 100} each</p>
                         </div>
-                      </button>
-                    ))}
+                        <div className="flex items-center gap-3">
+                          <button type="button"
+                            onClick={() => setBooth(prev => ({ ...prev, [fieldKey]: Math.max(0, (prev[fieldKey] as number) - 1) }))}
+                            disabled={qty === 0}
+                            className="h-8 w-8 rounded-full text-lg font-bold disabled:opacity-30"
+                            style={{ backgroundColor: '#2a2a2a', color: 'white' }}>−</button>
+                          <span className="w-6 text-center font-semibold text-white">{qty}</span>
+                          <button type="button"
+                            onClick={() => setBooth(prev => ({ ...prev, [fieldKey]: (prev[fieldKey] as number) + 1 }))}
+                            className="h-8 w-8 rounded-full text-lg font-bold"
+                            style={{ backgroundColor: '#8B7355', color: 'white' }}>+</button>
+                        </div>
+                      </div>
+                    )
+                  })}
+
+                  <div className="mt-4 flex items-center justify-between rounded-xl p-4"
+                       style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
+                    <div>
+                      <p className="text-sm font-semibold text-white">Corner booths</p>
+                      <p className="text-xs" style={{ color: '#999999' }}>+$100 each (max equals total booths)</p>
+                    </div>
+                    <input
+                      type="number"
+                      min={0}
+                      max={booth.artist_single_qty + booth.artist_double_qty}
+                      value={booth.corner_count}
+                      onChange={e => {
+                        const v = Math.max(0, parseInt(e.target.value) || 0)
+                        setBooth(prev => ({ ...prev, corner_count: Math.min(v, prev.artist_single_qty + prev.artist_double_qty) }))
+                      }}
+                      className="w-20 rounded-lg px-3 py-2 text-center text-sm text-white"
+                      style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
+                    />
+                  </div>
+
+                  <div className="mt-6">
+                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider" style={{ color: '#8B7355' }}>
+                      Add-ons (optional)
+                    </h3>
+                    <div className="space-y-3">
+                      {([
+                        { kind: 'extra_table' as const, label: 'Extra Table', terms: [{ value: null, label: '$50/ea' }] },
+                        { kind: 'extra_chairs' as const, label: '2 Extra Chairs', terms: [{ value: null, label: '$50/set' }] },
+                        { kind: 'tattoo_bed' as const, label: 'Tattoo Bed', terms: [{ value: 'daily', label: 'Daily $50' }, { value: 'weekend', label: 'Weekend $150' }] },
+                        { kind: 'arm_rest' as const, label: 'Arm Rest', terms: [{ value: 'daily', label: 'Daily $40' }, { value: 'weekly', label: 'Weekly $80' }] },
+                        { kind: 'tattoo_light' as const, label: 'Tattoo Light', terms: [{ value: 'daily', label: 'Daily $40' }, { value: 'weekend', label: 'Weekend $80' }] },
+                      ]).map(item => {
+                        const existing = booth.add_ons.find(a => a.kind === item.kind)
+                        const qty = existing?.qty ?? 0
+                        const term = (existing?.term ?? item.terms[0].value) as AddOnTerm
+                        return (
+                          <div key={item.kind} className="flex flex-col gap-2 rounded-lg p-3 sm:flex-row sm:items-center sm:justify-between"
+                            style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
+                            <span className="text-sm font-semibold text-white">{item.label}</span>
+                            <div className="flex items-center gap-3">
+                              {item.terms.length > 1 && (
+                                <select
+                                  value={term ?? ''}
+                                  onChange={e => setBooth(prev => {
+                                    const others = prev.add_ons.filter(a => a.kind !== item.kind)
+                                    return { ...prev, add_ons: qty > 0 ? [...others, { kind: item.kind, term: (e.target.value || null) as AddOnTerm, qty }] : others }
+                                  })}
+                                  className="rounded px-2 py-1 text-xs text-white"
+                                  style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+                                  {item.terms.map(t => <option key={t.label} value={t.value ?? ''}>{t.label}</option>)}
+                                </select>
+                              )}
+                              {item.terms.length === 1 && <span className="text-xs" style={{ color: '#C4A882' }}>{item.terms[0].label}</span>}
+                              <button type="button"
+                                onClick={() => setBooth(prev => {
+                                  const others = prev.add_ons.filter(a => a.kind !== item.kind)
+                                  const newQty = Math.max(0, qty - 1)
+                                  return { ...prev, add_ons: newQty > 0 ? [...others, { kind: item.kind, term, qty: newQty }] : others }
+                                })}
+                                disabled={qty === 0}
+                                className="h-7 w-7 rounded-full text-sm font-bold disabled:opacity-30"
+                                style={{ backgroundColor: '#2a2a2a', color: 'white' }}>−</button>
+                              <span className="w-6 text-center text-sm font-semibold text-white">{qty}</span>
+                              <button type="button"
+                                onClick={() => setBooth(prev => {
+                                  const others = prev.add_ons.filter(a => a.kind !== item.kind)
+                                  return { ...prev, add_ons: [...others, { kind: item.kind, term, qty: qty + 1 }] }
+                                })}
+                                className="h-7 w-7 rounded-full text-sm font-bold"
+                                style={{ backgroundColor: '#8B7355', color: 'white' }}>+</button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
 
                 {/* Artist count */}
-                <div className="mb-6">
+                <div className="mb-6 mt-6">
                   <label className="mb-3 block text-sm font-medium text-white">
                     Number of artists <span style={{ color: '#555' }}>(max {maxArtists})</span>
                   </label>
@@ -728,7 +823,7 @@ export default function ArtistApplyPage() {
                     <span className="w-8 text-center text-lg font-semibold text-white">{booth.artist_count}</span>
                     <button
                       type="button"
-                      onClick={() => setBooth(b => ({ ...b, artist_count: Math.min(maxArtists, b.artist_count + 1) }))}
+                      onClick={() => setBooth(b => ({ ...b, artist_count: Math.min(Math.max(1, maxArtists), b.artist_count + 1) }))}
                       className="flex h-10 w-10 items-center justify-center rounded-lg text-lg font-bold transition-colors"
                       style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a', color: '#8B7355' }}
                     >+</button>
@@ -738,11 +833,10 @@ export default function ArtistApplyPage() {
                   </div>
                 </div>
 
-                {/* Options */}
+                {/* Veteran discount */}
                 <div className="mb-6 space-y-3">
                   <label className="block text-sm font-medium text-white">Options</label>
                   {[
-                    { key: 'is_corner', label: 'Corner booth', desc: '+$50 — extra visibility at the end of a row', value: booth.is_corner },
                     { key: 'is_veteran', label: 'Military veteran discount', desc: '−$150 — thank you for your service', value: booth.is_veteran },
                   ].map(opt => (
                     <button
@@ -1096,9 +1190,16 @@ export default function ArtistApplyPage() {
                       onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#555')}
                     >Edit</button>
                   </div>
-                  <p className="font-semibold capitalize text-white">{booth.booth_size} booth</p>
+                  {booth.artist_single_qty > 0 && (
+                    <p className="text-white">{booth.artist_single_qty} × Artist Single</p>
+                  )}
+                  {booth.artist_double_qty > 0 && (
+                    <p className="text-white">{booth.artist_double_qty} × Artist Double</p>
+                  )}
+                  {booth.corner_count > 0 && (
+                    <p className="text-sm" style={{ color: '#999999' }}>{booth.corner_count} corner</p>
+                  )}
                   <p className="text-sm" style={{ color: '#999' }}>{booth.artist_count} artist{booth.artist_count !== 1 ? 's' : ''}</p>
-                  {booth.is_corner && <p className="text-sm" style={{ color: '#999' }}>Corner booth</p>}
                   {booth.is_veteran && <p className="text-sm" style={{ color: '#4ade80' }}>Veteran discount applied</p>}
                 </div>
 
