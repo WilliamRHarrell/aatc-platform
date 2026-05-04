@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
+import { describeBooths } from '@/lib/booth-display'
 import dynamic from 'next/dynamic'
 
 const BoothPacketDownload = dynamic(() => import('@/components/BoothPacketDownload'), { ssr: false })
@@ -48,7 +49,8 @@ export default function AdminPrintPage() {
           booth_number, is_corner, application_id,
           application:applications (
             id, business_name, contact_name, email, phone, website, instagram,
-            exhibitor_type, booth_size, artist_count,
+            exhibitor_type, booth_size, artist_single_qty, artist_double_qty,
+            vendor_single_qty, vendor_double_qty, corner_count, artist_count,
             artists, artists_ids_later, is_veteran, tv_show
           )
         `)
@@ -103,7 +105,7 @@ export default function AdminPrintPage() {
             website: app.website ?? null,
             instagram: app.instagram ?? null,
             exhibitorType: app.exhibitor_type ?? 'artist',
-            boothSize: app.booth_size ?? '',
+            boothSize: describeBooths(app),
             artistCount: app.artist_count ?? 0,
             artists,
             isVeteran: app.is_veteran ?? false,
