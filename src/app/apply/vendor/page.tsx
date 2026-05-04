@@ -3,10 +3,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
-import { calculatePricing } from '@/lib/pricing'
+import { calculatePricing, type AddOn, type AddOnTerm } from '@/lib/pricing'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
-import type { BoothSize } from '@/lib/pricing'
 import type { Event } from '@/types'
 import BoothTypeToggle from '@/components/BoothTypeToggle'
 
@@ -23,8 +22,10 @@ interface ContactFields {
 }
 
 interface BoothFields {
-  booth_size: BoothSize
-  is_corner: boolean
+  vendor_single_qty: number
+  vendor_double_qty: number
+  corner_count: number
+  add_ons: AddOn[]
   is_veteran: boolean
 }
 
@@ -48,12 +49,10 @@ function onBlurGray(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>)
   e.currentTarget.style.borderColor = '#2a2a2a'
 }
 
-const BOOTH_SIZES: { value: BoothSize; label: string; sqft: string; vendorPrice: number }[] = [
-  { value: 'single', label: 'Single', sqft: '10×10', vendorPrice: 40000 },
-  { value: 'double', label: 'Double', sqft: '10×20', vendorPrice: 70000 },
-  { value: 'triple', label: 'Triple', sqft: '10×30', vendorPrice: 110000 },
-  { value: 'quad', label: 'Quad', sqft: '10×40', vendorPrice: 140000 },
-]
+const VENDOR_BOOTHS = [
+  { kind: 'single' as const, label: 'Single', sqft: '10×10', price: 50000 },
+  { kind: 'double' as const, label: 'Double', sqft: '10×20', price: 80000 },
+] as const
 
 const ACCEPTED_FILE_TYPES = 'image/jpeg,image/png,image/webp,application/pdf'
 
@@ -91,10 +90,14 @@ function PricingSidebar({ fields }: { fields: BoothFields }) {
     () =>
       calculatePricing({
         exhibitorType: 'vendor',
-        boothSize: fields.booth_size,
+        artistSingleQty: 0,
+        artistDoubleQty: 0,
+        vendorSingleQty: fields.vendor_single_qty,
+        vendorDoubleQty: fields.vendor_double_qty,
+        cornerCount: fields.corner_count,
         artistCount: 0,
-        isCorner: fields.is_corner,
         isVeteran: fields.is_veteran,
+        addOns: fields.add_ons,
       }),
     [fields]
   )
@@ -212,8 +215,10 @@ export default function VendorApplyPage() {
   })
 
   const [booth, setBooth] = useState<BoothFields>({
-    booth_size: 'single',
-    is_corner: false,
+    vendor_single_qty: 1,
+    vendor_double_qty: 0,
+    corner_count: 0,
+    add_ons: [],
     is_veteran: false,
   })
 
@@ -247,10 +252,14 @@ export default function VendorApplyPage() {
     () =>
       calculatePricing({
         exhibitorType: 'vendor',
-        boothSize: booth.booth_size,
+        artistSingleQty: 0,
+        artistDoubleQty: 0,
+        vendorSingleQty: booth.vendor_single_qty,
+        vendorDoubleQty: booth.vendor_double_qty,
+        cornerCount: booth.corner_count,
         artistCount: 0,
-        isCorner: booth.is_corner,
         isVeteran: booth.is_veteran,
+        addOns: booth.add_ons,
       }),
     [booth]
   )
@@ -310,9 +319,15 @@ export default function VendorApplyPage() {
       instagram: contact.instagram || null,
       facebook: contact.facebook || null,
       other_links: contact.other_links || null,
-      booth_size: booth.booth_size,
+      booth_size: null,
+      artist_single_qty: 0,
+      artist_double_qty: 0,
+      vendor_single_qty: booth.vendor_single_qty,
+      vendor_double_qty: booth.vendor_double_qty,
+      corner_count: booth.corner_count,
+      add_ons: booth.add_ons,
       artist_count: 0,
-      is_corner: booth.is_corner,
+      is_corner: booth.corner_count > 0,
       is_veteran: booth.is_veteran,
       total_amount: pricing.total,
       id_doc_url: idUpload.path,
@@ -406,7 +421,7 @@ export default function VendorApplyPage() {
 
       {/* Body */}
       <div className="mx-auto max-w-5xl">
-        <StepIndicator current={step} total={4} />
+        <StepIndicator current={step} total={3} />
 
         <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
           {/* Form card */}
@@ -539,42 +554,122 @@ export default function VendorApplyPage() {
             {step === 2 && (
               <div>
                 <h2 className="font-display mb-1 text-xl font-bold text-white">Booth Selection</h2>
-                <p className="mb-6 text-sm" style={{ color: '#999999' }}>Choose your booth size and options.</p>
+                <p className="mb-6 text-sm" style={{ color: '#999999' }}>Choose your booth quantities and options.</p>
 
-                {/* Booth size grid */}
-                <div className="mb-6">
-                  <label className="mb-3 block text-sm font-medium text-white">Booth size</label>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {BOOTH_SIZES.map(size => (
-                      <button
-                        key={size.value}
-                        type="button"
-                        onClick={() => setBooth(b => ({ ...b, booth_size: size.value }))}
-                        className="rounded-xl p-4 text-left transition-all"
+                {/* Booth quantity steppers */}
+                <div className="mb-2 space-y-3">
+                  <label className="mb-3 block text-sm font-medium text-white">Booth quantities</label>
+                  {VENDOR_BOOTHS.map(b => {
+                    const fieldKey = b.kind === 'single' ? 'vendor_single_qty' : 'vendor_double_qty'
+                    const qty = booth[fieldKey] as number
+                    return (
+                      <div key={b.kind} className="flex items-center justify-between rounded-xl p-5"
                         style={{
-                          backgroundColor: booth.booth_size === size.value ? 'rgba(139,115,85,0.15)' : '#0a0a0a',
-                          border: `2px solid ${booth.booth_size === size.value ? '#8B7355' : '#2a2a2a'}`,
-                        }}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <p className="font-semibold text-white">{size.label}</p>
-                            <p className="text-xs" style={{ color: '#999999' }}>{size.sqft} ft</p>
-                          </div>
-                          <span className="font-display font-bold" style={{ color: '#C4A882' }}>
-                            {formatCurrency(size.vendorPrice)}
-                          </span>
+                          backgroundColor: qty > 0 ? 'rgba(139,115,85,0.15)' : '#0a0a0a',
+                          border: `2px solid ${qty > 0 ? '#8B7355' : '#2a2a2a'}`,
+                        }}>
+                        <div>
+                          <p className="font-semibold text-white">{b.label} <span className="text-xs" style={{ color: '#999999' }}>({b.sqft})</span></p>
+                          <p className="text-sm" style={{ color: '#C4A882' }}>${b.price / 100} each</p>
                         </div>
-                      </button>
-                    ))}
+                        <div className="flex items-center gap-3">
+                          <button type="button"
+                            onClick={() => setBooth(prev => ({ ...prev, [fieldKey]: Math.max(0, (prev[fieldKey] as number) - 1) }))}
+                            disabled={qty === 0}
+                            className="h-8 w-8 rounded-full text-lg font-bold disabled:opacity-30"
+                            style={{ backgroundColor: '#2a2a2a', color: 'white' }}>−</button>
+                          <span className="w-6 text-center font-semibold text-white">{qty}</span>
+                          <button type="button"
+                            onClick={() => setBooth(prev => ({ ...prev, [fieldKey]: (prev[fieldKey] as number) + 1 }))}
+                            className="h-8 w-8 rounded-full text-lg font-bold"
+                            style={{ backgroundColor: '#8B7355', color: 'white' }}>+</button>
+                        </div>
+                      </div>
+                    )
+                  })}
+
+                  <div className="mt-4 flex items-center justify-between rounded-xl p-4"
+                       style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
+                    <div>
+                      <p className="text-sm font-semibold text-white">Corner booths</p>
+                      <p className="text-xs" style={{ color: '#999999' }}>+$100 each (max equals total booths)</p>
+                    </div>
+                    <input
+                      type="number"
+                      min={0}
+                      max={booth.vendor_single_qty + booth.vendor_double_qty}
+                      value={booth.corner_count}
+                      onChange={e => {
+                        const v = Math.max(0, parseInt(e.target.value) || 0)
+                        setBooth(prev => ({ ...prev, corner_count: Math.min(v, prev.vendor_single_qty + prev.vendor_double_qty) }))
+                      }}
+                      className="w-20 rounded-lg px-3 py-2 text-center text-sm text-white"
+                      style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
+                    />
+                  </div>
+
+                  <div className="mt-6">
+                    <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider" style={{ color: '#8B7355' }}>
+                      Add-ons (optional)
+                    </h3>
+                    <div className="space-y-3">
+                      {([
+                        { kind: 'extra_table' as const, label: 'Extra Table', terms: [{ value: null, label: '$50/ea' }] },
+                        { kind: 'extra_chairs' as const, label: '2 Extra Chairs', terms: [{ value: null, label: '$50/set' }] },
+                        { kind: 'tattoo_bed' as const, label: 'Tattoo Bed', terms: [{ value: 'daily', label: 'Daily $50' }, { value: 'weekend', label: 'Weekend $150' }] },
+                        { kind: 'arm_rest' as const, label: 'Arm Rest', terms: [{ value: 'daily', label: 'Daily $40' }, { value: 'weekly', label: 'Weekly $80' }] },
+                        { kind: 'tattoo_light' as const, label: 'Tattoo Light', terms: [{ value: 'daily', label: 'Daily $40' }, { value: 'weekend', label: 'Weekend $80' }] },
+                      ]).map(item => {
+                        const existing = booth.add_ons.find(a => a.kind === item.kind)
+                        const qty = existing?.qty ?? 0
+                        const term = (existing?.term ?? item.terms[0].value) as AddOnTerm
+                        return (
+                          <div key={item.kind} className="flex flex-col gap-2 rounded-lg p-3 sm:flex-row sm:items-center sm:justify-between"
+                            style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
+                            <span className="text-sm font-semibold text-white">{item.label}</span>
+                            <div className="flex items-center gap-3">
+                              {item.terms.length > 1 && (
+                                <select
+                                  value={term ?? ''}
+                                  onChange={e => setBooth(prev => {
+                                    const others = prev.add_ons.filter(a => a.kind !== item.kind)
+                                    return { ...prev, add_ons: qty > 0 ? [...others, { kind: item.kind, term: (e.target.value || null) as AddOnTerm, qty }] : others }
+                                  })}
+                                  className="rounded px-2 py-1 text-xs text-white"
+                                  style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+                                  {item.terms.map(t => <option key={t.label} value={t.value ?? ''}>{t.label}</option>)}
+                                </select>
+                              )}
+                              {item.terms.length === 1 && <span className="text-xs" style={{ color: '#C4A882' }}>{item.terms[0].label}</span>}
+                              <button type="button"
+                                onClick={() => setBooth(prev => {
+                                  const others = prev.add_ons.filter(a => a.kind !== item.kind)
+                                  const newQty = Math.max(0, qty - 1)
+                                  return { ...prev, add_ons: newQty > 0 ? [...others, { kind: item.kind, term, qty: newQty }] : others }
+                                })}
+                                disabled={qty === 0}
+                                className="h-7 w-7 rounded-full text-sm font-bold disabled:opacity-30"
+                                style={{ backgroundColor: '#2a2a2a', color: 'white' }}>−</button>
+                              <span className="w-6 text-center text-sm font-semibold text-white">{qty}</span>
+                              <button type="button"
+                                onClick={() => setBooth(prev => {
+                                  const others = prev.add_ons.filter(a => a.kind !== item.kind)
+                                  return { ...prev, add_ons: [...others, { kind: item.kind, term, qty: qty + 1 }] }
+                                })}
+                                className="h-7 w-7 rounded-full text-sm font-bold"
+                                style={{ backgroundColor: '#8B7355', color: 'white' }}>+</button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
 
-                {/* Options */}
-                <div className="mb-6 space-y-3">
+                {/* Veteran discount */}
+                <div className="mb-6 mt-6 space-y-3">
                   <label className="block text-sm font-medium text-white">Options</label>
                   {[
-                    { key: 'is_corner', label: 'Corner booth', desc: '+$50 — extra visibility at the end of a row', value: booth.is_corner },
                     { key: 'is_veteran', label: 'Military veteran discount', desc: '−$150 — thank you for your service', value: booth.is_veteran },
                   ].map(opt => (
                     <button
@@ -614,7 +709,13 @@ export default function VendorApplyPage() {
                     onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#999999')}
                   >← Back</button>
                   <button
-                    onClick={() => setStep(3)}
+                    onClick={() => {
+                      if (booth.vendor_single_qty === 0 && booth.vendor_double_qty === 0) {
+                        toast.error('Please select at least one booth')
+                        return
+                      }
+                      setStep(3)
+                    }}
                     className="rounded-lg px-8 py-3 text-sm font-semibold text-white transition-all"
                     style={{ backgroundColor: '#8B7355' }}
                     onMouseEnter={e => ((e.currentTarget as HTMLElement).style.backgroundColor = '#C4A882')}
@@ -678,102 +779,12 @@ export default function VendorApplyPage() {
                         toast.error('Please upload your government-issued ID')
                         return
                       }
-                      setStep(4)
+                      if (booth.is_veteran && !details.veteran_id_file) {
+                        toast.error('Please upload your veteran ID to claim the veteran discount')
+                        return
+                      }
+                      handleSubmit()
                     }}
-                    className="rounded-lg px-8 py-3 text-sm font-semibold text-white transition-all"
-                    style={{ backgroundColor: '#8B7355' }}
-                    onMouseEnter={e => ((e.currentTarget as HTMLElement).style.backgroundColor = '#C4A882')}
-                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.backgroundColor = '#8B7355')}
-                  >
-                    Next: Review →
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* ── Step 4: Review & Submit ───────────────────── */}
-            {step === 4 && (
-              <div>
-                <h2 className="font-display mb-1 text-xl font-bold text-white">Review & Submit</h2>
-                <p className="mb-6 text-sm" style={{ color: '#999999' }}>Double-check your details before submitting.</p>
-
-                {/* Contact summary */}
-                <div className="mb-4 rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#8B7355' }}>Contact</p>
-                    <button onClick={() => setStep(1)} className="text-xs transition-colors" style={{ color: '#555' }}
-                      onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#C4A882')}
-                      onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#555')}
-                    >Edit</button>
-                  </div>
-                  <p className="font-semibold text-white">{contact.business_name}</p>
-                  <p className="text-sm" style={{ color: '#999' }}>{contact.contact_name} · {contact.email}</p>
-                  {contact.phone && <p className="text-sm" style={{ color: '#999' }}>{contact.phone}</p>}
-                  {contact.instagram && <p className="text-sm" style={{ color: '#999' }}>@{contact.instagram}</p>}
-                  {contact.facebook && <p className="text-sm" style={{ color: '#999' }}>FB: {contact.facebook}</p>}
-                </div>
-
-                {/* Booth summary */}
-                <div className="mb-4 rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#8B7355' }}>Booth</p>
-                    <button onClick={() => setStep(2)} className="text-xs transition-colors" style={{ color: '#555' }}
-                      onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#C4A882')}
-                      onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#555')}
-                    >Edit</button>
-                  </div>
-                  <p className="font-semibold capitalize text-white">{booth.booth_size} booth</p>
-                  {booth.is_corner && <p className="text-sm" style={{ color: '#999' }}>Corner booth</p>}
-                  {booth.is_veteran && <p className="text-sm" style={{ color: '#4ade80' }}>Veteran discount applied</p>}
-                </div>
-
-                {/* Documents summary */}
-                <div className="mb-4 rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#8B7355' }}>Documents</p>
-                    <button onClick={() => setStep(3)} className="text-xs transition-colors" style={{ color: '#555' }}
-                      onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#C4A882')}
-                      onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#555')}
-                    >Edit</button>
-                  </div>
-                  <p className="text-sm" style={{ color: '#999' }}>ID: {details.id_doc_file?.name}</p>
-                  {booth.is_veteran && details.veteran_id_file && (
-                    <p className="text-sm" style={{ color: '#999' }}>Veteran ID: {details.veteran_id_file.name}</p>
-                  )}
-                  {details.notes && <p className="mt-1 text-sm" style={{ color: '#999' }}>Notes: {details.notes}</p>}
-                </div>
-
-                {/* Pricing */}
-                <div className="mb-6 rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-widest" style={{ color: '#8B7355' }}>Pricing</p>
-                  <div className="space-y-2">
-                    {pricing.itemized.map(item => (
-                      <div key={item.label} className="flex justify-between text-sm">
-                        <span style={{ color: '#999' }}>{item.label}</span>
-                        <span style={{ color: item.amount < 0 ? '#4ade80' : '#C4A882' }}>
-                          {item.amount < 0 ? '−' : ''}{formatCurrency(Math.abs(item.amount))}
-                        </span>
-                      </div>
-                    ))}
-                    <div className="flex justify-between border-t pt-2 font-semibold" style={{ borderColor: '#2a2a2a' }}>
-                      <span className="text-white">Total</span>
-                      <span style={{ color: '#8B7355' }}>{formatCurrency(pricing.total)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="mb-6 text-xs leading-relaxed" style={{ color: '#555' }}>
-                  By submitting you confirm all information is accurate. No payment is collected now —
-                  approved applicants will receive an invoice with payment instructions.
-                </p>
-
-                <div className="flex items-center justify-between">
-                  <button onClick={() => setStep(3)} className="text-sm transition-colors" style={{ color: '#999999' }}
-                    onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#C4A882')}
-                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#999999')}
-                  >← Back</button>
-                  <button
-                    onClick={handleSubmit}
                     disabled={submitting}
                     className="rounded-lg px-8 py-3 text-sm font-semibold text-white transition-all disabled:opacity-50"
                     style={{ backgroundColor: '#8B7355' }}
