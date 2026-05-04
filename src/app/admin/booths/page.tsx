@@ -88,13 +88,29 @@ export default function AdminBoothsPage() {
   })
   const [addSaving, setAddSaving] = useState(false)
 
-  const boothPricings = addForm.booths.map(b => calculatePricing({
-    exhibitorType: addForm.exhibitor_type,
-    boothSize: b.size,
-    artistCount: addForm.exhibitor_type === 'artist' ? b.artist_count : 0,
-    isCorner: b.is_corner,
-    isVeteran: addForm.is_veteran,
-  }))
+  const boothPricings = addForm.booths.map(b => {
+    // Map admin's BoothEntry { size, is_corner, artist_count } to per-size qtys.
+    // triple = single + double, quad = 2 doubles.
+    const isArtist = addForm.exhibitor_type === 'artist'
+    const sizeToQty: Record<BoothSize, { single: number; double: number }> = {
+      single: { single: 1, double: 0 },
+      double: { single: 0, double: 1 },
+      triple: { single: 1, double: 1 },
+      quad: { single: 0, double: 2 },
+    }
+    const qty = sizeToQty[b.size]
+    return calculatePricing({
+      exhibitorType: addForm.exhibitor_type,
+      artistSingleQty: isArtist ? qty.single : 0,
+      artistDoubleQty: isArtist ? qty.double : 0,
+      vendorSingleQty: !isArtist ? qty.single : 0,
+      vendorDoubleQty: !isArtist ? qty.double : 0,
+      cornerCount: b.is_corner ? 1 : 0,
+      artistCount: isArtist ? b.artist_count : 0,
+      isVeteran: addForm.is_veteran,
+      addOns: [],
+    })
+  })
 
   const totalAllBooths = boothPricings.reduce((sum, p) => sum + p.total, 0)
 
@@ -127,9 +143,17 @@ export default function AdminBoothsPage() {
 
     // Create one application per booth entry
     const appIds: string[] = []
+    const sizeToQty: Record<BoothSize, { single: number; double: number }> = {
+      single: { single: 1, double: 0 },
+      double: { single: 0, double: 1 },
+      triple: { single: 1, double: 1 },
+      quad: { single: 0, double: 2 },
+    }
     for (let i = 0; i < addForm.booths.length; i++) {
       const b = addForm.booths[i]
       const pricing = boothPricings[i]
+      const isArtist = addForm.exhibitor_type === 'artist'
+      const qty = sizeToQty[b.size]
       const { data: appRow, error: appErr } = await supabase.from('applications').insert({
         event_id: event.id,
         exhibitor_type: addForm.exhibitor_type,
@@ -137,8 +161,14 @@ export default function AdminBoothsPage() {
         contact_name: addForm.contact_name,
         email: addForm.email,
         phone: addForm.phone || null,
-        booth_size: b.size,
-        artist_count: addForm.exhibitor_type === 'artist' ? b.artist_count : 0,
+        booth_size: null,
+        artist_single_qty: isArtist ? qty.single : 0,
+        artist_double_qty: isArtist ? qty.double : 0,
+        vendor_single_qty: !isArtist ? qty.single : 0,
+        vendor_double_qty: !isArtist ? qty.double : 0,
+        corner_count: b.is_corner ? 1 : 0,
+        add_ons: [],
+        artist_count: isArtist ? b.artist_count : 0,
         is_corner: b.is_corner,
         is_veteran: addForm.is_veteran,
         total_amount: pricing.total,

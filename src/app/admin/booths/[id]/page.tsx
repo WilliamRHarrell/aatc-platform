@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
+import { boothSlotCount } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 import type { Database } from '@/types/database'
 
@@ -17,8 +18,6 @@ interface AssignedBooth {
   is_corner: boolean
   status: string
 }
-
-const SLOTS: Record<string, number> = { single: 1, double: 2, triple: 3, quad: 4 }
 
 const TATTOO_STYLES = [
   'American Traditional',
@@ -139,7 +138,7 @@ export default function BoothDetailPage() {
       setAssignedBooths((boothData ?? []) as AssignedBooth[])
       setEventId(eventData?.id ?? null)
 
-      const slotCount = SLOTS[a.booth_size] ?? 1
+      const slotCount = boothSlotCount(a)
       const nums = (boothData ?? []).map((b: AssignedBooth) => b.booth_number)
       const inputs = Array.from({ length: slotCount }, (_, i) => nums[i] ?? '')
       setSlotInputs(inputs)
@@ -481,7 +480,7 @@ export default function BoothDetailPage() {
     )
   }
 
-  const slotCount = SLOTS[app.booth_size] ?? 1
+  const slotCount = boothSlotCount(app)
   const inputStyle = { backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a', color: '#fff' }
 
   return (
