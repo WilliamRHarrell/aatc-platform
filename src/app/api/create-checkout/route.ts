@@ -59,13 +59,25 @@ export async function POST(req: Request) {
     if (inv.application_id) {
       const { data: app } = await supabase
         .from('applications')
-        .select('business_name, exhibitor_type, booth_size')
+        .select('business_name, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty')
         .eq('id', inv.application_id)
         .single()
 
       if (app) {
         productName = app.business_name
-        description = `AATC 2027 — ${app.exhibitor_type} booth (${app.booth_size})${isFullPayment ? '' : ' — partial payment'}`
+        // 2026 rows have booth_size; 2027 rows have per-size qty columns.
+        let boothSummary: string
+        if (app.booth_size) {
+          boothSummary = app.booth_size
+        } else {
+          const parts: string[] = []
+          if (app.artist_single_qty > 0) parts.push(`${app.artist_single_qty}× single`)
+          if (app.artist_double_qty > 0) parts.push(`${app.artist_double_qty}× double`)
+          if (app.vendor_single_qty > 0) parts.push(`${app.vendor_single_qty}× single`)
+          if (app.vendor_double_qty > 0) parts.push(`${app.vendor_double_qty}× double`)
+          boothSummary = parts.join(', ') || 'booth'
+        }
+        description = `AATC 2027 — ${app.exhibitor_type} booth (${boothSummary})${isFullPayment ? '' : ' — partial payment'}`
       }
     } else if (inv.sponsorship_id) {
       const { data: spon } = await supabase
