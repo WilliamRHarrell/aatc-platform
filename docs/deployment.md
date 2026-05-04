@@ -99,6 +99,15 @@ curl -s -X PUT "$SUPABASE_URL/auth/v1/admin/users/<USER_ID>" \
 - **Stripe webhook event subscription**: currently subscribed to 7 events; only `checkout.session.completed` is needed by current code. Trim down in Plan 2 or whenever convenient.
 - **Lint cleanup**: 17 pre-existing eslint errors (React Compiler / strict-mode rules, no-explicit-any, unescaped quotes, conditional useEffect in `SiteFooter`). Don't block deploys but worth a sweep in a polish plan.
 
+## Admins
+
+Created via Auth Admin API with `email_confirm:true` (no email needed). Profile `role` set to `admin` immediately after.
+
+| Email | User ID | Created |
+|---|---|---|
+| ryan@americantattoosociety.com | 2cd26fff-86a3-48ad-bc85-dff890043b39 | 2026-03-02 |
+| malia@allamericantattooconvention.com | 2aaac062-ccdd-4b49-b7ac-4586bc52062e | 2026-05-03 |
+
 ## Plans status
 
 - **Plan 1 — Vercel deployment:** ✅ complete (2026-05-03)
