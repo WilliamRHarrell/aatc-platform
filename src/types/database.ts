@@ -92,7 +92,13 @@ export interface Database {
           instagram: string | null
           facebook: string | null
           other_links: string | null
-          booth_size: 'single' | 'double' | 'triple' | 'quad'
+          booth_size: 'single' | 'double' | 'triple' | 'quad' | null
+          artist_single_qty: number
+          artist_double_qty: number
+          vendor_single_qty: number
+          vendor_double_qty: number
+          corner_count: number
+          add_ons: Array<{ kind: string; term: string | null; qty: number }>
           artist_count: number
           is_corner: boolean
           is_veteran: boolean
@@ -122,7 +128,13 @@ export interface Database {
           instagram?: string | null
           facebook?: string | null
           other_links?: string | null
-          booth_size: 'single' | 'double' | 'triple' | 'quad'
+          booth_size?: 'single' | 'double' | 'triple' | 'quad' | null
+          artist_single_qty?: number
+          artist_double_qty?: number
+          vendor_single_qty?: number
+          vendor_double_qty?: number
+          corner_count?: number
+          add_ons?: Array<{ kind: string; term: string | null; qty: number }>
           artist_count?: number
           is_corner?: boolean
           is_veteran?: boolean
@@ -152,7 +164,13 @@ export interface Database {
           instagram?: string | null
           facebook?: string | null
           other_links?: string | null
-          booth_size?: 'single' | 'double' | 'triple' | 'quad'
+          booth_size?: 'single' | 'double' | 'triple' | 'quad' | null
+          artist_single_qty?: number
+          artist_double_qty?: number
+          vendor_single_qty?: number
+          vendor_double_qty?: number
+          corner_count?: number
+          add_ons?: Array<{ kind: string; term: string | null; qty: number }>
           artist_count?: number
           is_corner?: boolean
           is_veteran?: boolean
