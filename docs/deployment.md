@@ -111,7 +111,7 @@ Created via Auth Admin API with `email_confirm:true` (no email needed). Profile 
 ## Plans status
 
 - **Plan 1 — Vercel deployment:** ✅ complete (2026-05-03)
-- **Plan 2 — 2027 pivot + new pricing + form updates:** drafted in spec, plan not yet written
+- **Plan 2 — 2027 pivot + new pricing + form updates:** ✅ complete (2026-05-04)
 - **Plan 3 — payment lifecycle (deposit/partial/timeouts):** drafted in spec, plan not yet written
 - **Plan 4 — pre-load returners + sponsors + polish:** drafted in spec, plan not yet written
 
