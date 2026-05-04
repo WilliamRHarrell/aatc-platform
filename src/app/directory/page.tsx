@@ -4,12 +4,18 @@ import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import PublicNav from '@/components/PublicNav'
+import { describeBooths } from '@/lib/booth-display'
 
 interface Exhibitor {
   id: string
   business_name: string
   exhibitor_type: 'artist' | 'vendor'
-  booth_size: string
+  booth_size: 'single' | 'double' | 'triple' | 'quad' | null
+  artist_single_qty: number
+  artist_double_qty: number
+  vendor_single_qty: number
+  vendor_double_qty: number
+  corner_count: number
   instagram: string | null
   website: string | null
   phone: string | null
@@ -42,7 +48,7 @@ export default function DirectoryPage() {
       const [{ data: apps }, { data: booths }] = await Promise.all([
         supabase
           .from('applications')
-          .select('id, business_name, exhibitor_type, booth_size, instagram, website, phone, artist_count, tv_show, logo_url')
+          .select('id, business_name, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, instagram, website, phone, artist_count, tv_show, logo_url')
           .eq('status', 'approved')
           .order('business_name'),
         supabase
@@ -238,7 +244,7 @@ function ExhibitorCard({ exhibitor: e }: { exhibitor: Exhibitor }) {
 
       {/* Meta */}
       <p className="mt-1 text-sm capitalize" style={{ color: '#fff' }}>
-        {e.booth_size} booth
+        {describeBooths(e)}
         {e.booth_number ? ` · Booth ${e.booth_number}` : ''}
         {e.exhibitor_type === 'artist' && e.artist_count > 0
           ? ` · ${e.artist_count} artist${e.artist_count !== 1 ? 's' : ''}`

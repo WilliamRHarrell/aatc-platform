@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { calculatePricing, type BoothSize, type ExhibitorType } from '@/lib/pricing'
 import { formatCurrency } from '@/lib/utils'
+import { describeBooths, boothSlotCount } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 
 interface ApprovedApp {
@@ -12,7 +13,12 @@ interface ApprovedApp {
   business_name: string
   contact_name: string
   exhibitor_type: 'artist' | 'vendor'
-  booth_size: 'single' | 'double' | 'triple' | 'quad'
+  booth_size: 'single' | 'double' | 'triple' | 'quad' | null
+  artist_single_qty: number
+  artist_double_qty: number
+  vendor_single_qty: number
+  vendor_double_qty: number
+  corner_count: number
   is_corner: boolean
   artist_count: number
   artists: Array<{ name: string; id_url: string | null; id_later?: boolean; nickname?: string; portfolio_urls?: string[] }> | null
@@ -217,7 +223,7 @@ export default function AdminBoothsPage() {
       const [{ data: appData }, { data: boothData }, { data: invoiceData }] = await Promise.all([
         supabase
           .from('applications')
-          .select('id, business_name, contact_name, exhibitor_type, booth_size, is_corner, artist_count, artists, artists_ids_later')
+          .select('id, business_name, contact_name, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, is_corner, artist_count, artists, artists_ids_later')
           .eq('status', 'approved')
           .order('business_name'),
         supabase
@@ -366,7 +372,7 @@ export default function AdminBoothsPage() {
             <div className="divide-y" style={{ backgroundColor: '#1a1a1a', borderColor: '#2a2a2a' }}>
               {filtered.map(app => {
                 const assignedBooths = boothsByApp.get(app.id) ?? []
-                const slotCount = SLOTS[app.booth_size] ?? 1
+                const slotCount = boothSlotCount(app)
                 const fullyAssigned = assignedBooths.length >= slotCount
 
                 return (
@@ -389,7 +395,7 @@ export default function AdminBoothsPage() {
                     </span>
 
                     {/* Size */}
-                    <span className="text-sm capitalize text-white">{app.booth_size}</span>
+                    <span className="text-sm text-white">{describeBooths(app)}</span>
 
                     {/* Corner */}
                     <div className="flex items-center">

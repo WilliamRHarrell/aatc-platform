@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
-import { boothSlotCount } from '@/lib/booth-display'
+import { describeBooths, boothSlotCount } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 import type { Database } from '@/types/database'
 
@@ -512,7 +512,7 @@ export default function BoothDetailPage() {
               {app.exhibitor_type}
             </span>
             <span className="text-xs capitalize" style={{ color: '#666' }}>
-              {app.booth_size} booth{app.is_corner ? ' · corner' : ''}
+              {describeBooths(app)}
               {app.exhibitor_type === 'artist' ? ` · ${app.artist_count} artist${app.artist_count !== 1 ? 's' : ''}` : ''}
             </span>
           </div>
@@ -1003,7 +1003,7 @@ export default function BoothDetailPage() {
           <ReadField label="Contact" value={app.contact_name} />
           <ReadField label="Email" value={app.email} />
           <ReadField label="Phone" value={app.phone} />
-          <ReadField label="Booth size" value={app.booth_size} />
+          <ReadField label="Booth size" value={describeBooths(app)} />
           <ReadField label="Corner booth" value={app.is_corner} />
           <ReadField label="Veteran" value={app.is_veteran} />
           {app.exhibitor_type === 'artist' && <ReadField label="Artist count" value={app.artist_count} />}

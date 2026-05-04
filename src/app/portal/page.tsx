@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
+import { describeBooths } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 
 interface PortalArtist {
@@ -22,7 +23,12 @@ interface Application {
   contact_name: string
   email: string
   exhibitor_type: 'artist' | 'vendor'
-  booth_size: string
+  booth_size: 'single' | 'double' | 'triple' | 'quad' | null
+  artist_single_qty: number
+  artist_double_qty: number
+  vendor_single_qty: number
+  vendor_double_qty: number
+  corner_count: number
   artist_count: number
   is_corner: boolean
   is_veteran: boolean
@@ -604,7 +610,7 @@ function PortalContent() {
           {application && (
             <p className="mt-0 text-sm capitalize" style={{ color: '#999' }}>
               <span className="text-emboss">
-                {application.exhibitor_type} · {application.booth_size} booth ·{' '}
+                {application.exhibitor_type} · {describeBooths(application)} ·{' '}
                 Submitted {new Date(application.created_at).toLocaleDateString()}
               </span>
             </p>
@@ -726,7 +732,7 @@ function PortalContent() {
                       ))}
                     </div>
                     <p className="text-sm capitalize" style={{ color: '#999' }}>
-                      {application.booth_size} booth · {booths.length} slot{booths.length !== 1 ? 's' : ''}
+                      {describeBooths(application)} · {booths.length} slot{booths.length !== 1 ? 's' : ''}
                       {booths.some(b => b.is_corner) ? ' · Corner' : ''}
                     </p>
                     {application.is_veteran && (
@@ -1105,7 +1111,7 @@ function PortalContent() {
                 {[
                   { label: 'Contact',   value: application.contact_name },
                   { label: 'Email',     value: application.email },
-                  { label: 'Booth size', value: `${application.booth_size} (10×10 ft)` },
+                  { label: 'Booth size', value: describeBooths(application) },
                   { label: 'Corner booth', value: application.is_corner ? 'Requested' : null },
                   { label: 'Veteran',   value: application.is_veteran ? 'Discount applied' : null },
                   { label: 'TV show',   value: application.tv_show },

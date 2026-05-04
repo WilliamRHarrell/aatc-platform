@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
+import { describeBooths } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 
 interface Invoice {
@@ -20,7 +21,12 @@ interface Invoice {
     contact_name: string
     email: string
     exhibitor_type: 'artist' | 'vendor'
-    booth_size: string
+    booth_size: 'single' | 'double' | 'triple' | 'quad' | null
+    artist_single_qty: number
+    artist_double_qty: number
+    vendor_single_qty: number
+    vendor_double_qty: number
+    corner_count: number
   } | null
   sponsorship: {
     sponsor_name: string
@@ -68,7 +74,8 @@ export default function AdminInvoicesPage() {
       .select(`
         id, application_id, sponsorship_id, amount, amount_paid, status, due_date, paid_at, created_at,
         application:applications (
-          business_name, contact_name, email, exhibitor_type, booth_size
+          business_name, contact_name, email, exhibitor_type, booth_size,
+          artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count
         ),
         sponsorship:sponsorships (
           sponsor_name, tier, amount
@@ -319,7 +326,7 @@ export default function AdminInvoicesPage() {
                         {displaySub}
                       </p>
                       <p className="mt-1 text-xs sm:hidden" style={{ color: '#999' }}>
-                        {spon ? 'Sponsorship' : `${app?.exhibitor_type} · ${app?.booth_size}`} · {formatCurrency(inv.amount)}
+                        {spon ? 'Sponsorship' : `${app?.exhibitor_type} · ${app ? describeBooths(app) : ''}`} · {formatCurrency(inv.amount)}
                       </p>
                     </div>
 

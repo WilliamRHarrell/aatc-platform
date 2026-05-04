@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import PublicNav from '@/components/PublicNav'
+import { describeBooths } from '@/lib/booth-display'
 
 interface ArtistInfo {
   name: string
@@ -17,7 +18,12 @@ interface Exhibitor {
   id: string
   business_name: string
   exhibitor_type: 'artist' | 'vendor'
-  booth_size: string
+  booth_size: 'single' | 'double' | 'triple' | 'quad' | null
+  artist_single_qty: number
+  artist_double_qty: number
+  vendor_single_qty: number
+  vendor_double_qty: number
+  corner_count: number
   instagram: string | null
   website: string | null
   facebook: string | null
@@ -71,7 +77,7 @@ export default function DirectoryDetailPage() {
       const [{ data: app }, { data: boothData }] = await Promise.all([
         supabase
           .from('applications')
-          .select('id, business_name, exhibitor_type, booth_size, instagram, website, facebook, phone, artists, artist_count, tv_show, logo_url, portfolio_image_urls')
+          .select('id, business_name, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, instagram, website, facebook, phone, artists, artist_count, tv_show, logo_url, portfolio_image_urls')
           .eq('id', id)
           .eq('status', 'approved')
           .single(),
@@ -179,7 +185,7 @@ export default function DirectoryDetailPage() {
               </h1>
 
               <p className="mt-2 text-sm capitalize" style={{ color: '#999' }}>
-                <span className="text-emboss">{e.booth_size} booth
+                <span className="text-emboss">{describeBooths(e)}
                 {booth ? ` · Booth ${booth.booth_number}` : ''}
                 {e.exhibitor_type === 'artist' && e.artist_count > 0
                   ? ` · ${e.artist_count} artist${e.artist_count !== 1 ? 's' : ''}`

@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
+import { describeBooths } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 import type { Database } from '@/types/database'
 
@@ -237,7 +238,7 @@ function DetailDrawer({
           <section>
             <p className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: '#555' }}>Booth</p>
             <div className="grid grid-cols-2 gap-4">
-              <Field label="Size"          value={app.booth_size} />
+              <Field label="Size"          value={describeBooths(app)} />
               {app.exhibitor_type === 'artist' && (
                 <Field label="Artists" value={app.artist_count} />
               )}
@@ -634,7 +635,7 @@ export default function AdminApplicationsPage() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-white">{app.business_name}</p>
                       <p className="text-xs capitalize" style={{ color: '#999' }}>
-                        {app.exhibitor_type} · {app.booth_size}
+                        {app.exhibitor_type} · {describeBooths(app)}
                         {app.exhibitor_type === 'artist' ? ` · ${app.artist_count} artist${app.artist_count !== 1 ? 's' : ''}` : ''}
                       </p>
                     </div>
@@ -651,7 +652,7 @@ export default function AdminApplicationsPage() {
                       <p className="truncate text-xs" style={{ color: '#999' }}>{app.email}</p>
                     </div>
                     <TypeBadge type={app.exhibitor_type} />
-                    <span className="text-sm capitalize text-white">{app.booth_size}</span>
+                    <span className="text-sm text-white">{describeBooths(app)}</span>
                     <span className="text-sm" style={{ color: '#999' }}>
                       {app.exhibitor_type === 'artist' ? app.artist_count : '—'}
                     </span>
