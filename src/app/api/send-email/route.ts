@@ -474,8 +474,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing applicationId or kind/status' }, { status: 400 })
     }
 
-    // Fetch application details
-    const { data: app } = await supabase
+    // Fetch application details via service role — bypasses RLS so we can email
+    // applicants whose row is hidden from public reads (e.g. needs_roster=true,
+    // expired, canceled). Auth was already validated above.
+    const adminFetchClient = createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+    const { data: app } = await adminFetchClient
       .from('applications')
       .select('business_name, email, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, total_amount, deposit_due_at')
       .eq('id', applicationId)
