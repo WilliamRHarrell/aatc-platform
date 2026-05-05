@@ -566,7 +566,7 @@ export async function POST(req: Request) {
 
     if (error) {
       console.error('Resend error:', error)
-      return NextResponse.json({ error: 'Email failed to send' }, { status: 500 })
+      return NextResponse.json({ error: 'Email failed to send', detail: error }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
