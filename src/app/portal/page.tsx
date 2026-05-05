@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { describeBooths } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
+import { RosterCompletionPanel } from '@/components/portal/RosterCompletionPanel'
 
 interface PortalArtist {
   name: string
@@ -19,6 +20,7 @@ interface PortalArtist {
 
 interface Application {
   id: string
+  event_id: string | null
   business_name: string
   contact_name: string
   email: string
@@ -36,6 +38,7 @@ interface Application {
   status: 'pending' | 'approved' | 'rejected' | 'waitlisted'
   artists: PortalArtist[] | null
   artists_ids_later: boolean
+  needs_roster: boolean
   tv_show: string | null
   notes: string | null
   created_at: string
@@ -613,6 +616,11 @@ function PortalContent() {
         {application && (
           <div className="space-y-4">
 
+            {application.needs_roster ? (
+              <RosterCompletionPanel application={application} onComplete={() => window.location.reload()} />
+            ) : (
+            <>
+
             {/* Status card */}
             {(() => {
               const s = STATUS_STYLE[application.status]
@@ -1023,6 +1031,9 @@ function PortalContent() {
                 ))}
               </dl>
             </Card>
+
+            </>
+            )}
 
           </div>
         )}
