@@ -223,9 +223,9 @@ export default function AdminBoothsPage() {
       const [{ data: appData }, { data: boothData }, { data: invoiceData }] = await Promise.all([
         supabase
           .from('applications')
-          .select('id, business_name, contact_name, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, is_corner, artist_count, artists, artists_ids_later')
+          .select('id, business_name, contact_name, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, is_corner, artist_count, artists, artists_ids_later, invoices!inner(deposit_paid_at)')
           .eq('status', 'approved')
-          .order('business_name'),
+          .not('invoices.deposit_paid_at', 'is', null),
         supabase
           .from('booths')
           .select('id, booth_number, is_corner, status, application_id')
@@ -234,7 +234,14 @@ export default function AdminBoothsPage() {
           .from('invoices')
           .select('application_id, status'),
       ])
-      setApps((appData ?? []) as ApprovedApp[])
+      // FCFS sort: deposit-paid time ascending (earliest deposit first).
+      const sortedApps = ((appData ?? []) as unknown as Array<ApprovedApp & { invoices: { deposit_paid_at: string | null } | Array<{ deposit_paid_at: string | null }> }>)
+        .map(a => {
+          const inv = Array.isArray(a.invoices) ? a.invoices[0] : a.invoices
+          return { ...a, _depositPaidAt: inv?.deposit_paid_at ?? null }
+        })
+        .sort((a, b) => (a._depositPaidAt ?? '').localeCompare(b._depositPaidAt ?? ''))
+      setApps(sortedApps as unknown as ApprovedApp[])
       setBooths((boothData ?? []) as BoothRow[])
 
       // Build map: applicationId → most favorable invoice status (paid > overdue > pending > cancelled)
