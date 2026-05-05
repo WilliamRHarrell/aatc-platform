@@ -181,3 +181,11 @@ export function getMaxArtists(opts: {
 }): number {
   return opts.artistSingleQty * 2 + opts.artistDoubleQty * 4
 }
+
+// 25% minimum first payment, rounded UP to integer cents (avoid pennies-short).
+export const DEPOSIT_PERCENT = 0.25
+
+export function minDepositCents(totalCents: number): number {
+  if (totalCents <= 0) return 0
+  return Math.ceil(totalCents * DEPOSIT_PERCENT)
+}
