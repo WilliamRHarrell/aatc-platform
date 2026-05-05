@@ -202,6 +202,116 @@ function waitlistedEmail(businessName: string, exhibitorType: string) {
   `)
 }
 
+function depositReminderEmail(businessName: string, depositDueAt: string, minDeposit: number, balance: number, payUrl: string) {
+  const dueDate = new Date(depositDueAt).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#eab308;">
+      Reminder
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      Deposit due ${dueDate}
+    </h2>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Hi ${businessName},
+    </p>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Your AATC 2027 booth is still being held but your <strong style="color:#ffffff;">25% deposit hasn't been received yet</strong>.
+      The deadline is <strong style="color:#ffffff;">${dueDate}</strong> — if we don't have the deposit by then,
+      the booth is released to the next applicant.
+    </p>
+    <div style="background:#0a0a0a; border:1px solid #2a2a2a; border-radius:12px; padding:20px 24px; margin:20px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-size:13px; color:#999999;">Minimum deposit (25%)</td>
+          <td align="right" style="font-size:13px; font-weight:600; color:#ffffff;">$${(minDeposit / 100).toFixed(2)}</td>
+        </tr>
+        <tr>
+          <td style="font-size:13px; color:#999999; padding-top:8px;">Or pay full balance</td>
+          <td align="right" style="font-size:13px; font-weight:600; color:#C4A882; padding-top:8px;">$${(balance / 100).toFixed(2)}</td>
+        </tr>
+      </table>
+    </div>
+    <p style="margin:24px 0 0; text-align:center;">
+      <a href="${payUrl}" style="display:inline-block; background:#8B7355; color:#ffffff; text-decoration:none; font-size:14px; font-weight:700; letter-spacing:1px; padding:14px 32px; border-radius:10px;">
+        Pay Now →
+      </a>
+    </p>
+  `)
+}
+
+function finalReminderEmail(businessName: string, daysRemaining: number, balance: number, payUrl: string) {
+  const tagline = daysRemaining === 1 ? 'final reminder' : `${daysRemaining} days left`
+  const message = daysRemaining === 1
+    ? 'This is your final reminder — payment is due tomorrow.'
+    : `That's ${daysRemaining} days from now.`
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:${daysRemaining <= 7 ? '#f87171' : '#eab308'};">
+      ${tagline}
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      Balance due January 1, 2027
+    </h2>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Hi ${businessName},
+    </p>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Your AATC 2027 booth balance of <strong style="color:#ffffff;">$${(balance / 100).toFixed(2)}</strong>
+      is due by <strong style="color:#ffffff;">January 1, 2027</strong>. ${message}
+    </p>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      If the balance isn't paid by January 1, the booth will be canceled and your deposit will be forfeited.
+    </p>
+    <p style="margin:24px 0 0; text-align:center;">
+      <a href="${payUrl}" style="display:inline-block; background:#8B7355; color:#ffffff; text-decoration:none; font-size:14px; font-weight:700; letter-spacing:1px; padding:14px 32px; border-radius:10px;">
+        Pay Balance →
+      </a>
+    </p>
+  `)
+}
+
+function expirationEmail(businessName: string) {
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#f87171;">
+      Booth Released
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      Your AATC 2027 booth has been released
+    </h2>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Hi ${businessName},
+    </p>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Unfortunately, the 25% deposit deadline passed without payment, so your booth has been released
+      to the next applicant on the list.
+    </p>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      If you'd still like to be part of AATC 2027, please reapply at
+      <a href="${SITE_URL}/apply" style="color:#C4A882;">${SITE_URL}/apply</a> — pending availability.
+    </p>
+  `)
+}
+
+function cancellationEmail(businessName: string, depositForfeited: number) {
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#f87171;">
+      Booth Canceled
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      Your AATC 2027 booth has been canceled
+    </h2>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Hi ${businessName},
+    </p>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      The January 1, 2027 deadline for the remaining balance has passed. Per the terms accepted at deposit,
+      the booth has been canceled and the deposit (<strong style="color:#ffffff;">$${(depositForfeited / 100).toFixed(2)}</strong>) is forfeited.
+    </p>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      If you have questions, please reply to this email.
+    </p>
+  `)
+}
+
 function sponsorApprovedEmail(sponsorName: string, tier: string, amount: number) {
   const dollars = (amount / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
   const tierLabel = tier.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
@@ -262,24 +372,33 @@ export async function POST(req: Request) {
       }
     )
 
-    // Verify admin session
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    // Allow trusted cron callers via shared secret (lifecycle-sweep, etc.)
+    const cronSecret = req.headers.get('x-cron-secret')
+    const isCronCaller = !!cronSecret && cronSecret === process.env.CRON_SECRET
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    if (!isCronCaller) {
+      // Verify admin session
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    if (profile?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profile?.role !== 'admin') {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
     }
 
-    const { applicationId, sponsorshipId, status } = await req.json() as {
+    const { applicationId, sponsorshipId, status, kind, daysRemaining, depositForfeited } = await req.json() as {
       applicationId?: string
       sponsorshipId?: string
-      status: 'approved' | 'rejected' | 'waitlisted'
+      status?: 'approved' | 'rejected' | 'waitlisted'
+      kind?: 'approved' | 'rejected' | 'waitlisted' | 'deposit_reminder' | 'final_reminder' | 'expiration' | 'cancellation'
+      daysRemaining?: number
+      depositForfeited?: number
     }
 
     if (sponsorshipId) {
@@ -311,8 +430,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true })
     }
 
-    if (!applicationId || !status) {
-      return NextResponse.json({ error: 'Missing applicationId or status' }, { status: 400 })
+    // Resolve the kind: explicit param takes priority; fall back to legacy `status`.
+    const resolvedKind = kind ?? status
+
+    if (!applicationId || !resolvedKind) {
+      return NextResponse.json({ error: 'Missing applicationId or kind/status' }, { status: 400 })
     }
 
     // Fetch application details
@@ -330,15 +452,52 @@ export async function POST(req: Request) {
     let subject: string
     let html: string
 
-    if (status === 'approved') {
+    if (resolvedKind === 'approved') {
       subject = `🎉 Your AATC 2027 application is approved — ${app.business_name}`
       html = approvedEmail(app.business_name, app.exhibitor_type, describeBooths(app), app.total_amount, app.deposit_due_at)
-    } else if (status === 'rejected') {
+    } else if (resolvedKind === 'rejected') {
       subject = `Update on your AATC 2027 application — ${app.business_name}`
       html = rejectedEmail(app.business_name, app.exhibitor_type)
-    } else {
+    } else if (resolvedKind === 'waitlisted') {
       subject = `You're on the AATC 2027 waitlist — ${app.business_name}`
       html = waitlistedEmail(app.business_name, app.exhibitor_type)
+    } else if (resolvedKind === 'deposit_reminder') {
+      const { data: inv } = await supabase
+        .from('invoices')
+        .select('id, amount, amount_paid')
+        .eq('application_id', applicationId)
+        .maybeSingle()
+      if (!app.deposit_due_at || !inv) {
+        return NextResponse.json({ error: 'Cannot send deposit reminder — missing deposit_due_at or invoice' }, { status: 400 })
+      }
+      const balance = inv.amount - (inv.amount_paid ?? 0)
+      const minDeposit = minDepositCents(inv.amount)
+      const payUrl = `${SITE_URL}/portal/pay?invoice=${inv.id}`
+      subject = `Reminder: AATC 2027 deposit due — ${app.business_name}`
+      html = depositReminderEmail(app.business_name, app.deposit_due_at, minDeposit, balance, payUrl)
+    } else if (resolvedKind === 'final_reminder') {
+      const days = daysRemaining ?? 0
+      const { data: inv } = await supabase
+        .from('invoices')
+        .select('id, amount, amount_paid')
+        .eq('application_id', applicationId)
+        .maybeSingle()
+      if (!inv) {
+        return NextResponse.json({ error: 'No invoice found for final reminder' }, { status: 400 })
+      }
+      const balance = inv.amount - (inv.amount_paid ?? 0)
+      const payUrl = `${SITE_URL}/portal/pay?invoice=${inv.id}`
+      subject = `${days} day${days === 1 ? '' : 's'} until your AATC 2027 balance is due — ${app.business_name}`
+      html = finalReminderEmail(app.business_name, days, balance, payUrl)
+    } else if (resolvedKind === 'expiration') {
+      subject = `Your AATC 2027 booth has been released — ${app.business_name}`
+      html = expirationEmail(app.business_name)
+    } else if (resolvedKind === 'cancellation') {
+      const forfeited = depositForfeited ?? 0
+      subject = `Your AATC 2027 booth has been canceled — ${app.business_name}`
+      html = cancellationEmail(app.business_name, forfeited)
+    } else {
+      return NextResponse.json({ error: `Unknown kind: ${resolvedKind}` }, { status: 400 })
     }
 
     const { error } = await resend.emails.send({
