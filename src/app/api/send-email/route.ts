@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { describeBooths } from '@/lib/booth-display'
 import { minDepositCents } from '@/lib/pricing'
@@ -356,6 +357,42 @@ function sponsorApprovedEmail(sponsorName: string, tier: string, amount: number)
   `)
 }
 
+function returnerInviteEmail(businessName: string, loginUrl: string, resetUrl: string) {
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#4ade80;">
+      Welcome Back
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      Your AATC 2027 booth is reserved
+    </h2>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Hi ${businessName},
+    </p>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Thanks for paying in full at 2026 pricing during the early-bird window. Your AATC 2027 booth is locked in —
+      no further payment is required.
+    </p>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      To finish setting up your account, you need to:
+    </p>
+    <ol style="margin:0 0 16px; padding-left:20px; font-size:15px; line-height:1.7; color:#cccccc;">
+      <li><a href="${resetUrl}" style="color:#C4A882;">Set a password</a> for your account</li>
+      <li>Sign in and complete your <strong style="color:#ffffff;">artist roster</strong> (names + IDs for everyone working your booth)</li>
+    </ol>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Once your roster is complete, your booth will appear in the public exhibitor directory.
+    </p>
+    <p style="margin:24px 0 0; text-align:center;">
+      <a href="${resetUrl}" style="display:inline-block; background:#8B7355; color:#ffffff; text-decoration:none; font-size:14px; font-weight:700; letter-spacing:1px; padding:14px 32px; border-radius:10px;">
+        Set My Password →
+      </a>
+    </p>
+    <p style="margin:24px 0 0; font-size:13px; line-height:1.7; color:#666666; text-align:center;">
+      Already have a password? <a href="${loginUrl}" style="color:#8B7355;">Sign in here</a>.
+    </p>
+  `)
+}
+
 // ── Route handler ─────────────────────────────────────────────
 
 export async function POST(req: Request) {
@@ -396,7 +433,7 @@ export async function POST(req: Request) {
       applicationId?: string
       sponsorshipId?: string
       status?: 'approved' | 'rejected' | 'waitlisted'
-      kind?: 'approved' | 'rejected' | 'waitlisted' | 'deposit_reminder' | 'final_reminder' | 'expiration' | 'cancellation'
+      kind?: 'approved' | 'rejected' | 'waitlisted' | 'deposit_reminder' | 'final_reminder' | 'expiration' | 'cancellation' | 'returner_invite'
       daysRemaining?: number
       depositForfeited?: number
     }
@@ -496,6 +533,20 @@ export async function POST(req: Request) {
       const forfeited = depositForfeited ?? 0
       subject = `Your AATC 2027 booth has been canceled — ${app.business_name}`
       html = cancellationEmail(app.business_name, forfeited)
+    } else if (resolvedKind === 'returner_invite') {
+      const adminClient = createClient<Database>(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      )
+      const { data: linkData } = await adminClient.auth.admin.generateLink({
+        type: 'recovery',
+        email: app.email,
+        options: { redirectTo: `${SITE_URL}/auth/reset-password` },
+      })
+      const resetUrl = linkData?.properties?.action_link ?? `${SITE_URL}/auth/forgot-password`
+      const loginUrl = `${SITE_URL}/auth/login`
+      subject = `Welcome back to AATC 2027 — ${app.business_name}`
+      html = returnerInviteEmail(app.business_name, loginUrl, resetUrl)
     } else {
       return NextResponse.json({ error: `Unknown kind: ${resolvedKind}` }, { status: 400 })
     }
