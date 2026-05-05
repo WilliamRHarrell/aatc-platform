@@ -501,6 +501,15 @@ function PortalContent() {
           </Link>
           <div className="flex items-center gap-4">
             {userEmail && <p className="text-emboss hidden text-xs sm:block" style={{ color: '#555' }}>{userEmail}</p>}
+            <Link
+              href="/auth/reset-password"
+              className="text-sm transition-colors"
+              style={{ color: '#666' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#C4A882')}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#666')}
+            >
+              <span className="text-emboss">Change password</span>
+            </Link>
             <button
               onClick={handleSignOut}
               className="text-sm transition-colors"
