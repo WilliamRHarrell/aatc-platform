@@ -147,9 +147,6 @@ function PortalContent() {
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [sponsorInvoice, setSponsorInvoice] = useState<Invoice | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [paying, setPaying] = useState(false)
-  const [payFull, setPayFull] = useState(false)
-  const [customAmount, setCustomAmount] = useState('')
   const [editingArtistIdx, setEditingArtistIdx] = useState<number | null>(null)
   const [artistDraft, setArtistDraft] = useState<ArtistDraft | null>(null)
   const [savingArtist, setSavingArtist] = useState(false)
@@ -298,9 +295,6 @@ function PortalContent() {
     setSelectedAppIdx(idx)
     setEditingArtistIdx(null)
     setArtistDraft(null)
-    setPayFull(false)
-    setCustomAmount('')
-
     const [{ data: boothData }, { data: invoiceData }] = await Promise.all([
       supabase
         .from('booths')
@@ -321,52 +315,6 @@ function PortalContent() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push('/apply')
-  }
-
-  const handlePay = async (targetInvoice?: Invoice | null) => {
-    const inv = targetInvoice ?? invoice
-    if (!inv) return
-
-    const balance = inv.amount - (inv.amount_paid ?? 0)
-    let payAmountCents: number
-
-    if (payFull) {
-      payAmountCents = balance
-    } else {
-      const dollars = parseFloat(customAmount)
-      if (isNaN(dollars) || dollars <= 0) {
-        toast.error('Enter a valid payment amount')
-        return
-      }
-      payAmountCents = Math.round(dollars * 100)
-      if (payAmountCents < 25000) {
-        toast.error('Minimum payment is $250')
-        return
-      }
-      if (payAmountCents > balance) {
-        toast.error(`Payment cannot exceed the balance of ${formatCurrency(balance)}`)
-        return
-      }
-    }
-
-    setPaying(true)
-    try {
-      const res = await fetch('/api/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invoiceId: inv.id, amount: payAmountCents }),
-      })
-      const data = await res.json() as { url?: string; error?: string }
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        toast.error(data.error ?? 'Could not start checkout')
-        setPaying(false)
-      }
-    } catch {
-      toast.error('Could not start checkout')
-      setPaying(false)
-    }
   }
 
   const startEditArtist = (i: number) => {
@@ -812,63 +760,14 @@ function PortalContent() {
                   </div>
 
                   {isPayable && (
-                    <div className="mt-5 space-y-4">
-                      <div className="rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
-                        <label className="flex cursor-pointer items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={payFull}
-                            onChange={e => { setPayFull(e.target.checked); if (e.target.checked) setCustomAmount('') }}
-                            className="h-4 w-4 rounded accent-[#8B7355]"
-                          />
-                          <span className="text-sm font-medium text-white">
-                            Pay full balance — {formatCurrency(balance)}
-                          </span>
-                        </label>
-
-                        {!payFull && (
-                          <div className="mt-4">
-                            <label className="mb-1.5 block text-sm font-medium text-white">
-                              Or enter a payment amount
-                            </label>
-                            <p className="mb-2 text-xs" style={{ color: '#999' }}>
-                              Minimum payment: $250 deposit to hold your booth
-                            </p>
-                            <div className="relative">
-                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-white">$</span>
-                              <input
-                                type="number"
-                                min="250"
-                                step="0.01"
-                                max={(balance / 100).toFixed(2)}
-                                value={customAmount}
-                                onChange={e => setCustomAmount(e.target.value)}
-                                placeholder="250.00"
-                                className="w-full rounded-lg py-3 pl-8 pr-4 text-sm text-white outline-none transition-colors"
-                                style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
-                                onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
-                                onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <button
-                        onClick={() => handlePay()}
-                        disabled={paying || (!payFull && !customAmount)}
-                        className="w-full rounded-xl py-3 text-sm font-bold tracking-wide text-white transition-opacity disabled:opacity-60"
+                    <div className="mt-5">
+                      <Link
+                        href={`/portal/pay?invoice=${invoice.id}`}
+                        className="block w-full rounded-xl py-3 text-center text-sm font-bold tracking-wide text-white transition-opacity"
                         style={{ backgroundColor: '#8B7355' }}
                       >
-                        {paying
-                          ? 'Redirecting to Stripe...'
-                          : payFull
-                            ? `Pay ${formatCurrency(balance)} Now`
-                            : customAmount
-                              ? `Pay ${formatCurrency(Math.round(parseFloat(customAmount) * 100) || 0)} Now`
-                              : 'Enter Amount to Pay'
-                        }
-                      </button>
+                        Pay Now
+                      </Link>
                     </div>
                   )}
 
@@ -1205,26 +1104,14 @@ function PortalContent() {
                     {inv.due_date && inv.status !== 'paid' && <span className="text-xs" style={{ color: '#555' }}>Due {new Date(inv.due_date).toLocaleDateString()}</span>}
                   </div>
                   {isPayable && (
-                    <div className="mt-5 space-y-4">
-                      <div className="rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
-                        <label className="flex cursor-pointer items-center gap-3">
-                          <input type="checkbox" checked={payFull} onChange={e => { setPayFull(e.target.checked); if (e.target.checked) setCustomAmount('') }} className="h-4 w-4 rounded accent-[#8B7355]" />
-                          <span className="text-sm font-medium text-white">Pay full balance — {formatCurrency(balance)}</span>
-                        </label>
-                        {!payFull && (
-                          <div className="mt-4">
-                            <label className="mb-1.5 block text-sm font-medium text-white">Or enter a payment amount</label>
-                            <p className="mb-2 text-xs" style={{ color: '#999' }}>Minimum payment: $250</p>
-                            <div className="relative">
-                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-white">$</span>
-                              <input type="number" min="250" step="0.01" max={(balance / 100).toFixed(2)} value={customAmount} onChange={e => setCustomAmount(e.target.value)} placeholder="250.00" className="w-full rounded-lg py-3 pl-8 pr-4 text-sm text-white outline-none transition-colors" style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }} onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')} onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')} />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <button onClick={() => handlePay(sponsorInvoice)} disabled={paying || (!payFull && !customAmount)} className="w-full rounded-xl py-3 text-sm font-bold tracking-wide text-white transition-opacity disabled:opacity-60" style={{ backgroundColor: '#8B7355' }}>
-                        {paying ? 'Redirecting to Stripe...' : payFull ? `Pay ${formatCurrency(balance)} Now` : customAmount ? `Pay ${formatCurrency(Math.round(parseFloat(customAmount) * 100) || 0)} Now` : 'Enter Amount to Pay'}
-                      </button>
+                    <div className="mt-5">
+                      <Link
+                        href={`/portal/pay?invoice=${sponsorInvoice!.id}`}
+                        className="block w-full rounded-xl py-3 text-center text-sm font-bold tracking-wide text-white transition-opacity"
+                        style={{ backgroundColor: '#8B7355' }}
+                      >
+                        Pay Now
+                      </Link>
                     </div>
                   )}
                   {inv.status === 'paid' && (
@@ -1326,26 +1213,14 @@ function PortalContent() {
                     {inv.due_date && inv.status !== 'paid' && <span className="text-xs" style={{ color: '#555' }}>Due {new Date(inv.due_date).toLocaleDateString()}</span>}
                   </div>
                   {isPayable && (
-                    <div className="mt-5 space-y-4">
-                      <div className="rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
-                        <label className="flex cursor-pointer items-center gap-3">
-                          <input type="checkbox" checked={payFull} onChange={e => { setPayFull(e.target.checked); if (e.target.checked) setCustomAmount('') }} className="h-4 w-4 rounded accent-[#8B7355]" />
-                          <span className="text-sm font-medium text-white">Pay full balance — {formatCurrency(balance)}</span>
-                        </label>
-                        {!payFull && (
-                          <div className="mt-4">
-                            <label className="mb-1.5 block text-sm font-medium text-white">Or enter a payment amount</label>
-                            <p className="mb-2 text-xs" style={{ color: '#999' }}>Minimum payment: $250</p>
-                            <div className="relative">
-                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-white">$</span>
-                              <input type="number" min="250" step="0.01" max={(balance / 100).toFixed(2)} value={customAmount} onChange={e => setCustomAmount(e.target.value)} placeholder="250.00" className="w-full rounded-lg py-3 pl-8 pr-4 text-sm text-white outline-none" style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }} onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')} onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')} />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <button onClick={() => handlePay(foodTruckInvoice)} disabled={paying || (!payFull && !customAmount)} className="w-full rounded-xl py-3 text-sm font-bold tracking-wide text-white transition-opacity disabled:opacity-60" style={{ backgroundColor: '#8B7355' }}>
-                        {paying ? 'Redirecting to Stripe...' : payFull ? `Pay ${formatCurrency(balance)} Now` : customAmount ? `Pay ${formatCurrency(Math.round(parseFloat(customAmount) * 100) || 0)} Now` : 'Enter Amount to Pay'}
-                      </button>
+                    <div className="mt-5">
+                      <Link
+                        href={`/portal/pay?invoice=${foodTruckInvoice!.id}`}
+                        className="block w-full rounded-xl py-3 text-center text-sm font-bold tracking-wide text-white transition-opacity"
+                        style={{ backgroundColor: '#8B7355' }}
+                      >
+                        Pay Now
+                      </Link>
                     </div>
                   )}
                   {inv.status === 'paid' && (
