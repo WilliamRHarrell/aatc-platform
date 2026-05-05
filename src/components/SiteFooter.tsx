@@ -65,9 +65,10 @@ export default function SiteFooter() {
     const supabase = createClient()
     supabase
       .from('sponsorships')
-      .select('id, sponsor_name, logo_url, website')
+      .select('id, sponsor_name, logo_url, website, invoices!inner(final_paid_at)')
       .eq('featured_footer', true)
       .eq('status', 'confirmed')
+      .not('invoices.final_paid_at', 'is', null)
       .limit(5)
       .then(({ data }) => {
         if (data) setSponsors(data as FeaturedSponsor[])

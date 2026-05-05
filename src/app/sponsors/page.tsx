@@ -48,9 +48,10 @@ export default function SponsorsPage() {
 
       const { data } = await supabase
         .from('sponsorships')
-        .select('id, sponsor_name, tier, logo_url, website, amount, instagram, facebook')
+        .select('id, sponsor_name, tier, logo_url, website, amount, instagram, facebook, invoices!inner(final_paid_at)')
         .eq('event_id', event.id)
         .eq('status', 'confirmed')
+        .not('invoices.final_paid_at', 'is', null)
         .order('amount', { ascending: false })
 
       setSponsors((data as unknown as Sponsor[]) ?? [])
