@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import Stripe from 'stripe'
+import { minDepositCents } from '@/lib/pricing'
 import type { Database } from '@/types/database'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
     // Fetch the invoice — RLS ensures this user owns it
     const { data: inv } = await supabase
       .from('invoices')
-      .select('id, amount, amount_paid, status, application_id, sponsorship_id, food_truck_id')
+      .select('id, amount, amount_paid, status, application_id, sponsorship_id, food_truck_id, deposit_paid_at')
       .eq('id', invoiceId)
       .single()
 
@@ -50,6 +51,17 @@ export async function POST(req: Request) {
 
     if (payAmount <= 0 || payAmount > balance) {
       return NextResponse.json({ error: `Payment must be between $0.01 and ${(balance / 100).toFixed(2)}` }, { status: 400 })
+    }
+
+    // First-payment minimum: ≥ 25% of total. Subsequent payments can be any amount up to balance.
+    if (!inv.deposit_paid_at) {
+      const minFirst = minDepositCents(inv.amount)
+      if (payAmount < minFirst) {
+        return NextResponse.json(
+          { error: `First payment must be at least $${(minFirst / 100).toFixed(2)} (25% of $${(inv.amount / 100).toFixed(2)})` },
+          { status: 400 },
+        )
+      }
     }
 
     const isFullPayment = payAmount === balance
