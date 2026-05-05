@@ -759,7 +759,7 @@ export default function ArtistApplyPage() {
                         { kind: 'extra_table' as const, label: 'Extra Table', terms: [{ value: null, label: '$50/ea' }] },
                         { kind: 'extra_chairs' as const, label: '2 Extra Chairs', terms: [{ value: null, label: '$50/set' }] },
                         { kind: 'tattoo_bed' as const, label: 'Tattoo Bed', terms: [{ value: 'daily', label: 'Daily $50' }, { value: 'weekend', label: 'Weekend $150' }] },
-                        { kind: 'arm_rest' as const, label: 'Arm Rest', terms: [{ value: 'daily', label: 'Daily $40' }, { value: 'weekly', label: 'Weekly $80' }] },
+                        { kind: 'arm_rest' as const, label: 'Arm Rest', terms: [{ value: 'daily', label: 'Daily $40' }, { value: 'weekend', label: 'Weekend $80' }] },
                         { kind: 'tattoo_light' as const, label: 'Tattoo Light', terms: [{ value: 'daily', label: 'Daily $40' }, { value: 'weekend', label: 'Weekend $80' }] },
                       ]).map(item => {
                         const existing = booth.add_ons.find(a => a.kind === item.kind)

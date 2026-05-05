@@ -43,7 +43,7 @@ const ADDON_PRICES: Record<AddOnKind, Record<string, number>> = {
   extra_table: { _flat: 5000 },
   extra_chairs: { _flat: 5000 },
   tattoo_bed: { daily: 5000, weekend: 15000 },
-  arm_rest: { daily: 4000, weekly: 8000 },
+  arm_rest: { daily: 4000, weekend: 8000 },
   tattoo_light: { daily: 4000, weekend: 8000 },
 }
 
