@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { Resend } from 'resend'
 import { describeBooths } from '@/lib/booth-display'
+import { minDepositCents } from '@/lib/pricing'
 import type { Database } from '@/types/database'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -79,8 +80,23 @@ function emailWrapper(content: string) {
 </html>`
 }
 
-function approvedEmail(businessName: string, exhibitorType: string, boothSize: string, totalAmount: number) {
+function approvedEmail(businessName: string, exhibitorType: string, boothSize: string, totalAmount: number, depositDueAt: string | null) {
   const dollars = (totalAmount / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+  const minDeposit = minDepositCents(totalAmount)
+  const formattedDeadline = depositDueAt
+    ? new Date(depositDueAt).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    : null
+
+  const depositParagraph = formattedDeadline
+    ? `<p style="margin:16px 0; font-size:15px; line-height:1.7; color:#cccccc;">
+      To secure your booth, please pay at least 25% of the total
+      (<strong style="color:#ffffff;">$${(minDeposit / 100).toFixed(2)}</strong>) by <strong style="color:#ffffff;">${formattedDeadline}</strong>.
+      The remaining balance is due by <strong style="color:#ffffff;">January 1, 2027</strong>.
+      If the deposit is not received by the deadline, the booth will be
+      released to the next applicant.
+    </p>`
+    : ''
+
   return emailWrapper(`
     <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#4ade80;">
       Application Approved
@@ -106,6 +122,8 @@ function approvedEmail(businessName: string, exhibitorType: string, boothSize: s
         </tr>
       </table>
     </div>
+
+    ${depositParagraph}
 
     <p style="margin:16px 0; font-size:15px; line-height:1.7; color:#cccccc;">
       An invoice has been created in your applicant portal. Please complete payment to secure your booth.
@@ -300,7 +318,7 @@ export async function POST(req: Request) {
     // Fetch application details
     const { data: app } = await supabase
       .from('applications')
-      .select('business_name, email, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, total_amount')
+      .select('business_name, email, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, total_amount, deposit_due_at')
       .eq('id', applicationId)
       .single()
 
@@ -314,7 +332,7 @@ export async function POST(req: Request) {
 
     if (status === 'approved') {
       subject = `🎉 Your AATC 2027 application is approved — ${app.business_name}`
-      html = approvedEmail(app.business_name, app.exhibitor_type, describeBooths(app), app.total_amount)
+      html = approvedEmail(app.business_name, app.exhibitor_type, describeBooths(app), app.total_amount, app.deposit_due_at)
     } else if (status === 'rejected') {
       subject = `Update on your AATC 2027 application — ${app.business_name}`
       html = rejectedEmail(app.business_name, app.exhibitor_type)
