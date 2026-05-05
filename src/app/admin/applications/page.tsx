@@ -136,6 +136,25 @@ function DetailDrawer({
 
   const FINAL_DUE_AT = '2027-01-01T05:00:00Z' // 2027-01-01 00:00 America/New_York
 
+  const handleResetPassword = async (email: string) => {
+    if (!email) { toast.error('No email on file'); return }
+    const res = await fetch('/api/admin/reset-user-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    const json = await res.json()
+    if (!res.ok) { toast.error(json.error ?? 'Failed to generate reset link'); return }
+    try {
+      await navigator.clipboard.writeText(json.resetLink)
+      toast.success('Reset link copied to clipboard. Send it to the user.')
+    } catch {
+      // Fallback: show the link inline if clipboard API fails
+      toast.success('Link generated. Check the browser console.')
+      console.log('Reset link:', json.resetLink)
+    }
+  }
+
   const updateStatus = async (newStatus: Application['status']) => {
     setWorking(true)
 
@@ -463,6 +482,16 @@ function DetailDrawer({
                 {working ? 'Saving…' : compEnabled ? 'Comp & Approve' : 'Approve'}
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => handleResetPassword(app.email)}
+              className="w-full rounded-lg py-2.5 text-xs font-semibold transition-colors"
+              style={{ backgroundColor: '#0a0a0a', color: '#999', border: '1px solid #2a2a2a' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#fff')}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#999')}
+            >
+              Reset password
+            </button>
           </div>
         )}
 
@@ -487,6 +516,16 @@ function DetailDrawer({
               style={{ backgroundColor: '#1a1a1a', color: '#999', border: '1px solid #2a2a2a' }}
             >
               {working ? 'Saving…' : 'Move back to Pending'}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleResetPassword(app.email)}
+              className="w-full rounded-lg py-2.5 text-xs font-semibold transition-colors"
+              style={{ backgroundColor: '#0a0a0a', color: '#999', border: '1px solid #2a2a2a' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#fff')}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#999')}
+            >
+              Reset password
             </button>
           </div>
         )}
