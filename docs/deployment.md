@@ -108,11 +108,19 @@ Created via Auth Admin API with `email_confirm:true` (no email needed). Profile 
 | ryan@americantattoosociety.com | 2cd26fff-86a3-48ad-bc85-dff890043b39 | 2026-03-02 |
 | malia@allamericantattooconvention.com | 2aaac062-ccdd-4b49-b7ac-4586bc52062e | 2026-05-03 |
 
+## Lifecycle cron
+
+- **Endpoint:** `https://aatc-platform.vercel.app/api/cron/lifecycle-sweep`
+- **Schedule:** daily at 9 AM UTC / 4 AM Eastern (set via `vercel.json`)
+- **Auth:** `Authorization: Bearer <CRON_SECRET>` (Vercel Cron auto-injects)
+- **Manual trigger:** `curl -H "Authorization: Bearer $CRON_SECRET" https://aatc-platform.vercel.app/api/cron/lifecycle-sweep`
+- **What it does:** expires un-deposited applications past `deposit_due_at` (booth released, applicant emailed), cancels un-final-paid past `final_due_at` (deposit forfeited, booth released, applicant emailed), sends T-7 deposit-reminder + T-30/14/7/1 final-reminder emails
+
 ## Plans status
 
 - **Plan 1 — Vercel deployment:** ✅ complete (2026-05-03)
 - **Plan 2 — 2027 pivot + new pricing + form updates:** ✅ complete (2026-05-04)
-- **Plan 3 — payment lifecycle (deposit/partial/timeouts):** drafted in spec, plan not yet written
+- **Plan 3 — payment lifecycle (deposit/partial/timeouts):** ✅ complete (2026-05-05)
 - **Plan 4 — pre-load returners + sponsors + polish:** drafted in spec, plan not yet written
 
 Spec: `docs/superpowers/specs/2026-05-02-aatc-2027-pivot-design.md`.
