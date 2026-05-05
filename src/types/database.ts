@@ -103,7 +103,11 @@ export interface Database {
           is_corner: boolean
           is_veteran: boolean
           total_amount: number
-          status: 'pending' | 'approved' | 'rejected' | 'waitlisted'
+          status: 'pending' | 'approved' | 'rejected' | 'waitlisted' | 'expired' | 'canceled'
+          approved_at: string | null
+          deposit_due_at: string | null
+          final_due_at: string | null
+          needs_roster: boolean
           tv_show: string | null
           id_doc_url: string | null
           veteran_id_url: string | null
@@ -139,7 +143,11 @@ export interface Database {
           is_corner?: boolean
           is_veteran?: boolean
           total_amount: number
-          status?: 'pending' | 'approved' | 'rejected' | 'waitlisted'
+          status?: 'pending' | 'approved' | 'rejected' | 'waitlisted' | 'expired' | 'canceled'
+          approved_at?: string | null
+          deposit_due_at?: string | null
+          final_due_at?: string | null
+          needs_roster?: boolean
           tv_show?: string | null
           id_doc_url?: string | null
           veteran_id_url?: string | null
@@ -175,7 +183,11 @@ export interface Database {
           is_corner?: boolean
           is_veteran?: boolean
           total_amount?: number
-          status?: 'pending' | 'approved' | 'rejected' | 'waitlisted'
+          status?: 'pending' | 'approved' | 'rejected' | 'waitlisted' | 'expired' | 'canceled'
+          approved_at?: string | null
+          deposit_due_at?: string | null
+          final_due_at?: string | null
+          needs_roster?: boolean
           tv_show?: string | null
           id_doc_url?: string | null
           veteran_id_url?: string | null
@@ -304,6 +316,8 @@ export interface Database {
           status: 'pending' | 'paid' | 'overdue' | 'cancelled'
           due_date: string | null
           paid_at: string | null
+          deposit_paid_at: string | null
+          final_paid_at: string | null
           created_at: string
           updated_at: string
         }
@@ -319,6 +333,8 @@ export interface Database {
           status?: 'pending' | 'paid' | 'overdue' | 'cancelled'
           due_date?: string | null
           paid_at?: string | null
+          deposit_paid_at?: string | null
+          final_paid_at?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -334,6 +350,8 @@ export interface Database {
           status?: 'pending' | 'paid' | 'overdue' | 'cancelled'
           due_date?: string | null
           paid_at?: string | null
+          deposit_paid_at?: string | null
+          final_paid_at?: string | null
           created_at?: string
           updated_at?: string
         }
