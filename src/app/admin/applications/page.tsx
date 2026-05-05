@@ -134,33 +134,63 @@ function DetailDrawer({
     getUrls()
   }, [app.id])
 
+  const FINAL_DUE_AT = '2027-01-01T05:00:00Z' // 2027-01-01 00:00 America/New_York
+
   const updateStatus = async (newStatus: Application['status']) => {
     setWorking(true)
-    const { error } = await supabase
-      .from('applications')
-      .update({ status: newStatus })
-      .eq('id', app.id)
 
-    if (error) {
-      toast.error('Failed to update status')
-      setWorking(false)
-      return
-    }
-
-    // On approval, create invoice if one doesn't exist
     if (newStatus === 'approved') {
+      const now = new Date()
+      const depositDueAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+
+      const { data: updatedApp, error: appErr } = await supabase
+        .from('applications')
+        .update({
+          status: 'approved',
+          approved_at: now.toISOString(),
+          deposit_due_at: depositDueAt.toISOString(),
+          final_due_at: FINAL_DUE_AT,
+        })
+        .eq('id', app.id)
+        .select('id, total_amount')
+        .single()
+
+      if (appErr || !updatedApp) {
+        toast.error('Failed to approve application')
+        setWorking(false)
+        return
+      }
+
+      // Create invoice if not present
       const { data: existing } = await supabase
         .from('invoices')
         .select('id')
         .eq('application_id', app.id)
-        .single()
+        .maybeSingle()
 
       if (!existing) {
-        await supabase.from('invoices').insert({
+        const { error: invErr } = await supabase.from('invoices').insert({
           application_id: app.id,
-          amount: invoiceAmount,
+          amount: compEnabled ? 0 : invoiceAmount,
+          amount_paid: 0,
           status: compEnabled ? 'paid' : 'pending',
         })
+        if (invErr) {
+          toast.error('Approved, but failed to create invoice — fix manually in admin/invoices')
+          setWorking(false)
+          return
+        }
+      }
+    } else {
+      const { error } = await supabase
+        .from('applications')
+        .update({ status: newStatus })
+        .eq('id', app.id)
+
+      if (error) {
+        toast.error('Failed to update status')
+        setWorking(false)
+        return
       }
     }
 
