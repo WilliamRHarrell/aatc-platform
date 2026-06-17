@@ -5,8 +5,19 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { describeBooths } from '@/lib/booth-display'
-import toast from 'react-hot-toast'
 import type { Database } from '@/types/database'
+
+// The `artists` column is stored as JSON; describe its real shape here so the
+// regenerated Json type doesn't break array access throughout this file.
+type ArtistEntry = {
+  id_url?: string | null
+  name?: string | null
+  instagram?: string | null
+  [key: string]: unknown
+}
+type Application = Omit<Database['public']['Tables']['applications']['Row'], 'artists'> & {
+  artists: ArtistEntry[] | null
+}
 
 type Application = Database['public']['Tables']['applications']['Row']
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'waitlisted'
