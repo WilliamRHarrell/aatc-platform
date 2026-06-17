@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
+import { describeBooths } from '@/lib/booth-display'
 
 interface Stats {
   total: number
@@ -20,7 +21,12 @@ interface RecentApp {
   id: string
   business_name: string
   exhibitor_type: 'artist' | 'vendor'
-  booth_size: string
+  booth_size: 'single' | 'double' | 'triple' | 'quad' | null
+  artist_single_qty: number
+  artist_double_qty: number
+  vendor_single_qty: number
+  vendor_double_qty: number
+  corner_count: number
   total_amount: number
   status: string
   created_at: string
@@ -85,7 +91,7 @@ export default function AdminPage() {
 
       const { data: recentData } = await supabase
         .from('applications')
-        .select('id, business_name, exhibitor_type, booth_size, total_amount, status, created_at')
+        .select('id, business_name, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, total_amount, status, created_at')
         .order('created_at', { ascending: false })
         .limit(8)
 
@@ -194,7 +200,7 @@ export default function AdminPage() {
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-white">{app.business_name}</p>
                   <p className="text-xs capitalize" style={{ color: '#999' }}>
-                    {app.exhibitor_type} · {app.booth_size} booth
+                    {app.exhibitor_type} · {describeBooths(app)}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">

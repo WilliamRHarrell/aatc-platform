@@ -57,11 +57,10 @@ const PLACEHOLDER_IMG = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/obje
 export default function SiteFooter() {
   const pathname = usePathname()
   const [sponsors, setSponsors] = useState<FeaturedSponsor[]>([])
-
-  // Hide on admin pages
-  if (pathname.startsWith('/admin')) return null
+  const isAdmin = pathname.startsWith('/admin')
 
   useEffect(() => {
+    if (isAdmin) return
     const supabase = createClient()
     supabase
       .from('sponsorships')
@@ -73,7 +72,10 @@ export default function SiteFooter() {
       .then(({ data }) => {
         if (data) setSponsors(data as FeaturedSponsor[])
       })
-  }, [])
+  }, [isAdmin])
+
+  // Hide on admin pages (after all hooks have run)
+  if (isAdmin) return null
 
   return (
     <footer className="border-t" style={{ borderColor: '#2a2a2a' }}>
