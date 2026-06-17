@@ -19,7 +19,6 @@ type Application = Omit<Database['public']['Tables']['applications']['Row'], 'ar
   artists: ArtistEntry[] | null
 }
 
-type Application = Database['public']['Tables']['applications']['Row']
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'waitlisted'
 type TypeFilter   = 'all' | 'artist' | 'vendor'
 
