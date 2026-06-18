@@ -115,7 +115,7 @@ export default function AdminContentPage() {
                 <p className="mb-1 text-[10px] uppercase tracking-wider" style={{ color: '#555' }}>Preview</p>
                 {section.type === 'markdown'
                   ? <Markdown>{values[key] ?? ''}</Markdown>
-                  : <span>{values[key]}</span>}
+                  : <span>{values[key] ?? ''}</span>}
               </div>
 
               <button
