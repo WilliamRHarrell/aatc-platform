@@ -65,7 +65,7 @@ export const REGISTRY: PageDef[] = [
     title: 'Contests (/contests)',
     sections: {
       header_title: { label: 'Header title', type: 'text', default: 'Tattoo Collectors Award' },
-      header_subtitle: { label: 'Header subtitle', type: 'text', default: "People's Choice · Vote for your favorite in each category" },
+      header_subtitle: { label: 'Header subtitle', type: 'text', default: 'People’s Choice · Vote for your favorite in each category' },
       vote_hint: { label: 'Per-category vote hint', type: 'text', default: 'Tap a photo to enlarge · Select your favorite to vote' },
       empty_title: { label: 'Empty-state title', type: 'text', default: 'Voting opens soon' },
       empty_body: { label: 'Empty-state body', type: 'markdown', default: 'Check back after the convention to cast your votes.' },
