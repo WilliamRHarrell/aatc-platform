@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { describeBooths } from '@/lib/booth-display'
+import toast from 'react-hot-toast'
 import type { Database } from '@/types/database'
 
 // The `artists` column is stored as JSON; describe its real shape here so the

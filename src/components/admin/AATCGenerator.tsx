@@ -32,7 +32,7 @@ export default function AATCGenerator() {
   }
 
   const ready =
-    fontReady && name.trim() && ig.trim() && uploads.every(Boolean);
+    Boolean(fontReady && name.trim() && ig.trim() && uploads.every(Boolean));
 
   async function generate() {
     if (!ready) return;

@@ -10,7 +10,19 @@ import { describeBooths, boothSlotCount } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 import type { Database } from '@/types/database'
 
-type Application = Database['public']['Tables']['applications']['Row']
+type ArtistEntry = {
+  name?: string | null
+  nickname?: string | null
+  instagram?: string | null
+  styles?: string[] | null
+  portfolio_urls?: string[] | null
+  id_url?: string | null
+  id_later?: boolean | null
+  [key: string]: unknown
+}
+type Application = Omit<Database['public']['Tables']['applications']['Row'], 'artists'> & {
+  artists: ArtistEntry[] | null
+}
 
 interface AssignedBooth {
   id: string
@@ -151,7 +163,7 @@ export default function BoothDetailPage() {
         tv_show: a.tv_show ?? '',
         notes: a.notes ?? '',
       })
-      setArtistEdits((a.artists ?? []).map(ar => ({ name: ar.name, nickname: ar.nickname ?? '', instagram: ar.instagram ?? '', styles: ar.styles ?? [], id_file: null })))
+      setArtistEdits((a.artists ?? []).map(ar => ({ name: ar.name ?? '', nickname: ar.nickname ?? '', instagram: ar.instagram ?? '', styles: ar.styles ?? [], id_file: null })))
       const portfolioByArtist: Record<number, string[]> = {}
       ;(a.artists ?? []).forEach((ar, i) => { portfolioByArtist[i] = ar.portfolio_urls ?? [] })
       setArtistPortfolioUrls(portfolioByArtist)
@@ -416,7 +428,7 @@ export default function BoothDetailPage() {
     const updatedArtists = (app.artists ?? []).map((ar2, idx) =>
       idx === i ? { ...ar2, name: edit?.name ?? ar2.name, nickname: edit?.nickname, instagram: edit?.instagram ?? '', styles: edit?.styles, id_url } : ar2
     )
-    const { error } = await supabase.from('applications').update({ artists: updatedArtists }).eq('id', appId)
+    const { error } = await supabase.from('applications').update({ artists: updatedArtists as unknown as Database['public']['Tables']['applications']['Row']['artists'] }).eq('id', appId)
     if (error) { toast.error('Failed to save artist') } else { toast.success('Artist saved') }
     setSavingArtist(null)
   }
@@ -442,7 +454,7 @@ export default function BoothDetailPage() {
     const updatedArtists = (app.artists ?? []).map((ar, idx) =>
       idx === artistIdx ? { ...ar, portfolio_urls: merged } : ar
     )
-    await supabase.from('applications').update({ artists: updatedArtists }).eq('id', appId)
+    await supabase.from('applications').update({ artists: updatedArtists as never }).eq('id', appId)
     setArtistPortfolioUrls(prev => ({ ...prev, [artistIdx]: merged }))
     toast.success(`${newUrls.length} image${newUrls.length !== 1 ? 's' : ''} uploaded`)
     setUploadingArtistPortfolio(null)
@@ -457,7 +469,7 @@ export default function BoothDetailPage() {
     const updatedArtists = (app.artists ?? []).map((ar, idx) =>
       idx === artistIdx ? { ...ar, portfolio_urls: updated } : ar
     )
-    await supabase.from('applications').update({ artists: updatedArtists }).eq('id', appId)
+    await supabase.from('applications').update({ artists: updatedArtists as never }).eq('id', appId)
     setArtistPortfolioUrls(prev => ({ ...prev, [artistIdx]: updated }))
     toast.success('Image removed')
   }

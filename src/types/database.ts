@@ -871,7 +871,18 @@ export type Database = {
         | "email_host"
         | "free_registration"
       sponsor_status: "pending" | "confirmed" | "cancelled"
-      sponsor_tier: "platinum" | "gold" | "silver" | "bronze"
+      sponsor_tier:
+        | "platinum"
+        | "gold"
+        | "silver"
+        | "bronze"
+        | "title"
+        | "brass"
+        | "collectible_coin"
+        | "vip_bag"
+        | "collectors_choice"
+        | "artist_lounge"
+        | "rafter_banner"
       user_role: "admin" | "exhibitor" | "public"
     }
     CompositeTypes: {
@@ -1020,7 +1031,19 @@ export const Constants = {
         "free_registration",
       ],
       sponsor_status: ["pending", "confirmed", "cancelled"],
-      sponsor_tier: ["platinum", "gold", "silver", "bronze"],
+      sponsor_tier: [
+        "platinum",
+        "gold",
+        "silver",
+        "bronze",
+        "title",
+        "brass",
+        "collectible_coin",
+        "vip_bag",
+        "collectors_choice",
+        "artist_lounge",
+        "rafter_banner",
+      ],
       user_role: ["admin", "exhibitor", "public"],
     },
   },

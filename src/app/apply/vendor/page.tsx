@@ -325,7 +325,7 @@ export default function VendorApplyPage() {
       vendor_single_qty: booth.vendor_single_qty,
       vendor_double_qty: booth.vendor_double_qty,
       corner_count: booth.corner_count,
-      add_ons: booth.add_ons,
+      add_ons: booth.add_ons as never,
       artist_count: 0,
       is_corner: booth.corner_count > 0,
       is_veteran: booth.is_veteran,

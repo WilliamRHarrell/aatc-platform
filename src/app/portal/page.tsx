@@ -378,7 +378,7 @@ function PortalContent() {
 
     const { error } = await supabase
       .from('applications')
-      .update({ artists: updatedArtists })
+      .update({ artists: updatedArtists as never })
       .eq('id', application.id)
 
     if (error) {

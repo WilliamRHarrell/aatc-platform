@@ -146,6 +146,12 @@ export default function AdminBoothsPage() {
       setAddSaving(false)
       return
     }
+    const { data: { user: adminUser } } = await supabase.auth.getUser()
+    if (!adminUser) {
+      toast.error('Not signed in')
+      setAddSaving(false)
+      return
+    }
 
     // Create one application per booth entry
     const appIds: string[] = []
@@ -162,6 +168,7 @@ export default function AdminBoothsPage() {
       const qty = sizeToQty[b.size]
       const { data: appRow, error: appErr } = await supabase.from('applications').insert({
         event_id: event.id,
+        user_id: adminUser.id,
         exhibitor_type: addForm.exhibitor_type,
         business_name: addForm.business_name,
         contact_name: addForm.contact_name,

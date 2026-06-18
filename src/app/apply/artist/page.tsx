@@ -440,7 +440,7 @@ export default function ArtistApplyPage() {
       vendor_single_qty: 0,
       vendor_double_qty: 0,
       corner_count: booth.corner_count,
-      add_ons: booth.add_ons,
+      add_ons: booth.add_ons as never,
       artist_count: booth.artist_count,
       is_corner: booth.corner_count > 0,
       is_veteran: booth.is_veteran,

@@ -64,7 +64,7 @@ export default function PortalGraphicsPage() {
     setUploads((u) => { const c = [...u]; c[idx] = { file, url, img }; return c })
   }
 
-  const ready = fontReady && name.trim() && ig.trim() && uploads.every(Boolean)
+  const ready = Boolean(fontReady && name.trim() && ig.trim() && uploads.every(Boolean))
 
   async function generate() {
     if (!ready) return
