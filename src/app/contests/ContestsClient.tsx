@@ -148,10 +148,10 @@ export default function ContestsClient({ content }: { content: Record<string, st
         entryMap.set(e.contest_id, list)
       })
 
-      const list: Contest[] = (contestsData ?? []).map(c => ({
-        ...(c as unknown as Omit<Contest, 'entries'>),
-        entries: entryMap.get(c.id) ?? [],
-      })).filter(c => c.entries.length > 0)
+      const list: Contest[] = (contestsData ?? []).map(row => ({
+        ...(row as unknown as Omit<Contest, 'entries'>),
+        entries: entryMap.get(row.id) ?? [],
+      })).filter(item => item.entries.length > 0)
 
       setContests(list)
       setLoading(false)
