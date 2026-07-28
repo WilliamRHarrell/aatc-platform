@@ -45,6 +45,7 @@ export default function RootLayout({
             style={{
               backgroundImage: `url(${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/site-assets/AATC-large-bg-flag.png)`,
               backgroundPosition: 'center top',
+              opacity: 0.6,
             }}
           />
           {/* Gradient fade to black */}
