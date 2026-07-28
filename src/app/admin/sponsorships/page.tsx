@@ -45,7 +45,7 @@ const TIER_INFO: Record<SponsorTier, { label: string; color: string; amount: num
   silver:            { label: 'Silver',                 color: '#a8a8a8', amount: 100000,  group: 'main' },
   brass:             { label: 'Brass',                  color: '#cd7f32', amount: 50000,   group: 'main' },
   collectible_coin:  { label: 'Collectible Coin',       color: '#C4A882', amount: 250000,  group: 'individual' },
-  vip_bag:           { label: 'VIP Bag',                color: '#C4A882', amount: 80000,   group: 'individual' },
+  vip_bag:           { label: 'VIP Bag',                color: '#C4A882', amount: 150000,  group: 'individual' },
   collectors_choice: { label: "Collector's Choice",     color: '#C4A882', amount: 150000,  group: 'individual' },
   artist_lounge:     { label: 'Artist Lounge',          color: '#C4A882', amount: 100000,  group: 'individual' },
   rafter_banner:     { label: 'Rafter Banner',          color: '#C4A882', amount: 75000,   group: 'individual' },

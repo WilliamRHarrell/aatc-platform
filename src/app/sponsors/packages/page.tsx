@@ -86,8 +86,9 @@ const PACKAGES: TierPackage[] = [
     ],
   },
   {
-    name: 'VIP Bag Sponsor', tier: 'vip_bag', price: '$800', color: '#C4A882', group: 'individual',
+    name: 'VIP Bag Sponsor', tier: 'vip_bag', price: '$1,500', color: '#C4A882', group: 'individual',
     perks: [
+      'Your logo printed on every VIP bag',
       'Place materials inside every VIP bag',
       'Add your logo, information, or product samples',
       'Option to name the VIP bag pickup table after your company',
