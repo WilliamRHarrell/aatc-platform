@@ -1,9 +1,17 @@
-'use client'
-
-import { useEffect, useState } from 'react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase'
+import { unstable_cache } from 'next/cache'
+import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
+import { getContent } from '@/content/getContent'
 import PublicNav from '@/components/PublicNav'
+import Markdown from '@/components/Markdown'
+
+export const metadata: Metadata = {
+  title: 'Our Sponsors | All American Tattoo Convention 2027',
+  description:
+    'Meet the sponsors who make the All American Tattoo Convention possible — supporting tattoo artists, veterans, and the Fayetteville & Fort Bragg community.',
+}
 
 interface Sponsor {
   id: string
@@ -31,36 +39,46 @@ const TIER_META: Record<string, { label: string; color: string; borderColor: str
   rafter_banner:     { label: 'Rafter Banner Sponsor',  color: '#C4A882', borderColor: 'rgba(196,168,130,0.3)' },
 }
 
-export default function SponsorsPage() {
-  const supabase = createClient()
-  const [sponsors, setSponsors] = useState<Sponsor[]>([])
-  const [loading, setLoading] = useState(true)
+/**
+ * Server-side sponsor fetch. Cookieless anon client so the result is cacheable
+ * and the sponsor wall lands in the server HTML — sponsors pay for visibility,
+ * so this has to be crawlable rather than hydrated in after paint.
+ */
+const getSponsors = unstable_cache(
+  async (): Promise<Sponsor[]> => {
+    const supabase = createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
 
-  useEffect(() => {
-    const load = async () => {
-      const { data: event } = await supabase
-        .from('events')
-        .select('id')
-        .eq('is_active', true)
-        .single()
+    const { data: event } = await supabase
+      .from('events')
+      .select('id')
+      .eq('is_active', true)
+      .single()
 
-      if (!event) { setLoading(false); return }
+    if (!event) return []
 
-      const { data } = await supabase
-        .from('sponsorships')
-        .select('id, sponsor_name, tier, logo_url, website, amount, instagram, facebook, invoices!inner(final_paid_at)')
-        .eq('event_id', event.id)
-        .eq('status', 'confirmed')
-        .not('invoices.final_paid_at', 'is', null)
-        .order('amount', { ascending: false })
+    const { data } = await supabase
+      .from('sponsorships')
+      .select('id, sponsor_name, tier, logo_url, website, amount, instagram, facebook, invoices!inner(final_paid_at)')
+      .eq('event_id', event.id)
+      .eq('status', 'confirmed')
+      .not('invoices.final_paid_at', 'is', null)
+      .order('amount', { ascending: false })
 
-      setSponsors((data as unknown as Sponsor[]) ?? [])
-      setLoading(false)
-    }
-    load()
-  }, [])
+    return (data as unknown as Sponsor[]) ?? []
+  },
+  ['sponsors_public'],
+  { revalidate: 60, tags: ['sponsors'] }
+)
 
-  // Group sponsors by tier
+const ICON_CLASS =
+  'flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.06] transition-colors hover:bg-[#8B7355]/25'
+
+export default async function SponsorsPage() {
+  const [c, sponsors] = await Promise.all([getContent('sponsors'), getSponsors()])
+
   const grouped = TIER_ORDER.reduce<Record<string, Sponsor[]>>((acc, tier) => {
     const tierSponsors = sponsors.filter(s => s.tier === tier)
     if (tierSponsors.length > 0) acc[tier] = tierSponsors
@@ -74,19 +92,20 @@ export default function SponsorsPage() {
       {/* Header */}
       <div className="border-b px-4 pb-10 pt-8 text-center" style={{ borderColor: '#2a2a2a' }}>
         <p className="mb-2 text-xs font-bold uppercase tracking-[0.3em]" style={{ color: '#8B7355' }}>
-          <span className="text-emboss">Support Our Tattooed Military</span>
+          <span className="text-emboss">{c.header_eyebrow}</span>
         </p>
         <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">
-          <span className="text-emboss">Sponsor Directory</span>
+          <span className="text-emboss">{c.header_title}</span>
         </h1>
-        <p className="mx-auto mt-0 max-w-xl text-sm" style={{ color: '#999' }}>
-          <span className="text-emboss">Thank you to our incredible sponsors who make the All American Tattoo Convention possible.
-          Your support directly benefits our tattooed military community.</span>
-        </p>
+        <div className="mx-auto mt-3 max-w-xl text-sm" style={{ color: '#999' }}>
+          <span className="text-emboss">
+            <Markdown inline>{c.header_intro}</Markdown>
+          </span>
+        </div>
       </div>
 
       {/* Current Sponsors */}
-      {!loading && sponsors.length > 0 && (
+      {sponsors.length > 0 && (
         <div className="px-4 py-12">
           <div className="mx-auto max-w-5xl">
             {Object.entries(grouped).map(([tier, tierSponsors]) => {
@@ -99,10 +118,7 @@ export default function SponsorsPage() {
                   </h2>
                   <div className="flex flex-wrap justify-center gap-6">
                     {tierSponsors.map(s => (
-                      <div
-                        key={s.id}
-                        className="group flex flex-col items-center"
-                      >
+                      <div key={s.id} className="group flex flex-col items-center">
                         <a
                           href={s.website ?? '#'}
                           target={s.website ? '_blank' : undefined}
@@ -119,6 +135,7 @@ export default function SponsorsPage() {
                             }}
                           >
                             {s.logo_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
                               <img src={s.logo_url} alt={s.sponsor_name} className="h-full w-full object-contain p-3" />
                             ) : (
                               <span className="font-display text-3xl font-bold" style={{ color: meta.color }}>
@@ -138,10 +155,7 @@ export default function SponsorsPage() {
                               target="_blank"
                               rel="noopener noreferrer"
                               title="Website"
-                              className="flex h-7 w-7 items-center justify-center rounded-full transition-colors"
-                              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
-                              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(139,115,85,0.25)')}
-                              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(255,255,255,0.06)')}
+                              className={ICON_CLASS}
                             >
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="12" cy="12" r="10"/>
@@ -156,10 +170,7 @@ export default function SponsorsPage() {
                               target="_blank"
                               rel="noopener noreferrer"
                               title="Instagram"
-                              className="flex h-7 w-7 items-center justify-center rounded-full transition-colors"
-                              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
-                              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(139,115,85,0.25)')}
-                              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(255,255,255,0.06)')}
+                              className={ICON_CLASS}
                             >
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
@@ -174,10 +185,7 @@ export default function SponsorsPage() {
                               target="_blank"
                               rel="noopener noreferrer"
                               title="Facebook"
-                              className="flex h-7 w-7 items-center justify-center rounded-full transition-colors"
-                              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
-                              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(139,115,85,0.25)')}
-                              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(255,255,255,0.06)')}
+                              className={ICON_CLASS}
                             >
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
@@ -195,29 +203,25 @@ export default function SponsorsPage() {
         </div>
       )}
 
-      {loading && (
-        <div className="flex h-40 items-center justify-center">
-          <div className="h-7 w-7 animate-spin rounded-full border-2" style={{ borderColor: '#8B7355', borderTopColor: 'transparent' }} />
-        </div>
-      )}
-
-      {!loading && sponsors.length === 0 && (
+      {sponsors.length === 0 && (
         <div className="flex h-40 flex-col items-center justify-center gap-3 px-4">
-          <p className="text-sm" style={{ color: '#555' }}><span className="text-emboss">No sponsors confirmed yet for this event.</span></p>
+          <p className="text-sm" style={{ color: '#555' }}>
+            <span className="text-emboss">{c.empty_body}</span>
+          </p>
         </div>
       )}
 
       {/* CTA */}
       <div className="border-t px-4 py-10 text-center" style={{ borderColor: '#2a2a2a' }}>
         <p className="mb-4 text-sm" style={{ color: '#999' }}>
-          <span className="text-emboss">Interested in sponsoring AATC 2027?</span>
+          <span className="text-emboss">{c.cta_body}</span>
         </p>
         <Link
           href="/sponsors/packages"
           className="inline-flex items-center gap-2 rounded-xl px-8 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
           style={{ backgroundColor: '#8B7355' }}
         >
-          View Sponsorship Packages
+          {c.cta_button}
         </Link>
       </div>
     </div>

@@ -1,120 +1,125 @@
-'use client'
-
+import type { Metadata } from 'next'
+import { getContent } from '@/content/getContent'
 import PublicNav from '@/components/PublicNav'
+import Markdown from '@/components/Markdown'
 
-const TICKETS = [
-  {
-    id: 'friday',
-    label: 'Friday Pass',
-    date: 'Friday, April 16',
-    price: '$25',
-    desc: 'Single-day admission for Friday.',
-    href: '#', // Replace with Ticketmaster link
-  },
-  {
-    id: 'saturday',
-    label: 'Saturday Pass',
-    date: 'Saturday, April 17',
-    price: '$30',
-    desc: 'Single-day admission for Saturday.',
-    href: '#',
-  },
-  {
-    id: 'sunday',
-    label: 'Sunday Pass',
-    date: 'Sunday, April 18',
-    price: '$25',
-    desc: 'Single-day admission for Sunday.',
-    href: '#',
-  },
-  {
-    id: 'weekend',
-    label: '3-Day Weekend Pass',
-    date: 'April 16–18',
-    price: '$50',
-    desc: 'Full access to all three days of the convention. Best value for the full experience.',
-    href: '#',
-    featured: true,
-  },
-  {
-    id: 'vip',
-    label: 'VIP 3-Day Pass',
-    date: 'April 16–18',
-    price: '$70',
-    desc: 'Special badge, swag bag, meet & greet poster, T-shirt, 30-minute early daily admission, and VIP meet & greet with TV tattoo artists on Saturday.',
-    href: '#',
-    featured: true,
-  },
-]
+export const metadata: Metadata = {
+  title: 'Buy Tickets | All American Tattoo Convention 2027 | Fayetteville NC',
+  description:
+    'Tickets for AATC 2027, April 16–18 at the Crown Complex. Single-day, weekend, and VIP passes with military discounts. VIP includes swag bag and artist meet & greet.',
+}
 
 const SCHEDULE = [
   {
     day: 'Friday, April 16',
     events: [
-      { time: '2:00 PM', title: 'Doors Open' },
-      { time: '2:30 PM', title: 'Tattooing Begins' },
-      { time: '4:00 PM', title: 'Live Entertainment' },
-      { time: '6:00 PM', title: 'Tattoo Contest Registration Opens' },
-      { time: '8:00 PM', title: 'Friday Tattoo Contest Judging' },
-      { time: '10:00 PM', title: 'Doors Close' },
+      { time: '12:00 PM', title: 'All-Veteran Parachute Team jumps in' },
+      { time: '12:30 PM', title: 'Missing Man Table Ceremony — Main Stage' },
+      { time: '1:00 PM', title: 'The All American Tattoo Battle begins' },
+      { time: '1:00 PM', title: 'Tattoo contest registration opens' },
+      { time: '4:00 PM', title: 'Tattoo contests begin — Main Stage' },
+      { time: '9:30 PM', title: 'Tattoo of the Day — Main Stage' },
+      { time: '10:00 PM', title: 'Show close' },
     ],
   },
   {
     day: 'Saturday, April 17',
     events: [
-      { time: '10:00 AM', title: 'VIP Early Admission & Meet & Greet' },
-      { time: '10:30 AM', title: 'General Admission Doors Open' },
-      { time: '11:00 AM', title: 'Tattooing Begins' },
-      { time: '1:00 PM', title: 'Live Entertainment' },
-      { time: '3:00 PM', title: 'Tattoo Contest Registration Opens' },
-      { time: '5:00 PM', title: 'Saturday Tattoo Contest Judging' },
-      { time: '7:00 PM', title: 'Special Performances' },
-      { time: '10:00 PM', title: 'Doors Close' },
+      { time: '10:00 AM', title: 'Gold Star VIP Meet & Greet — Front Room' },
+      { time: '12:00 PM', title: 'Opening ceremonies — Main Stage' },
+      { time: '1:00 PM', title: 'Tattoo contest registration opens' },
+      { time: '1:30 PM', title: 'Strongest at the Sideshow — Ballroom' },
+      { time: '2:00 PM', title: 'Miss All American Pin-Up Contest — Main Stage' },
+      { time: '4:00 PM', title: 'Tattoo contests begin — Main Stage' },
+      { time: '10:00 PM', title: 'Tattoo of the Day — Main Stage' },
+      { time: '11:00 PM', title: 'Show close' },
     ],
   },
   {
     day: 'Sunday, April 18',
     events: [
-      { time: '10:00 AM', title: 'VIP Early Admission' },
-      { time: '10:30 AM', title: 'General Admission Doors Open' },
-      { time: '11:00 AM', title: 'Tattooing Begins' },
-      { time: '1:00 PM', title: 'Live Entertainment' },
-      { time: '2:00 PM', title: 'Tattoo Contest Registration Opens' },
-      { time: '4:00 PM', title: 'Best of Show & Final Contest Judging' },
-      { time: '6:00 PM', title: 'Awards Ceremony' },
-      { time: '7:00 PM', title: 'Convention Closes' },
+      { time: '12:00 PM', title: 'Opening ceremonies — Main Stage' },
+      { time: '1:00 PM', title: 'Tattoo contest registration opens' },
+      { time: '3:00 PM', title: 'Presentation to nonprofit' },
+      { time: '4:00 PM', title: 'Tattoo contests begin — Main Stage' },
+      { time: '6:00 PM', title: 'All American Tattoo Battle Champion crowned' },
+      { time: '7:00 PM', title: 'Tattoo of the Day & Best of Show' },
+      { time: '8:00 PM', title: 'Show close' },
     ],
   },
 ]
 
 const CONTEST_CATEGORIES: Record<string, string[]> = {
-  'Friday': [
-    'Best Black & Grey',
-    'Best Color',
-    'Best Traditional',
-    'Best Neo-Traditional',
-    'Best Realism',
-    'Best Small Tattoo',
+  Friday: [
+    'Large Color · Small Color',
+    'Large Black & Gray · Small Black & Gray',
+    'Best Military Tattoo',
+    'American Pride Tattoo',
+    'Best Geometric/Dotwork',
+    'Best Asian Inspired',
+    'Best Hand Tattoo',
+    'Best Neck/Face Tattoo',
+    'Best Cover Up',
+    'Tattoo of the Day (Color & B&G)',
   ],
-  'Saturday': [
-    'Best Portrait',
-    'Best Japanese',
-    'Best Lettering / Script',
-    'Best Biomechanical',
+  Saturday: [
+    'Large Color · Small Color',
+    'Large Black & Gray · Small Black & Gray',
+    'Best Lettering',
+    'Best American Traditional',
+    'Best Neotraditional',
     'Best Watercolor',
-    'Best Cover-Up',
+    'Best Color & B&G Portraits',
+    'Best Back Piece · Arm Sleeve · Leg Sleeve · Chest Piece',
+    'Best Ear Curation',
+    'Best Overall Male · Best Overall Female',
+    'Tattoo of the Day (Color & B&G)',
   ],
-  'Sunday': [
-    'Best Sleeve',
-    'Best Back Piece',
-    'Best Leg Piece',
-    'Best of Day (Friday & Saturday Winners)',
-    'Best of Show',
-    'Peoples Choice',
+  Sunday: [
+    'Large Color · Small Color',
+    'Large Black & Gray · Small Black & Gray',
+    'Best Tattoo by a Veteran',
+    'Best Comic/Superhero',
+    'Best Anime Tattoo',
+    'Best Disney Themed',
+    'Most Unusual Tattoo',
+    'Best Tattooed Flesh (fake skin)',
+    'Best Original Flash',
+    'Best Temporary Tattoo (kids)',
+    'Best in Show (Color & B&G)',
   ],
 }
 
-export default function TicketsPage() {
+export default async function TicketsPage() {
+  const c = await getContent('tickets')
+
+  const singleDay = [
+    { id: 'friday', label: 'Friday Pass', date: 'Friday, April 16', desc: 'Single-day admission for Friday.' },
+    { id: 'saturday', label: 'Saturday Pass', date: 'Saturday, April 17', desc: 'Single-day admission for Saturday.' },
+    { id: 'sunday', label: 'Sunday Pass', date: 'Sunday, April 18', desc: 'Single-day admission for Sunday.' },
+  ]
+
+  const featured = [
+    {
+      id: 'weekend',
+      label: 'Weekend Pass',
+      date: 'April 16–18',
+      price: c.price_weekend,
+      note: c.price_weekend_note,
+      desc: 'All three days. Every contest, every event, every artist.',
+      vip: false,
+    },
+    {
+      id: 'vip',
+      label: 'VIP Weekend Pass',
+      date: 'April 16–18',
+      price: c.price_vip,
+      note: c.price_vip_note,
+      desc: '30-minute early admission every day, VIP badge and swag bag, Meet & Greet signature poster and pen, access to the Saturday 10 AM VIP meet & greet with TV tattoo artists, and an official AATC t-shirt.',
+      vip: true,
+    },
+  ]
+
   return (
     <div className="min-h-screen">
       <PublicNav />
@@ -122,83 +127,45 @@ export default function TicketsPage() {
       {/* Header */}
       <div className="border-b px-4 pb-10 pt-8 text-center" style={{ borderColor: '#2a2a2a' }}>
         <p className="mb-2 text-xs font-bold uppercase tracking-[0.3em]" style={{ color: '#8B7355' }}>
-          <span className="text-emboss">April 16–18, 2027 · Fayetteville, NC</span>
+          <span className="text-emboss">{c.header_eyebrow}</span>
         </p>
         <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">
-          <span className="text-emboss">Buy Tickets</span>
+          <span className="text-emboss">{c.header_title}</span>
         </h1>
-        <p className="mx-auto mt-0 max-w-xl text-sm" style={{ color: '#999' }}>
-          <span className="text-emboss">Secure your spot at the All American Tattoo Convention. Active military and veterans receive a $5 discount at the door with valid ID.</span>
-        </p>
+        <div className="mx-auto mt-3 max-w-xl text-sm" style={{ color: '#999' }}>
+          <span className="text-emboss">
+            <Markdown inline>{c.header_intro}</Markdown>
+          </span>
+        </div>
       </div>
 
       {/* Tickets */}
       <section className="px-4 py-12">
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-6 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
-            <span className="text-emboss">Admission Passes</span>
+            <span className="text-emboss">{c.passes_title}</span>
           </h2>
 
-          {/* Single Day Passes */}
-          <div className="mb-8 grid gap-4 sm:grid-cols-3">
-            {TICKETS.filter(t => !t.featured).map(ticket => (
-              <a
-                key={ticket.id}
-                id={ticket.id}
-                href={ticket.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group scroll-mt-20 rounded-2xl p-6 transition-all duration-200"
-                style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
-                onMouseEnter={e => {
-                  ;(e.currentTarget as HTMLElement).style.borderColor = '#8B7355'
-                }}
-                onMouseLeave={e => {
-                  ;(e.currentTarget as HTMLElement).style.borderColor = '#2a2a2a'
-                }}
-              >
-                <p className="text-xs font-medium uppercase tracking-wider" style={{ color: '#666' }}>
-                  {ticket.date}
-                </p>
-                <h3 className="mt-2 text-lg font-bold text-white">{ticket.label}</h3>
-                <p className="mt-1 text-sm" style={{ color: '#999' }}>{ticket.desc}</p>
-                <div className="mt-4 flex items-center justify-between">
-                  <span className="font-display text-2xl font-bold" style={{ color: '#C4A882' }}>
-                    {ticket.price}
-                  </span>
-                  <span
-                    className="rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wider text-white transition-colors"
-                    style={{ backgroundColor: '#8B7355' }}
-                  >
-                    Buy Now
-                  </span>
-                </div>
-              </a>
-            ))}
-          </div>
+          {c.onsale_notice ? (
+            <div
+              className="mx-auto mb-8 max-w-2xl rounded-xl px-5 py-4 text-center text-sm"
+              style={{ backgroundColor: 'rgba(139,115,85,0.12)', border: '1px solid #8B7355', color: '#C4A882' }}
+            >
+              <Markdown inline>{c.onsale_notice}</Markdown>
+            </div>
+          ) : null}
 
-          {/* Featured Passes */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            {TICKETS.filter(t => t.featured).map(ticket => (
-              <a
+          {/* Featured passes */}
+          <div className="mb-8 grid gap-4 sm:grid-cols-2">
+            {featured.map(ticket => (
+              <div
                 key={ticket.id}
                 id={ticket.id}
-                href={ticket.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group relative scroll-mt-20 overflow-hidden rounded-2xl p-6 transition-all duration-200"
-                style={{
-                  backgroundColor: '#1a1a1a',
-                  border: ticket.id === 'vip' ? '2px solid #8B7355' : '1px solid #2a2a2a',
-                }}
-                onMouseEnter={e => {
-                  ;(e.currentTarget as HTMLElement).style.borderColor = '#C4A882'
-                }}
-                onMouseLeave={e => {
-                  ;(e.currentTarget as HTMLElement).style.borderColor = ticket.id === 'vip' ? '#8B7355' : '#2a2a2a'
-                }}
+                className={`relative scroll-mt-20 overflow-hidden rounded-2xl bg-[#1a1a1a] p-6 transition-colors duration-200 ${
+                  ticket.vip ? 'border-2 border-[#8B7355]' : 'border border-[#2a2a2a]'
+                } hover:border-[#C4A882]`}
               >
-                {ticket.id === 'vip' && (
+                {ticket.vip && (
                   <div
                     className="absolute right-4 top-4 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
                     style={{ backgroundColor: '#8B7355', color: '#fff' }}
@@ -210,25 +177,65 @@ export default function TicketsPage() {
                   {ticket.date}
                 </p>
                 <h3 className="mt-2 text-xl font-bold text-white">{ticket.label}</h3>
-                <p className="mt-2 text-sm leading-relaxed" style={{ color: '#999' }}>{ticket.desc}</p>
-                <div className="mt-5 flex items-center justify-between">
+                <p className="mt-2 text-sm leading-relaxed" style={{ color: '#999' }}>
+                  {ticket.desc}
+                </p>
+                <div className="mt-5">
                   <span className="font-display text-3xl font-bold" style={{ color: '#C4A882' }}>
                     {ticket.price}
                   </span>
-                  <span
-                    className="rounded-lg px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition-colors"
-                    style={{ backgroundColor: '#8B7355' }}
-                  >
-                    Buy Now
-                  </span>
+                  <p className="mt-1 text-xs" style={{ color: '#666' }}>
+                    {ticket.note}
+                  </p>
                 </div>
-              </a>
+              </div>
             ))}
           </div>
 
-          <p className="mt-6 text-center text-xs" style={{ color: '#555' }}>
-            <span className="text-emboss">Online purchases are subject to Ticketmaster service fees. To avoid fees, tickets may be purchased in person at the on-base Ft Bragg ticket office or the Crown Complex box office.</span>
-          </p>
+          {/* Single-day passes */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            {singleDay.map(ticket => (
+              <div
+                key={ticket.id}
+                id={ticket.id}
+                className="scroll-mt-20 rounded-2xl border border-[#2a2a2a] bg-[#1a1a1a] p-6 transition-colors duration-200 hover:border-[#8B7355]"
+              >
+                <p className="text-xs font-medium uppercase tracking-wider" style={{ color: '#666' }}>
+                  {ticket.date}
+                </p>
+                <h3 className="mt-2 text-lg font-bold text-white">{ticket.label}</h3>
+                <p className="mt-1 text-sm" style={{ color: '#999' }}>
+                  {ticket.desc}
+                </p>
+                <div className="mt-4">
+                  <span className="font-display text-2xl font-bold" style={{ color: '#C4A882' }}>
+                    {c.price_single_day}
+                  </span>
+                  <p className="mt-1 text-xs" style={{ color: '#666' }}>
+                    {c.price_single_day_note}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 text-center text-xs" style={{ color: '#555' }}>
+            <span className="text-emboss">
+              <Markdown inline>{c.passes_footnote}</Markdown>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Good to Know */}
+      <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
+        <div className="mx-auto max-w-2xl">
+          <h2 className="mb-6 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
+            <span className="text-emboss">{c.goodtoknow_title}</span>
+          </h2>
+          <div className="rounded-2xl p-6 text-sm leading-relaxed" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a', color: '#999' }}>
+            <Markdown>{c.goodtoknow_body}</Markdown>
+          </div>
         </div>
       </section>
 
@@ -236,22 +243,16 @@ export default function TicketsPage() {
       <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-2 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
-            <span className="text-emboss">Schedule of Events</span>
+            <span className="text-emboss">{c.schedule_title}</span>
           </h2>
           <p className="mb-8 text-center text-xs" style={{ color: '#666' }}>
-            <span className="text-emboss">Schedule is subject to change. Check back for updates.</span>
+            <span className="text-emboss">{c.schedule_subtitle}</span>
           </p>
 
           <div className="grid gap-6 md:grid-cols-3">
             {SCHEDULE.map(day => (
-              <div
-                key={day.day}
-                className="rounded-2xl p-6"
-                style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
-              >
-                <h3 className="mb-4 text-center text-sm font-bold uppercase tracking-wider text-white">
-                  {day.day}
-                </h3>
+              <div key={day.day} className="rounded-2xl p-6" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+                <h3 className="mb-4 text-center text-sm font-bold uppercase tracking-wider text-white">{day.day}</h3>
                 <div className="space-y-3">
                   {day.events.map((event, i) => (
                     <div key={i} className="flex gap-3">
@@ -274,26 +275,20 @@ export default function TicketsPage() {
       <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-2 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
-            <span className="text-emboss">Tattoo Contest Categories</span>
+            <span className="text-emboss">{c.categories_title}</span>
           </h2>
           <p className="mb-8 text-center text-xs" style={{ color: '#666' }}>
-            <span className="text-emboss">Categories are subject to change. Final categories will be announced closer to the event.</span>
+            <span className="text-emboss">{c.categories_subtitle}</span>
           </p>
 
           <div className="grid gap-6 md:grid-cols-3">
             {Object.entries(CONTEST_CATEGORIES).map(([day, categories]) => (
-              <div
-                key={day}
-                className="rounded-2xl p-6"
-                style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
-              >
-                <h3 className="mb-4 text-center text-sm font-bold uppercase tracking-wider text-white">
-                  {day}
-                </h3>
+              <div key={day} className="rounded-2xl p-6" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+                <h3 className="mb-4 text-center text-sm font-bold uppercase tracking-wider text-white">{day}</h3>
                 <ul className="space-y-2.5">
                   {categories.map(cat => (
-                    <li key={cat} className="flex items-center gap-2 text-xs" style={{ color: '#999' }}>
-                      <span className="h-1 w-1 shrink-0 rounded-full" style={{ backgroundColor: '#8B7355' }} />
+                    <li key={cat} className="flex items-start gap-2 text-xs" style={{ color: '#999' }}>
+                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ backgroundColor: '#8B7355' }} />
                       {cat}
                     </li>
                   ))}
@@ -307,14 +302,13 @@ export default function TicketsPage() {
       {/* Footer CTA */}
       <div className="border-t px-4 py-10 text-center" style={{ borderColor: '#2a2a2a' }}>
         <p className="mb-2 text-sm font-semibold text-white">
-          <span className="text-emboss">Questions about tickets?</span>
+          <span className="text-emboss">{c.questions_title}</span>
         </p>
-        <p className="text-sm" style={{ color: '#999' }}>
-          <span className="text-emboss">Contact us at{' '}
-          <a href="mailto:info@allamericantattooconvention.com" style={{ color: '#C4A882' }}>
-            info@allamericantattooconvention.com
-          </a></span>
-        </p>
+        <div className="text-sm" style={{ color: '#999' }}>
+          <span className="text-emboss">
+            <Markdown inline>{c.questions_body}</Markdown>
+          </span>
+        </div>
       </div>
     </div>
   )
