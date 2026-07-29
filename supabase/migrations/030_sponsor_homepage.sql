@@ -80,11 +80,17 @@ create index if not exists sponsorships_homepage_idx
 --       )
 --     );
 
-drop policy if exists "sponsorships: public read" on sponsorships;
+-- Pinned to the five policies confirmed present on the live database.
+-- DROPPED:
+drop policy if exists "sponsorships: public read" on sponsorships;              -- qual: true
+drop policy if exists "Public can read paid featured sponsors" on sponsorships; -- 025, recursive
+-- Superseded names from earlier iterations of this work; harmless if absent.
 drop policy if exists "Public can read featured footer sponsors" on sponsorships;
-drop policy if exists "Public can read paid featured sponsors" on sponsorships;
 drop policy if exists "Public can read paid placed sponsors" on sponsorships;
 drop policy if exists "Public can read placed sponsors" on sponsorships;
+-- LEFT INTACT (do not drop):
+--   "Anyone can submit sponsor application"  (INSERT)
+--   "sponsorships: admin write"              (ALL, using is_admin())
 
 -- ── Public read: confirmed sponsors only ────────────────────
 -- Serves the footer, the homepage grid and the /sponsors directory. Pending
@@ -96,16 +102,18 @@ create policy "Public can read confirmed sponsors"
   using (status = 'confirmed');
 
 -- ── Owner read ──────────────────────────────────────────────
--- Reconciled, not duplicated: dropped first so re-running cannot leave two
--- overlapping owner policies. If the live database already carries an owner
--- policy under a DIFFERENT name, drop that one too — overlapping permissive
--- policies OR together so it is functionally harmless, but it makes the
--- effective grant hard to reason about.
+-- Reconciled with the live policy of the same name, not duplicated: dropped
+-- and recreated deliberately. The live qual is
+--     (user_id = auth.uid()) OR is_admin()
+-- and the is_admin() arm is preserved verbatim. It is redundant — the
+-- "sponsorships: admin write" policy is FOR ALL, which covers SELECT — but
+-- recreating it identically keeps this migration a pure no-op for admins
+-- rather than a silent behavioural change bundled into an RLS fix.
 drop policy if exists "Sponsors can read own sponsorship" on sponsorships;
 create policy "Sponsors can read own sponsorship"
   on sponsorships for select
   to authenticated
-  using (user_id = auth.uid());
+  using (user_id = auth.uid() or public.is_admin());
 
 -- ── Sold-out tier counts without exposing pending rows ──────
 -- /sponsors/packages greys out limited tiers once taken, which needs pending
@@ -127,5 +135,57 @@ $$;
 
 revoke all on function public.sponsor_tier_counts(uuid) from public;
 grant execute on function public.sponsor_tier_counts(uuid) to anon, authenticated;
+
+-- ── Acceptance check ────────────────────────────────────────
+-- Assert the FINAL policy set rather than inferring success from the absence
+-- of an error. Runs inside the transaction, so a mismatch rolls the whole
+-- migration back and leaves the database exactly as it was.
+do $$
+declare
+  expected text[] := array[
+    'Anyone can submit sponsor application',
+    'Public can read confirmed sponsors',
+    'Sponsors can read own sponsorship',
+    'sponsorships: admin write'
+  ];
+  actual   text[];
+  offender text;
+begin
+  select array_agg(policyname order by policyname)
+    into actual
+    from pg_policies
+   where schemaname = 'public' and tablename = 'sponsorships';
+
+  if actual is distinct from (select array_agg(x order by x) from unnest(expected) x) then
+    raise exception
+      'Migration 030 acceptance FAILED. Expected policies %, found %.',
+      expected, coalesce(actual, '{}');
+  end if;
+
+  -- Nothing on sponsorships may reference invoices — that is the 42P17 cycle.
+  select policyname
+    into offender
+    from pg_policies
+   where schemaname = 'public'
+     and tablename = 'sponsorships'
+     and (coalesce(qual, '') like '%invoices%' or coalesce(with_check, '') like '%invoices%')
+   limit 1;
+
+  if offender is not null then
+    raise exception
+      'Migration 030 acceptance FAILED: policy "%" still subqueries invoices.', offender;
+  end if;
+
+  -- The blanket qual must be gone, not merely shadowed.
+  if exists (
+    select 1 from pg_policies
+     where schemaname = 'public' and tablename = 'sponsorships' and qual = 'true'
+  ) then
+    raise exception 'Migration 030 acceptance FAILED: a qual:true policy remains on sponsorships.';
+  end if;
+
+  raise notice 'Migration 030 acceptance OK — % policies on sponsorships, none referencing invoices.',
+    array_length(actual, 1);
+end $$;
 
 commit;

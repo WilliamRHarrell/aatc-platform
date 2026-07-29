@@ -157,35 +157,52 @@ function assert(name, ok, detail) {
 }
 
 // (3) A sponsor must be able to read their own invoice.
-// Requires a real signed-in sponsor; anon cannot stand in for this.
+//
+// Needs a real user-scoped session — anon cannot stand in, and service role
+// bypasses the policy under test. The session is MINTED via the admin API
+// (generateLink -> verifyOtp) rather than a password login, so no credential
+// for the harness account is ever stored in an env file or the repo. Set
+// VERIFY_SPONSOR_EMAIL to the throwaway harness account.
 {
   const email = process.env.VERIFY_SPONSOR_EMAIL
-  const password = process.env.VERIFY_SPONSOR_PASSWORD
-  if (!email || !password) {
-    assert(
-      'sponsor reads own invoice',
-      false,
-      'NOT RUN — set VERIFY_SPONSOR_EMAIL / VERIFY_SPONSOR_PASSWORD to a sponsor account with an invoice',
-    )
+  if (!email) {
+    assert('sponsor reads own invoice', false, 'NOT RUN — set VERIFY_SPONSOR_EMAIL to the harness account')
+  } else if (!svc) {
+    assert('sponsor reads own invoice', false, 'NOT RUN — SUPABASE_SERVICE_ROLE_KEY needed to mint a session')
   } else {
-    const user = createClient(url, anonKey)
-    const { error: authErr } = await user.auth.signInWithPassword({ email, password })
-    if (authErr) {
-      assert('sponsor reads own invoice', false, `sign-in failed: ${authErr.message}`)
+    // Mint a one-time login token as the harness user. No password involved.
+    const { data: link, error: linkErr } = await svc.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+    })
+
+    if (linkErr || !link?.properties?.hashed_token) {
+      assert('sponsor reads own invoice', false, `could not mint session: ${linkErr?.message ?? 'no token returned'}`)
     } else {
-      const { data: spon } = await user.from('sponsorships').select('id').limit(1)
-      const { data: inv, error: invErr } = await user
-        .from('invoices')
-        .select('id, sponsorship_id, application_id')
-        .not('sponsorship_id', 'is', null)
-      assert(
-        'sponsor reads own invoice',
-        !invErr && (inv ?? []).length > 0,
-        invErr
-          ? `${invErr.code} ${invErr.message.slice(0, 50)}`
-          : `${(inv ?? []).length} sponsorship invoice(s) visible; own sponsorships=${(spon ?? []).length}`,
-      )
-      await user.auth.signOut()
+      const user = createClient(url, anonKey)
+      const { error: otpErr } = await user.auth.verifyOtp({
+        token_hash: link.properties.hashed_token,
+        type: 'email',
+      })
+
+      if (otpErr) {
+        assert('sponsor reads own invoice', false, `session exchange failed: ${otpErr.message}`)
+      } else {
+        const { data: spon } = await user.from('sponsorships').select('id, status').limit(5)
+        const { data: inv, error: invErr } = await user
+          .from('invoices')
+          .select('id, sponsorship_id, application_id')
+          .not('sponsorship_id', 'is', null)
+
+        assert(
+          'sponsor reads own invoice',
+          !invErr && (inv ?? []).length > 0,
+          invErr
+            ? `${invErr.code} ${invErr.message.slice(0, 50)}`
+            : `${(inv ?? []).length} sponsorship invoice(s) readable; own sponsorships=${(spon ?? []).length}`,
+        )
+        await user.auth.signOut()
+      }
     }
   }
 }
