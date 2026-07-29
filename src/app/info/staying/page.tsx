@@ -4,7 +4,7 @@ import PublicNav from '@/components/PublicNav'
 
 const PARTNER_HOTELS = [
   {
-    name: 'Holiday Inn Fayetteville - Fort Liberty',
+    name: 'Holiday Inn Fayetteville - Fort Bragg',
     distance: '0.5 miles from venue',
     rate: '$109/night',
     amenities: ['Free breakfast', 'Indoor pool', 'Free parking', 'Shuttle to Crown Complex'],
@@ -75,7 +75,7 @@ const NEARBY = [
       { name: 'Airborne & Special Operations Museum', desc: 'Free museum honoring the history of airborne and special operations forces. A must-visit.' },
       { name: 'Downtown Fayetteville', desc: 'Explore local shops, galleries, and nightlife in the revitalized downtown district.' },
       { name: 'ZipQuest Waterfall & Treetop Adventure', desc: 'Outdoor zipline adventure through the forest canopy near Carvers Falls.' },
-      { name: 'Fort Liberty Area', desc: 'Explore the military heritage of the region with guided tours and monuments.' },
+      { name: 'Fort Bragg Area', desc: 'Explore the military heritage of the region with guided tours and monuments.' },
     ],
   },
 ]

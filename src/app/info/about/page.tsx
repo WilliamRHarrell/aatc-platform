@@ -111,7 +111,7 @@ export default function AboutPage() {
             style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
           >
             <p className="text-sm leading-relaxed" style={{ color: '#999' }}>
-              Fayetteville, North Carolina is home to Fort Liberty (formerly Fort Bragg) — the largest military installation in the world by population. With over 50,000 active-duty soldiers and tens of thousands of veterans and military families calling the region home, there is no better place for a convention that honors the bond between tattoo culture and military service.
+              Fayetteville, North Carolina is home to Fort Bragg — the largest military installation in the world by population. With over 50,000 active-duty soldiers and tens of thousands of veterans and military families calling the region home, there is no better place for a convention that honors the bond between tattoo culture and military service.
             </p>
             <p className="mt-4 text-sm leading-relaxed" style={{ color: '#999' }}>
               The city&apos;s deep connection to the military runs through every neighborhood, business, and community organization. Fayetteville understands service, sacrifice, and the pride that comes with wearing your story on your skin. The Crown Complex Event Center provides a world-class venue just minutes from post, making it accessible to the massive military population in the region.

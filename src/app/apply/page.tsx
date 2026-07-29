@@ -4,6 +4,7 @@ import { getContent } from '@/content/getContent'
 import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
 import CountdownDigits from './CountdownDigits'
+import { DOORS_OPEN_ISO } from '@/lib/event-config'
 
 export const metadata: Metadata = {
   title: 'Apply — Booths, Contests & More | All American Tattoo Convention 2027',
@@ -11,8 +12,8 @@ export const metadata: Metadata = {
     'Applications for AATC 2027 are open. Apply for artist and vendor booths, food trucks, the tattoo contests, the Miss All American Pin-Up Contest, and sponsorships.',
 }
 
-/** Doors open Friday, April 16 2027 at 12:00 PM ET (EDT = UTC-4). */
-const CONVENTION_START = '2027-04-16T16:00:00Z'
+/** Show dates live in src/lib/event-config.ts — do not re-declare them here. */
+const CONVENTION_START = DOORS_OPEN_ISO
 
 const CALENDAR_HREF = `data:text/calendar;charset=utf-8,${encodeURIComponent(
   [

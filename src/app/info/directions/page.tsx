@@ -70,7 +70,7 @@ export default function DirectionsPage() {
               1960 Coliseum Dr, Fayetteville, NC 28306
             </p>
             <p className="mt-3 text-sm" style={{ color: '#999' }}>
-              Located just minutes from Fort Liberty, the Crown Complex is one of the premier event venues in the Fayetteville region with over 100,000 square feet of flexible event space.
+              Located just minutes from Fort Bragg, the Crown Complex is one of the premier event venues in the Fayetteville region with over 100,000 square feet of flexible event space.
             </p>
             <div className="mt-6">
               <a

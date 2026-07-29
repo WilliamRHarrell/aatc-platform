@@ -811,6 +811,8 @@ export type Database = {
           event_id: string
           facebook: string | null
           featured_footer: boolean
+          show_on_homepage: boolean
+          homepage_order: number | null
           id: string
           instagram: string | null
           logo_url: string | null
@@ -832,6 +834,8 @@ export type Database = {
           event_id: string
           facebook?: string | null
           featured_footer?: boolean
+          show_on_homepage?: boolean
+          homepage_order?: number | null
           id?: string
           instagram?: string | null
           logo_url?: string | null
@@ -853,6 +857,8 @@ export type Database = {
           event_id?: string
           facebook?: string | null
           featured_footer?: boolean
+          show_on_homepage?: boolean
+          homepage_order?: number | null
           id?: string
           instagram?: string | null
           logo_url?: string | null

@@ -27,6 +27,8 @@ interface Sponsorship {
   user_id: string | null
   additional_items: string[]
   featured_footer: boolean
+  show_on_homepage: boolean
+  homepage_order: number | null
 }
 
 interface SponsorInvoice {
@@ -387,6 +389,32 @@ export default function AdminSponsorshipsPage() {
       prev.map(sp => sp.id === s.id ? { ...sp, featured_footer: newVal } : sp)
     )
     toast.success(newVal ? `${s.sponsor_name} added to footer` : `${s.sponsor_name} removed from footer`)
+  }
+
+  const toggleHomepage = async (s: Sponsorship) => {
+    const newVal = !s.show_on_homepage
+    const { error } = await supabase
+      .from('sponsorships')
+      .update({ show_on_homepage: newVal })
+      .eq('id', s.id)
+    if (error) { toast.error('Failed to update'); return }
+    setSponsorships(prev =>
+      prev.map(sp => sp.id === s.id ? { ...sp, show_on_homepage: newVal } : sp)
+    )
+    toast.success(newVal ? `${s.sponsor_name} added to homepage` : `${s.sponsor_name} removed from homepage`)
+  }
+
+  const setHomepageOrder = async (s: Sponsorship, raw: string) => {
+    const parsed = raw.trim() === '' ? null : Number(raw)
+    if (parsed !== null && (!Number.isFinite(parsed) || parsed < 0)) return
+    const { error } = await supabase
+      .from('sponsorships')
+      .update({ homepage_order: parsed })
+      .eq('id', s.id)
+    if (error) { toast.error('Failed to update order'); return }
+    setSponsorships(prev =>
+      prev.map(sp => sp.id === s.id ? { ...sp, homepage_order: parsed } : sp)
+    )
   }
 
   const inputClass = 'w-full rounded-lg px-4 py-3 text-sm text-white outline-none transition-colors'
@@ -791,6 +819,37 @@ export default function AdminSponsorshipsPage() {
                     </svg>
                     Footer
                   </button>
+
+                  {/* Homepage toggle + manual order */}
+                  <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
+                    <button
+                      onClick={() => toggleHomepage(s)}
+                      title={s.show_on_homepage ? 'Remove from homepage' : 'Show on homepage'}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
+                      style={{
+                        backgroundColor: s.show_on_homepage ? 'rgba(139,115,85,0.2)' : 'transparent',
+                        color: s.show_on_homepage ? '#C4A882' : '#555',
+                        border: `1px solid ${s.show_on_homepage ? 'rgba(139,115,85,0.4)' : '#2a2a2a'}`,
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill={s.show_on_homepage ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                      </svg>
+                      Homepage
+                    </button>
+                    {s.show_on_homepage && (
+                      <input
+                        type="number"
+                        min={0}
+                        defaultValue={s.homepage_order ?? ''}
+                        onBlur={e => setHomepageOrder(s, e.target.value)}
+                        title="Homepage sort order (lower first; blank sorts last)"
+                        placeholder="#"
+                        className="w-14 rounded-lg px-2 py-1.5 text-xs text-white outline-none"
+                        style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}
+                      />
+                    )}
+                  </div>
 
                   {/* Status */}
                   <span

@@ -103,20 +103,43 @@ export default function AdminContentPage() {
               {section.help && (
                 <p className="mt-0.5 text-xs" style={{ color: '#666' }}>{section.help}</p>
               )}
-              <textarea
-                value={values[key] ?? ''}
-                onChange={e => setValues(v => ({ ...v, [key]: e.target.value }))}
-                rows={section.type === 'markdown' ? 4 : 2}
-                className="mt-2 w-full rounded-lg p-3 text-sm text-white"
-                style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}
-              />
+              {section.type === 'boolean' ? (
+                <label className="mt-3 flex cursor-pointer items-center gap-3 text-sm" style={{ color: '#ccc' }}>
+                  <input
+                    type="checkbox"
+                    checked={values[key] === 'true'}
+                    onChange={e => setValues(v => ({ ...v, [key]: e.target.checked ? 'true' : 'false' }))}
+                    className="h-4 w-4 accent-[#8B7355]"
+                  />
+                  {values[key] === 'true' ? 'On' : 'Off'}
+                </label>
+              ) : section.type === 'url' ? (
+                <input
+                  type="url"
+                  value={values[key] ?? ''}
+                  onChange={e => setValues(v => ({ ...v, [key]: e.target.value }))}
+                  placeholder="https://…"
+                  className="mt-2 w-full rounded-lg p-3 text-sm text-white"
+                  style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}
+                />
+              ) : (
+                <textarea
+                  value={values[key] ?? ''}
+                  onChange={e => setValues(v => ({ ...v, [key]: e.target.value }))}
+                  rows={section.type === 'markdown' ? 4 : 2}
+                  className="mt-2 w-full rounded-lg p-3 text-sm text-white"
+                  style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}
+                />
+              )}
 
-              <div className="mt-2 rounded-lg p-3 text-sm" style={{ backgroundColor: '#0a0a0a', border: '1px dashed #2a2a2a', color: '#ccc' }}>
-                <p className="mb-1 text-[10px] uppercase tracking-wider" style={{ color: '#555' }}>Preview</p>
-                {section.type === 'markdown'
-                  ? <Markdown>{values[key] ?? ''}</Markdown>
-                  : <span>{values[key] ?? ''}</span>}
-              </div>
+              {section.type !== 'boolean' && (
+                <div className="mt-2 rounded-lg p-3 text-sm" style={{ backgroundColor: '#0a0a0a', border: '1px dashed #2a2a2a', color: '#ccc' }}>
+                  <p className="mb-1 text-[10px] uppercase tracking-wider" style={{ color: '#555' }}>Preview</p>
+                  {section.type === 'markdown'
+                    ? <Markdown>{values[key] ?? ''}</Markdown>
+                    : <span>{values[key] ?? ''}</span>}
+                </div>
+              )}
 
               <button
                 onClick={() => save(key)}
