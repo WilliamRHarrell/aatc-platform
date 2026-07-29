@@ -1,5 +1,5 @@
 -- ============================================================
--- Migration 032: Payment method + reference on invoices
+-- Migration 033: Payment method + reference on invoices
 --
 -- Deposits for AATC 2027 were collected through Stripe invoices raised OUTSIDE
 -- this platform. Recording them here needs an audit trail back to the money —
@@ -35,7 +35,7 @@ begin
        and column_name in ('payment_method', 'payment_reference')
      having count(*) = 2
   ) then
-    raise exception 'Migration 032 FAILED: payment_method / payment_reference not both present.';
+    raise exception 'Migration 033 FAILED: payment_method / payment_reference not both present.';
   end if;
-  raise notice 'Migration 032 OK — payment_method and payment_reference available.';
+  raise notice 'Migration 033 OK — payment_method and payment_reference available.';
 end $$;
