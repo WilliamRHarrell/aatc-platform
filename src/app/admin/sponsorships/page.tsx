@@ -30,6 +30,7 @@ interface Sponsorship {
   featured_footer: boolean
   show_on_homepage: boolean
   homepage_order: number | null
+  is_in_kind: boolean
 }
 
 interface SponsorInvoice {
@@ -823,6 +824,26 @@ export default function AdminSponsorshipsPage() {
                     </svg>
                     Footer
                   </button>
+
+                  {/* Placed publicly but not paid — payment is no longer
+                      enforced by RLS (migration 027), so surface it here at the
+                      point of decision rather than letting it pass silently. */}
+                  {(s.show_on_homepage || s.featured_footer) &&
+                    !s.is_in_kind &&
+                    invoice?.status !== 'paid' && (
+                      <span
+                        title="Featured publicly but the invoice is not paid. Mark the sponsor as in-kind if this is a trade arrangement."
+                        className="hidden shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold sm:inline-flex"
+                        style={{ backgroundColor: 'rgba(234,179,8,0.15)', color: '#eab308' }}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                          <line x1="12" y1="9" x2="12" y2="13" />
+                          <line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+                        Featured, unpaid
+                      </span>
+                    )}
 
                   {/* Homepage toggle + manual order */}
                   <div className="hidden shrink-0 items-center gap-1.5 sm:flex">

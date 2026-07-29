@@ -137,16 +137,24 @@ export default function SponsorPackagesPage() {
 
       if (!event) { setLoading(false); return }
 
-      // Check which limited tiers are already sold
-      const { data: confirmed } = await supabase
-        .from('sponsorships')
-        .select('tier')
-        .eq('event_id', event.id)
-        .in('status', ['confirmed', 'pending'])
+      // Which limited tiers are already taken. Goes through an RPC rather than
+      // selecting sponsorships directly: pending rows are no longer publicly
+      // readable (migration 027), and this needs pending + confirmed counts to
+      // avoid re-listing a tier that is already spoken for. The function
+      // returns aggregates only — no names, emails or amounts.
+      const { data: counts, error: countErr } = await supabase
+        .rpc('sponsor_tier_counts', { p_event_id: event.id })
+
+      if (countErr) {
+        console.error(
+          `[packages] sponsor_tier_counts failed (${countErr.code}): ${countErr.message} — ` +
+          'sold-out tiers will render as available. If 42883, migration 027 has not been applied.'
+        )
+      }
 
       const tierCounts: Record<string, number> = {}
-      for (const s of confirmed ?? []) {
-        tierCounts[s.tier] = (tierCounts[s.tier] ?? 0) + 1
+      for (const row of (counts ?? []) as { tier: string; taken: number }[]) {
+        tierCounts[row.tier] = Number(row.taken)
       }
 
       const sold = new Set<string>()

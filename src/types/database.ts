@@ -890,6 +890,11 @@ export type Database = {
     }
     Functions: {
       is_admin: { Args: never; Returns: boolean }
+      /** Migration 027 — aggregate tier counts without exposing pending rows. */
+      sponsor_tier_counts: {
+        Args: { p_event_id: string }
+        Returns: { tier: string; taken: number }[]
+      }
     }
     Enums: {
       application_status:
