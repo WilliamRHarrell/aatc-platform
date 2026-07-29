@@ -148,49 +148,51 @@ export default function SiteFooter() {
         </div>
       </div>
 
-      {/* Sponsor logos */}
-      <div className="border-t px-4 py-10" style={{ borderColor: '#2a2a2a' }}>
-        <div className="mx-auto max-w-4xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em]" style={{ color: '#999' }}>
-            AATC 2027
-          </p>
-          <p
-            className="font-display mx-auto mt-1 max-w-xl text-base font-bold sm:text-lg"
-            style={{ color: '#C4A882' }}
-          >
-            Thank you to our sponsors for helping make this happen for Fayetteville &amp; Ft Bragg NC!
-          </p>
-          <div className="mt-6 flex items-center justify-center gap-6 sm:gap-10">
-            {sponsors.length > 0
-              ? sponsors.map(s => {
-                  const img = (
-                    <img
-                      key={s.id}
-                      src={s.logo_url || PLACEHOLDER_IMG}
-                      alt={s.sponsor_name}
-                      title={s.sponsor_name}
-                      className="h-14 w-auto opacity-60 grayscale transition-all hover:opacity-100 hover:grayscale-0 sm:h-20"
-                    />
-                  )
-                  return s.website ? (
-                    <a key={s.id} href={s.website} target="_blank" rel="noopener noreferrer">
-                      {img}
-                    </a>
-                  ) : (
-                    img
-                  )
-                })
-              : [1, 2, 3, 4, 5].map(i => (
+      {/* Sponsor logos — real sponsors only.
+          Previously this fell back to five copies of the same placeholder webp
+          with alt="Sponsor 1".."Sponsor 5" on EVERY page, which read as five
+          real sponsors to anyone glancing at it (and to a crawler). The whole
+          block is now hidden when there is nothing to show. */}
+      {sponsors.length > 0 && (
+        <div className="border-t px-4 py-10" style={{ borderColor: '#2a2a2a' }}>
+          <div className="mx-auto max-w-4xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em]" style={{ color: '#999' }}>
+              AATC 2027
+            </p>
+            <p
+              className="font-display mx-auto mt-1 max-w-xl text-base font-bold sm:text-lg"
+              style={{ color: '#C4A882' }}
+            >
+              Thank you to our sponsors for helping make this happen for Fayetteville &amp; Ft Bragg NC!
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-6 sm:gap-10">
+              {sponsors.map(s => {
+                const img = (
                   <img
-                    key={i}
-                    src={PLACEHOLDER_IMG}
-                    alt={`Sponsor ${i}`}
+                    src={s.logo_url || PLACEHOLDER_IMG}
+                    alt={s.sponsor_name}
+                    title={s.sponsor_name}
                     className="h-14 w-auto opacity-60 grayscale transition-all hover:opacity-100 hover:grayscale-0 sm:h-20"
                   />
-                ))}
+                )
+                return s.website ? (
+                  <a
+                    key={s.id}
+                    href={s.website.startsWith('http') ? s.website : `https://${s.website}`}
+                    target="_blank"
+                    /* paid placement — see Google's link guidelines */
+                    rel="noopener sponsored"
+                  >
+                    {img}
+                  </a>
+                ) : (
+                  <span key={s.id}>{img}</span>
+                )
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </footer>
   )
 }
