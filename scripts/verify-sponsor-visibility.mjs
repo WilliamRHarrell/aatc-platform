@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Post-migration check for migration 027.
+ * Post-migration check for migrations 027-030.
  *
  * Replays the EXACT query each public surface issues, using the ANON key. A
  * service-role run proves nothing here — service role bypasses RLS entirely,
@@ -99,10 +99,106 @@ await surface('/sponsors/packages sold-out', 'tier counts via RPC', () =>
   })
 }
 
+// ════════════════════════════════════════════════════════════
+// REQUIRED PRE-PUSH ASSERTIONS (migrations 027–030)
+// All three must pass. Each is asserted with the ANON key — a service-role
+// run bypasses RLS entirely and would prove nothing about these.
+// ════════════════════════════════════════════════════════════
+const assertions = []
+function assert(name, ok, detail) {
+  if (!ok) failed++
+  assertions.push({ name, status: ok ? 'PASS' : 'FAIL', detail })
+}
+
+// (1) A pending sponsorship must return zero rows to anon.
+{
+  const { data: pending } = svc
+    ? await svc.from('sponsorships').select('id').eq('status', 'pending').limit(1)
+    : { data: null }
+
+  const { data, error } = await anon.from('sponsorships').select('id').eq('status', 'pending')
+  const rows = (data ?? []).length
+  const seeded = (pending ?? []).length > 0
+  assert(
+    'pending sponsorship -> 0 rows',
+    !error && rows === 0,
+    error
+      ? `unexpected error ${error.code}`
+      : rows > 0
+        ? `${rows} pending row(s) LEAKED to anon`
+        : seeded
+          ? '0 rows (a pending row exists, correctly hidden)'
+          : '0 rows — NOTE: no pending row exists to hide, assertion is vacuous',
+  )
+}
+
+// (2) An approved, deposit-paid application must return rows, without 42P17.
+{
+  const { data, error } = await anon
+    .from('applications')
+    .select('id, business_name')
+    .eq('status', 'approved')
+
+  const { data: truth } = svc
+    ? await svc.from('applications').select('id, needs_roster, status').eq('status', 'approved')
+    : { data: null }
+
+  const rows = (data ?? []).length
+  const expected = truth ? truth.filter(a => a.needs_roster === false).length : null
+  assert(
+    'approved+deposit-paid app -> rows, no 42P17',
+    !error && rows > 0,
+    error
+      ? `${error.code} ${error.message.slice(0, 50)}`
+      : expected !== null
+        ? `${rows} visible / ${expected} eligible by status+roster (deposit gate may reduce further)`
+        : `${rows} visible`,
+  )
+}
+
+// (3) A sponsor must be able to read their own invoice.
+// Requires a real signed-in sponsor; anon cannot stand in for this.
+{
+  const email = process.env.VERIFY_SPONSOR_EMAIL
+  const password = process.env.VERIFY_SPONSOR_PASSWORD
+  if (!email || !password) {
+    assert(
+      'sponsor reads own invoice',
+      false,
+      'NOT RUN — set VERIFY_SPONSOR_EMAIL / VERIFY_SPONSOR_PASSWORD to a sponsor account with an invoice',
+    )
+  } else {
+    const user = createClient(url, anonKey)
+    const { error: authErr } = await user.auth.signInWithPassword({ email, password })
+    if (authErr) {
+      assert('sponsor reads own invoice', false, `sign-in failed: ${authErr.message}`)
+    } else {
+      const { data: spon } = await user.from('sponsorships').select('id').limit(1)
+      const { data: inv, error: invErr } = await user
+        .from('invoices')
+        .select('id, sponsorship_id, application_id')
+        .not('sponsorship_id', 'is', null)
+      assert(
+        'sponsor reads own invoice',
+        !invErr && (inv ?? []).length > 0,
+        invErr
+          ? `${invErr.code} ${invErr.message.slice(0, 50)}`
+          : `${(inv ?? []).length} sponsorship invoice(s) visible; own sponsorships=${(spon ?? []).length}`,
+      )
+      await user.auth.signOut()
+    }
+  }
+}
+
 const pad = s => s.padEnd(30)
-console.log('\nANON-KEY SURFACE CHECK (migration 027)\n' + '─'.repeat(72))
+console.log('\nANON-KEY SURFACE CHECK (migrations 027-030)\n' + '─'.repeat(72))
 for (const r of results) {
   console.log(`  ${r.status === 'FAIL' ? 'FAIL ' : r.status === 'EMPTY' ? 'EMPTY' : 'OK   '} ${pad(r.name)} ${r.detail}`)
+}
+
+console.log('\nREQUIRED PRE-PUSH ASSERTIONS\n' + '─'.repeat(72))
+for (const a of assertions) {
+  console.log(`  ${a.status === 'FAIL' ? 'FAIL' : 'PASS'} ${pad(a.name)} ${a.detail}`)
 }
 
 if (svc) {
