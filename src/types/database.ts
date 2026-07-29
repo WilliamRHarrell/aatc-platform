@@ -565,6 +565,8 @@ export type Database = {
           deposit_paid_at: string | null
           due_date: string | null
           final_paid_at: string | null
+          payment_method: string | null
+          payment_reference: string | null
           food_truck_id: string | null
           id: string
           paid_at: string | null
@@ -582,6 +584,8 @@ export type Database = {
           deposit_paid_at?: string | null
           due_date?: string | null
           final_paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
           food_truck_id?: string | null
           id?: string
           paid_at?: string | null
@@ -599,6 +603,8 @@ export type Database = {
           deposit_paid_at?: string | null
           due_date?: string | null
           final_paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
           food_truck_id?: string | null
           id?: string
           paid_at?: string | null

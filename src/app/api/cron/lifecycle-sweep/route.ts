@@ -31,6 +31,22 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // ── Kill switch — default OFF ───────────────────────────────
+  // This sweep does not merely send reminders: it flips applications to
+  // expired/canceled AND releases their booths, and the booth release is not
+  // reversible from inside the platform (no assignment history is kept).
+  //
+  // Its target profile is "approved application whose invoice has no
+  // deposit_paid_at" — which is exactly an exhibitor who paid through a Stripe
+  // invoice outside the platform. Set LIFECYCLE_SWEEP_ENABLED=true only once
+  // those payments are recorded against their invoices.
+  if (process.env.LIFECYCLE_SWEEP_ENABLED !== 'true') {
+    return NextResponse.json({
+      skipped: true,
+      reason: 'LIFECYCLE_SWEEP_ENABLED is not "true" — sweep disabled.',
+    })
+  }
+
   const supabase = adminSupabase()
   const now = new Date()
   const summary: Record<string, number> = {

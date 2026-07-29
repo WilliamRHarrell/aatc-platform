@@ -18,6 +18,8 @@ interface Invoice {
   paid_at: string | null
   deposit_paid_at: string | null
   final_paid_at: string | null
+  payment_method: string | null
+  payment_reference: string | null
   created_at: string
   application: {
     business_name: string
@@ -70,6 +72,8 @@ export default function AdminInvoicesPage() {
   // Payment modal state
   const [paymentModal, setPaymentModal] = useState<Invoice | null>(null)
   const [paymentAmount, setPaymentAmount] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('stripe_external')
+  const [paymentReference, setPaymentReference] = useState('')
 
   const load = async () => {
     const { data } = await supabase
@@ -163,6 +167,8 @@ export default function AdminInvoicesPage() {
 
     const updateData: Record<string, unknown> = {
       amount_paid: newAmountPaid,
+      payment_method: paymentMethod,
+      payment_reference: paymentReference.trim() || null,
     }
     if (justCrossedDeposit) {
       updateData.deposit_paid_at = nowIso
@@ -529,6 +535,41 @@ export default function AdminInvoicesPage() {
                 >
                   Pay Full Balance
                 </button>
+              </div>
+            </div>
+
+            {/* Audit trail. These deposits were collected through Stripe
+                invoices raised outside the platform, so the reference is the
+                only link from this record back to the money. */}
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-xs font-semibold text-white">Payment method</label>
+                <select
+                  value={paymentMethod}
+                  onChange={e => setPaymentMethod(e.target.value)}
+                  className="mt-1 w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
+                  style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}
+                >
+                  <option value="stripe_external">Stripe invoice (outside platform)</option>
+                  <option value="cash">Cash</option>
+                  <option value="check">Check</option>
+                  <option value="bank_transfer">Bank transfer</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-white">Reference</label>
+                <input
+                  type="text"
+                  value={paymentReference}
+                  onChange={e => setPaymentReference(e.target.value)}
+                  placeholder="in_1A2b3C... / cheque no."
+                  className="mt-1 w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
+                  style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}
+                />
+                <p className="mt-1 text-[11px]" style={{ color: '#666' }}>
+                  Stripe invoice ID, cheque number or bank reference.
+                </p>
               </div>
             </div>
 
