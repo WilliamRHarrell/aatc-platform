@@ -89,6 +89,7 @@ export type Database = {
           is_veteran: boolean
           logo_url: string | null
           needs_roster: boolean
+          directory_override: boolean
           notes: string | null
           other_links: string | null
           phone: string | null
@@ -129,6 +130,7 @@ export type Database = {
           is_veteran?: boolean
           logo_url?: string | null
           needs_roster?: boolean
+          directory_override?: boolean
           notes?: string | null
           other_links?: string | null
           phone?: string | null
@@ -169,6 +171,7 @@ export type Database = {
           is_veteran?: boolean
           logo_url?: string | null
           needs_roster?: boolean
+          directory_override?: boolean
           notes?: string | null
           other_links?: string | null
           phone?: string | null

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { ROBOTS_META } from '@/lib/site'
 import { Playfair_Display, Inter } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 import SiteFooter from '@/components/SiteFooter'
@@ -17,6 +18,9 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
+  // noindex on every non-production host so the preview deployment cannot
+  // compete with the WordPress site at DNS cutover.
+  robots: ROBOTS_META,
   title: 'All American Tattoo Convention',
   description:
     'The premier tattoo convention experience — AATC Fayetteville 2027 at the Crown Complex Event Center.',

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import DirectoryHealth from '@/components/admin/DirectoryHealth'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
@@ -122,6 +123,11 @@ export default function AdminPage() {
         <StatCard label="Pending Review"     value={stats?.pending ?? 0}  sub="awaiting decision" />
         <StatCard label="Approved"           value={stats?.approved ?? 0} sub={`${stats?.rejected ?? 0} rejected`} />
         <StatCard label="Revenue (invoiced)" value={formatCurrency(stats?.revenue ?? 0)} sub="approved applications" />
+      </div>
+
+      {/* Directory funnel — the last count is a real anonymous read */}
+      <div className="mb-8">
+        <DirectoryHealth />
       </div>
 
       {/* Type + status breakdown */}

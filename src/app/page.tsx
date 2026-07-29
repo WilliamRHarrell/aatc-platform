@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { unstable_cache } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { canonical } from '@/lib/site'
 import { getContent } from '@/content/getContent'
 import { isTrue } from '@/content/registry'
 import PublicNav from '@/components/PublicNav'
@@ -34,7 +35,9 @@ export const metadata: Metadata = {
   title: 'All American Tattoo Convention 2027 | Fayetteville, NC',
   description:
     '300+ world-class tattoo artists, live contests, and entertainment at the Crown Complex in Fayetteville, NC, April 16–18, 2027. Honoring our military heroes.',
-  alternates: { canonical: SITE_URL },
+  // Off-production this is undefined: emitting a canonical to the real
+  // domain before cutover would assert URLs WordPress does not serve.
+  alternates: { canonical: canonical('/') },
   openGraph: {
     title: 'All American Tattoo Convention 2027 | Fayetteville, NC',
     description:
