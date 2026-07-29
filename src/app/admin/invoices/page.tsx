@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
+import { minDepositCents } from '@/lib/pricing'
 import { describeBooths } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 
@@ -15,6 +16,8 @@ interface Invoice {
   status: 'pending' | 'paid' | 'overdue' | 'cancelled'
   due_date: string | null
   paid_at: string | null
+  deposit_paid_at: string | null
+  final_paid_at: string | null
   created_at: string
   application: {
     business_name: string
@@ -149,12 +152,27 @@ export default function AdminInvoicesPage() {
     const newAmountPaid = (paymentModal.amount_paid ?? 0) + cents
     const fullyPaid = newAmountPaid >= paymentModal.amount
 
+    // Milestone tracking, mirroring the Stripe webhook. Without this a payment
+    // taken in cash/check/transfer marks the invoice paid but never sets
+    // deposit_paid_at — and the public directory policy gates on that column,
+    // so the exhibitor stays invisible forever. Both fire at most once.
+    const nowIso = new Date().toISOString()
+    const minDeposit = minDepositCents(paymentModal.amount)
+    const justCrossedDeposit = !paymentModal.deposit_paid_at && newAmountPaid >= minDeposit
+    const justCrossedFinal = !paymentModal.final_paid_at && newAmountPaid >= paymentModal.amount
+
     const updateData: Record<string, unknown> = {
       amount_paid: newAmountPaid,
     }
+    if (justCrossedDeposit) {
+      updateData.deposit_paid_at = nowIso
+    }
+    if (justCrossedFinal) {
+      updateData.final_paid_at = nowIso
+    }
     if (fullyPaid) {
       updateData.status = 'paid'
-      updateData.paid_at = new Date().toISOString()
+      updateData.paid_at = nowIso
     }
 
     const { error } = await supabase
