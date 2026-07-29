@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { requestRevalidate } from '@/lib/revalidate'
 
 type SponsorTier = 'title' | 'platinum' | 'gold' | 'silver' | 'brass' | 'collectible_coin' | 'vip_bag' | 'collectors_choice' | 'artist_lounge' | 'rafter_banner'
 type SponsorStatus = 'pending' | 'confirmed' | 'cancelled'
@@ -388,6 +389,7 @@ export default function AdminSponsorshipsPage() {
     setSponsorships(prev =>
       prev.map(sp => sp.id === s.id ? { ...sp, featured_footer: newVal } : sp)
     )
+    await requestRevalidate({ paths: ['/', '/sponsors'], tags: ['sponsors'] })
     toast.success(newVal ? `${s.sponsor_name} added to footer` : `${s.sponsor_name} removed from footer`)
   }
 
@@ -401,6 +403,7 @@ export default function AdminSponsorshipsPage() {
     setSponsorships(prev =>
       prev.map(sp => sp.id === s.id ? { ...sp, show_on_homepage: newVal } : sp)
     )
+    await requestRevalidate({ paths: ['/', '/sponsors'], tags: ['sponsors'] })
     toast.success(newVal ? `${s.sponsor_name} added to homepage` : `${s.sponsor_name} removed from homepage`)
   }
 
@@ -415,6 +418,7 @@ export default function AdminSponsorshipsPage() {
     setSponsorships(prev =>
       prev.map(sp => sp.id === s.id ? { ...sp, homepage_order: parsed } : sp)
     )
+    await requestRevalidate({ paths: ['/'], tags: ['sponsors'] })
   }
 
   const inputClass = 'w-full rounded-lg px-4 py-3 text-sm text-white outline-none transition-colors'

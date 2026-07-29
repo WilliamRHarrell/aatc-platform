@@ -59,13 +59,21 @@ const getSponsors = unstable_cache(
 
     if (!event) return []
 
-    const { data } = await supabase
+    // No join into `invoices` — that subquery triggers the RLS recursion fixed
+    // in migration 027, and it also excluded trade/in-kind sponsors, who have
+    // no invoice row. Visibility is admin-controlled via the placement flags.
+    const { data, error } = await supabase
       .from('sponsorships')
-      .select('id, sponsor_name, tier, logo_url, website, amount, instagram, facebook, invoices!inner(final_paid_at)')
+      .select('id, sponsor_name, tier, logo_url, website, amount, instagram, facebook')
       .eq('event_id', event.id)
       .eq('status', 'confirmed')
-      .not('invoices.final_paid_at', 'is', null)
       .order('amount', { ascending: false })
+
+    if (error) {
+      console.error(
+        `[sponsors] query failed (${error.code}): ${error.message} — rendering empty state.`
+      )
+    }
 
     return (data as unknown as Sponsor[]) ?? []
   },

@@ -62,14 +62,19 @@ export default function SiteFooter() {
   useEffect(() => {
     if (isAdmin) return
     const supabase = createClient()
+    // No join into `invoices` — that subquery triggers the RLS recursion fixed
+    // in migration 027, and excluded trade/in-kind sponsors who have no invoice.
     supabase
       .from('sponsorships')
-      .select('id, sponsor_name, logo_url, website, invoices!inner(final_paid_at)')
+      .select('id, sponsor_name, logo_url, website')
       .eq('featured_footer', true)
       .eq('status', 'confirmed')
-      .not('invoices.final_paid_at', 'is', null)
       .limit(5)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.error(`[footer] sponsor query failed (${error.code}): ${error.message}`)
+          return
+        }
         if (data) setSponsors(data as FeaturedSponsor[])
       })
   }, [isAdmin])

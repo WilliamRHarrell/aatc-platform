@@ -812,6 +812,7 @@ export type Database = {
           facebook: string | null
           featured_footer: boolean
           show_on_homepage: boolean
+          is_in_kind: boolean
           homepage_order: number | null
           id: string
           instagram: string | null
@@ -835,6 +836,7 @@ export type Database = {
           facebook?: string | null
           featured_footer?: boolean
           show_on_homepage?: boolean
+          is_in_kind?: boolean
           homepage_order?: number | null
           id?: string
           instagram?: string | null
@@ -858,6 +860,7 @@ export type Database = {
           facebook?: string | null
           featured_footer?: boolean
           show_on_homepage?: boolean
+          is_in_kind?: boolean
           homepage_order?: number | null
           id?: string
           instagram?: string | null

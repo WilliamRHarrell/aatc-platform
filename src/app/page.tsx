@@ -91,14 +91,16 @@ const getHomepageData = unstable_cache(
     const { data: event } = await supabase.from('events').select('id').eq('is_active', true).single()
     if (!event) return { sponsors: [], panels: [] }
 
-    const [{ data: sponsorRows }, { data: panelRows }] = await Promise.all([
+    // No join into `invoices` — that subquery is what triggers the RLS
+    // recursion (see migration 027). Placement is decided by admin-set columns
+    // on sponsorships, which also lets trade/in-kind sponsors appear.
+    const [{ data: sponsorRows, error: sponsorErr }, { data: panelRows }] = await Promise.all([
       supabase
         .from('sponsorships')
-        .select('id, sponsor_name, tier, logo_url, website, homepage_order, invoices!inner(final_paid_at)')
+        .select('id, sponsor_name, tier, logo_url, website, homepage_order')
         .eq('event_id', event.id)
         .eq('show_on_homepage', true)
-        .eq('status', 'confirmed')
-        .not('invoices.final_paid_at', 'is', null),
+        .eq('status', 'confirmed'),
       supabase
         .from('panels')
         .select('id, title, description, panel_date, panel_time, location')
@@ -107,6 +109,17 @@ const getHomepageData = unstable_cache(
         .order('panel_date')
         .limit(4),
     ])
+
+    // Degrade to an empty grid rather than throwing — but say so in the logs.
+    // Silently swallowing this is how "I ticked the box and nothing appeared"
+    // becomes undiagnosable. Common causes: migration 027 not applied yet
+    // (42703 undefined_column), or an RLS recursion (42P17).
+    if (sponsorErr) {
+      console.error(
+        `[homepage] sponsor query failed (${sponsorErr.code}): ${sponsorErr.message} — ` +
+        'grid will render empty. If 42703, migration 027 has not been applied.'
+      )
+    }
 
     // homepage_order first (nulls last), then tier, then name.
     const sponsors = ((sponsorRows as unknown as HomeSponsor[]) ?? []).sort((a, b) => {

@@ -5,6 +5,16 @@ import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase'
 import { REGISTRY, getPageDef } from '@/content/registry'
 import Markdown from '@/components/Markdown'
+import { requestRevalidate } from '@/lib/revalidate'
+
+/** page_content page_key -> the public route it drives. */
+const PAGE_ROUTE: Record<string, string> = {
+  homepage: '/',
+  home: '/apply',
+  tickets: '/tickets',
+  contests: '/contests',
+  sponsors: '/sponsors',
+}
 
 export default function AdminContentPage() {
   const supabase = createClient()
@@ -59,9 +69,16 @@ export default function AdminContentPage() {
     setSavingKey(null)
     if (error) {
       toast.error('Save failed — are you an admin?')
-    } else {
-      toast.success('Saved · live within ~60s')
+      return
     }
+
+    // The public pages are statically prerendered, so purge the cache rather
+    // than waiting out the 60s window.
+    const purged = await requestRevalidate({
+      paths: [PAGE_ROUTE[pageKey] ?? '/'],
+      tags: ['page_content'],
+    })
+    toast.success(purged ? 'Saved · live now' : 'Saved · live within ~60s')
   }
 
   return (
