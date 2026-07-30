@@ -53,9 +53,30 @@ export const ASSETS = {
  * section appears automatically. Left null the section renders nothing at all —
  * an empty video frame reads as a bug, not a promise.
  */
-export const PROMO_VIDEO: { youTubeId: string | null; title: string } = {
-  youTubeId: null,
-  title: `${EVENT_NAME} ${EVENT_YEAR} promo video`,
+export const PROMO_VIDEO: {
+  youTubeId: string | null
+  title: string
+  /** 'vertical' = 9:16 phone footage; 'landscape' = 16:9. Drives the layout. */
+  orientation: 'vertical' | 'landscape'
+  /**
+   * Optional hand-picked poster frame in Supabase Storage.
+   *
+   * Strongly preferred for vertical video. YouTube's thumbnail endpoints are
+   * all 16:9 (maxresdefault/hqdefault/sddefault/mqdefault), so they pillarbox a
+   * vertical frame — the player is fine but the poster looks broken. The only
+   * native-portrait endpoint is frame0.jpg at 270x480, which is both low-res
+   * for a ~400px container at 2x DPR and is literally frame zero, so it may be
+   * a black frame or a title card.
+   *
+   * Set this to a still exported from the video and uploaded to site-assets and
+   * both problems go away. Left null, the facade falls back to frame0.
+   */
+  posterUrl: string | null
+} = {
+  youTubeId: 'gAZ5Y5Mqh6k',
+  title: '2025 AATC East Tattoo Convention — Fayetteville, Ft Bragg NC Highlights',
+  orientation: 'vertical',
+  posterUrl: null,
 }
 
 export interface ShowWinner {

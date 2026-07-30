@@ -65,6 +65,15 @@ export const REGISTRY: PageDef[] = [
         default: '300+ Artists · 3 Days · Thousands of Attendees · 10th Annual Pin-Up Contest · Kids Under 16 Free',
       },
 
+      // ── Promo video ──
+      video_heading: { label: 'Video section heading', type: 'text', default: 'See It For Yourself' },
+      video_body: {
+        label: 'Video section body',
+        type: 'markdown',
+        default: 'Three days of world-class tattooing, live contests and entertainment — and a crowd you will not find at any other convention. This is what the floor looks like.',
+      },
+      video_cta: { label: 'Video section CTA label', type: 'text', default: 'See the Full Schedule' },
+
       // ── Events ──
       events_title: { label: 'Events section title', type: 'text', default: 'What Happens at AATC' },
       events_empty: { label: 'Events "announced soon" copy', type: 'markdown', default: 'The full 2027 schedule of events is being finalized now — check back soon, or follow us for announcements as they drop.' },

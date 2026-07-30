@@ -277,11 +277,35 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── 3. Promo video — renders only when an ID is configured ── */}
+      {/* ── 3. Promo video — renders only when an ID is configured ──
+          The footage is vertical (9:16), so it sits in a width-capped column
+          beside the copy rather than being pillarboxed into a 16:9 frame. */}
       {PROMO_VIDEO.youTubeId && (
         <section className="border-t px-4 py-14" style={{ borderColor: '#2a2a2a' }}>
-          <div className="mx-auto max-w-3xl">
-            <VideoFacade youTubeId={PROMO_VIDEO.youTubeId} title={PROMO_VIDEO.title} />
+          <div className="mx-auto flex max-w-4xl flex-col items-center gap-8 md:flex-row md:items-center md:gap-12">
+            <div className="w-full shrink-0" style={{ maxWidth: PROMO_VIDEO.orientation === 'vertical' ? 400 : undefined }}>
+              <VideoFacade
+                youTubeId={PROMO_VIDEO.youTubeId}
+                title={PROMO_VIDEO.title}
+                orientation={PROMO_VIDEO.orientation}
+                posterUrl={PROMO_VIDEO.posterUrl}
+              />
+            </div>
+
+            <div className="w-full text-center md:text-left">
+              <h2 className="font-display text-2xl font-bold text-white sm:text-3xl">
+                <span className="text-emboss">{c.video_heading}</span>
+              </h2>
+              <div className="mt-3 text-sm leading-relaxed sm:text-base" style={{ color: '#999999' }}>
+                <Markdown>{c.video_body}</Markdown>
+              </div>
+              <Link
+                href="/events/schedule"
+                className="mt-6 inline-flex items-center rounded-xl border-2 border-[#8B7355] px-6 py-3 text-sm font-bold text-[#C4A882] transition-colors hover:bg-[#8B7355] hover:text-white"
+              >
+                {c.video_cta}
+              </Link>
+            </div>
           </div>
         </section>
       )}

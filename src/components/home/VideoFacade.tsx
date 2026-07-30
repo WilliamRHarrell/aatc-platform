@@ -3,25 +3,57 @@
 import { useState } from 'react'
 
 /**
- * Lightweight YouTube facade: renders the poster image + play button, and only
- * mounts the iframe on click. A raw embed loads ~1MB of YouTube JS on every
+ * Lightweight YouTube facade: poster image plus play button, iframe mounted
+ * only on click. A raw embed loads roughly a megabyte of YouTube JS on every
  * homepage visit and tanks Core Web Vitals on our most SEO-important page.
  *
- * The 16:9 box is reserved up front so there is no layout shift when the
- * iframe swaps in.
+ * ── VERTICAL VIDEO ──
+ * The aspect box is driven by `orientation`, not assumed to be 16:9.
+ *
+ * Poster selection matters more than it looks. Every YouTube thumbnail
+ * endpoint is 16:9 — maxresdefault (1280x720), hqdefault, sddefault,
+ * mqdefault — so using any of them for a vertical video pillarboxes the poster
+ * with black bars, even though the player itself renders correctly. The only
+ * native-portrait endpoint is frame0.jpg (270x480), and `oardefault.jpg`
+ * (which does return original aspect) is Shorts-only and 404s for a standard
+ * upload. Verified against this video.
+ *
+ * So: a hand-picked `posterUrl` wins; otherwise frame0 for vertical and
+ * maxresdefault for landscape. Never maxresdefault for vertical.
  */
-export default function VideoFacade({ youTubeId, title }: { youTubeId: string; title: string }) {
+export default function VideoFacade({
+  youTubeId,
+  title,
+  orientation = 'landscape',
+  posterUrl = null,
+}: {
+  youTubeId: string
+  title: string
+  orientation?: 'vertical' | 'landscape'
+  posterUrl?: string | null
+}) {
   const [playing, setPlaying] = useState(false)
+  const isVertical = orientation === 'vertical'
+
+  const poster =
+    posterUrl ??
+    (isVertical
+      ? `https://i.ytimg.com/vi/${youTubeId}/frame0.jpg`
+      : `https://i.ytimg.com/vi/${youTubeId}/maxresdefault.jpg`)
 
   return (
     <div
       className="relative w-full overflow-hidden rounded-2xl"
-      style={{ aspectRatio: '16 / 9', backgroundColor: '#111', border: '1px solid #2a2a2a' }}
+      style={{
+        aspectRatio: isVertical ? '9 / 16' : '16 / 9',
+        backgroundColor: '#111',
+        border: '1px solid #2a2a2a',
+      }}
     >
       {playing ? (
         <iframe
           className="absolute inset-0 h-full w-full"
-          src={`https://www.youtube-nocookie.com/embed/${youTubeId}?autoplay=1&rel=0`}
+          src={`https://www.youtube-nocookie.com/embed/${youTubeId}?autoplay=1&rel=0&playsinline=1`}
           title={title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
@@ -35,7 +67,7 @@ export default function VideoFacade({ youTubeId, title }: { youTubeId: string; t
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={`https://i.ytimg.com/vi/${youTubeId}/maxresdefault.jpg`}
+            src={poster}
             alt=""
             aria-hidden="true"
             className="absolute inset-0 h-full w-full object-cover"
