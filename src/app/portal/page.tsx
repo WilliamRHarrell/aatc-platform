@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
+import { guardedWrite } from '@/lib/db-write'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
@@ -259,12 +260,16 @@ function PortalContent() {
           .single()
 
         if (emailMatch) {
-          await supabase
-            .from('sponsorships')
-            .update({ user_id: user.id })
-            .eq('id', emailMatch.id)
-
-          window.location.reload()
+          // Was a silent no-op: sponsorships has no owner UPDATE policy, so
+          // RLS filtered this to zero rows and PostgREST returned no error.
+          // Reloading on a failed claim would loop forever.
+          const claim = await guardedWrite(
+            supabase.from('sponsorships').update({ user_id: user.id }).eq('id', emailMatch.id).select('id'),
+            'Could not link your sponsorship',
+            'sponsor self-claim',
+          )
+          if (claim.ok) { window.location.reload(); return }
+          setLoading(false)
           return
         }
       }

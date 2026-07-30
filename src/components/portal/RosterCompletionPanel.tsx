@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { guardedWrite } from '@/lib/db-write'
 import { createClient } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 
@@ -75,16 +76,31 @@ export function RosterCompletionPanel({ application, onComplete }: { application
     }
 
     // 3. Update the application — flip needs_roster=false, set artists, set id_doc_url
-    const { error: updateErr } = await supabase
-      .from('applications')
-      .update({
-        needs_roster: false,
-        artists: isArtist ? artistRecords : null,
-        artist_count: isArtist ? artistRecords.length : 0,
-        id_doc_url: idPath,
-      })
-      .eq('id', application.id)
-    if (updateErr) { toast.error(`Save failed: ${updateErr.message}`); setSubmitting(false); return }
+    // .select() is required: without a returned row this cannot tell a
+    // successful save from an RLS-filtered no-op, and needs_roster is half the
+    // public directory gate. See src/lib/db-write.ts.
+    const rosterWrite = await guardedWrite(
+      supabase
+        .from('applications')
+        .update({
+          needs_roster: false,
+          artists: isArtist ? artistRecords : null,
+          artist_count: isArtist ? artistRecords.length : 0,
+          id_doc_url: idPath,
+        })
+        .eq('id', application.id)
+        .select('id, needs_roster'),
+      'Could not save your roster',
+      'roster completion',
+    )
+    if (!rosterWrite.ok) { toast.error(rosterWrite.error!); setSubmitting(false); return }
+
+    // The trigger in migration 041 refuses to clear needs_roster unless the
+    // roster is genuinely complete, so a row can come back unchanged.
+    if (rosterWrite.data[0]?.needs_roster) {
+      toast.error('Roster incomplete — every artist needs a name and an ID upload.')
+      setSubmitting(false); return
+    }
 
     // 4. Create the exhibitor row so they appear publicly
     const { error: exhErr } = await supabase.from('exhibitors').insert({
