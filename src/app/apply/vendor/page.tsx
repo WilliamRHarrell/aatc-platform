@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { VENDOR_BOOTH_OPTIONS as VENDOR_BOOTHS, addOnOptions, VETERAN_DISCOUNT_LABEL, PERMIT_FEE_LABEL, CORNER_FEE_LABEL } from '@/lib/pricing'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { calculatePricing, type AddOn, type AddOnTerm } from '@/lib/pricing'
@@ -49,10 +50,6 @@ function onBlurGray(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>)
   e.currentTarget.style.borderColor = '#2a2a2a'
 }
 
-const VENDOR_BOOTHS = [
-  { kind: 'single' as const, label: 'Single', sqft: '10×10', price: 50000 },
-  { kind: 'double' as const, label: 'Double', sqft: '10×20', price: 80000 },
-] as const
 
 const ACCEPTED_FILE_TYPES = 'image/jpeg,image/png,image/webp,application/pdf'
 
@@ -592,7 +589,7 @@ export default function VendorApplyPage() {
                        style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
                     <div>
                       <p className="text-sm font-semibold text-white">Corner booths</p>
-                      <p className="text-xs" style={{ color: '#999999' }}>+$100 each (max equals total booths)</p>
+                      <p className="text-xs" style={{ color: '#999999' }}>+{CORNER_FEE_LABEL} each (max equals total booths)</p>
                     </div>
                     <input
                       type="number"
@@ -613,13 +610,9 @@ export default function VendorApplyPage() {
                       Add-ons (optional)
                     </h3>
                     <div className="space-y-3">
-                      {([
-                        { kind: 'extra_table' as const, label: 'Extra Table', terms: [{ value: null, label: '$50/ea' }] },
-                        { kind: 'extra_chairs' as const, label: '2 Extra Chairs', terms: [{ value: null, label: '$50/set' }] },
-                        { kind: 'tattoo_bed' as const, label: 'Tattoo Bed', terms: [{ value: 'daily', label: 'Daily $50' }, { value: 'weekend', label: 'Weekend $150' }] },
-                        { kind: 'arm_rest' as const, label: 'Arm Rest', terms: [{ value: 'daily', label: 'Daily $40' }, { value: 'weekend', label: 'Weekend $80' }] },
-                        { kind: 'tattoo_light' as const, label: 'Tattoo Light', terms: [{ value: 'daily', label: 'Daily $40' }, { value: 'weekend', label: 'Weekend $80' }] },
-                      ]).map(item => {
+                      {/* Labels derived from ADDON_PRICES so the price an applicant reads
+                          cannot disagree with the computed total. */}
+                      {addOnOptions().map(item => {
                         const existing = booth.add_ons.find(a => a.kind === item.kind)
                         const qty = existing?.qty ?? 0
                         const term = (existing?.term ?? item.terms[0].value) as AddOnTerm
@@ -670,7 +663,7 @@ export default function VendorApplyPage() {
                 <div className="mb-6 mt-6 space-y-3">
                   <label className="block text-sm font-medium text-white">Options</label>
                   {[
-                    { key: 'is_veteran', label: 'Military veteran discount', desc: '−$150 — thank you for your service', value: booth.is_veteran },
+                    { key: 'is_veteran', label: 'Military veteran discount', desc: `${VETERAN_DISCOUNT_LABEL} — thank you for your service`, value: booth.is_veteran },
                   ].map(opt => (
                     <button
                       key={opt.key}

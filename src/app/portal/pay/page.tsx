@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
+import { FINAL_DUE_LABEL } from '@/lib/event-config'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
@@ -144,7 +145,7 @@ function PayContent() {
           </div>
           <p className="mt-1 text-xs" style={{ color: '#999' }}>
             {isFirstPayment
-              ? `Minimum first payment: ${formatCurrency(minimumCents)} (25%). Remaining balance is due by January 1, 2027.`
+              ? `Minimum first payment: ${formatCurrency(minimumCents)} (25%). Remaining balance is due by ${FINAL_DUE_LABEL}.`
               : `Pay any amount up to ${formatCurrency(balance)}.`}
           </p>
         </div>

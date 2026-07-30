@@ -31,6 +31,7 @@ interface Sponsorship {
   show_on_homepage: boolean
   homepage_order: number | null
   is_in_kind: boolean
+  amount_locked: boolean
 }
 
 interface SponsorInvoice {
@@ -128,6 +129,9 @@ export default function AdminSponsorshipsPage() {
     load()
   }, [])
 
+  // The row currently open in the edit form, for the amount-lock notice.
+  const editingRow = editing ? sponsorships.find(sp => sp.id === editing) : undefined
+
   const filtered = useMemo(() => {
     if (filter === 'all') return sponsorships
     return sponsorships.filter(s => s.status === filter)
@@ -205,13 +209,19 @@ export default function AdminSponsorshipsPage() {
 
     const tierAmount = TIER_INFO[form.tier].amount
 
+    // Grandfathered amounts are historical commitments. Without this guard,
+    // editing a phone number would silently reprice the sponsorship to current
+    // packet pricing (migration 036).
+    const lockedRow = editing ? sponsorships.find(sp => sp.id === editing) : undefined
+    const amountIsLocked = !!lockedRow?.amount_locked
+
     if (editing) {
       const updateData: Record<string, unknown> = {
         sponsor_name: form.sponsor_name.trim(),
         tier: form.tier,
         website: form.website.trim() || null,
         status: form.status,
-        amount: tierAmount,
+        ...(amountIsLocked ? {} : { amount: tierAmount }),
         contact_name: form.contact_name.trim() || null,
         email: form.email.trim() || null,
         phone: form.phone.trim() || null,
@@ -542,6 +552,26 @@ export default function AdminSponsorshipsPage() {
 
         <div>
           <label className="mb-2 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Sponsorship Level</label>
+
+          {/* Visible at the point of editing, not buried in a doc. */}
+          {editingRow?.amount_locked && (
+            <div
+              className="mb-3 flex items-start gap-2 rounded-xl px-4 py-3 text-xs leading-relaxed"
+              style={{ backgroundColor: 'rgba(196,168,130,0.1)', border: '1px solid rgba(196,168,130,0.4)', color: '#C4A882' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <span>
+                <strong>Amount locked at {formatCurrency(editingRow.amount)}.</strong>{' '}
+                This is a grandfathered price from before the 13 July 2026 packet increase.
+                Changing the tier below will not reprice it — saving keeps{' '}
+                {formatCurrency(editingRow.amount)}.
+              </span>
+            </div>
+          )}
+
           <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: '#666' }}>Main Tiers</p>
           <div className="flex flex-wrap gap-2 mb-3">
             {ALL_TIERS.filter(t => TIER_INFO[t].group === 'main').map(t => {

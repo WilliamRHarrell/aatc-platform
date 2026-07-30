@@ -88,6 +88,22 @@ export const BEST_IN_SHOW_YEAR = 2026
  */
 export const FINAL_DUE_AT = '2027-01-01T05:00:00Z' // 2027-01-01 00:00 America/New_York
 
+/**
+ * Display form of FINAL_DUE_AT, e.g. "January 1, 2027".
+ *
+ * Use this everywhere the deadline is shown to a person — never restate the
+ * date as a literal. Five places did (portal/pay plus four email templates),
+ * which meant an email about money owed could disagree with the value the
+ * lifecycle sweep actually enforces. Rendered in Eastern time, which is what
+ * FINAL_DUE_AT's offset expresses.
+ */
+export const FINAL_DUE_LABEL = new Date(FINAL_DUE_AT).toLocaleDateString('en-US', {
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric',
+  timeZone: 'America/New_York',
+})
+
 export type ShowPhase = 'before' | 'during' | 'after'
 
 export function showPhase(now: number = Date.now()): ShowPhase {

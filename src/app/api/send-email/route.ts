@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { describeBooths } from '@/lib/booth-display'
 import { minDepositCents } from '@/lib/pricing'
+import { FINAL_DUE_LABEL } from '@/lib/event-config'
 import type { Database } from '@/types/database'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -92,7 +93,7 @@ function approvedEmail(businessName: string, exhibitorType: string, boothSize: s
     ? `<p style="margin:16px 0; font-size:15px; line-height:1.7; color:#cccccc;">
       To secure your booth, please pay at least 25% of the total
       (<strong style="color:#ffffff;">$${(minDeposit / 100).toFixed(2)}</strong>) by <strong style="color:#ffffff;">${formattedDeadline}</strong>.
-      The remaining balance is due by <strong style="color:#ffffff;">January 1, 2027</strong>.
+      The remaining balance is due by <strong style="color:#ffffff;">${FINAL_DUE_LABEL}</strong>.
       If the deposit is not received by the deadline, the booth will be
       released to the next applicant.
     </p>`
@@ -250,14 +251,14 @@ function finalReminderEmail(businessName: string, daysRemaining: number, balance
       ${tagline}
     </p>
     <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
-      Balance due January 1, 2027
+      Balance due ${FINAL_DUE_LABEL}
     </h2>
     <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
       Hi ${businessName},
     </p>
     <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
       Your AATC 2027 booth balance of <strong style="color:#ffffff;">$${(balance / 100).toFixed(2)}</strong>
-      is due by <strong style="color:#ffffff;">January 1, 2027</strong>. ${message}
+      is due by <strong style="color:#ffffff;">${FINAL_DUE_LABEL}</strong>. ${message}
     </p>
     <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
       If the balance isn't paid by January 1, the booth will be canceled and your deposit will be forfeited.
@@ -304,7 +305,7 @@ function cancellationEmail(businessName: string, depositForfeited: number) {
       Hi ${businessName},
     </p>
     <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
-      The January 1, 2027 deadline for the remaining balance has passed. Per the terms accepted at deposit,
+      The ${FINAL_DUE_LABEL} deadline for the remaining balance has passed. Per the terms accepted at deposit,
       the booth has been canceled and the deposit (<strong style="color:#ffffff;">$${(depositForfeited / 100).toFixed(2)}</strong>) is forfeited.
     </p>
     <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">

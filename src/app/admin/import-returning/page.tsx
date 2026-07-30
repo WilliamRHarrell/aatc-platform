@@ -1,16 +1,23 @@
 'use client'
 
 import { useState } from 'react'
+import {
+  ARTIST_SINGLE_PRICE, ARTIST_DOUBLE_PRICE, VENDOR_SINGLE_PRICE, VENDOR_DOUBLE_PRICE,
+  PRIOR_YEAR, PRIOR_YEAR_PRICES, usd,
+} from '@/lib/pricing'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 
+// Labels derived from lib/pricing.ts. These were formatted strings —
+// 'Artist Single ($800 / 2026: $700)' — which is the same defect class as the
+// sponsor tiers: a price written out where nothing checks it against the source.
 const ARTIST_SIZES = [
-  { kind: 'single' as const, label: 'Artist Single ($800 / 2026: $700)' },
-  { kind: 'double' as const, label: 'Artist Double ($1200 / 2026: $1100)' },
+  { kind: 'single' as const, label: `Artist Single (${usd(ARTIST_SINGLE_PRICE)} / ${PRIOR_YEAR}: ${usd(PRIOR_YEAR_PRICES.artistSingle)})` },
+  { kind: 'double' as const, label: `Artist Double (${usd(ARTIST_DOUBLE_PRICE)} / ${PRIOR_YEAR}: ${usd(PRIOR_YEAR_PRICES.artistDouble)})` },
 ]
 const VENDOR_SIZES = [
-  { kind: 'single' as const, label: 'Vendor Single ($500 / 2026: $400)' },
-  { kind: 'double' as const, label: 'Vendor Double ($800 / 2026: $700)' },
+  { kind: 'single' as const, label: `Vendor Single (${usd(VENDOR_SINGLE_PRICE)} / ${PRIOR_YEAR}: ${usd(PRIOR_YEAR_PRICES.vendorSingle)})` },
+  { kind: 'double' as const, label: `Vendor Double (${usd(VENDOR_DOUBLE_PRICE)} / ${PRIOR_YEAR}: ${usd(PRIOR_YEAR_PRICES.vendorDouble)})` },
 ]
 
 export default function ImportReturningPage() {

@@ -47,6 +47,39 @@ const ADDON_PRICES: Record<AddOnKind, Record<string, number>> = {
   tattoo_light: { daily: 4000, weekend: 8000 },
 }
 
+/**
+ * Prior-year prices, kept for the returning-exhibitor import screen only.
+ *
+ * DECISION: these live here rather than as static label text. They are real
+ * pricing data that the import screen compares against, and the alternative —
+ * baked into a label string — is exactly how the sponsor tiers came to disagree
+ * with the packet. A prior-year map is also where next year's rollover belongs:
+ * move 2027 in here when 2028 pricing lands, rather than editing prose.
+ */
+export const PRIOR_YEAR = 2026
+export const PRIOR_YEAR_PRICES = {
+  artistSingle: 70000,
+  artistDouble: 110000,
+  vendorSingle: 40000,
+  vendorDouble: 70000,
+} as const
+
+/** Booth options for the application forms — the single source for both. */
+export const ARTIST_BOOTH_OPTIONS = [
+  { kind: 'single' as const, label: 'Single', sqft: '10×10', price: ARTIST_SINGLE_PRICE },
+  { kind: 'double' as const, label: 'Double', sqft: '10×20', price: ARTIST_DOUBLE_PRICE },
+]
+
+export const VENDOR_BOOTH_OPTIONS = [
+  { kind: 'single' as const, label: 'Single', sqft: '10×10', price: VENDOR_SINGLE_PRICE },
+  { kind: 'double' as const, label: 'Double', sqft: '10×20', price: VENDOR_DOUBLE_PRICE },
+]
+
+/** "$800" — for labels. Never hand-write the dollar figure. */
+export function usd(cents: number): string {
+  return `$${(cents / 100).toLocaleString('en-US')}`
+}
+
 const ADDON_LABELS: Record<AddOnKind, string> = {
   extra_table: 'Extra Table',
   extra_chairs: '2 Extra Chairs',
@@ -54,6 +87,39 @@ const ADDON_LABELS: Record<AddOnKind, string> = {
   arm_rest: 'Arm Rest',
   tattoo_light: 'Tattoo Light',
 }
+
+/**
+ * Add-on option descriptors for the application forms, derived from
+ * ADDON_PRICES. Both forms previously carried their own '$50/ea' /
+ * 'Weekend $150' label strings, so the maths and the label an applicant reads
+ * could disagree. Labels are now generated from the same table the total uses.
+ */
+export interface AddOnOptionTerm {
+  value: AddOnTerm
+  label: string
+}
+
+export interface AddOnOption {
+  kind: AddOnKind
+  label: string
+  terms: AddOnOptionTerm[]
+}
+
+export function addOnOptions(): AddOnOption[] {
+  return (Object.keys(ADDON_PRICES) as AddOnKind[]).map(kind => {
+    const prices = ADDON_PRICES[kind]
+    const terms: AddOnOptionTerm[] = prices._flat !== undefined
+      ? [{ value: null, label: `${usd(prices._flat)}/ea` }]
+      : (Object.keys(prices) as Exclude<AddOnTerm, null>[])
+          .map(term => ({ value: term, label: `${term[0].toUpperCase()}${term.slice(1)} ${usd(prices[term])}` }))
+    return { kind, label: ADDON_LABELS[kind], terms }
+  })
+}
+
+/** "−$150 — thank you for your service" style copy, derived. */
+export const VETERAN_DISCOUNT_LABEL = `−${usd(VETERAN_DISCOUNT)}`
+export const PERMIT_FEE_LABEL = usd(PERMIT_FEE_PER_ARTIST)
+export const CORNER_FEE_LABEL = usd(CORNER_FEE)
 
 export interface PricingOptions {
   exhibitorType: ExhibitorType

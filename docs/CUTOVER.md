@@ -70,8 +70,11 @@ things worse, not better.
       the webhook, so it is unproven end to end.
 - [ ] Confirm `RESEND_FROM_EMAIL` uses a verified domain (was
       `onboarding@resend.dev`). Until then, email delivery is restricted.
-- [ ] Decide Tattoo Goo: paying Gold or trade/in-kind. Variants ready in
-      [teardown_test_event_content.sql](../supabase/seeds/teardown_test_event_content.sql).
+- [ ] **Tattoo Goo: awaiting their response to a Gold offer at the grandfathered
+      $3,000.** Not a confirmed sponsor. Set to `status='pending'` by
+      [tattoo_goo_offer.sql](../supabase/seeds/tattoo_goo_offer.sql); the accept
+      path (lock amount → re-point → confirm) is held in the same file.
+      Release the slot if unanswered.
 
 ### GRANDFATHERED PRICES — do not "correct" these
 
@@ -80,10 +83,10 @@ commitments honoured at the price agreed, not data errors. Anyone auditing
 sponsorship revenue against the July 2026 packet will find them and should leave
 them alone.
 
-| Record | Held at | Current packet | Why |
+| Record | Held at | Current packet | Status |
 |---|---|---|---|
-| Tattoo Goo sponsorship `32ef207d` + invoice `d5f1c5f3` | **$3,000** | Gold $5,000 | Invoiced March 2026, before the 13 July 2026 increase |
-| VIP Bag sponsorship (any sold pre-July) | **$800** | $1,500 | Priced before the packet correction |
+| Tattoo Goo sponsorship `32ef207d` + invoice `d5f1c5f3` | **$3,000** | Gold $5,000 | **OPEN OFFER, not accepted.** Row corrected to `status='pending'`. `amount_locked` is NOT set — set it only if they accept. |
+| VIP Bag sponsorship (any sold pre-July) | **$800** | $1,500 | None exist today; predicate documented in migration 036 |
 
 The July packet raised every main tier (Title $20k→$25k, Platinum $8k→$10k,
 Gold $3k→$5k, Silver $1k→$2.5k, Brass $500→$1k). Individual items were
@@ -128,6 +131,44 @@ Not blockers, but recorded so they are decisions rather than surprises.
   [sponsor-tiers.ts](../src/lib/sponsor-tiers.ts) as the single source. Update
   there only — the display strings on `/sponsors/packages` are derived.
 - **Lighthouse and WCAG AA contrast unverified** (gold on the flag texture).
+
+## E2. Accepted tradeoffs and logged gaps
+
+### CMS values are unvalidated prose — accepted
+
+Ticket prices ($70/$72 VIP, $60 weekend, $25 single-day), the $5 military
+discount and the March 15 2027 application deadline live **only** as
+`page_content` defaults in [registry.ts](../src/content/registry.ts). That is
+deliberate — you change them in `/admin/content` with no redeploy, which is the
+right tradeoff for values that move.
+
+The cost: they are free text with nothing validating them. A typo in the editor
+publishes a wrong ticket price or deadline and nothing catches it. Unlike the
+booth and sponsor prices, there is no source of truth to reconcile against.
+
+Two lightweight guards worth adding (neither built):
+1. **Editor-side format warning.** The registry already types each section; add a
+   `format: 'currency' | 'date'` hint and have `/admin/content` show a
+   non-blocking warning when a `price_*` field does not parse as currency or a
+   deadline field does not parse as a date. Cheap, catches fat-fingering.
+2. **Reconciliation view.** An admin page listing registry values beside their
+   `event-config.ts` counterparts where one exists — the March 15 deadline
+   against a new `APPLICATION_DEADLINE` constant, for instance. Turns silent
+   divergence into something visible, the same way the directory funnel does.
+
+### Helper pass — revenue not captured (post-launch, not blocking)
+
+The load-in packet sells a **$25 helper wristband** at the registration desk for
+working assistants. Nothing in the platform sells, prices or tracks it — it does
+not exist in the schema, the forms, or `pricing.ts`. Every one sold is an
+unrecorded cash transaction with no reconciliation against attendance.
+
+Scope when picked up: a `helper_passes` count on `applications` (or a small
+`helper_passes` table if they need per-person names for wristband issue), the
+price in `pricing.ts`, an add-on line on the application form so exhibitors can
+pre-purchase, and a figure on `/admin/print` so the registration desk knows what
+each booth has already paid for. Post-launch — the desk can keep taking cash in
+the meantime, but the gap should be a decision rather than an oversight.
 
 ## F. Post-cutover
 
