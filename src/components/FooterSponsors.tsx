@@ -31,10 +31,9 @@ const getFooterSponsors = unstable_cache(
 
     // No join into `invoices` — that subquery is the 42P17 cycle (migration 028).
     const { data, error } = await supabase
-      .from('sponsorships')
+      .from('sponsors_public')
       .select('id, sponsor_name, logo_url, website')
       .eq('featured_footer', true)
-      .eq('status', 'confirmed')
       .limit(5)
 
     if (error) {

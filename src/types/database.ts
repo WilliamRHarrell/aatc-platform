@@ -901,7 +901,72 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      sponsors_public: {
+        Row: {
+          id: string
+          event_id: string
+          sponsor_name: string
+          tier: Database["public"]["Enums"]["sponsor_tier"]
+          logo_url: string | null
+          website: string | null
+          instagram: string | null
+          facebook: string | null
+          featured_footer: boolean
+          show_on_homepage: boolean
+          homepage_order: number | null
+        }
+        Relationships: []
+      }
+      exhibitors_public: {
+        Row: {
+          id: string
+          event_id: string
+          application_id: string
+          booth_id: string | null
+          business_name: string
+          exhibitor_type: Database["public"]["Enums"]["exhibitor_type"]
+          website: string | null
+          instagram: string | null
+          bio: string | null
+          logo_url: string | null
+        }
+        Relationships: []
+      }
+      food_trucks_public: {
+        Row: {
+          id: string
+          event_id: string
+          business_name: string
+          cuisine_type: string
+          description: string
+          logo_url: string | null
+          website: string | null
+          instagram: string | null
+          facebook: string | null
+          days: string[]
+          thursday_setup: boolean
+        }
+        Relationships: []
+      }
+      panels_public: {
+        Row: {
+          id: string
+          event_id: string
+          title: string
+          description: string
+          panel_date: string
+          panel_time: string
+          location: string
+          panelists: string
+          is_free: boolean
+          cost: number
+          signup_type: Database["public"]["Enums"]["panel_signup_type"]
+          max_capacity: number | null
+          image_url: string | null
+          host_email: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       is_admin: { Args: never; Returns: boolean }

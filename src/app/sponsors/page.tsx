@@ -19,7 +19,6 @@ interface Sponsor {
   tier: string
   logo_url: string | null
   website: string | null
-  amount: number
   instagram: string | null
   facebook: string | null
 }
@@ -63,11 +62,10 @@ const getSponsors = unstable_cache(
     // in migration 027, and it also excluded trade/in-kind sponsors, who have
     // no invoice row. Visibility is admin-controlled via the placement flags.
     const { data, error } = await supabase
-      .from('sponsorships')
-      .select('id, sponsor_name, tier, logo_url, website, amount, instagram, facebook')
+      .from('sponsors_public')
+      .select('id, sponsor_name, tier, logo_url, website, instagram, facebook')
       .eq('event_id', event.id)
-      .eq('status', 'confirmed')
-      .order('amount', { ascending: false })
+      .order('sponsor_name')
 
     if (error) {
       console.error(

@@ -127,10 +127,10 @@ export default function SchedulePage() {
       }
 
       const { data: panels } = await supabase
-        .from('panels')
+        .from('panels_public')
         .select('id, title, panel_date, panel_time, location, is_free, cost, signup_type')
         .eq('event_id', event.id)
-        .eq('is_published', true)
+        
 
       if (panels && panels.length > 0) {
         const merged = DAY_ORDER.map(day => {

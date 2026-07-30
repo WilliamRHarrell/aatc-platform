@@ -99,16 +99,14 @@ const getHomepageData = unstable_cache(
     // on sponsorships, which also lets trade/in-kind sponsors appear.
     const [{ data: sponsorRows, error: sponsorErr }, { data: panelRows }] = await Promise.all([
       supabase
-        .from('sponsorships')
+        .from('sponsors_public')
         .select('id, sponsor_name, tier, logo_url, website, homepage_order')
         .eq('event_id', event.id)
-        .eq('show_on_homepage', true)
-        .eq('status', 'confirmed'),
+        .eq('show_on_homepage', true),
       supabase
-        .from('panels')
+        .from('panels_public')
         .select('id, title, description, panel_date, panel_time, location')
         .eq('event_id', event.id)
-        .eq('is_published', true)
         .order('panel_date')
         .limit(4),
     ])

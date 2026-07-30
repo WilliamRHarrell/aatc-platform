@@ -61,10 +61,9 @@ function TattooPanelsContent() {
       }
 
       const { data } = await supabase
-        .from('panels')
+        .from('panels_public')
         .select('*')
         .eq('event_id', event.id)
-        .eq('is_published', true)
         .order('panel_date')
 
       if (data) {

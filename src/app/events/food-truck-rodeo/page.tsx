@@ -38,10 +38,10 @@ export default function FoodTruckRodeoPage() {
       if (!event) { setLoading(false); return }
 
       const { data } = await supabase
-        .from('food_trucks')
+        .from('food_trucks_public')
         .select('id, business_name, cuisine_type, logo_url, days, website, instagram, facebook')
         .eq('event_id', event.id)
-        .eq('is_published', true)
+        
         .order('business_name')
 
       if (data) setTrucks(data as FoodTruck[])
