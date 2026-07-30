@@ -13,7 +13,12 @@ select 'All American Tattoo Convention 2027',
        'Fayetteville',
        'NC',
        date '2027-04-16',
-       date '2027-04-28',
+       -- Was '2027-04-28' — a typo for the 18th. The show is Fri 16 to Sun 18.
+       -- Corrected by hand in the live database on 2026-07-29; fixed here so a
+       -- fresh environment rebuild does not reintroduce it. scripts/
+       -- check-event-dates.mjs asserts this against src/lib/event-config.ts at
+       -- build time.
+       date '2027-04-18',
        date '2026-06-01',
        true
 where not exists (
