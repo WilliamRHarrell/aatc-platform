@@ -823,6 +823,7 @@ export type Database = {
           show_on_homepage: boolean
           is_in_kind: boolean
           amount_locked: boolean
+          hold_expires_at: string | null
           homepage_order: number | null
           id: string
           instagram: string | null
@@ -848,6 +849,7 @@ export type Database = {
           show_on_homepage?: boolean
           is_in_kind?: boolean
           amount_locked?: boolean
+          hold_expires_at?: string | null
           homepage_order?: number | null
           id?: string
           instagram?: string | null
@@ -873,6 +875,7 @@ export type Database = {
           show_on_homepage?: boolean
           is_in_kind?: boolean
           amount_locked?: boolean
+          hold_expires_at?: string | null
           homepage_order?: number | null
           id?: string
           instagram?: string | null

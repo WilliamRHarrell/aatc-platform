@@ -32,6 +32,7 @@ interface Sponsorship {
   homepage_order: number | null
   is_in_kind: boolean
   amount_locked: boolean
+  hold_expires_at: string | null
 }
 
 interface SponsorInvoice {
@@ -85,7 +86,7 @@ export default function AdminSponsorshipsPage() {
   const [working, setWorking] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [filter, setFilter] = useState<'all' | SponsorStatus>('all')
+  const [filter, setFilter] = useState<'all' | SponsorStatus | 'stale'>('all')
   const [sendingInvoice, setSendingInvoice] = useState<string | null>(null)
   const [approvingId, setApprovingId] = useState<string | null>(null)
 
@@ -132,8 +133,13 @@ export default function AdminSponsorshipsPage() {
   // The row currently open in the edit form, for the amount-lock notice.
   const editingRow = editing ? sponsorships.find(sp => sp.id === editing) : undefined
 
+  /** A pending offer whose hold has lapsed — the slot is being held for nobody. */
+  const isStaleHold = (s: Sponsorship) =>
+    s.status === 'pending' && !!s.hold_expires_at && new Date(s.hold_expires_at) < new Date()
+
   const filtered = useMemo(() => {
     if (filter === 'all') return sponsorships
+    if (filter === 'stale') return sponsorships.filter(isStaleHold)
     return sponsorships.filter(s => s.status === filter)
   }, [sponsorships, filter])
 
@@ -142,6 +148,7 @@ export default function AdminSponsorshipsPage() {
     pending: sponsorships.filter(s => s.status === 'pending').length,
     confirmed: sponsorships.filter(s => s.status === 'confirmed').length,
     cancelled: sponsorships.filter(s => s.status === 'cancelled').length,
+    stale: sponsorships.filter(isStaleHold).length,
   }), [sponsorships])
 
   const totalConfirmed = useMemo(
@@ -726,7 +733,7 @@ export default function AdminSponsorshipsPage() {
 
       {/* Status filters */}
       <div className="mb-4 flex flex-wrap gap-2">
-        {(['all', 'pending', 'confirmed', 'cancelled'] as const).map(f => (
+        {(['all', 'pending', 'confirmed', 'cancelled', 'stale'] as const).map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -737,7 +744,11 @@ export default function AdminSponsorshipsPage() {
               border: `1px solid ${filter === f ? 'rgba(139,115,85,0.4)' : '#2a2a2a'}`,
             }}
           >
-            {f === 'all' ? `All (${counts.all})` : `${f} (${counts[f]})`}
+            {f === 'all'
+              ? `All (${counts.all})`
+              : f === 'stale'
+                ? `Stale holds (${counts.stale})`
+                : `${f} (${counts[f]})`}
           </button>
         ))}
       </div>
@@ -892,6 +903,22 @@ export default function AdminSponsorshipsPage() {
                       />
                     )}
                   </div>
+
+                  {/* Hold expiry — a slot held against an unanswered offer */}
+                  {s.status === 'pending' && s.hold_expires_at && (
+                    <span
+                      title={`Offer hold ${isStaleHold(s) ? 'lapsed' : 'expires'} ${new Date(s.hold_expires_at).toLocaleDateString()}`}
+                      className="hidden shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold sm:inline-flex"
+                      style={isStaleHold(s)
+                        ? { backgroundColor: 'rgba(248,113,113,0.15)', color: '#f87171' }
+                        : { backgroundColor: 'rgba(139,115,85,0.15)', color: '#C4A882' }}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                      </svg>
+                      {isStaleHold(s) ? 'Hold lapsed' : `Held to ${new Date(s.hold_expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                    </span>
+                  )}
 
                   {/* Status */}
                   <span

@@ -156,6 +156,29 @@ Two lightweight guards worth adding (neither built):
    against a new `APPLICATION_DEADLINE` constant, for instance. Turns silent
    divergence into something visible, the same way the directory funnel does.
 
+### No announce step — confirming a sponsor publishes them instantly
+
+`status = 'confirmed'` is the **sole** publish gate. The public read policy is
+`status = 'confirmed'`, and `/sponsors` queries `event_id + status` and nothing
+else — no placement flag is consulted for the directory. So the moment an admin
+marks a sponsorship confirmed, that sponsor is publicly listed as a 2027 sponsor
+on the next revalidation.
+
+Sponsors frequently want to time an announcement against their own marketing
+calendar — a co-ordinated post, a press date, an embargo until their own
+campaign launches. Today there is no way to record "signed but not yet
+announced", and no way to sign someone in advance of a date they have asked for.
+
+Scope when picked up: a `publish_at timestamptz` (or an `announced boolean`) on
+`sponsorships`, with the public policy becoming
+`status = 'confirmed' and (publish_at is null or publish_at <= now())`. Note
+that a `publish_at` in the future needs the page cache to revalidate for the
+sponsor to appear on time — the 60s window covers that, but it is worth
+verifying rather than assuming. Admin gets a date field and a "scheduled"
+badge alongside the existing hold badge.
+
+Post-launch. Worth doing before the first big-name signing rather than after.
+
 ### Helper pass — revenue not captured (post-launch, not blocking)
 
 The load-in packet sells a **$25 helper wristband** at the registration desk for
