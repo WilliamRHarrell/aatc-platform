@@ -156,6 +156,25 @@ Two lightweight guards worth adding (neither built):
    against a new `APPLICATION_DEADLINE` constant, for instance. Turns silent
    divergence into something visible, the same way the directory funnel does.
 
+### Schema pattern: a permissive baseline defeats every later tightening
+
+Three separate times, a migration added a stricter policy while an earlier
+`using (true)` policy was left in place. PostgreSQL combines permissive policies
+with OR, so the stricter one is decorative — it can only ever *add* access.
+
+| Table | Baseline | Tightening it defeated |
+|---|---|---|
+| `sponsorships` | 001 `public read using (true)` | 019, 025 featured/paid gates |
+| `booths` | 001 `public read using (true)` | 024/028 deposit gate — 267 booths anonymously readable while the gate matched none |
+| `sponsorships` (again) | 030 `status = 'confirmed'` | no column restriction, so amount/email/phone leaked |
+
+**Rule for any future policy work: start by listing what already exists on the
+table, and drop what the new policy replaces — in the same migration.** Adding a
+policy is never sufficient on its own. `select * from pg_policies where tablename
+= '…'` before writing a line of it.
+
+Migration 038 drops the last of these baselines.
+
 ### No announce step — confirming a sponsor publishes them instantly
 
 `status = 'confirmed'` is the **sole** publish gate. The public read policy is
