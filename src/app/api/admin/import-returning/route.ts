@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
+import { FINAL_DUE_AT } from '@/lib/event-config'
 import { createServerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 
-const FINAL_DUE_AT = '2027-01-01T05:00:00Z'
 
 interface ImportPayload {
   email: string

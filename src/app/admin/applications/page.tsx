@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
+import { FINAL_DUE_AT } from '@/lib/event-config'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
@@ -145,7 +146,6 @@ function DetailDrawer({
     getUrls()
   }, [app.id])
 
-  const FINAL_DUE_AT = '2027-01-01T05:00:00Z' // 2027-01-01 00:00 America/New_York
 
   const handleResetPassword = async (email: string) => {
     if (!email) { toast.error('No email on file'); return }

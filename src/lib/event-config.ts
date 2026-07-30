@@ -80,6 +80,14 @@ export const BEST_IN_SHOW: Record<number, ShowWinner[]> = {
 /** The most recent year we have winner photos for. */
 export const BEST_IN_SHOW_YEAR = 2026
 
+/**
+ * Final balance due date. Was hardcoded identically in
+ * admin/applications/page.tsx and api/admin/import-returning — the same class
+ * of bug as migration 020's end-date typo: a date duplicated with nothing
+ * asserting the copies agree.
+ */
+export const FINAL_DUE_AT = '2027-01-01T05:00:00Z' // 2027-01-01 00:00 America/New_York
+
 export type ShowPhase = 'before' | 'during' | 'after'
 
 export function showPhase(now: number = Date.now()): ShowPhase {
