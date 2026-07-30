@@ -970,6 +970,8 @@ export type Database = {
     }
     Functions: {
       is_admin: { Args: never; Returns: boolean }
+      /** Migration 039 — true when the caller holds any of the given roles. */
+      has_role: { Args: { p_roles: string[] }; Returns: boolean }
       /** Migration 035 — atomic lifecycle transitions (service_role only). */
       expire_application: { Args: { p_application_id: string }; Returns: undefined }
       cancel_application: { Args: { p_application_id: string }; Returns: undefined }
@@ -1010,7 +1012,7 @@ export type Database = {
         | "collectors_choice"
         | "artist_lounge"
         | "rafter_banner"
-      user_role: "admin" | "exhibitor" | "public"
+      user_role: "admin" | "exhibitor" | "public" | "content_editor" | "sponsorship_manager"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1171,7 +1173,7 @@ export const Constants = {
         "artist_lounge",
         "rafter_banner",
       ],
-      user_role: ["admin", "exhibitor", "public"],
+      user_role: ["admin", "exhibitor", "public", "content_editor", "sponsorship_manager"],
     },
   },
 } as const

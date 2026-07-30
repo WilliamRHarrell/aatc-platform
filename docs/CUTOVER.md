@@ -120,9 +120,27 @@ Not blockers, but recorded so they are decisions rather than surprises.
   the platform. See "Booth assignment history" scope below.
 - **No floor plan geometry.** All 267 booths have `x=0, y=0` and `1×1`
   dimensions; migration 020's seed sets no coordinates.
-- **Binary permission model.** `is_admin()` only — anyone invited as an admin
-  sees sponsor contact details, invoice amounts and artist ID uploads. Role
-  split scoped separately.
+- **Role split is NAVIGATION-LEVEL ONLY — accepted risk, part 2 is the remedy.**
+  Migration 039 plus per-path gating gives `content_editor` and
+  `sponsorship_manager` roles, and `/admin/users` assigns them. But **every RLS
+  policy still says `is_admin()`**, so the restriction is the admin interface,
+  not the database.
+
+  **A content_editor who knows the API can still read artist government photo
+  ID uploads** (`applications.id_doc_url`, `veteran_id_url`, `artists[].id_url`)
+  — the most sensitive data in the system — along with sponsor contact details
+  and invoice amounts. The sidebar hides those pages; the API does not.
+
+  Accepted deliberately for two trusted colleagues. It stops mistakes and
+  reduces incidental exposure; it is **not** a boundary against someone who goes
+  looking, and it must not be used for an external contractor or a temporary
+  hire.
+
+  **Part 2 (the remedy):** column-level protection. RLS cannot express it, so
+  the sensitive columns move behind `SECURITY DEFINER` functions or into a side
+  table with its own policy, and the admin policies become `has_role(...)`
+  rather than `is_admin()`. Roughly a day. Do it before inviting anyone outside
+  the core team.
 - **22 public pages are still client-rendered**, including `/directory` and
   `/directory/[id]`. The copy doc requires artist profiles to be server-rendered
   with per-artist meta and `Person` schema.

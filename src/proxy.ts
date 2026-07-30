@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/auth-helpers-nextjs'
+import { canAccess, isAdminRole, landingPath } from '@/lib/roles'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import type { Database } from '@/types/database'
@@ -44,8 +45,14 @@ export async function proxy(req: NextRequest) {
       .eq('id', session.user.id)
       .single()
 
-    if (profile?.role !== 'admin') {
+    // Per-path, not binary. A content_editor reaching /admin/invoices is sent
+    // to the first page their role can see rather than bounced off /admin
+    // entirely. NOTE: navigation-level only — see src/lib/roles.ts.
+    if (!isAdminRole(profile?.role)) {
       return NextResponse.redirect(new URL('/apply', req.url))
+    }
+    if (!canAccess(profile?.role, pathname)) {
+      return NextResponse.redirect(new URL(landingPath(profile?.role), req.url))
     }
   }
 

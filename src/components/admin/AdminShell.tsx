@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { canAccess, ROLE_LABELS, isAdminRole } from '@/lib/roles'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
@@ -134,6 +135,16 @@ const NAV = [
       </svg>
     ),
   },
+  {
+    href: '/admin/users',
+    label: 'Team & Roles',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+    ),
+  },
 ]
 
 function NavItem({ href, label, icon, exact = false }: { href: string; label: string; icon: React.ReactNode; exact?: boolean }) {
@@ -158,12 +169,16 @@ function NavItem({ href, label, icon, exact = false }: { href: string; label: st
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [email, setEmail] = useState<string | null>(null)
+  const [role, setRole] = useState<string | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       setEmail(user?.email ?? null)
+      if (!user) return
+      const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+      setRole(data?.role ?? null)
     })
   }, [])
 
@@ -185,7 +200,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
       {/* Nav */}
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {NAV.map((item, i) => (
+        {NAV.filter(item => canAccess(role, item.href)).map((item, i) => (
           <NavItem key={item.href} href={item.href} label={item.label} icon={item.icon} exact={i === 0} />
         ))}
       </nav>
@@ -193,7 +208,14 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       {/* User + logout */}
       <div className="px-4 py-4" style={{ borderTop: '1px solid #2a2a2a' }}>
         {email && (
-          <p className="mb-3 truncate text-xs" style={{ color: '#555' }}>{email}</p>
+          <div className="mb-3">
+            <p className="truncate text-xs" style={{ color: '#555' }}>{email}</p>
+            {isAdminRole(role) && (
+              <p className="mt-0.5 text-[11px] font-semibold" style={{ color: '#8B7355' }}>
+                {ROLE_LABELS[role]}
+              </p>
+            )}
+          </div>
         )}
         <button
           onClick={handleLogout}
