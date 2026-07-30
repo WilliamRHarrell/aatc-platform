@@ -1,15 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
-
-interface FeaturedSponsor {
-  id: string
-  sponsor_name: string
-  logo_url: string | null
-  website: string | null
-}
 
 const SOCIALS = [
   {
@@ -52,32 +44,16 @@ const SOCIALS = [
   },
 ]
 
-const PLACEHOLDER_IMG = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/site-assets/skin-reserve-home-2.webp`
-
-export default function SiteFooter() {
+/**
+ * Client shell only — it exists as a client component solely for the
+ * usePathname admin check. All content, including the sponsor logos, is
+ * server-rendered and passed in via `sponsors`. Do not reintroduce a data
+ * fetch here: these logos are paid placements and must be in the server HTML.
+ */
+export default function SiteFooter({ sponsors }: { sponsors?: ReactNode }) {
   const pathname = usePathname()
-  const [sponsors, setSponsors] = useState<FeaturedSponsor[]>([])
   const isAdmin = pathname.startsWith('/admin')
 
-  useEffect(() => {
-    if (isAdmin) return
-    const supabase = createClient()
-    // No join into `invoices` — that subquery triggers the RLS recursion fixed
-    // in migration 027, and excluded trade/in-kind sponsors who have no invoice.
-    supabase
-      .from('sponsorships')
-      .select('id, sponsor_name, logo_url, website')
-      .eq('featured_footer', true)
-      .eq('status', 'confirmed')
-      .limit(5)
-      .then(({ data, error }) => {
-        if (error) {
-          console.error(`[footer] sponsor query failed (${error.code}): ${error.message}`)
-          return
-        }
-        if (data) setSponsors(data as FeaturedSponsor[])
-      })
-  }, [isAdmin])
 
   // Hide on admin pages (after all hooks have run)
   if (isAdmin) return null
@@ -148,51 +124,8 @@ export default function SiteFooter() {
         </div>
       </div>
 
-      {/* Sponsor logos — real sponsors only.
-          Previously this fell back to five copies of the same placeholder webp
-          with alt="Sponsor 1".."Sponsor 5" on EVERY page, which read as five
-          real sponsors to anyone glancing at it (and to a crawler). The whole
-          block is now hidden when there is nothing to show. */}
-      {sponsors.length > 0 && (
-        <div className="border-t px-4 py-10" style={{ borderColor: '#2a2a2a' }}>
-          <div className="mx-auto max-w-4xl text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em]" style={{ color: '#999' }}>
-              AATC 2027
-            </p>
-            <p
-              className="font-display mx-auto mt-1 max-w-xl text-base font-bold sm:text-lg"
-              style={{ color: '#C4A882' }}
-            >
-              Thank you to our sponsors for helping make this happen for Fayetteville &amp; Ft Bragg NC!
-            </p>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-6 sm:gap-10">
-              {sponsors.map(s => {
-                const img = (
-                  <img
-                    src={s.logo_url || PLACEHOLDER_IMG}
-                    alt={s.sponsor_name}
-                    title={s.sponsor_name}
-                    className="h-14 w-auto opacity-60 grayscale transition-all hover:opacity-100 hover:grayscale-0 sm:h-20"
-                  />
-                )
-                return s.website ? (
-                  <a
-                    key={s.id}
-                    href={s.website.startsWith('http') ? s.website : `https://${s.website}`}
-                    target="_blank"
-                    /* paid placement — see Google's link guidelines */
-                    rel="noopener sponsored"
-                  >
-                    {img}
-                  </a>
-                ) : (
-                  <span key={s.id}>{img}</span>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Server-rendered sponsor logos (components/FooterSponsors.tsx) */}
+      {sponsors}
     </footer>
   )
 }

@@ -1,30 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import { SPONSOR_TIERS as TIER_INFO, ALL_TIERS, MAIN_TIERS, INDIVIDUAL_ITEMS, type SponsorTier } from '@/lib/sponsor-tiers'
 import PublicNav from '@/components/PublicNav'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 // ── Types ────────────────────────────────────────────────────
-type SponsorTier = 'title' | 'platinum' | 'gold' | 'silver' | 'brass' | 'collectible_coin' | 'vip_bag' | 'collectors_choice' | 'artist_lounge' | 'rafter_banner'
 
-const TIER_INFO: Record<SponsorTier, { label: string; color: string; amount: number; group: 'main' | 'individual' }> = {
-  title:             { label: 'Title Sponsor',         color: '#ffd700', amount: 2000000, group: 'main' },
-  platinum:          { label: 'Platinum',               color: '#e5e4e2', amount: 800000,  group: 'main' },
-  gold:              { label: 'Gold',                   color: '#C4A882', amount: 300000,  group: 'main' },
-  silver:            { label: 'Silver',                 color: '#a8a8a8', amount: 100000,  group: 'main' },
-  brass:             { label: 'Brass',                  color: '#cd7f32', amount: 50000,   group: 'main' },
-  collectible_coin:  { label: 'Collectible Coin',       color: '#C4A882', amount: 250000,  group: 'individual' },
-  vip_bag:           { label: 'VIP Bag',                color: '#C4A882', amount: 150000,  group: 'individual' },
-  collectors_choice: { label: "Collector's Choice",     color: '#C4A882', amount: 150000,  group: 'individual' },
-  artist_lounge:     { label: 'Artist Lounge',          color: '#C4A882', amount: 100000,  group: 'individual' },
-  rafter_banner:     { label: 'Rafter Banner',          color: '#C4A882', amount: 75000,   group: 'individual' },
-}
 
-const ALL_TIERS: SponsorTier[] = ['title', 'platinum', 'gold', 'silver', 'brass', 'collectible_coin', 'vip_bag', 'collectors_choice', 'artist_lounge', 'rafter_banner']
-const MAIN_TIERS = ALL_TIERS.filter(t => TIER_INFO[t].group === 'main')
-const INDIVIDUAL_ITEMS = ALL_TIERS.filter(t => TIER_INFO[t].group === 'individual')
 
 // ── Perks per tier/item ──────────────────────────────────────
 const TIER_PERKS: Record<SponsorTier, string[]> = {

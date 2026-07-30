@@ -899,7 +899,10 @@ export type Database = {
     }
     Functions: {
       is_admin: { Args: never; Returns: boolean }
-      /** Migration 027 — aggregate tier counts without exposing pending rows. */
+      /** Migration 035 — atomic lifecycle transitions (service_role only). */
+      expire_application: { Args: { p_application_id: string }; Returns: undefined }
+      cancel_application: { Args: { p_application_id: string }; Returns: undefined }
+      /** Migration 030 — aggregate tier counts without exposing pending rows. */
       sponsor_tier_counts: {
         Args: { p_event_id: string }
         Returns: { tier: string; taken: number }[]

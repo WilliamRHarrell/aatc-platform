@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
+import { SPONSOR_TIERS as TIER_INFO, ALL_TIERS, type SponsorTier } from '@/lib/sponsor-tiers'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { requestRevalidate } from '@/lib/revalidate'
 
-type SponsorTier = 'title' | 'platinum' | 'gold' | 'silver' | 'brass' | 'collectible_coin' | 'vip_bag' | 'collectors_choice' | 'artist_lounge' | 'rafter_banner'
 type SponsorStatus = 'pending' | 'confirmed' | 'cancelled'
 
 interface Sponsorship {
@@ -42,20 +42,7 @@ interface SponsorInvoice {
   created_at: string
 }
 
-const TIER_INFO: Record<SponsorTier, { label: string; color: string; amount: number; group: 'main' | 'individual' }> = {
-  title:             { label: 'Title Sponsor',         color: '#ffd700', amount: 2000000, group: 'main' },
-  platinum:          { label: 'Platinum',               color: '#e5e4e2', amount: 800000,  group: 'main' },
-  gold:              { label: 'Gold',                   color: '#C4A882', amount: 300000,  group: 'main' },
-  silver:            { label: 'Silver',                 color: '#a8a8a8', amount: 100000,  group: 'main' },
-  brass:             { label: 'Brass',                  color: '#cd7f32', amount: 50000,   group: 'main' },
-  collectible_coin:  { label: 'Collectible Coin',       color: '#C4A882', amount: 250000,  group: 'individual' },
-  vip_bag:           { label: 'VIP Bag',                color: '#C4A882', amount: 150000,  group: 'individual' },
-  collectors_choice: { label: "Collector's Choice",     color: '#C4A882', amount: 150000,  group: 'individual' },
-  artist_lounge:     { label: 'Artist Lounge',          color: '#C4A882', amount: 100000,  group: 'individual' },
-  rafter_banner:     { label: 'Rafter Banner',          color: '#C4A882', amount: 75000,   group: 'individual' },
-}
 
-const ALL_TIERS: SponsorTier[] = ['title', 'platinum', 'gold', 'silver', 'brass', 'collectible_coin', 'vip_bag', 'collectors_choice', 'artist_lounge', 'rafter_banner']
 
 const STATUS_STYLE: Record<SponsorStatus, { bg: string; color: string }> = {
   pending:   { bg: 'rgba(234,179,8,0.15)',  color: '#eab308' },

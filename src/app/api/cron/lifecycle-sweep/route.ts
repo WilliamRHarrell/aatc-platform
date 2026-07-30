@@ -65,8 +65,15 @@ export async function GET(req: Request) {
     .is('invoices.deposit_paid_at', null)
 
   for (const app of toExpire ?? []) {
-    await supabase.from('applications').update({ status: 'expired' }).eq('id', app.id)
-    await supabase.from('booths').update({ application_id: null, status: 'available' }).eq('application_id', app.id)
+    // One RPC, one transaction (migration 035). Previously two round trips:
+    // a failure between them left the application expired with its booth still
+    // assigned — held by an expired application, invisible to both the
+    // available-booths view and the exhibitor.
+    const { error } = await supabase.rpc('expire_application', { p_application_id: app.id })
+    if (error) {
+      console.error(`[sweep] expire_application failed for ${app.id}: ${error.message}`)
+      continue
+    }
     await sendEmail('expiration', app.id)
     summary.expired++
   }
@@ -82,8 +89,11 @@ export async function GET(req: Request) {
   for (const app of toCancel ?? []) {
     const inv = Array.isArray(app.invoices) ? app.invoices[0] : app.invoices
     const forfeited = inv?.amount_paid ?? 0
-    await supabase.from('applications').update({ status: 'canceled' }).eq('id', app.id)
-    await supabase.from('booths').update({ application_id: null, status: 'available' }).eq('application_id', app.id)
+    const { error } = await supabase.rpc('cancel_application', { p_application_id: app.id })
+    if (error) {
+      console.error(`[sweep] cancel_application failed for ${app.id}: ${error.message}`)
+      continue
+    }
     await sendEmail('cancellation', app.id, { depositForfeited: forfeited })
     summary.canceled++
   }

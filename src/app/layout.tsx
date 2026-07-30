@@ -3,6 +3,7 @@ import { ROBOTS_META } from '@/lib/site'
 import { Playfair_Display, Inter } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 import SiteFooter from '@/components/SiteFooter'
+import FooterSponsors from '@/components/FooterSponsors'
 import './globals.css'
 
 const playfair = Playfair_Display({
@@ -65,7 +66,7 @@ export default function RootLayout({
         <div className="relative z-10">
           {children}
 
-          <SiteFooter />
+          <SiteFooter sponsors={<FooterSponsors />} />
         </div>
         <Toaster
           position="top-right"
