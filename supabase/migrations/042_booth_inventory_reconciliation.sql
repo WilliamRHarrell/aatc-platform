@@ -23,4 +23,18 @@ update booths set is_sellable = false, house_use = 'Does not exist on the floor 
 
 create index if not exists booths_sellable_idx on booths (event_id, is_sellable) where is_sellable;
 
+-- Defence in depth. booth_publicly_visible() takes an APPLICATION id, so it
+-- cannot see the booth's own flags. Today a house booth is excluded only
+-- because application_id is null — meaning one mis-assignment in /admin/booths
+-- would publish the Help Desk as an exhibitor booth. The policy now checks the
+-- booth itself, so that cannot happen regardless of assignment.
+drop policy if exists "booths: public read deposit-paid" on booths;
+create policy "booths: public read deposit-paid"
+  on booths for select to anon, authenticated
+  using (
+    application_id is not null
+    and is_sellable
+    and public.booth_publicly_visible(application_id)
+  );
+
 commit;
