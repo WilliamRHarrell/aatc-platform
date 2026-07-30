@@ -73,6 +73,22 @@ things worse, not better.
 - [ ] Decide Tattoo Goo: paying Gold or trade/in-kind. Variants ready in
       [teardown_test_event_content.sql](../supabase/seeds/teardown_test_event_content.sql).
 
+### GRANDFATHERED PRICES — do not "correct" these
+
+Two records sit below current packet pricing **on purpose**. They are historical
+commitments honoured at the price agreed, not data errors. Anyone auditing
+sponsorship revenue against the July 2026 packet will find them and should leave
+them alone.
+
+| Record | Held at | Current packet | Why |
+|---|---|---|---|
+| Tattoo Goo sponsorship `32ef207d` + invoice `d5f1c5f3` | **$3,000** | Gold $5,000 | Invoiced March 2026, before the 13 July 2026 increase |
+| VIP Bag sponsorship (any sold pre-July) | **$800** | $1,500 | Priced before the packet correction |
+
+The July packet raised every main tier (Title $20k→$25k, Platinum $8k→$10k,
+Gold $3k→$5k, Silver $1k→$2.5k, Brass $500→$1k). Individual items were
+unchanged. Any sponsorship invoiced before 13 July 2026 is grandfathered.
+
 ## D. Content that must be real before launch
 
 - [ ] Ticketmaster links (≈ October 2026) — then set `ticket_sales_live` and
@@ -108,9 +124,9 @@ Not blockers, but recorded so they are decisions rather than surprises.
   `/directory/[id]`. The copy doc requires artist profiles to be server-rendered
   with per-artist meta and `Person` schema.
 - **Flag background is a PNG**, not WebP/AVIF.
-- **Sponsor tier prices may be stale.** Code has Gold at $3,000; the July packet
-  reportedly raised it to $5,000. [sponsor-tiers.ts](../src/lib/sponsor-tiers.ts)
-  is now the single source — update it there, not in three places.
+- **Sponsor tier prices are current** as of the 13 July 2026 packet, held in
+  [sponsor-tiers.ts](../src/lib/sponsor-tiers.ts) as the single source. Update
+  there only — the display strings on `/sponsors/packages` are derived.
 - **Lighthouse and WCAG AA contrast unverified** (gold on the flag texture).
 
 ## F. Post-cutover

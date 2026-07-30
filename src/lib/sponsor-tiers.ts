@@ -18,19 +18,40 @@ export interface TierDef {
   amount: number            // cents
   group: 'main' | 'individual'
   limit?: number            // max sellable; absent = unlimited
+  /** Commitment deadline (ISO date). Individual items only — production lead time. */
+  deadline?: string
 }
 
+/**
+ * Prices per the sponsorship packet of 13 July 2026.
+ *
+ * The main tiers were all increased in that packet; the individual items were
+ * unchanged. Sponsorships invoiced BEFORE the increase are grandfathered at the
+ * old price and are not errors — see docs/CUTOVER.md.
+ */
 export const SPONSOR_TIERS: Record<SponsorTier, TierDef> = {
-  title:             { label: 'Title Sponsor',          color: '#ffd700', amount: 2000000, group: 'main', limit: 1 },
-  platinum:          { label: 'Platinum',               color: '#e5e4e2', amount: 800000,  group: 'main' },
-  gold:              { label: 'Gold',                   color: '#C4A882', amount: 300000,  group: 'main' },
-  silver:            { label: 'Silver',                 color: '#a8a8a8', amount: 100000,  group: 'main' },
-  brass:             { label: 'Brass',                  color: '#cd7f32', amount: 50000,   group: 'main' },
-  collectible_coin:  { label: 'Collectible Coin',       color: '#C4A882', amount: 250000,  group: 'individual', limit: 1 },
-  vip_bag:           { label: 'VIP Bag',                color: '#C4A882', amount: 150000,  group: 'individual' },
-  collectors_choice: { label: "Collector's Choice",     color: '#C4A882', amount: 150000,  group: 'individual' },
-  artist_lounge:     { label: 'Artist Lounge',          color: '#C4A882', amount: 100000,  group: 'individual' },
-  rafter_banner:     { label: 'Rafter Banner',          color: '#C4A882', amount: 75000,   group: 'individual' },
+  title:             { label: 'Title Sponsor',          color: '#ffd700', amount: 2500000, group: 'main', limit: 1 },
+  platinum:          { label: 'Platinum',               color: '#e5e4e2', amount: 1000000, group: 'main' },
+  gold:              { label: 'Gold',                   color: '#C4A882', amount: 500000,  group: 'main' },
+  silver:            { label: 'Silver',                 color: '#a8a8a8', amount: 250000,  group: 'main' },
+  brass:             { label: 'Brass',                  color: '#cd7f32', amount: 100000,  group: 'main' },
+
+  // Individual items — unchanged in the July packet. Each carries a commitment
+  // deadline driven by production lead time (coins struck, banners printed).
+  collectible_coin:  { label: 'Collectible Coin',       color: '#C4A882', amount: 250000,  group: 'individual', limit: 1, deadline: '2027-01-01' },
+  rafter_banner:     { label: 'Rafter Banner',          color: '#C4A882', amount: 75000,   group: 'individual', deadline: '2027-02-01' },
+  vip_bag:           { label: 'VIP Bag',                color: '#C4A882', amount: 150000,  group: 'individual', deadline: '2027-02-15' },
+  collectors_choice: { label: "Collector's Choice",     color: '#C4A882', amount: 150000,  group: 'individual', deadline: '2027-02-15' },
+  artist_lounge:     { label: 'Artist Lounge',          color: '#C4A882', amount: 100000,  group: 'individual', deadline: '2027-03-01' },
+}
+
+/** Human-readable deadline, e.g. "January 1, 2027". Empty for main tiers. */
+export function tierDeadline(tier: SponsorTier): string {
+  const d = SPONSOR_TIERS[tier].deadline
+  if (!d) return ''
+  return new Date(`${d}T12:00:00Z`).toLocaleDateString('en-US', {
+    month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC',
+  })
 }
 
 export const ALL_TIERS = Object.keys(SPONSOR_TIERS) as SponsorTier[]

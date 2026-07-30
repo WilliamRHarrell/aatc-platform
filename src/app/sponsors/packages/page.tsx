@@ -1,23 +1,40 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { SPONSOR_TIERS, tierPrice, tierDeadline, type SponsorTier } from '@/lib/sponsor-tiers'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import PublicNav from '@/components/PublicNav'
 
+/**
+ * Only the marketing perk copy lives here. name, price, colour, group and the
+ * sell limit are derived from lib/sponsor-tiers.ts — this page previously kept
+ * its own `price: '$20,000'` strings, which is how it came to advertise Gold at
+ * $3,000 against a $5,000 packet.
+ */
 interface TierPackage {
-  name: string
-  tier: string
-  price: string
-  color: string
+  tier: SponsorTier
   perks: string[]
-  group: 'main' | 'individual'
-  limit?: number
 }
 
-const PACKAGES: TierPackage[] = [
+/** Derived view of a package for rendering. */
+function pkgView(p: TierPackage) {
+  const def = SPONSOR_TIERS[p.tier]
+  return {
+    tier: p.tier,
+    perks: p.perks,
+    name: def.label,
+    price: tierPrice(p.tier),
+    color: def.color,
+    group: def.group,
+    limit: def.limit,
+    deadline: tierDeadline(p.tier),
+  }
+}
+
+const PACKAGE_PERKS: TierPackage[] = [
   {
-    name: 'Title Sponsor', tier: 'title', price: '$20,000', color: '#ffd700', group: 'main', limit: 1,
+    tier: 'title',
     perks: [
       'Four (4) 10\'x10\' booths at the main entrance',
       'Logo on all social media graphics leading up to the event',
@@ -33,7 +50,7 @@ const PACKAGES: TierPackage[] = [
     ],
   },
   {
-    name: 'Platinum', tier: 'platinum', price: '$8,000', color: '#e5e4e2', group: 'main',
+    tier: 'platinum',
     perks: [
       'Two (2) 10\'x10\' booths at the entrance',
       'Logo on most printed material including souvenir signature poster',
@@ -46,7 +63,7 @@ const PACKAGES: TierPackage[] = [
     ],
   },
   {
-    name: 'Gold', tier: 'gold', price: '$3,000', color: '#C4A882', group: 'main',
+    tier: 'gold',
     perks: [
       'Two (2) 10\'x10\' booths',
       'Banner placement in the main entrance',
@@ -58,7 +75,7 @@ const PACKAGES: TierPackage[] = [
     ],
   },
   {
-    name: 'Silver', tier: 'silver', price: '$1,000', color: '#a8a8a8', group: 'main',
+    tier: 'silver',
     perks: [
       'One (1) 10\'x10\' vendor only booth',
       'Banner placement in the main entrance',
@@ -69,7 +86,7 @@ const PACKAGES: TierPackage[] = [
     ],
   },
   {
-    name: 'Brass', tier: 'brass', price: '$500', color: '#cd7f32', group: 'main',
+    tier: 'brass',
     perks: [
       'Table presence at the entrance (manned or unmanned)',
       'Ad in the event guide and sponsor page',
@@ -78,7 +95,7 @@ const PACKAGES: TierPackage[] = [
     ],
   },
   {
-    name: 'Collectible Coin Sponsor', tier: 'collectible_coin', price: '$2,500', color: '#C4A882', group: 'individual', limit: 1,
+    tier: 'collectible_coin',
     perks: [
       'Your logo on the collectible AATC Challenge coin (one side AATC, one side sponsor)',
       'Coin included in every artist and vendor booth package',
@@ -86,7 +103,7 @@ const PACKAGES: TierPackage[] = [
     ],
   },
   {
-    name: 'VIP Bag Sponsor', tier: 'vip_bag', price: '$1,500', color: '#C4A882', group: 'individual',
+    tier: 'vip_bag',
     perks: [
       'Your logo printed on every VIP bag',
       'Place materials inside every VIP bag',
@@ -95,7 +112,7 @@ const PACKAGES: TierPackage[] = [
     ],
   },
   {
-    name: "Collector's Choice Sponsor", tier: 'collectors_choice', price: '$1,500', color: '#C4A882', group: 'individual',
+    tier: 'collectors_choice',
     perks: [
       'Your logo on every vote page of our website',
       'Award named after your company',
@@ -105,7 +122,7 @@ const PACKAGES: TierPackage[] = [
     ],
   },
   {
-    name: 'Artist Lounge Sponsor', tier: 'artist_lounge', price: '$1,000', color: '#C4A882', group: 'individual',
+    tier: 'artist_lounge',
     perks: [
       'VIP access to the artist lounge for up to 25 guests',
       'The lounge will be named after your company for the event',
@@ -113,7 +130,7 @@ const PACKAGES: TierPackage[] = [
     ],
   },
   {
-    name: 'Rafter Banner', tier: 'rafter_banner', price: '$750', color: '#C4A882', group: 'individual',
+    tier: 'rafter_banner',
     perks: [
       'Hang a 15\'x25\' banner above your booth or along the wall',
       'Includes banner printing and hanging fee',
@@ -121,6 +138,8 @@ const PACKAGES: TierPackage[] = [
     ],
   },
 ]
+
+const PACKAGES = PACKAGE_PERKS.map(pkgView)
 
 export default function SponsorPackagesPage() {
   const supabase = createClient()
@@ -219,6 +238,11 @@ export default function SponsorPackagesPage() {
                     <h4 className="font-display text-lg font-bold" style={{ color: pkg.color }}>{pkg.name}</h4>
                     <span className="text-lg font-bold text-white">{pkg.price}</span>
                   </div>
+                  {pkg.deadline && (
+                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#8B7355' }}>
+                      Commit by {pkg.deadline}
+                    </p>
+                  )}
                   {pkg.limit && (
                     <p className="mb-2 text-xs font-semibold" style={{ color: '#ef4444' }}>
                       Limited — only {pkg.limit} available
