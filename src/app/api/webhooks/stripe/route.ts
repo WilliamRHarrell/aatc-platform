@@ -16,6 +16,45 @@ function adminSupabase() {
   )
 }
 
+
+/**
+ * Page a human. A payment succeeding in Stripe with no matching invoice row is
+ * the one failure here that silently loses money, so it must not end its life
+ * as a log line nobody reads. Uses the existing Resend setup rather than adding
+ * a dependency, and never throws — an alert failure must not mask the original.
+ */
+async function alertPaymentNotRecorded(d: {
+  invoiceId: string; sessionId: string; amountCents: number
+}) {
+  const to = process.env.PAYMENT_ALERT_EMAIL ?? process.env.RESEND_FROM_EMAIL
+  if (!process.env.RESEND_API_KEY || !to) {
+    console.error('[stripe] alert NOT sent — RESEND_API_KEY / PAYMENT_ALERT_EMAIL unset')
+    return
+  }
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      },
+      body: JSON.stringify({
+        from: process.env.RESEND_FROM_EMAIL,
+        to,
+        subject: `[AATC] PAYMENT NOT RECORDED — invoice ${d.invoiceId}`,
+        text:
+          'A Stripe payment succeeded but no invoice row was updated.\n\n' +
+          `invoice_id     ${d.invoiceId}\n` +
+          `stripe_session ${d.sessionId}\n` +
+          `amount         $${(d.amountCents / 100).toFixed(2)}\n\n` +
+          'The money is in Stripe. Reconcile the invoice by hand.',
+      }),
+    })
+  } catch (e) {
+    console.error('[stripe] alert send failed:', e)
+  }
+}
+
 export async function POST(req: Request) {
   const body = await req.text()
   const sig = req.headers.get('stripe-signature')
@@ -85,14 +124,33 @@ export async function POST(req: Request) {
         updateData.paid_at = nowIso
       }
 
-      const { error } = await supabase
+      // .select() is mandatory here. Service role means RLS cannot filter this,
+      // but a predicate that simply does not match — invoice deleted, wrong id
+      // in metadata — still returns zero rows with NO error. That is money taken
+      // in Stripe and nothing recorded against it, and Stripe would see a 200
+      // and never retry.
+      const { data: updated, error } = await supabase
         .from('invoices')
         .update(updateData)
         .eq('id', invoiceId)
+        .select('id, amount, amount_paid, status')
 
       if (error) {
-        console.error('Failed to update invoice payment:', error)
+        console.error('[stripe] invoice update FAILED:', error)
         return NextResponse.json({ error: 'DB update failed' }, { status: 500 })
+      }
+
+      if (!updated || updated.length === 0) {
+        // Return 500 deliberately: Stripe retries on non-2xx, so a transient
+        // cause self-heals and a permanent one keeps alerting rather than
+        // disappearing after one silent success.
+        console.error(
+          `[stripe] PAYMENT NOT RECORDED — invoice ${invoiceId} matched 0 rows. ` +
+          `Session ${session.id}, amount ${payAmount}. Money is in Stripe and the ` +
+          'database was not updated. Reconcile manually.'
+        )
+        await alertPaymentNotRecorded({ invoiceId, sessionId: session.id, amountCents: payAmount })
+        return NextResponse.json({ error: 'Invoice not found for payment' }, { status: 500 })
       }
 
       console.log(`Invoice ${invoiceId}: ${fullyPaid ? 'paid in full' : `partial payment of ${payAmount} cents`} via Stripe session ${session.id}`)

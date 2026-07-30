@@ -128,11 +128,20 @@ export default function VotingBoard({
     setVoting(entry.id)
 
     const token = getVoterToken()
-    const { error } = await supabase.from('contest_votes').insert({
-      entry_id: entry.id,
-      contest_id: contest.id,
-      voter_token: token,
-    })
+    // .select() is required: this runs on the show floor with no developer
+    // present, and a silently-dropped insert means uncounted votes and a
+    // contest-integrity problem in front of the artists.
+    const { data: inserted, error } = await supabase
+      .from('contest_votes')
+      .insert({ entry_id: entry.id, contest_id: contest.id, voter_token: token })
+      .select('id')
+
+    if (!error && (!inserted || inserted.length === 0)) {
+      console.error(`[vote] 0 rows inserted for entry ${entry.id} — no error returned`)
+      toast.error('Your vote did not register. Please try again.')
+      setVoting(null)
+      return
+    }
 
     if (error) {
       if (error.code === '23505') {
@@ -144,7 +153,7 @@ export default function VotingBoard({
     } else {
       setChoices(prev => ({ ...prev, [contest.id]: entry.id }))
       saveChoice(contest.id, entry.id)
-      toast.success('Vote cast!')
+      toast.success(`Vote recorded for ${entry.collector_name}`)
     }
     setVoting(null)
   }

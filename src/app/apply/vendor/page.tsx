@@ -304,7 +304,8 @@ export default function VendorApplyPage() {
       veteranIdUrl = vetUpload.path
     }
 
-    const { error } = await supabase.from('applications').insert({
+    // .select() so a zero-row insert cannot look like a successful application.
+    const { data: insRows, error } = await supabase.from('applications').insert({
       event_id: event.id,
       user_id: user.id,
       exhibitor_type: 'vendor' as const,
@@ -331,13 +332,19 @@ export default function VendorApplyPage() {
       veteran_id_url: veteranIdUrl,
       notes: details.notes || null,
       status: 'pending' as const,
-    })
+    }).select('id')
 
     if (error) {
       toast.error('Failed to submit application. Please try again.')
       setSubmitting(false)
       return
     }
+    if (!error && (!insRows || insRows.length === 0)) {
+      console.error('[vendor application] 0 rows inserted — no error returned')
+      toast.error('Nothing was saved. Please try again or contact us.')
+      return
+    }
+
 
     setSubmitted(true)
   }

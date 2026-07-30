@@ -250,29 +250,12 @@ function PortalContent() {
         if (ftInv) setFoodTruckInvoice(ftInv as Invoice)
       }
 
-      if (!app && !sponData) {
-        const { data: emailMatch } = await supabase
-          .from('sponsorships')
-          .select('id')
-          .eq('email', user.email!)
-          .eq('status', 'confirmed')
-          .is('user_id', null)
-          .single()
-
-        if (emailMatch) {
-          // Was a silent no-op: sponsorships has no owner UPDATE policy, so
-          // RLS filtered this to zero rows and PostgREST returned no error.
-          // Reloading on a failed claim would loop forever.
-          const claim = await guardedWrite(
-            supabase.from('sponsorships').update({ user_id: user.id }).eq('id', emailMatch.id).select('id'),
-            'Could not link your sponsorship',
-            'sponsor self-claim',
-          )
-          if (claim.ok) { window.location.reload(); return }
-          setLoading(false)
-          return
-        }
-      }
+      // Sponsor self-claim removed. It matched on email alone with no
+      // verification, which is the wrong mechanism for something granting
+      // access to negotiated amounts and contact details — and it never worked
+      // anyway, because sponsorships has no owner UPDATE policy, so RLS
+      // filtered it to zero rows silently. With ~15 sponsors it does not need
+      // to scale: an admin links the account from /admin/sponsorships.
 
       if (!app) { setLoading(false); return }
       setApplications((allApps ?? []) as unknown as Application[])
@@ -381,13 +364,18 @@ function PortalContent() {
         : ar
     )
 
-    const { error } = await supabase
+    const { data: rows, error } = await supabase
       .from('applications')
       .update({ artists: updatedArtists as never })
       .eq('id', application.id)
+      .select('id')
 
     if (error) {
       toast.error('Failed to save artist info')
+    } else if (!rows || rows.length === 0) {
+      // Zero rows with no error = RLS filtered it (see migration 041).
+      console.error('[portal] artist edit affected 0 rows — no error returned')
+      toast.error('Nothing was saved. Please contact us if this keeps happening.')
     } else {
       setApplication(prev => prev ? { ...prev, artists: updatedArtists } : prev)
       setEditingArtistIdx(null)
@@ -404,7 +392,11 @@ function PortalContent() {
     const { data, error } = await supabase.storage.from('exhibitor-media').upload(path, file)
     if (error || !data) { toast.error('Failed to upload logo'); return }
     const { data: urlData } = supabase.storage.from('exhibitor-media').getPublicUrl(data.path)
-    await supabase.from('sponsorships').update({ logo_url: urlData.publicUrl }).eq('id', sponsorship.id)
+    await guardedWrite(
+      supabase.from('sponsorships').update({ logo_url: urlData.publicUrl }).eq('id', sponsorship.id).select('id'),
+      'Could not save your logo',
+      'sponsor logo upload',
+    )
     setSponsorship(prev => prev ? { ...prev, logo_url: urlData.publicUrl } : null)
     toast.success('Logo updated')
   }

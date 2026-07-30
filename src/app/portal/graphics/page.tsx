@@ -116,7 +116,7 @@ export default function PortalGraphicsPage() {
         vertPaths.push(await uploadBlob(user.id, vertBlobs[i], `vt${i + 1}`))
       }
 
-      const { error } = await supabase.from('aatc_submissions').insert({
+      const { data: subRows, error } = await supabase.from('aatc_submissions').insert({
         exhibitor_id: user.id,
         artist_name: name,
         instagram_handle: ig.replace(/^@/, ''),
@@ -124,8 +124,12 @@ export default function PortalGraphicsPage() {
         vertical_paths: vertPaths,
         caption: buildCaption(name, ig),
         status: 'submitted',
-      })
+      }).select('id')
       if (error) throw error
+      if (!subRows || subRows.length === 0) {
+        console.error('[graphics submission] 0 rows inserted — no error returned')
+        throw new Error('Nothing was saved. Please try again or contact us.')
+      }
 
       toast.success('Sent to AATC! We’ll review and post it.')
       // reset the working set, keep name/IG for convenience
@@ -134,7 +138,8 @@ export default function PortalGraphicsPage() {
       loadMine(user.id)
     } catch (e: any) {
       toast.error(e.message ?? 'Submission failed')
-    } finally {
+    }
+ finally {
       setBusy(false); setStatus('')
     }
   }

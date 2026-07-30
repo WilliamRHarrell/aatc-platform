@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { guardedWrite } from '@/lib/db-write'
 import { ARTIST_BOOTH_OPTIONS as ARTIST_BOOTHS, addOnOptions, VETERAN_DISCOUNT_LABEL, PERMIT_FEE_LABEL, CORNER_FEE_LABEL } from '@/lib/pricing'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
@@ -478,7 +479,11 @@ export default function ArtistApplyPage() {
         }
         updatedArtists[i] = { ...updatedArtists[i], portfolio_urls: urls }
       }
-      await supabase.from('applications').update({ artists: updatedArtists }).eq('id', appRow.id)
+      await guardedWrite(
+        supabase.from('applications').update({ artists: updatedArtists }).eq('id', appRow.id).select('id'),
+        'Could not save your artist details',
+        'apply/artist roster',
+      )
     }
 
     setSubmitted(true)

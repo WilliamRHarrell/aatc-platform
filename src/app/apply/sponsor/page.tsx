@@ -229,7 +229,8 @@ export default function SponsorApplicationPage() {
       // Additional items (individual items selected alongside the tier)
       const additionalItems = form.items.length > 0 ? form.items : []
 
-      const { error: insertErr } = await supabase.from('sponsorships').insert({
+      // .select() so a zero-row insert cannot look like a successful application.
+      const { data: insRows, error: insertErr } = await supabase.from('sponsorships').insert({
         event_id: event.id,
         sponsor_name: form.sponsor_name.trim(),
         contact_name: form.contact_name.trim(),
@@ -244,13 +245,19 @@ export default function SponsorApplicationPage() {
         notes: form.notes.trim() || null,
         additional_items: additionalItems,
         status: 'pending',
-      })
+      }).select('id')
 
       if (insertErr) {
         console.error(insertErr)
         toast.error('Submission failed. Please try again.')
         return
       }
+    if (!insertErr && (!insRows || insRows.length === 0)) {
+      console.error('[sponsorship application] 0 rows inserted — no error returned')
+      toast.error('Nothing was saved. Please try again or contact us.')
+      return
+    }
+
 
       setSubmittedEmail(form.email.trim())
       setSubmitted(true)

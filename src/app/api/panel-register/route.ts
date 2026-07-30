@@ -43,7 +43,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (panel.signup_type === 'free_registration') {
-      const { error: insertError } = await supabase
+      // .select() required — a zero-row insert returns no error, and a
+      // registration that silently vanishes is a seat nobody knows was claimed.
+      const { data: reg, error: insertError } = await supabase
         .from('panel_registrations')
         .insert({
           panel_id: panelId,
@@ -54,6 +56,12 @@ export async function POST(req: NextRequest) {
           attendee_type: attendeeType || 'patron',
           payment_status: 'na',
         })
+        .select('id')
+
+      if (!insertError && (!reg || reg.length === 0)) {
+        console.error(`[panel-register] 0 rows inserted for panel ${panelId} — no error returned`)
+        return NextResponse.json({ error: 'Registration did not save. Please try again.' }, { status: 500 })
+      }
 
       if (insertError) {
         console.error('Panel registration insert error:', insertError)
