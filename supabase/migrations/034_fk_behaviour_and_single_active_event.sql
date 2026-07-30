@@ -5,6 +5,11 @@
 -- SET NULL relationships were found by accident during teardowns, which is the
 -- wrong way to discover them.
 --
+-- FULLY IDEMPOTENT. Every FK is `drop constraint if exists` then `add`, the
+-- index is `create unique index if not exists`, and the pre-flight active-event
+-- count tolerates the constraint already existing. Safe to re-run after the
+-- first attempt rolled back.
+--
 -- NOT CHANGED, deliberately:
 --   booths.application_id -> applications  SET NULL
 --     The FK is right: releasing a booth when an application goes away is
@@ -98,30 +103,50 @@ comment on index events_one_active_idx is
   'At most one event may have is_active = true. Partial unique index — inactive rows are unconstrained.';
 
 -- ── Acceptance check ────────────────────────────────────────
+-- Rewritten after the first attempt failed with 42725 (operator is not unique:
+-- text || "char"). pg_constraint.confdeltype is type "char", not text, so the
+-- concatenation in the original had no unambiguous operator.
+--
+-- Deliberately boring now: four explicit lookups, no aggregation, no string
+-- building, and every catalog value cast to text before it reaches a message.
+-- The previous version was doing clever set comparison inside a guard whose
+-- whole job is to be more reliable than the thing it guards.
 do $$
 declare
-  v_expected text[] := array[
-    'exhibitors_booth_id_fkey:c',
-    'invoices_food_truck_id_fkey:c',
-    'invoices_sponsorship_id_fkey:c',
-    'page_content_updated_by_fkey:n'
-  ];
-  v_actual text[];
+  v_rule "char";
 begin
-  select array_agg(conname || ':' || confdeltype order by conname)
-    into v_actual
-    from pg_constraint
-   where contype = 'f'
-     and conname in (
-       'invoices_food_truck_id_fkey',
-       'invoices_sponsorship_id_fkey',
-       'exhibitors_booth_id_fkey',
-       'page_content_updated_by_fkey'
-     );
-
   -- confdeltype: c = CASCADE, n = SET NULL, a = NO ACTION, r = RESTRICT
-  if v_actual is distinct from (select array_agg(x order by x) from unnest(v_expected) x) then
-    raise exception 'Migration 034 FAILED: FK delete rules are %, expected %.', v_actual, v_expected;
+
+  select confdeltype into v_rule from pg_constraint
+   where conrelid = 'public.invoices'::regclass
+     and conname  = 'invoices_food_truck_id_fkey';
+  if v_rule is distinct from 'c'::"char" then
+    raise exception 'Migration 034 FAILED: invoices.food_truck_id delete rule is %, expected c (CASCADE).',
+      coalesce(v_rule::text, 'missing');
+  end if;
+
+  select confdeltype into v_rule from pg_constraint
+   where conrelid = 'public.invoices'::regclass
+     and conname  = 'invoices_sponsorship_id_fkey';
+  if v_rule is distinct from 'c'::"char" then
+    raise exception 'Migration 034 FAILED: invoices.sponsorship_id delete rule is %, expected c (CASCADE).',
+      coalesce(v_rule::text, 'missing');
+  end if;
+
+  select confdeltype into v_rule from pg_constraint
+   where conrelid = 'public.exhibitors'::regclass
+     and conname  = 'exhibitors_booth_id_fkey';
+  if v_rule is distinct from 'c'::"char" then
+    raise exception 'Migration 034 FAILED: exhibitors.booth_id delete rule is %, expected c (CASCADE).',
+      coalesce(v_rule::text, 'missing');
+  end if;
+
+  select confdeltype into v_rule from pg_constraint
+   where conrelid = 'public.page_content'::regclass
+     and conname  = 'page_content_updated_by_fkey';
+  if v_rule is distinct from 'n'::"char" then
+    raise exception 'Migration 034 FAILED: page_content.updated_by delete rule is %, expected n (SET NULL).',
+      coalesce(v_rule::text, 'missing');
   end if;
 
   if not exists (
