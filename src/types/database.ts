@@ -267,6 +267,10 @@ export type Database = {
           created_at: string
           id: string
           photo_url: string | null
+          photo_urls: string[]
+          placement: number | null
+          placement_note: string | null
+          placed_at: string | null
         }
         Insert: {
           artist_name?: string | null
@@ -275,6 +279,10 @@ export type Database = {
           created_at?: string
           id?: string
           photo_url?: string | null
+          photo_urls?: string[]
+          placement?: number | null
+          placement_note?: string | null
+          placed_at?: string | null
         }
         Update: {
           artist_name?: string | null
@@ -283,6 +291,10 @@ export type Database = {
           created_at?: string
           id?: string
           photo_url?: string | null
+          photo_urls?: string[]
+          placement?: number | null
+          placement_note?: string | null
+          placed_at?: string | null
         }
         Relationships: [
           {

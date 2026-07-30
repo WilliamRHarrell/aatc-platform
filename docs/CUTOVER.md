@@ -216,6 +216,34 @@ badge alongside the existing hold badge.
 
 Post-launch. Worth doing before the first big-name signing rather than after.
 
+### Contest results — schema landed, public build scheduled early 2027
+
+No 2026 winners exist (the March test contests were removed in the teardown), so
+this is a 2027 feature producing nothing visible for eight months. It sits
+behind the role split, floor plan and Wall of Honor, all of which have pre-show
+deadlines.
+
+**Landed now (migration 040):** `contest_entries.placement`,
+`placement_note`, `placed_at`, `photo_urls[]`, and a partial index. So
+`/admin/contests` is ready the moment the 2027 categories are entered, and the
+public build has nothing to wait on.
+
+**Deliberately not landed:** the public view, the homepage highlight section and
+`/results/[year]`. Roughly 2.5–3 days when picked up.
+
+**Design decisions recorded so they are not relitigated:**
+- **The tattoo is the primary photo**, not a presentation shot of the winner —
+  people come for the work. Cards are built around close-crop tattoo photography
+  with varied aspect ratios, which means a masonry or intrinsic-height grid
+  rather than fixed tiles.
+- **The artist name is prominent**, not a caption. The results page doubles as a
+  recruiting tool for the following year's booths, so the artist is a headline
+  element and should link to their directory profile once those exist.
+- `photo_url` is the cover shot; `photo_urls[]` holds additional angles. Not a
+  rename — voting reads `photo_url` and runs live at the show.
+- Year derives from `contests.event_id -> events`. No year column, so 2028 needs
+  no migration.
+
 ### Helper pass — revenue not captured (post-launch, not blocking)
 
 The load-in packet sells a **$25 helper wristband** at the registration desk for
