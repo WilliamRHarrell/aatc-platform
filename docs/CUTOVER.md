@@ -68,8 +68,34 @@ things worse, not better.
 - [ ] Verify the Stripe **production** webhook endpoint and that
       `STRIPE_WEBHOOK_SECRET` matches. No payment has ever been recorded through
       the webhook, so it is unproven end to end.
-- [ ] Confirm `RESEND_FROM_EMAIL` uses a verified domain (was
-      `onboarding@resend.dev`). Until then, email delivery is restricted.
+- [!] **LAUNCH BLOCKER — no transactional email has ever reached a real
+      recipient.** `RESEND_FROM_EMAIL` is Resend's shared sandbox sender
+      `onboarding@resend.dev`, which refuses every recipient except the account
+      owner. Verified by probe: sending to
+      `allamericantattooconvention@gmail.com` returns
+
+          HTTP 403 — "You can only send testing emails to your own email
+          address (ryan@ryanharrell.com)."
+
+      **Zero domains are verified on the account.** Every approval, rejection,
+      waitlist, deposit reminder, final reminder, expiry, cancellation, sponsor
+      approval and returner invite sent to any address other than
+      ryan@ryanharrell.com has been rejected at the API. Nine templates, none
+      of them delivering.
+
+      **Interaction with the lifecycle sweep — this is the dangerous part.**
+      The sweep's safety model assumes warning emails arrive: a deposit
+      reminder at 7 days, then expiry and booth release at 30. Those emails
+      have never been delivered, and its `sendEmail()` helper does not check
+      the response, so it cannot tell. **`LIFECYCLE_SWEEP_ENABLED` must not be
+      set to true until the sending domain is verified**, or exhibitors are
+      expired and their booths released with no notice ever having reached
+      them. The kill switch is currently off, which is the only reason this has
+      not already happened.
+
+      Fix: verify `send.allamericantattooconvention.com` in Resend, then set
+      `RESEND_FROM_EMAIL` to an address on it. Does not need to wait for
+      cutover — the subdomain is independent of the live WordPress site.
 - [ ] **Tattoo Goo: awaiting their response to a Gold offer at the grandfathered
       $3,000.** Not a confirmed sponsor. Set to `status='pending'` by
       [tattoo_goo_offer.sql](../supabase/seeds/tattoo_goo_offer.sql); the accept
