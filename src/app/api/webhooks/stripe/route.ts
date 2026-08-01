@@ -26,9 +26,21 @@ function adminSupabase() {
 async function alertPaymentNotRecorded(d: {
   invoiceId: string; sessionId: string; amountCents: number
 }) {
-  const to = process.env.PAYMENT_ALERT_EMAIL ?? process.env.RESEND_FROM_EMAIL
-  if (!process.env.RESEND_API_KEY || !to) {
-    console.error('[stripe] alert NOT sent — RESEND_API_KEY / PAYMENT_ALERT_EMAIL unset')
+  // No fallback to RESEND_FROM_EMAIL. That resolved to the full
+  // `AATC 2027 <noreply@…>` string — display name and all — used as a
+  // recipient. It parses, so it sent, and a payment alert quietly delivered
+  // somewhere nobody reads is worse than one that fails loudly.
+  const to = process.env.PAYMENT_ALERT_EMAIL
+  if (!to) {
+    console.error(
+      '[stripe] ALERT NOT SENT — PAYMENT_ALERT_EMAIL is unset. A payment was ' +
+      `taken for invoice ${d.invoiceId} and NOT recorded, and nobody has been ` +
+      'told. Set PAYMENT_ALERT_EMAIL in Vercel immediately.'
+    )
+    return
+  }
+  if (!process.env.RESEND_API_KEY) {
+    console.error('[stripe] ALERT NOT SENT — RESEND_API_KEY unset.')
     return
   }
   try {

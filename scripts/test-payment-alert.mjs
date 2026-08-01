@@ -27,11 +27,11 @@ if (existsSync(`${ROOT}.env.local`)) {
 
 const key = process.env.RESEND_API_KEY
 const from = process.env.RESEND_FROM_EMAIL
-const to = process.env.PAYMENT_ALERT_EMAIL ?? from
+const to = process.env.PAYMENT_ALERT_EMAIL // no fallback — see the webhook
 
 console.log('  RESEND_API_KEY      :', key ? 'set' : 'MISSING')
 console.log('  RESEND_FROM_EMAIL   :', from ?? 'MISSING')
-console.log('  PAYMENT_ALERT_EMAIL :', process.env.PAYMENT_ALERT_EMAIL ?? `(unset — falling back to ${from})`)
+console.log('  PAYMENT_ALERT_EMAIL :', process.env.PAYMENT_ALERT_EMAIL ?? 'UNSET — the webhook will refuse to alert')
 console.log('  resolved recipient  :', to ?? 'NONE')
 
 if (!key || !from || !to) {
