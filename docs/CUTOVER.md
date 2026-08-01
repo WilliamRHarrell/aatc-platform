@@ -24,6 +24,21 @@ things worse, not better.
 - [ ] **Verify** after the flip: `curl https://allamericantattooconvention.com/robots.txt`
       shows allow-all; no `<meta name="robots" content="noindex">` on any page;
       canonical present and pointing at the real host.
+- [ ] **Cloudflare proxy layer.** DNS moved from eNom to Cloudflare and the
+      WordPress records are proxied (orange cloud). At cutover each record must
+      be repointed to Vercel and its proxy state decided.
+      - **SSL mode must be Full or Full (Strict), never Flexible.** Flexible
+        terminates TLS at Cloudflare and talks HTTP to the origin; Vercel
+        redirects HTTP to HTTPS, so Flexible produces an infinite redirect loop.
+        This is the most common Cloudflare + Vercel failure and it presents as
+        the entire site being down.
+      - Prefer **DNS-only (grey cloud)** for the Vercel records. Vercel's edge
+        already provides CDN and TLS; proxying adds a second cache to reason
+        about and can mask Vercel's headers.
+      - If the proxy stays on, disable **Auto Minify** and **Rocket Loader** for
+        the app hostnames — both rewrite JS and can break hydration.
+      - Verify: `curl -sI https://allamericantattooconvention.com` returns a
+        Vercel `x-vercel-id` header and a single 200, not a redirect chain.
 - [ ] **Freeze the URL list and build the 301 map** from every indexed WordPress
       URL to its new equivalent. Must be complete BEFORE the flip — this is the
       only thing carrying the existing domain's ranking across.
@@ -68,34 +83,29 @@ things worse, not better.
 - [ ] Verify the Stripe **production** webhook endpoint and that
       `STRIPE_WEBHOOK_SECRET` matches. No payment has ever been recorded through
       the webhook, so it is unproven end to end.
-- [!] **LAUNCH BLOCKER — no transactional email has ever reached a real
-      recipient.** `RESEND_FROM_EMAIL` is Resend's shared sandbox sender
-      `onboarding@resend.dev`, which refuses every recipient except the account
-      owner. Verified by probe: sending to
-      `allamericantattooconvention@gmail.com` returns
-
-          HTTP 403 — "You can only send testing emails to your own email
-          address (ryan@ryanharrell.com)."
-
-      **Zero domains are verified on the account.** Every approval, rejection,
-      waitlist, deposit reminder, final reminder, expiry, cancellation, sponsor
-      approval and returner invite sent to any address other than
-      ryan@ryanharrell.com has been rejected at the API. Nine templates, none
-      of them delivering.
-
-      **Interaction with the lifecycle sweep — this is the dangerous part.**
-      The sweep's safety model assumes warning emails arrive: a deposit
-      reminder at 7 days, then expiry and booth release at 30. Those emails
-      have never been delivered, and its `sendEmail()` helper does not check
-      the response, so it cannot tell. **`LIFECYCLE_SWEEP_ENABLED` must not be
-      set to true until the sending domain is verified**, or exhibitors are
-      expired and their booths released with no notice ever having reached
-      them. The kill switch is currently off, which is the only reason this has
-      not already happened.
-
-      Fix: verify `send.allamericantattooconvention.com` in Resend, then set
-      `RESEND_FROM_EMAIL` to an address on it. Does not need to wait for
-      cutover — the subdomain is independent of the live WordPress site.
+- [x] **Sending domain verified 2026-07-30.** `send.allamericantattooconvention.com`
+      — DKIM, SPF and MX green on an AATC-owned Resend account. First real
+      delivery confirmed: inbox not spam, from
+      `noreply@send.allamericantattooconvention.com`. No longer a blocker.
+- [!] **GATE — nine templates still unproven.** Until the domain was verified,
+      every transactional email was refused by the sandbox sender and no call
+      site checked the response, so nothing but the payment alert has been
+      confirmed end to end. **`LIFECYCLE_SWEEP_ENABLED` must not be set until
+      all nine are confirmed delivered** — the sweep expires applications and
+      releases booths on the assumption its warnings arrived.
+      Run: `node scripts/verify-email-templates.mjs --to <address>` then tick
+      off all nine arrivals from the inbox, spam included.
+      approved · rejected · waitlisted · deposit_reminder · final_reminder ·
+      expiration · cancellation · returner_invite · sponsor_approved
+- [ ] **Set `PAYMENT_ALERT_EMAIL`** in Vercel, all environments. There is
+      deliberately **no fallback**: with none set the webhook refuses to alert
+      and logs loudly, because an alert quietly delivered somewhere nobody reads
+      is worse than one that fails visibly.
+- [ ] Cosmetic: Gmail shows "via americantattoosociety.com" on AATC mail,
+      because the Workspace primary is ATS and AATC is a domain alias. Auth and
+      delivery are unaffected. Likely a receiving-side artifact of the alias —
+      test by sending to an address outside the Workspace before treating it as
+      a real problem.
 - [ ] **Tattoo Goo: awaiting their response to a Gold offer at the grandfathered
       $3,000.** Not a confirmed sponsor. Set to `status='pending'` by
       [tattoo_goo_offer.sql](../supabase/seeds/tattoo_goo_offer.sql); the accept
