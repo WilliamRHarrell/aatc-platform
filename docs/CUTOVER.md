@@ -97,10 +97,11 @@ things worse, not better.
       off all nine arrivals from the inbox, spam included.
       approved · rejected · waitlisted · deposit_reminder · final_reminder ·
       expiration · cancellation · returner_invite · sponsor_approved
-- [ ] **Set `PAYMENT_ALERT_EMAIL`** in Vercel, all environments. There is
-      deliberately **no fallback**: with none set the webhook refuses to alert
-      and logs loudly, because an alert quietly delivered somewhere nobody reads
-      is worse than one that fails visibly.
+- [x] **`PAYMENT_ALERT_EMAIL` set** to `accounting@allamericantattooconvention.com`
+      across all Vercel environments, delivery confirmed to inbox not spam.
+      There is deliberately **no fallback**: with none set the webhook refuses to
+      alert and logs loudly, because an alert quietly delivered somewhere nobody
+      reads is worse than one that fails visibly.
 - [ ] Cosmetic: Gmail shows "via americantattoosociety.com" on AATC mail,
       because the Workspace primary is ATS and AATC is a domain alias. Auth and
       delivery are unaffected. Likely a receiving-side artifact of the alias —

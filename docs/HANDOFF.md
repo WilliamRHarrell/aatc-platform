@@ -2,8 +2,13 @@
 
 **Last session:** 2026-08-03
 **State:** build green, 66 routes, both prebuild guards passing.
-**Git:** `develop` is **16 commits ahead of `origin/develop`** — nothing pushed
-since `98a46c8`. Everything below is committed locally.
+**Git:** see §1 — push state changes as soon as this is acted on.
+
+**Environment (confirmed):** sending domain `send.allamericantattooconvention.com`
+verified on an AATC-owned Resend account, DKIM/SPF/MX green.
+`PAYMENT_ALERT_EMAIL` = `accounting@allamericantattooconvention.com`, delivering.
+DNS is **Cloudflare**-managed (moved from eNom); WordPress records are proxied —
+see CUTOVER.md §A for the SSL-mode trap.
 
 The authoritative launch list is [CUTOVER.md](CUTOVER.md). This file is session
 state; that file is the plan.
@@ -15,22 +20,19 @@ state; that file is the plan.
 - [ ] **`git push origin develop`.** 16 commits, including the payment-alert
       guard and the full affected-rows sweep. The version running on Vercel does
       not have them.
-- [ ] **Set `PAYMENT_ALERT_EMAIL` in Vercel** (all environments) to a real
-      inbox. There is deliberately no fallback: unset, the Stripe webhook
-      refuses to alert and logs loudly. Until it is set, a payment that fails to
-      record tells nobody.
 - [ ] **Prove the nine email templates deliver.**
       `node scripts/verify-email-templates.mjs --to <address>`, then tick off all
       nine arrivals from the inbox, spam included. This is the gate on
       `LIFECYCLE_SWEEP_ENABLED` — see §4.
-- [ ] **Run `supabase/verify/verify_034.sql`.** 034 is the one migration whose
-      effect cannot be probed through PostgREST, so it is the only one not
-      independently confirmed below.
+- [ ] **Run `supabase/verify/verify_034.sql`** if you want the per-FK output on
+      record. 034 is the one migration whose effect cannot be probed through
+      PostgREST — everything else below was confirmed by direct probe.
 
 ## 2. Migration state — 027 through 042
 
-All applied and independently verified against the live database except where
-noted. Probed 2026-08-03.
+All 16 applied and verified. 027–033 and 035–042 confirmed by direct probe on
+2026-08-03; 034 confirmed by the operator (its effect is not visible through
+PostgREST).
 
 | | | |
 |---|---|---|
@@ -41,7 +43,7 @@ noted. Probed 2026-08-03.
 | 031 | harden application inserts (clamp trigger) | applied |
 | 032 | directory override | applied |
 | 033 | payment method/reference + exactly-one-parent | applied |
-| 034 | FK delete rules + one-active-event index | **unverified — run verify_034.sql** |
+| 034 | FK delete rules + one-active-event index | applied |
 | 035 | atomic expire/cancel | applied |
 | 036 | `amount_locked` | applied |
 | 037 | `hold_expires_at` | applied |
