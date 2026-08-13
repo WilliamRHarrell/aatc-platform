@@ -430,6 +430,24 @@ export async function POST(req: Request) {
       }
     }
 
+    // EVERY data read below uses the service role, never `supabase` above.
+    //
+    // `supabase` is request-scoped, and a cron caller has no session — so it
+    // reads as anon. Once invoice reads were restricted to owners (029) and anon
+    // lost SELECT on sponsorships (038), any lookup through it returned nothing,
+    // and deposit_reminder, final_reminder and sponsor_approved all failed. The
+    // lifecycle sweep does not check the response, so booths would have been
+    // released having sent no warning at all.
+    //
+    // `supabase` is for AUTH ONLY — it establishes who is calling. Authorisation
+    // is enforced above; these reads are deliberately privileged so we can email
+    // people whose rows are hidden from public reads (needs_roster, expired,
+    // canceled, pending sponsors).
+    const adminFetchClient = createClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+
     const { applicationId, sponsorshipId, status, kind, daysRemaining, depositForfeited } = await req.json() as {
       applicationId?: string
       sponsorshipId?: string
@@ -440,7 +458,7 @@ export async function POST(req: Request) {
     }
 
     if (sponsorshipId) {
-      const { data: spon } = await supabase
+      const { data: spon } = await adminFetchClient
         .from('sponsorships')
         .select('sponsor_name, email, tier, amount')
         .eq('id', sponsorshipId)
@@ -475,13 +493,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing applicationId or kind/status' }, { status: 400 })
     }
 
-    // Fetch application details via service role — bypasses RLS so we can email
-    // applicants whose row is hidden from public reads (e.g. needs_roster=true,
-    // expired, canceled). Auth was already validated above.
-    const adminFetchClient = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    )
     const { data: app } = await adminFetchClient
       .from('applications')
       .select('business_name, email, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, total_amount, deposit_due_at')
@@ -506,7 +517,7 @@ export async function POST(req: Request) {
       subject = `You're on the AATC 2027 waitlist — ${app.business_name}`
       html = waitlistedEmail(app.business_name, app.exhibitor_type)
     } else if (resolvedKind === 'deposit_reminder') {
-      const { data: inv } = await supabase
+      const { data: inv } = await adminFetchClient
         .from('invoices')
         .select('id, amount, amount_paid')
         .eq('application_id', applicationId)
@@ -521,7 +532,7 @@ export async function POST(req: Request) {
       html = depositReminderEmail(app.business_name, app.deposit_due_at, minDeposit, balance, payUrl)
     } else if (resolvedKind === 'final_reminder') {
       const days = daysRemaining ?? 0
-      const { data: inv } = await supabase
+      const { data: inv } = await adminFetchClient
         .from('invoices')
         .select('id, amount, amount_paid')
         .eq('application_id', applicationId)
