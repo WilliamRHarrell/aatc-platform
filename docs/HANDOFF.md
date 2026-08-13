@@ -17,9 +17,34 @@ state; that file is the plan.
 
 ## 1. Do these first
 
-- [ ] **`git push origin develop`.** 16 commits, including the payment-alert
-      guard and the full affected-rows sweep. The version running on Vercel does
-      not have them.
+### 1a. OPEN BUG — service_role is clamped by the 031/041 triggers
+
+Migrations 031 and 041 clamp staff-controlled columns for anyone where
+`is_admin()` is false. **`service_role` has no `auth.uid()`, so `is_admin()`
+returns false and the triggers fire against it too** — triggers are not bypassed
+by service role the way RLS is.
+
+Confirmed: inserting an application as service role with `deposit_due_at` set
+returns the row with `deposit_due_at = NULL`.
+
+**Known blast radius:** `/api/admin/import-returning` (route.ts:107-110) inserts
+applications with `status: 'approved'`, `deposit_due_at` and `final_due_at` as
+service role. All three are silently clamped, so imported returning exhibitors
+land as `pending` with no lifecycle dates. Not yet tested end to end — it is the
+first thing to verify.
+
+**Fix shape:** exempt the service role in both triggers, e.g.
+`if public.is_admin() or auth.uid() is null then return new; end if;`
+(service role presents no JWT, so `auth.uid()` is null; a real applicant always
+has one). Needs a migration 043 and a re-test of import-returning. Do not widen
+it further than that — the clamp is what stops applicants self-approving.
+
+This is also why the email harness reports 8/9: `deposit_reminder` requires
+`deposit_due_at`, which the harness cannot seed for the same reason. That last
+template is unproven, not broken.
+
+### 1b. Then
+
 - [ ] **Prove the nine email templates deliver.**
       `node scripts/verify-email-templates.mjs --to <address>`, then tick off all
       nine arrivals from the inbox, spam included. This is the gate on
@@ -27,6 +52,9 @@ state; that file is the plan.
 - [ ] **Run `supabase/verify/verify_034.sql`** if you want the per-FK output on
       record. 034 is the one migration whose effect cannot be probed through
       PostgREST — everything else below was confirmed by direct probe.
+- [ ] Confirm the **8 templates already accepted actually arrived** at
+      `accounting@allamericantattooconvention.com` — inbox and spam. API-accepted
+      is not delivered.
 
 ## 2. Migration state — 027 through 042
 
@@ -79,7 +107,12 @@ needs building.
 
 **Email.** Nothing had ever delivered to a real recipient: the sender was
 Resend's shared sandbox, which refuses every address but the account owner, and
-no call site checked the response. Domain now verified; templates still unproven.
+no call site checked the response. Domain now verified. The harness then found a
+second fault: `/api/send-email` read applications with the service role but
+sponsorships and invoices with the request-scoped client, which is anonymous for
+a cron caller — so after 029/038 tightened those reads, `deposit_reminder`,
+`final_reminder` and `sponsor_approved` all failed outright. Fixed in `6bcd882`;
+8 of 9 templates now accepted.
 
 **Data.** All 14 test applications, the March test panels/contests/food trucks
 and the duplicate 267-booth set removed. Two events existed for the same show;
