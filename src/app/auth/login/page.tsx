@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import { landingPath } from '@/lib/roles'
 import toast from 'react-hot-toast'
 
 function LoginContent() {
@@ -12,14 +13,17 @@ function LoginContent() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirect = searchParams.get('redirect') ?? '/apply'
+  // No `?? '/apply'` default here — the destination is decided by role below.
+  // An explicit ?redirect= still wins: it is how the proxy returns someone to
+  // the page they were trying to reach before being asked to sign in.
+  const requestedRedirect = searchParams.get('redirect')
   const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
       toast.error(error.message)
@@ -27,8 +31,24 @@ function LoginContent() {
       return
     }
 
+    // Role decides the landing page. Previously everyone went to /apply,
+    // including admins — so an admin signing in landed on the public apply hub
+    // and had to navigate to /admin by hand.
+    let destination = requestedRedirect
+    if (!destination) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single()
+      // A failed profile read falls through to landingPath(undefined) =
+      // '/portal', which is the safe default: it is where a non-admin belongs,
+      // and an admin who lands there can still navigate.
+      destination = landingPath(profile?.role)
+    }
+
     toast.success('Signed in successfully')
-    router.push(redirect)
+    router.push(destination)
     router.refresh()
   }
 
@@ -39,7 +59,7 @@ function LoginContent() {
         <div className="mb-3 flex justify-center gap-2 text-sm" style={{ color: '#8B7355' }}>
           {['★', '★', '★', '★', '★'].map((s, i) => <span key={i}>{s}</span>)}
         </div>
-        <Link href="/apply">
+        <Link href="/">
           <h1 className="font-display text-2xl font-bold text-white"><span className="text-emboss">ALL AMERICAN</span></h1>
           <p className="font-display text-sm font-semibold" style={{ color: '#8B7355' }}>
             <span className="text-emboss">TATTOO CONVENTION</span>

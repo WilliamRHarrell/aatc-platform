@@ -48,8 +48,10 @@ export async function proxy(req: NextRequest) {
     // Per-path, not binary. A content_editor reaching /admin/invoices is sent
     // to the first page their role can see rather than bounced off /admin
     // entirely. NOTE: navigation-level only — see src/lib/roles.ts.
+    // A signed-in non-admin who reaches /admin belongs in the portal, not on
+    // the public apply hub — they already have an account.
     if (!isAdminRole(profile?.role)) {
-      return NextResponse.redirect(new URL('/apply', req.url))
+      return NextResponse.redirect(new URL('/portal', req.url))
     }
     if (!canAccess(profile?.role, pathname)) {
       return NextResponse.redirect(new URL(landingPath(profile?.role), req.url))
@@ -66,8 +68,15 @@ export async function proxy(req: NextRequest) {
   }
 
   // ── Redirect already-authed users away from auth pages ───────
+  // Role-aware, matching the post-login redirect in /auth/login. Costs one
+  // profile read, but only on a path a signed-in user reaches by accident.
   if (session && (pathname.startsWith('/auth/login') || pathname.startsWith('/auth/signup'))) {
-    return NextResponse.redirect(new URL('/apply', req.url))
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single()
+    return NextResponse.redirect(new URL(landingPath(profile?.role), req.url))
   }
 
   return res

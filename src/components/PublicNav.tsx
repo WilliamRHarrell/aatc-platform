@@ -12,7 +12,7 @@ interface DropdownConfig {
 }
 
 const NAV_LINKS = [
-  { href: '/apply', label: 'Home' },
+  { href: '/', label: 'Home' },
   { href: '/contests', label: 'Vote' },
 ]
 
@@ -168,9 +168,11 @@ export default function PublicNav() {
     supabase.auth.getUser().then(({ data: { user } }) => setAuthed(!!user))
   }, [])
 
+  // '/' must be an exact match — the startsWith branch would otherwise mark it
+  // active on every page. Same reason the old '/apply' entry was special-cased.
   const isActive = (href: string) =>
-    href === '/apply'
-      ? pathname === '/apply'
+    href === '/'
+      ? pathname === '/'
       : pathname === href || pathname.startsWith(href + '/')
 
   return (
@@ -182,7 +184,7 @@ export default function PublicNav() {
 
         {/* Wordmark */}
         <Link
-          href="/apply"
+          href="/"
           className="text-sm font-medium uppercase tracking-widest"
           style={{ color: '#C4A882' }}
         >

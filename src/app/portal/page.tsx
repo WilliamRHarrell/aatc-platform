@@ -559,7 +559,14 @@ function PortalContent() {
         {/* Header */}
         <div className="mb-8">
           <p className="mb-1 text-sm font-medium uppercase tracking-widest" style={{ color: '#8B7355' }}>
-            <span className="text-emboss">{sponsorship && !application ? 'My Sponsorship' : foodTruck && !application && !sponsorship ? 'Food Truck Vendor' : 'My Application'}</span>
+            {/* "My Application" is wrong for someone who has none — and this is
+                the first thing a new exhibitor sees after registering. */}
+            <span className="text-emboss">{
+              application ? 'My Application'
+                : sponsorship ? 'My Sponsorship'
+                : foodTruck ? 'Food Truck Vendor'
+                : 'Get Started'
+            }</span>
           </p>
           <h1 className="font-display text-3xl font-bold text-white sm:text-4xl">
             <span className="text-emboss">{application ? application.business_name : sponsorship ? sponsorship.sponsor_name : foodTruck ? foodTruck.business_name : 'Applicant Portal'}</span>

@@ -67,9 +67,17 @@ export function canAccess(role: string | null | undefined, pathname: string): bo
   return allowed.some(p => pathname === p || pathname.startsWith(p + '/'))
 }
 
-/** First path a role is allowed to see — where to send them after login. */
+/**
+ * First path a role is allowed to see — where to send them after login.
+ *
+ * Non-admins go to `/portal`, not `/apply`. `/apply` is the public hub that
+ * explains what you can apply for; `/portal` is the signed-in home, and it
+ * handles the no-application case with its own empty state pointing back at
+ * the three apply routes. Sending a returning exhibitor to `/apply` made them
+ * navigate to their own booth details.
+ */
 export function landingPath(role: string | null | undefined): string {
-  if (!isAdminRole(role)) return '/apply'
+  if (!isAdminRole(role)) return '/portal'
   const allowed = PATHS[role]
   return allowed === '*' ? '/admin' : (allowed[0] ?? '/admin')
 }
