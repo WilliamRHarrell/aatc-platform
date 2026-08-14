@@ -17,7 +17,7 @@ state; that file is the plan.
 
 ## 1. Do these first
 
-### 1a. Apply migration 043 — three faults, all the same class
+### 1a. Apply migration 043 — FOUR faults, all the same class
 
 Written and committed, **not applied**. `supabase/migrations/043_service_role_and_owner_reads.sql`.
 
@@ -43,6 +43,19 @@ exists.**
 **(3) PRE-EXISTING — exhibitors.** No owner INSERT policy has ever existed, so
 `RosterCompletionPanel`'s exhibitor-row creation has always been denied for
 non-admins. Not caused by 038; found by the same sweep.
+
+**(4) REGRESSION from 042 — booths.** Dropping 001's `booths: public read using
+(true)` left only the deposit-gated public policy, so an exhibitor who is
+approved but has not yet paid **cannot see their own booth assignment in
+/portal** — precisely the person the portal exists to serve. Found by applying
+the rule in §4 rather than by a report. Mine.
+
+**Findings 2, 3 and 4 are reasoned from policy state, not measured** —
+`food_trucks`, `exhibitors` and the relevant `booths` rows are all empty or
+unassigned after the teardown. That is weaker evidence than everything else in
+this document. **Re-test all three surfaces once real rows exist:** the /portal
+food-truck panel, roster completion creating an exhibitor row, and an approved
+unpaid exhibitor seeing their booth.
 
 ### 1b. Then### 1b. Then
 
@@ -141,8 +154,11 @@ non-production hosts, and the vertical promo video section.
 
 ## 4. Standing rules — do not break these
 
-- **`LIFECYCLE_SWEEP_ENABLED` stays unset** until all nine email templates are
-  confirmed delivered. The sweep expires applications and **releases booths**,
+- **`LIFECYCLE_SWEEP_ENABLED` stays unset until nine templates are confirmed
+  ARRIVED IN THE INBOX — not nine API acceptances.** The harness reporting 9/9
+  means Resend accepted them, nothing more. The whole reason this gate exists is
+  that the platform spent months reporting successful sends that were being
+  refused at the API, and no call site noticed. The sweep expires applications and **releases booths**,
   its `sendEmail()` helper never checks the response, and booth release is not
   reversible from inside the platform. Its target profile — approved, no
   `deposit_paid_at` — is exactly an exhibitor who paid outside the platform.
@@ -152,6 +168,28 @@ non-production hosts, and the vertical promo video section.
 - **Before writing any RLS policy, list what already exists on the table.**
   Permissive policies OR together, so a stricter policy added alongside a
   `using (true)` baseline is decorative. This happened three times.
+
+- **PERMISSIVE BASELINES WERE DOUBLING AS OWNER POLICIES. Four for four.**
+  This is not four mistakes; it is one architectural fact about how the schema
+  grew. Every `using (true)` policy was serving two populations at once — the
+  public, and the row's own owner — and nobody ever wrote the owner policy
+  because the baseline made it unnecessary. Nothing ever tested the owner path,
+  so dropping the baseline broke it silently every time.
+
+  | Table | Baseline dropped | Owner path it was silently carrying |
+  |---|---|---|
+  | `sponsorships` | 030, 038 | sponsor reading their own row (self-claim) |
+  | `applications` | 024/028 tightening | owner UPDATE — roster completion |
+  | `food_trucks` | 038 | vendor reading their own truck |
+  | `booths` | 042 | exhibitor seeing their own booth assignment |
+
+  `exhibitors` is a fifth instance of the same shape, except the owner policy
+  was never written at all rather than being carried.
+
+  **THE RULE: dropping any permissive policy requires first enumerating who
+  reads that table AS AN OWNER, not just who reads it publicly.** Grep the
+  portal, the apply flow and the API routes for that table before writing the
+  drop. Assume there is another one until you have checked.
 - **Any write a non-admin performs needs `.select()` and a row-count check.**
 - **Grandfathered prices** (Tattoo Goo $3,000, pre-July VIP Bag $800) are
   deliberate, not errors. `amount_locked` protects them; CUTOVER.md explains.

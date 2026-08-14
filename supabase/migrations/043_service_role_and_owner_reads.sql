@@ -83,4 +83,17 @@ create policy "exhibitors: own read"
              where a.id = exhibitors.application_id and a.user_id = auth.uid())
   );
 
+-- 5. REGRESSION FROM 042 — booths. Dropping 001's `booths: public read using
+--    (true)` left only the deposit-gated public policy, so an exhibitor who is
+--    approved but has not yet paid cannot see their OWN booth assignment in
+--    /portal — which is precisely the person the portal exists to serve. The
+--    blanket policy was silently carrying owner reads here too.
+create policy "booths: own read"
+  on booths for select to authenticated
+  using (
+    application_id is not null
+    and exists (select 1 from applications a
+                 where a.id = booths.application_id and a.user_id = auth.uid())
+  );
+
 commit;
