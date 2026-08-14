@@ -14,7 +14,9 @@
  *      real returner_invite to whatever address you enter — do not use a real
  *      exhibitor's.
  *   3. node scripts/verify-import-returning.mjs --email <that address>
- *   4. Tear down: supabase/seeds/teardown_import_returning.sql
+ *   4. Tear down: supabase/seeds/teardown_import_returning.sql — paste the
+ *      WHOLE file, set v_email, run once to preview (it starts in dry-run and
+ *      deletes nothing), then set v_dry_run := false and run again.
  *
  * WHAT IT PROVES. Migration 043 lifted the trigger clamp that was nulling
  * status, approved_at, deposit_due_at and final_due_at on service-role inserts.

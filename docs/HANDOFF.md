@@ -47,8 +47,11 @@ gone, but nobody has actually run an import.
    checks. 3–8 are the 043 clamp measured through the real route; 14–17 replay
    the lifecycle sweep's four predicates and confirm the exhibitor matches
    none of them.
-3. `supabase/seeds/teardown_import_returning.sql` — read the SELECTs first, it
-   deletes an auth user.
+3. `supabase/seeds/teardown_import_returning.sql` — paste the whole file, set
+   `v_email`, run once to preview (starts in dry-run, deletes nothing), then set
+   `v_dry_run := false` and run again. It refuses to run against the placeholder
+   or a non-existent account, and verifies the rows are gone before reporting
+   success.
 
 **The orphaned-auth-user defect is fixed.** The auth user is created before the
 application because `applications.user_id` references it, so every later
@@ -193,6 +196,12 @@ errors if something depends on it, which is information; cascade silently
 destroys it. Then reissue the `grant`, which the drop discards. Both statements
 inside the same transaction, so readers see no gap.
 
+**Convention adopted 2026-08-14: THE SUPABASE SQL EDITOR IS NOT psql.** It
+rejects every psql client meta-command — `\set`, `\i`, `\echo`, `\d` — with
+`42601: syntax error at or near "\"`. `teardown_import_returning.sql` opened
+with `\set test_email …` and could not run at all. Parameterise with a plpgsql
+variable inside a `do` block instead. Checked: that was the only file affected.
+
 **Convention adopted 2026-08-14: the Supabase SQL Editor shows only the LAST
 statement's result.** Every earlier statement runs but its output is discarded
 silently — nothing errors, the results just never appear, which reads as "this
@@ -211,6 +220,19 @@ Consequences, all now applied:
 - `verify_034` is immune by construction: it is a single `union all` returning
   one row per check. That is the most robust shape for this editor and is worth
   copying when a file's checks are homogeneous.
+
+**Convention adopted 2026-08-14: a teardown must ASSERT, not just delete.**
+`teardown_import_returning.sql` shipped with its placeholder address still in
+it. Had the `\set` syntax error not stopped it first, every statement would
+have matched zero rows and the file would have reported a clean successful
+teardown having deleted nothing — the same silent-success shape as the RLS
+writes returning `data: []` with `error: null`, and the reason you stop
+looking. It is now a single `do` block that **refuses** to run against the
+placeholder, **refuses** to run if the account does not exist (zero matches is
+"wrong address", not "already clean"), and **refuses** to report success unless
+the rows are provably gone afterwards. It also starts in dry-run mode: the
+preview counts through the same code path as the real delete, then raises to
+roll back, so what it reports is what the live run will remove.
 
 **Convention adopted after 034 truncated in the SQL editor three times:**
 migrations stay short enough to paste; substantial verification goes in a
