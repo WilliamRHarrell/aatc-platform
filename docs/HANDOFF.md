@@ -62,15 +62,10 @@ unpaid exhibitor seeing their booth.
 
 ### 1b. Then### 1b. Then
 
-- [x] **All nine templates accepted by the API** (2026-08-13, after 043).
-      `deposit_reminder` was the last holdout and only ever needed
-      `deposit_due_at`, which the trigger clamp was nulling.
-      Re-run any time with:
-      `node scripts/verify-email-templates.mjs --to accounting@allamericantattooconvention.com --base https://aatc-platform.vercel.app`
-- [ ] **CONFIRM NINE ARRIVALS in `accounting@`, inbox and spam.** This is the
-      actual gate on `LIFECYCLE_SWEEP_ENABLED`, and 9/9 accepted does NOT
-      satisfy it — see §4. Two harness runs have now sent overlapping sets, so
-      expect duplicates of the six from the first run.
+- [x] **EMAIL GATE MET — all nine confirmed as INBOX ARRIVALS** in
+      `accounting@`, 2026-08-13. Not acceptances. Settled; do not re-litigate.
+      Re-run the harness only if the sending domain, the Resend key or
+      `/api/send-email` changes.
 - [ ] **Run `supabase/verify/verify_034.sql`** if you want the per-FK output on
       record. 034 is the one migration whose effect cannot be probed through
       PostgREST — everything else below was confirmed by direct probe.
@@ -159,6 +154,11 @@ non-production hosts, and the vertical promo video section.
 
 ## 4. Standing rules — do not break these
 
+- **The sweep has TWO preconditions, and only one is met.** Email: MET
+  (nine inbox arrivals, 2026-08-13). **Stripe reconciliation: STILL OPEN** —
+  and it is the one that matters most, because the sweep targets "approved, no
+  `deposit_paid_at`", which is exactly an exhibitor who paid you outside the
+  platform. Arming now expires the people who have already paid.
 - **The sweep is armed in TWO stages, not one.** `LIFECYCLE_SWEEP_ENABLED`
   turns it on in reminders-only mode; `LIFECYCLE_SWEEP_DESTRUCTIVE` enables the
   expiry and cancellation branches that release booths. Run a full cycle on

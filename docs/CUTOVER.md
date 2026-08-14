@@ -100,9 +100,14 @@ things worse, not better.
       Response switches to `mode: "full"` and `expired` / `canceled` become
       real. Watch the first full run's output the same day it runs.
 
-      Do NOT set either flag before reconciliation: the sweep targets "approved
-      application with no `deposit_paid_at`", which is exactly an exhibitor who
-      paid outside the platform.
+      **PRECONDITIONS — both required, independently:**
+      1. Nine email templates confirmed as inbox arrivals — **MET 2026-08-13**.
+      2. Externally-collected Stripe deposits reconciled — **STILL OPEN**.
+
+      Do NOT set either flag before (2). The sweep targets "approved application
+      with no `deposit_paid_at`", which is exactly an exhibitor who paid outside
+      the platform — so arming it now would expire the people who have already
+      paid you and release their booths.
 
       Reverting is one variable — unset `LIFECYCLE_SWEEP_DESTRUCTIVE` to fall
       back to reminders-only, or `LIFECYCLE_SWEEP_ENABLED` to stop entirely. But
@@ -115,16 +120,21 @@ things worse, not better.
       — DKIM, SPF and MX green on an AATC-owned Resend account. First real
       delivery confirmed: inbox not spam, from
       `noreply@send.allamericantattooconvention.com`. No longer a blocker.
-- [!] **GATE — nine templates still unproven.** Until the domain was verified,
-      every transactional email was refused by the sandbox sender and no call
-      site checked the response, so nothing but the payment alert has been
-      confirmed end to end. **`LIFECYCLE_SWEEP_ENABLED` must not be set until
-      all nine are confirmed delivered** — the sweep expires applications and
-      releases booths on the assumption its warnings arrived.
-      Run: `node scripts/verify-email-templates.mjs --to <address>` then tick
-      off all nine arrivals from the inbox, spam included.
+- [x] **EMAIL GATE SATISFIED — 2026-08-13.** All nine templates confirmed as
+      **inbox arrivals in `accounting@allamericantattooconvention.com`**, not API
+      acceptances. The ninth, `deposit_reminder`, arrived at 8:18 PM once
+      migration 043 lifted the trigger clamp that was nulling `deposit_due_at`.
       approved · rejected · waitlisted · deposit_reminder · final_reminder ·
       expiration · cancellation · returner_invite · sponsor_approved
+
+      **Do not re-litigate this.** Re-run
+      `node scripts/verify-email-templates.mjs --to <addr> --base <url>` only if
+      the sending domain, the Resend key, or `/api/send-email` changes.
+
+      **This does NOT mean the sweep can be armed.** It was one of two
+      independent preconditions. See the reconciliation item below, which is
+      still open and is the one that would cost real exhibitors their booths.
+
 - [x] **`PAYMENT_ALERT_EMAIL` set** to `accounting@allamericantattooconvention.com`
       across all Vercel environments, delivery confirmed to inbox not spam.
       There is deliberately **no fallback**: with none set the webhook refuses to
