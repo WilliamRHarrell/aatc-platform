@@ -12,6 +12,7 @@ import Markdown from '@/components/Markdown'
 import Countdown from '@/components/home/Countdown'
 import VideoFacade from '@/components/home/VideoFacade'
 import { HOME_EVENTS, AFTER_PARTIES, mapsUrl } from '@/lib/homepage-content'
+import PresentedBy from '@/components/PresentedBy'
 import {
   EVENT_NAME,
   EVENT_DATES_LABEL,
@@ -73,6 +74,14 @@ interface HomePanel {
   panel_date: string
   panel_time: string
   location: string
+  /**
+   * Resolved by panels_public: the linked sponsorship's name when one is
+   * confirmed, otherwise the plain-text fallback, otherwise null. The view does
+   * the coalesce so no caller can accidentally render an unconfirmed sponsor.
+   */
+  presented_by: string | null
+  presented_by_website: string | null
+  presented_by_linked: boolean
 }
 
 const TIER_RANK: Record<string, number> = {
@@ -97,7 +106,7 @@ const getHomepageData = unstable_cache(
     // No join into `invoices` — that subquery is what triggers the RLS
     // recursion (see migration 027). Placement is decided by admin-set columns
     // on sponsorships, which also lets trade/in-kind sponsors appear.
-    const [{ data: sponsorRows, error: sponsorErr }, { data: panelRows }] = await Promise.all([
+    const [{ data: sponsorRows, error: sponsorErr }, { data: panelRows, error: panelErr }] = await Promise.all([
       supabase
         .from('sponsors_public')
         .select('id, sponsor_name, tier, logo_url, website, homepage_order')
@@ -105,7 +114,7 @@ const getHomepageData = unstable_cache(
         .eq('show_on_homepage', true),
       supabase
         .from('panels_public')
-        .select('id, title, description, panel_date, panel_time, location')
+        .select('id, title, description, panel_date, panel_time, location, presented_by, presented_by_website, presented_by_linked')
         .eq('event_id', event.id)
         .order('panel_date')
         .limit(4),
@@ -119,6 +128,17 @@ const getHomepageData = unstable_cache(
       console.error(
         `[homepage] sponsor query failed (${sponsorErr.code}): ${sponsorErr.message} — ` +
         'grid will render empty. If 42703, migration 027 has not been applied.'
+      )
+    }
+
+    // Same treatment for panels: without this the seminars section silently
+    // falls back to "Lineup announced soon" placeholders, which looks like a
+    // content gap rather than a query failure. 42703 here means migration 044
+    // has not been applied yet.
+    if (panelErr) {
+      console.error(
+        `[homepage] panel query failed (${panelErr.code}): ${panelErr.message} — ` +
+        'seminars section will show placeholders. If 42703, migration 044 has not been applied.'
       )
     }
 
@@ -374,6 +394,12 @@ export default async function HomePage() {
                   {p.description && (
                     <p className="mt-2 text-sm leading-relaxed" style={{ color: '#999999' }}>{p.description}</p>
                   )}
+                  <PresentedBy
+                    name={p.presented_by}
+                    website={p.presented_by_website}
+                    linked={p.presented_by_linked}
+                    className="mt-3"
+                  />
                 </div>
               ))}
             </div>
@@ -528,7 +554,8 @@ export default async function HomePage() {
                 {p.venue ? (
                   <>
                     <h3 className="mt-2 text-base font-bold text-white">{p.venue}</h3>
-                    {p.time && <p className="mt-1 text-sm" style={{ color: '#999' }}>{p.time}</p>}
+                    {/* No time. The venues are already open when the show lets
+                        out, so a stated start time would be inaccurate. */}
                     {p.address && (
                       <a
                         href={mapsUrl(p.address)}

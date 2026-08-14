@@ -976,6 +976,30 @@ export type Database = {
           max_capacity: number | null
           image_url: string | null
           host_email: string | null
+          /** Migration 044 — confirmed sponsor name, else the plain-text fallback. */
+          presented_by: string | null
+          presented_by_website: string | null
+          presented_by_logo_url: string | null
+          presented_by_linked: boolean
+        }
+        Relationships: []
+      }
+      /** Migration 044 — the 2027 programme. Seminars come from panels_public. */
+      schedule_items_public: {
+        Row: {
+          id: string
+          event_id: string
+          day_date: string
+          start_time: string
+          sort_order: number
+          title: string
+          location: string
+          note: string
+          kind: string
+          presented_by: string | null
+          presented_by_website: string | null
+          presented_by_logo_url: string | null
+          presented_by_linked: boolean
         }
         Relationships: []
       }
