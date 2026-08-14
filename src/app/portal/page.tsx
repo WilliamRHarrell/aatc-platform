@@ -40,6 +40,8 @@ interface Application {
   artists: PortalArtist[] | null
   artists_ids_later: boolean
   needs_roster: boolean
+  facebook: string | null
+  logo_url: string | null
   tv_show: string | null
   notes: string | null
   created_at: string
@@ -154,6 +156,15 @@ function PortalContent() {
   const [editingArtistIdx, setEditingArtistIdx] = useState<number | null>(null)
   const [artistDraft, setArtistDraft] = useState<ArtistDraft | null>(null)
   const [savingArtist, setSavingArtist] = useState(false)
+  // Exhibitor profile self-edit. Directory-facing fields only — everything
+  // staff-controlled is clamped by the BEFORE UPDATE trigger from 041/043, so
+  // a field that does not appear here cannot be changed from the portal even
+  // if the request is hand-crafted.
+  const [profileForm, setProfileForm] = useState({
+    business_name: '', website: '', instagram: '', facebook: '', phone: '',
+  })
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
   const [sponsorship, setSponsorship] = useState<Sponsorship | null>(null)
   const [sponsorProfile, setSponsorProfile] = useState({ website: '', instagram: '', facebook: '' })
   const [savingSponsorProfile, setSavingSponsorProfile] = useState(false)
@@ -259,6 +270,13 @@ function PortalContent() {
 
       if (!app) { setLoading(false); return }
       setApplications((allApps ?? []) as unknown as Application[])
+      setProfileForm({
+        business_name: app.business_name ?? '',
+        website: app.website ?? '',
+        instagram: app.instagram ?? '',
+        facebook: app.facebook ?? '',
+        phone: app.phone ?? '',
+      })
 
       const [{ data: boothData }, { data: invoiceData }] = await Promise.all([
         supabase
@@ -385,6 +403,91 @@ function PortalContent() {
     setSavingArtist(false)
   }
 
+  /**
+   * Save the directory-facing profile. Publishes immediately — no queue.
+   *
+   * guardedWrite is essential here rather than nice to have: this is an
+   * RLS-filtered write by a non-admin, and PostgREST returns data: [] with
+   * error: null when the policy excludes the row. Unguarded, an exhibitor
+   * would see "Profile saved" and the directory would keep the old name.
+   */
+  const saveProfile = async () => {
+    if (!application) return
+    if (!profileForm.business_name.trim()) {
+      toast.error('Business name cannot be empty — it is how you appear in the directory')
+      return
+    }
+    setSavingProfile(true)
+
+    const patch = {
+      business_name: profileForm.business_name.trim(),
+      website: profileForm.website.trim() || null,
+      instagram: profileForm.instagram.trim() || null,
+      facebook: profileForm.facebook.trim() || null,
+      phone: profileForm.phone.trim() || null,
+    }
+
+    const res = await guardedWrite(
+      supabase.from('applications').update(patch).eq('id', application.id).select('id'),
+      'Could not save your profile',
+      `portal profile self-edit app=${application.id}`,
+    )
+
+    if (res.ok) {
+      setApplication(prev => (prev ? { ...prev, ...patch } : prev))
+      toast.success('Profile updated — your directory listing is live')
+    } else {
+      toast.error(res.error!)
+    }
+    setSavingProfile(false)
+  }
+
+  /**
+   * Logo upload. The path MUST start `profiles/<user id>/` — migration 048's
+   * storage policy scopes owner writes to exactly that prefix, so anything
+   * else is rejected, and it keeps exhibitors out of `sponsors/` and
+   * `aatc-graphics` (both retained at cutover).
+   */
+  const uploadProfileLogo = async (file: File) => {
+    if (!application) return
+    setUploadingLogo(true)
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { toast.error('Please sign in again'); setUploadingLogo(false); return }
+
+    const ext = (file.name.split('.').pop() ?? 'jpg').toLowerCase()
+    const path = `profiles/${user.id}/logo-${Date.now()}.${ext}`
+
+    const { data, error } = await supabase.storage
+      .from('exhibitor-media')
+      .upload(path, file, { upsert: true })
+
+    if (error || !data) {
+      // Before 048 this bucket was admin-insert-only, so a denial here on a
+      // deploy without that migration is expected rather than mysterious.
+      console.error('[portal] logo upload failed:', error)
+      toast.error('Could not upload the logo. Please try again.')
+      setUploadingLogo(false)
+      return
+    }
+
+    const { data: urlData } = supabase.storage.from('exhibitor-media').getPublicUrl(data.path)
+
+    const res = await guardedWrite(
+      supabase.from('applications').update({ logo_url: urlData.publicUrl }).eq('id', application.id).select('id'),
+      'Logo uploaded but could not be attached to your listing',
+      `portal logo self-edit app=${application.id}`,
+    )
+
+    if (res.ok) {
+      setApplication(prev => (prev ? { ...prev, logo_url: urlData.publicUrl } : prev))
+      toast.success('Logo updated')
+    } else {
+      toast.error(res.error!)
+    }
+    setUploadingLogo(false)
+  }
+
   const uploadSponsorLogo = async (file: File) => {
     if (!sponsorship) return
     const ext = file.name.split('.').pop()
@@ -404,16 +507,20 @@ function PortalContent() {
   const saveSponsorProfileFn = async () => {
     if (!sponsorship) return
     setSavingSponsorProfile(true)
-    const { error } = await supabase
-      .from('sponsorships')
-      .update({
+    // Was unguarded: no .select(), so an RLS-filtered write returned
+    // error: null and toasted success having changed nothing. sponsorships has
+    // no owner UPDATE policy at all, so that was the actual behaviour.
+    const res = await guardedWrite(
+      supabase.from('sponsorships').update({
         website: sponsorProfile.website || null,
         instagram: sponsorProfile.instagram || null,
         facebook: sponsorProfile.facebook || null,
-      })
-      .eq('id', sponsorship.id)
-    if (error) {
-      toast.error('Failed to save profile')
+      }).eq('id', sponsorship.id).select('id'),
+      'Could not save your profile',
+      `portal sponsor profile sponsorship=${sponsorship.id}`,
+    )
+    if (!res.ok) {
+      toast.error(res.error!)
     } else {
       setSponsorship(prev => prev ? { ...prev, ...sponsorProfile } : null)
       toast.success('Profile saved')
@@ -1043,6 +1150,82 @@ function PortalContent() {
                   </div>
                 ))}
               </dl>
+            </Card>
+
+            {/* ── Directory profile — self-edit, publishes immediately ── */}
+            <Card>
+              <SectionLabel>Directory Profile</SectionLabel>
+              <p className="mb-4 text-xs leading-relaxed" style={{ color: '#777' }}>
+                This is how you appear in the public directory. Changes go live
+                straight away — there is no approval step.
+              </p>
+
+              <div className="space-y-4">
+                {/* Logo */}
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Logo</label>
+                  <div className="flex items-center gap-4">
+                    {application.logo_url && (
+                      <img
+                        src={application.logo_url}
+                        alt={`${application.business_name} logo`}
+                        className="h-16 w-16 rounded-lg object-contain"
+                        style={{ border: '1px solid #2a2a2a', backgroundColor: '#111' }}
+                      />
+                    )}
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        id="profile-logo-upload"
+                        className="hidden"
+                        disabled={uploadingLogo}
+                        onChange={e => { if (e.target.files?.[0]) uploadProfileLogo(e.target.files[0]); e.target.value = '' }}
+                      />
+                      <label
+                        htmlFor="profile-logo-upload"
+                        className="inline-flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold"
+                        style={{ backgroundColor: 'rgba(139,115,85,0.12)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}
+                      >
+                        {uploadingLogo ? 'Uploading…' : application.logo_url ? 'Replace Logo' : 'Upload Logo'}
+                      </label>
+                      <p className="mt-1 text-[11px]" style={{ color: '#555' }}>JPG, PNG or WebP.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {[
+                  { key: 'business_name', label: 'Business name', type: 'text', placeholder: '', hint: 'How you are listed in the directory, and how our team finds you.' },
+                  { key: 'website', label: 'Website', type: 'url', placeholder: 'https://yoursite.com', hint: '' },
+                  { key: 'instagram', label: 'Instagram', type: 'text', placeholder: '@handle', hint: '' },
+                  { key: 'facebook', label: 'Facebook', type: 'text', placeholder: 'Page URL or name', hint: '' },
+                  { key: 'phone', label: 'Phone', type: 'tel', placeholder: '', hint: '' },
+                ].map(f => (
+                  <div key={f.key}>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>{f.label}</label>
+                    <input
+                      type={f.type}
+                      value={profileForm[f.key as keyof typeof profileForm]}
+                      onChange={e => setProfileForm(p => ({ ...p, [f.key]: e.target.value }))}
+                      placeholder={f.placeholder}
+                      className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
+                      style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
+                      onFocus={e => (e.currentTarget.style.borderColor = '#8B7355')}
+                      onBlur={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
+                    />
+                    {f.hint && <p className="mt-1 text-[11px]" style={{ color: '#555' }}>{f.hint}</p>}
+                  </div>
+                ))}
+
+                <button
+                  onClick={saveProfile}
+                  disabled={savingProfile}
+                  className="rounded-lg px-5 py-2 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
+                  style={{ backgroundColor: '#8B7355' }}
+                >
+                  {savingProfile ? 'Saving…' : 'Save Profile'}
+                </button>
+              </div>
             </Card>
 
             </>

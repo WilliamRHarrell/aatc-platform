@@ -141,9 +141,9 @@ clamp and leave the UPDATE clamp broken with no error raised. That is what
       scope them — but it reads `food_trucks`, which is why finding (2) above
       matters there.
 
-## 2. Migration state — 027 through 045 · only 045 outstanding
+## 2. Migration state — 027 through 048
 
-All applied except 045. 027–033 and 035–042 confirmed by direct probe on
+Applied through 044. Outstanding: 045, 046, 048 (and 047, deliberately held). 027–033 and 035–042 confirmed by direct probe on
 2026-08-03; 034 confirmed by the operator (its effect is not visible through
 PostgREST); **041, 042, 043 and 044 confirmed by their verify files on
 2026-08-13** — catalog-level, results in §1a and §4a. 045 is the only one
@@ -170,6 +170,9 @@ outstanding and must run after the deploy.
 | 043 | service_role trigger exemption + 4 owner policies | applied |
 | 044 | `schedule_items` + sponsor presentation credit | applied + verified |
 | 045 | rename Apply Hub CMS key `home` → `applyHub` | **NOT YET APPLIED — run after the deploy** |
+| 046 | panels get real `panel_day` / `panel_start` | **NOT YET APPLIED — run BEFORE the deploy** |
+| 047 | drop the free-text panel date columns | **HELD until 2026-08-20** |
+| 048 | profile self-edit: audit trail + logo storage path | **NOT YET APPLIED** |
 
 **Convention adopted after 034 truncated in the SQL editor three times:**
 migrations stay short enough to paste; substantial verification goes in a
@@ -305,7 +308,8 @@ plain text; it currently returns those two, and it will stay non-zero until the
 | 4 | ~~`047_drop_panel_text_dates.sql`~~ | **DEFERRED — see below** |
 | 5 | `045_rename_apply_hub_content_key.sql` | **AFTER the deploy** — opposite of 046. Its step 0 tells you whether ordering matters at all. |
 | 6 | `seeds/panels_2027_signup_type.sql` | opens registration on both seminars and sets `max_capacity = 150`. Any time after 046. |
-| 7 | The import-returning end-to-end test | §1a |
+| 7 | `048_profile_self_edit.sql` + `verify_048.sql` | portal self-edit. Any time. |
+| 8 | The import-returning end-to-end test | §1a |
 
 #### 047 IS DEFERRED ON PURPOSE — REVISIT 2026-08-20
 
@@ -379,15 +383,54 @@ walk-ins do not register. That caveat is rendered above the registration list in
    state, same evidence class as §1a. **Verify before fixing:** sign in as a
    `content_editor` and open `/admin/panels`.
 
+   **NOT A LAUNCH BLOCKER — IT IS A PREREQUISITE FOR THE INVITE.** No
+   `content_editor` account exists, so nobody can reach the broken page today.
+   **Tie this fix to creating the first one.** Issuing that account without it
+   means the marketing person signs in, opens `/admin/panels`, sees an empty
+   list, and every write they attempt is silently refused — they will assume
+   they broke something, or that the platform is empty.
+
    Fix is a small migration adding `has_role('content_editor')` policies to
    `panels` and `schedule_items` — 039 added `has_role()` and nothing has ever
    used it. Then add `/admin/schedule` to their PATHS in the same change.
 
-3. **Portal profile self-edit.** Artists and vendors cannot change business name,
-   website, Instagram, phone or logo — all directory-facing. 041 unblocked the
-   write path. Publish immediately, no queue, plus an admin recent-edits feed.
-   ~2–2.5 days.
+   **Build it at the moment the account is created, not before**, so it is
+   verified against a real `content_editor` session rather than shipped
+   reasoned-but-unmeasured for the sixth time.
+
+3. **BUILT — Portal profile self-edit.** Artists and vendors can now edit
+   business name, website, Instagram, Facebook, phone and logo from `/portal`.
+   Publishes immediately, no queue. Needs migration 048.
+
+   **No new table policy was required.** The directory reads `applications`
+   directly (not `exhibitors`), 041 already granted owners UPDATE on their own
+   row, and its clamp does not cover any directory-facing field — so the write
+   path was already open. `verify_048.sql` E re-checks that, because if any of
+   those six columns ever joins the clamp the portal will save "successfully"
+   and the value will revert.
+
+   **048 adds two things that WERE missing.** An audit trail (`profile_edits`,
+   written by an AFTER UPDATE trigger — after, so it records what was stored
+   rather than what was submitted and then clamped), and owner write policies on
+   the `exhibitor-media` storage bucket, which had only admin insert/delete.
+   That second one also fixes a live latent bug: **the existing sponsor logo
+   upload in `/portal` writes to the same bucket and has never worked for a
+   non-admin.**
+
+   Admin feed is on the `/admin` dashboard — exhibitor edits by default, staff
+   edits behind a toggle, old → new per field. `business_name` is the one to
+   watch: it is not only the directory listing, it is how staff find an
+   exhibitor on an invoice and a booth assignment.
+
+   Also guarded `saveSponsorProfileFn` while in the file — it had no `.select()`
+   and `sponsorships` has no owner UPDATE policy at all, so it was toasting
+   success having changed nothing.
+
 4. **Admin "link sponsor to user account"** — replaces the removed self-claim.
+   Note that portal sponsor profile editing is now guarded but still cannot
+   work: `sponsorships` has no owner UPDATE policy, so a linked sponsor editing
+   their own row gets a real error rather than a false success. The linking
+   work needs to add that policy, not just the link.
 5. **Floor plan, read-only. ~2.5 days** now that booth coordinates are
    extractable from the venue PDF. Needs the current-year plan from the Crown
    Complex; the 2024 one has 265 real booths, a mislabelled 165/166, and no 233.

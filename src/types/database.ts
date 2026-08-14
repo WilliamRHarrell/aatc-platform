@@ -697,6 +697,33 @@ export type Database = {
           },
         ]
       }
+      /** Migration 048 — audit trail for portal profile self-edits. */
+      profile_edits: {
+        Row: {
+          id: string
+          application_id: string
+          business_name: string | null
+          field: string
+          old_value: string | null
+          new_value: string | null
+          edited_by: string | null
+          by_owner: boolean
+          edited_at: string
+        }
+        Insert: {
+          id?: string
+          application_id: string
+          business_name?: string | null
+          field: string
+          old_value?: string | null
+          new_value?: string | null
+          edited_by?: string | null
+          by_owner: boolean
+          edited_at?: string
+        }
+        Update: never
+        Relationships: []
+      }
       /** Migration 044 — the 2027 programme. Seminars live in `panels`. */
       schedule_items: {
         Row: {

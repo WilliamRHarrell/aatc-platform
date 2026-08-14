@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import DirectoryHealth from '@/components/admin/DirectoryHealth'
+import RecentProfileEdits from '@/components/admin/RecentProfileEdits'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
@@ -174,6 +175,10 @@ export default function AdminPage() {
             ))}
           </div>
         </div>
+      </div>
+
+      <div className="mb-6">
+        <RecentProfileEdits />
       </div>
 
       {/* Recent applications */}
