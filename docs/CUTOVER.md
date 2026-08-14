@@ -476,6 +476,32 @@ sweep atomic, which stops a half-finished release — but atomic still means the
 prior assignment is gone. With PITR disabled, a mistaken release is only
 recoverable from a daily snapshot, and only by rolling back everything else too.
 
+**COMPOUNDING RISK — portal self-edit made this worse, deliberately.** Since
+migration 048, an exhibitor can rename themselves from `/portal`, publishing
+immediately. That is the intended behaviour and the rename is recorded in
+`profile_edits`. But the two gaps multiply:
+
+> A booth is reassigned **after** a rename, and nothing connects the old name to
+> the new one.
+
+`booths` stores only `application_id`, and the booth's own history does not
+exist — so once the assignment moves, there is no row anywhere that says booth
+114 was held by the business now called something else. `profile_edits` knows
+the name changed; it does not know which booth was involved. The booth knows
+who holds it now; it does not know who held it before, or under what name.
+Neither half is recoverable from the other, and the paperwork the exhibitor
+actually arrives with at the show — an invoice — still carries the old name.
+
+The denormalised `business_name` in the table below is precisely what closes
+this: a history row captures the name **as it was at the time of assignment**,
+so a rename afterwards cannot orphan the record. That column was already in the
+design for a different reason (surviving a deleted application); the rename path
+makes it load-bearing rather than defensive.
+
+This raises the priority. Before self-edit, booth history protected against a
+mistaken release. Now it also protects against a legitimate, encouraged action
+taken by the exhibitor themselves.
+
 **Shape.**
 
 ```sql
@@ -511,6 +537,8 @@ session GUCs set by the caller, defaulting to `'migration'`/null.
 changes required for capture. Roughly a half-day including a
 `/admin/booths/[id]` history panel.
 
-**Recommended order:** after the capability audit, before real applications
-arrive — retrofitting history gives you no record of anything that happened
-before it existed.
+**Recommended order:** before real applications arrive, and now with more
+reason than when this was first scoped — see the compounding risk above.
+Retrofitting history gives you no record of anything that happened before it
+existed, and self-edit means renames start accumulating from the first
+approved exhibitor.

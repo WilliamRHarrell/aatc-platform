@@ -141,9 +141,9 @@ clamp and leave the UPDATE clamp broken with no error raised. That is what
       scope them — but it reads `food_trucks`, which is why finding (2) above
       matters there.
 
-## 2. Migration state — 027 through 048
+## 2. Migration state — 027 through 049
 
-Applied through 044. Outstanding: 045, 046, 048 (and 047, deliberately held). 027–033 and 035–042 confirmed by direct probe on
+Applied through 044. Outstanding: 045, 046, 048, 049 (and 047, deliberately held). 027–033 and 035–042 confirmed by direct probe on
 2026-08-03; 034 confirmed by the operator (its effect is not visible through
 PostgREST); **041, 042, 043 and 044 confirmed by their verify files on
 2026-08-13** — catalog-level, results in §1a and §4a. 045 is the only one
@@ -173,6 +173,7 @@ outstanding and must run after the deploy.
 | 046 | panels get real `panel_day` / `panel_start` | **NOT YET APPLIED — run BEFORE the deploy** |
 | 047 | drop the free-text panel date columns | **HELD until 2026-08-20** |
 | 048 | profile self-edit: audit trail + logo storage path | **NOT YET APPLIED** |
+| 049 | sponsor owner UPDATE + commercial clamp + insert clamp | **NOT YET APPLIED** |
 
 **Convention adopted after 034 truncated in the SQL editor three times:**
 migrations stay short enough to paste; substantial verification goes in a
@@ -309,7 +310,8 @@ plain text; it currently returns those two, and it will stay non-zero until the
 | 5 | `045_rename_apply_hub_content_key.sql` | **AFTER the deploy** — opposite of 046. Its step 0 tells you whether ordering matters at all. |
 | 6 | `seeds/panels_2027_signup_type.sql` | opens registration on both seminars and sets `max_capacity = 150`. Any time after 046. |
 | 7 | `048_profile_self_edit.sql` + `verify_048.sql` | portal self-edit. Any time. |
-| 8 | The import-returning end-to-end test | §1a |
+| 8 | `049_sponsor_owner_update.sql` + `verify_049.sql` | admin sponsor-linking |
+| 9 | The import-returning end-to-end test | §1a |
 
 #### 047 IS DEFERRED ON PURPOSE — REVISIT 2026-08-20
 
@@ -426,11 +428,43 @@ walk-ins do not register. That caveat is rendered above the registration list in
    and `sponsorships` has no owner UPDATE policy at all, so it was toasting
    success having changed nothing.
 
-4. **Admin "link sponsor to user account"** — replaces the removed self-claim.
-   Note that portal sponsor profile editing is now guarded but still cannot
-   work: `sponsorships` has no owner UPDATE policy, so a linked sponsor editing
-   their own row gets a real error rather than a false success. The linking
-   work needs to add that policy, not just the link.
+4. **BUILT — Admin "link sponsor to user account".** `/admin/sponsorships` now
+   has Link account / Linked ✓ per row, backed by `/api/admin/link-sponsor`.
+   Needs migration 049.
+
+   **The account must already exist.** The route deliberately does not create
+   one — minting a login the sponsor never asked for and cannot access is worse
+   than asking them to sign up first, and the account existing is itself proof
+   the address is theirs. That is the whole difference from the removed
+   self-claim, which matched on email alone with no verification.
+
+   **049's clamp is an ALLOW-LIST, and that is a deliberate divergence from
+   041.** 041 enumerates what a non-admin may not change, so every column added
+   to `applications` later is owner-editable unless somebody remembers to extend
+   the trigger — it fails open, silently. 049 rebuilds NEW from OLD and takes
+   only seven keys from the submitted row (contact_name, email, phone, website,
+   instagram, facebook, logo_url), so a new column on `sponsorships` is
+   protected by default. On a table holding tier, amount, placement flags and
+   `amount_locked`, failing closed is the only safe direction.
+   `verify_049.sql` C checks the allow-list has not been "fixed" into a
+   deny-list.
+
+   **Found while enumerating: the public sponsor insert has the same hole 031
+   closed on applications.** `"Anyone can submit sponsor application"` is
+   `with check (status = 'pending')` — row-level, so it constrains one column
+   and the submission can set every other. That was survivable before; with an
+   owner UPDATE policy in place it is not, because a submission setting its own
+   `user_id` **self-links past the admin linking step** and grants itself the
+   edit rights 049 creates. It could also set `amount_locked`, the flag whose
+   entire job is resisting price correction. 049 clamps the insert too. `tier`
+   and `amount` are deliberately left alone — they are the request an admin
+   confirms, and recomputing price in SQL would duplicate
+   `lib/sponsor-tiers.ts`.
+
+   **`verify_049.sql` F is worth running even if you trust the rest**: the
+   insert hole was open until 049, so it lists every existing link and every row
+   that already carries a placement flag or a lock, to be cross-checked against
+   what staff actually did.
 5. **Floor plan, read-only. ~2.5 days** now that booth coordinates are
    extractable from the venue PDF. Needs the current-year plan from the Crown
    Complex; the 2024 one has 265 real booths, a mislabelled 165/166, and no 233.

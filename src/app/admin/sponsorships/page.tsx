@@ -89,6 +89,10 @@ export default function AdminSponsorshipsPage() {
   const [filter, setFilter] = useState<'all' | SponsorStatus | 'stale'>('all')
   const [sendingInvoice, setSendingInvoice] = useState<string | null>(null)
   const [approvingId, setApprovingId] = useState<string | null>(null)
+  // Account linking — replaces the removed email-only self-claim.
+  const [linkingId, setLinkingId] = useState<string | null>(null)
+  const [linkEmail, setLinkEmail] = useState('')
+  const [linkWorking, setLinkWorking] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -285,6 +289,55 @@ export default function AdminSponsorshipsPage() {
     setForm(EMPTY_FORM)
     setLogoFile(null)
     setWorking(false)
+  }
+
+  /**
+   * Link a sponsorship to an existing account. The account must already exist
+   * — see the route for why we do not create one here.
+   */
+  const submitLink = async (sponsorshipId: string) => {
+    if (!linkEmail.trim()) { toast.error('Enter the account email'); return }
+    setLinkWorking(true)
+    try {
+      const res = await fetch('/api/admin/link-sponsor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sponsorshipId, email: linkEmail.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error ?? 'Could not link the account')
+        return
+      }
+      setSponsorships(prev => prev.map(x => x.id === sponsorshipId ? { ...x, user_id: data.userId } : x))
+      setLinkingId(null)
+      setLinkEmail('')
+      toast.success(`Linked to ${data.email}`)
+    } catch {
+      toast.error('Could not link the account')
+    } finally {
+      setLinkWorking(false)
+    }
+  }
+
+  const submitUnlink = async (sponsorshipId: string) => {
+    if (!window.confirm('Unlink this account? They will lose access to their sponsor profile in the portal.')) return
+    setLinkWorking(true)
+    try {
+      const res = await fetch('/api/admin/link-sponsor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sponsorshipId, unlink: true }),
+      })
+      const data = await res.json()
+      if (!res.ok) { toast.error(data.error ?? 'Could not unlink'); return }
+      setSponsorships(prev => prev.map(x => x.id === sponsorshipId ? { ...x, user_id: null } : x))
+      toast.success('Account unlinked')
+    } catch {
+      toast.error('Could not unlink')
+    } finally {
+      setLinkWorking(false)
+    }
   }
 
   const handleDelete = async (id: string) => {
@@ -950,6 +1003,25 @@ export default function AdminSponsorshipsPage() {
                         {isSending ? '...' : 'Send Invoice'}
                       </button>
                     )}
+                    {s.user_id ? (
+                      <button
+                        onClick={() => submitUnlink(s.id)}
+                        disabled={linkWorking}
+                        title="This sponsor has portal access to their own profile"
+                        className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                        style={{ backgroundColor: 'rgba(74,222,128,0.12)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }}
+                      >
+                        Linked ✓
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => { setLinkingId(linkingId === s.id ? null : s.id); setLinkEmail(s.email ?? '') }}
+                        className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
+                        style={{ color: '#999', border: '1px solid #2a2a2a' }}
+                      >
+                        Link account
+                      </button>
+                    )}
                     <button
                       onClick={() => startEdit(s)}
                       className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-80"
@@ -966,6 +1038,42 @@ export default function AdminSponsorshipsPage() {
                       {isDel ? '...' : 'Delete'}
                     </button>
                   </div>
+
+                  {linkingId === s.id && (
+                    <div className="mt-3 w-full rounded-xl p-3" style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}>
+                      <p className="mb-2 text-[11px] leading-relaxed" style={{ color: '#888' }}>
+                        Links this sponsorship to an existing account so they can edit their
+                        own contact details, website, socials and logo in the portal. They
+                        can never change tier, amount, status or placement. <strong>The
+                        account must already exist</strong> — ask them to sign up first.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <input
+                          type="email"
+                          value={linkEmail}
+                          onChange={e => setLinkEmail(e.target.value)}
+                          placeholder="their account email"
+                          className="min-w-[220px] flex-1 rounded-lg px-3 py-2 text-sm text-white outline-none"
+                          style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}
+                        />
+                        <button
+                          onClick={() => submitLink(s.id)}
+                          disabled={linkWorking}
+                          className="rounded-lg px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                          style={{ backgroundColor: '#8B7355' }}
+                        >
+                          {linkWorking ? 'Linking…' : 'Link'}
+                        </button>
+                        <button
+                          onClick={() => { setLinkingId(null); setLinkEmail('') }}
+                          className="rounded-lg px-3 py-2 text-xs font-medium"
+                          style={{ color: '#666', border: '1px solid #2a2a2a' }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )
             })}
