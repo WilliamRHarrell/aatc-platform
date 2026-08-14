@@ -17,18 +17,21 @@ state; that file is the plan.
 
 ## 1. Do these first
 
-### 1a. Apply migration 043 — FOUR faults, all the same class
+### 1a. Migration 043 — APPLIED 2026-08-13, but two of its fixes are untested
 
-Written and committed, **not applied**. `supabase/migrations/043_service_role_and_owner_reads.sql`.
+`supabase/migrations/043_service_role_and_owner_reads.sql`. Verified applied by
+probe: a service-role insert now retains `status='approved'` and
+`deposit_due_at`, which it did not before.
 
-**(1) service_role is clamped by the 031/041 triggers.** Both test `is_admin()`,
+**(1) service_role clamped by the 031/041 triggers — FIXED AND VERIFIED.** Both test `is_admin()`,
 which is false for service_role (no `auth.uid()`), and **triggers are not
 bypassed by service role the way RLS is**. Confirmed by probe: a service-role
 insert with `deposit_due_at` set returns it NULL. This silently breaks
 `/api/admin/import-returning` (route.ts ~107-110), which inserts applications
 with `status:'approved'`, `deposit_due_at` and `final_due_at` — all three
 clamped, so imported returning exhibitors land as `pending` with no lifecycle
-dates. **Verify that end to end after applying; it is not yet tested.**
+dates. **`/api/admin/import-returning` is still not tested end to end** — the clamp is
+gone, but nobody has actually run an import.
 043 exempts `auth.uid() is null`. Do not widen further — the clamp is what stops
 applicants self-approving.
 
@@ -59,13 +62,15 @@ unpaid exhibitor seeing their booth.
 
 ### 1b. Then### 1b. Then
 
-- [ ] **Prove the nine email templates deliver.** Currently **8/9 accepted**.
-      `deposit_reminder` is the holdout and is **unproven, not broken** — it
-      needs `deposit_due_at`, which the harness cannot seed until 043 lands.
-      Re-run after applying 043:
+- [x] **All nine templates accepted by the API** (2026-08-13, after 043).
+      `deposit_reminder` was the last holdout and only ever needed
+      `deposit_due_at`, which the trigger clamp was nulling.
+      Re-run any time with:
       `node scripts/verify-email-templates.mjs --to accounting@allamericantattooconvention.com --base https://aatc-platform.vercel.app`
-      Then tick off all nine ARRIVALS from the inbox, spam included — API-accepted
-      is not delivered. This is the gate on `LIFECYCLE_SWEEP_ENABLED`, see §4.
+- [ ] **CONFIRM NINE ARRIVALS in `accounting@`, inbox and spam.** This is the
+      actual gate on `LIFECYCLE_SWEEP_ENABLED`, and 9/9 accepted does NOT
+      satisfy it — see §4. Two harness runs have now sent overlapping sets, so
+      expect duplicates of the six from the first run.
 - [ ] **Run `supabase/verify/verify_034.sql`** if you want the per-FK output on
       record. 034 is the one migration whose effect cannot be probed through
       PostgREST — everything else below was confirmed by direct probe.
