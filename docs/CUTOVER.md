@@ -75,11 +75,39 @@ things worse, not better.
       (outside platform)" and the Stripe invoice ID in `payment_reference`.
       Nothing emails the exhibitor and there is no accounting integration, so no
       duplicate receipt and no double-count.
-- [ ] **Then enable `LIFECYCLE_SWEEP_ENABLED=true`** in Vercel. Absent = off,
-      which is the current and correct state. Do NOT set it before
-      reconciliation: the sweep targets "approved application with no
-      `deposit_paid_at`", which is exactly an exhibitor who paid outside the
-      platform, and it expires them and releases their booth.
+- [ ] **Then arm the sweep IN STAGES.** Two flags, not one. Absent = off for
+      both, which is the current and correct state.
+
+      **The booth release is irreversible** — there is no assignment history
+      table — so the first live run must not be the first real test.
+
+      **Stage 1 — reminders only.** Set `LIFECYCLE_SWEEP_ENABLED=true` and leave
+      `LIFECYCLE_SWEEP_DESTRUCTIVE` unset. The sweep runs, sends deposit and
+      final reminders, and reports `would_expire` / `would_cancel` counts for
+      what a full run WOULD have acted on — without acting. Response includes
+      `mode: "reminders-only"`.
+
+      **Run a full cycle in this mode before going further.** Confirm, from the
+      logs and from the recipients:
+      - the right people were warned, at the right offsets (deposit at 7 days;
+        final at 30/14/7/1)
+      - nobody was warned who should not have been
+      - `would_expire` and `would_cancel` name applications you agree should be
+        expired — check each one by hand the first time
+      - the reminders actually arrived, not merely returned 200
+
+      **Stage 2 — full.** Only then set `LIFECYCLE_SWEEP_DESTRUCTIVE=true`.
+      Response switches to `mode: "full"` and `expired` / `canceled` become
+      real. Watch the first full run's output the same day it runs.
+
+      Do NOT set either flag before reconciliation: the sweep targets "approved
+      application with no `deposit_paid_at`", which is exactly an exhibitor who
+      paid outside the platform.
+
+      Reverting is one variable — unset `LIFECYCLE_SWEEP_DESTRUCTIVE` to fall
+      back to reminders-only, or `LIFECYCLE_SWEEP_ENABLED` to stop entirely. But
+      reverting does not un-release a booth, which is the whole point of
+      staging.
 - [ ] Verify the Stripe **production** webhook endpoint and that
       `STRIPE_WEBHOOK_SECRET` matches. No payment has ever been recorded through
       the webhook, so it is unproven end to end.

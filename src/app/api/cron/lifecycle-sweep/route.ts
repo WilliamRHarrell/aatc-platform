@@ -47,16 +47,32 @@ export async function GET(req: Request) {
     })
   }
 
+  // ── Second gate: the destructive branches ───────────────────
+  // Staged arming. LIFECYCLE_SWEEP_ENABLED turns the sweep on; this turns on
+  // the two branches that expire applications and RELEASE BOOTHS. Booth release
+  // is irreversible — there is no assignment history table — so the first live
+  // run must not be the first real test. Run reminders-only for a full cycle,
+  // confirm the right people were warned and nobody else was, then set this.
+  const destructive = process.env.LIFECYCLE_SWEEP_DESTRUCTIVE === 'true'
+
   const supabase = adminSupabase()
   const now = new Date()
-  const summary: Record<string, number> = {
+  // Counters are deliberately separate for the two modes. Reporting
+  // `expired: 3` from a reminders-only run would read as three expiries having
+  // happened, which is exactly the kind of misreading this staging exists to
+  // avoid. In reminders-only mode nothing is expired and the counts are
+  // would_expire / would_cancel.
+  const summary = {
     expired: 0,
     canceled: 0,
+    would_expire: 0,
+    would_cancel: 0,
     deposit_reminders: 0,
     final_reminders: 0,
   }
 
   // ── 1. Expire un-deposited applications past deposit_due_at ──
+  // DESTRUCTIVE — releases booths. Counted but not acted on until the flag is set.
   const { data: toExpire } = await supabase
     .from('applications')
     .select('id, business_name, invoices!inner(id, deposit_paid_at)')
@@ -65,6 +81,11 @@ export async function GET(req: Request) {
     .is('invoices.deposit_paid_at', null)
 
   for (const app of toExpire ?? []) {
+    if (!destructive) {
+      console.log(`[sweep] WOULD EXPIRE ${app.id} (${app.business_name}) — destructive branch disabled`)
+      summary.would_expire++
+      continue
+    }
     // One RPC, one transaction (migration 035). Previously two round trips:
     // a failure between them left the application expired with its booth still
     // assigned — held by an expired application, invisible to both the
@@ -87,6 +108,11 @@ export async function GET(req: Request) {
     .is('invoices.final_paid_at', null)
 
   for (const app of toCancel ?? []) {
+    if (!destructive) {
+      console.log(`[sweep] WOULD CANCEL ${app.id} — destructive branch disabled`)
+      summary.would_cancel++
+      continue
+    }
     const inv = Array.isArray(app.invoices) ? app.invoices[0] : app.invoices
     const forfeited = inv?.amount_paid ?? 0
     const { error } = await supabase.rpc('cancel_application', { p_application_id: app.id })
@@ -136,5 +162,15 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ ok: true, ranAt: now.toISOString(), summary })
+  return NextResponse.json({
+    ok: true,
+    mode: destructive ? 'full' : 'reminders-only',
+    ranAt: now.toISOString(),
+    ...(destructive ? {} : {
+      note: 'Expiry and cancellation were NOT performed. would_expire / would_cancel ' +
+            'are what a full run WOULD have acted on. Set LIFECYCLE_SWEEP_DESTRUCTIVE=true ' +
+            'only after a full cycle of reminders-only has been reviewed.',
+    }),
+    summary,
+  })
 }

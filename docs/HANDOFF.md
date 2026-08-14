@@ -159,6 +159,12 @@ non-production hosts, and the vertical promo video section.
 
 ## 4. Standing rules — do not break these
 
+- **The sweep is armed in TWO stages, not one.** `LIFECYCLE_SWEEP_ENABLED`
+  turns it on in reminders-only mode; `LIFECYCLE_SWEEP_DESTRUCTIVE` enables the
+  expiry and cancellation branches that release booths. Run a full cycle on
+  reminders-only and review `would_expire` / `would_cancel` before the second
+  flag. Booth release is irreversible — no history table. Procedure in
+  CUTOVER.md §C.
 - **`LIFECYCLE_SWEEP_ENABLED` stays unset until nine templates are confirmed
   ARRIVED IN THE INBOX — not nine API acceptances.** The harness reporting 9/9
   means Resend accepted them, nothing more. The whole reason this gate exists is
