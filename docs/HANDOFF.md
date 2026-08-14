@@ -17,20 +17,27 @@ state; that file is the plan.
 
 ## 1. Do these first
 
-### 1a. Migration 043 — APPLIED 2026-08-13, but two of its fixes are untested
+### 1a. Migration 043 — APPLIED AND VERIFIED AT THE CATALOG LEVEL 2026-08-13
 
-`supabase/migrations/043_service_role_and_owner_reads.sql`. Verified applied by
-probe: a service-role insert now retains `status='approved'` and
-`deposit_due_at`, which it did not before.
+`supabase/migrations/043_service_role_and_owner_reads.sql`. **`verify_043.sql`
+has been run. Do not re-run it.** Measured, not inferred:
 
-**(1) service_role clamped by the 031/041 triggers — FIXED; END-TO-END TEST NOW READY TO RUN.** Both test `is_admin()`,
-which is false for service_role (no `auth.uid()`), and **triggers are not
-bypassed by service role the way RLS is**. Confirmed by probe: a service-role
-insert with `deposit_due_at` set returns it NULL. This silently breaks
-`/api/admin/import-returning` (route.ts ~107-110), which inserts applications
-with `status:'approved'`, `deposit_due_at` and `final_due_at` — all three
-clamped, so imported returning exhibitors land as `pending` with no lifecycle
-dates. **`/api/admin/import-returning` is still not tested end to end** — the clamp is
+- **both** clamp functions carry the exemption — `has_exemption = true` on
+  `applications_force_safe_insert` AND `applications_protect_staff_columns`
+- both are still `SECURITY DEFINER` with `search_path` pinned
+- all four owner policies present
+
+That closes the partial-apply question the single insert probe could not
+answer. The remaining gap is behavioural, not structural — see the bottom of
+this section.
+
+**(1) service_role clamped by the 031/041 triggers — FIXED AND VERIFIED IN THE
+DEPLOYED FUNCTIONS.** Both tested `is_admin()`, which is false for service_role
+(no `auth.uid()`), and **triggers are not bypassed by service role the way RLS
+is**. This silently broke `/api/admin/import-returning`, which inserts
+applications with `status:'approved'`, `deposit_due_at` and `final_due_at` — all
+three clamped, so imported returning exhibitors landed as `pending` with no
+lifecycle dates. **`/api/admin/import-returning` is still not tested end to end** — the clamp is
 gone, but nobody has actually run an import.
 
 **The test is written and waiting for you to run it:**
@@ -118,19 +125,10 @@ clamp and leave the UPDATE clamp broken with no error raised. That is what
       `accounting@`, 2026-08-13. Not acceptances. Settled; do not re-litigate.
       Re-run the harness only if the sending domain, the Resend key or
       `/api/send-email` changes.
-- [ ] **Run the three new verify files.** 041, 042 and 043 all cited a
-      `verify_NNN.sql` in their header that did not exist; all three are now
-      written. Read-only, pasteable, nothing mutates.
-      - [verify_043.sql](../supabase/verify/verify_043.sql) — **run this one
-        first.** Its centrepiece (A/B) reads the deployed clamp function bodies
-        to confirm the `auth.uid() is null` exemption is present in BOTH, which
-        the insert probe could not distinguish from a partial apply.
-      - [verify_041.sql](../supabase/verify/verify_041.sql) — owner UPDATE
-        policy, and query B lists every other UPDATE path on `applications`
-        (the permissive-baseline check).
-      - [verify_042.sql](../supabase/verify/verify_042.sql) — booth flags; query
-        C wants eyeballing against the current floor plan, query E checks no
-        non-sellable booth is still assigned.
+- [x] **verify_041, verify_042 and verify_043 ALL RUN AND PASSED, 2026-08-13.**
+      All three migrations had cited a `verify_NNN.sql` that did not exist; they
+      are now written and executed. **Do not re-run them** unless the
+      corresponding functions or policies change. Recorded results in §1a.
 - [ ] **Run `supabase/verify/verify_034.sql`** if you want the per-FK output on
       record. 034 is the one migration whose effect cannot be probed through
       PostgREST — everything else below was confirmed by direct probe.
@@ -143,12 +141,13 @@ clamp and leave the UPDATE clamp broken with no error raised. That is what
       scope them — but it reads `food_trucks`, which is why finding (2) above
       matters there.
 
-## 2. Migration state — 027 through 045
+## 2. Migration state — 027 through 045 · only 045 outstanding
 
-All 17 applied. 027–033 and 035–042 confirmed by direct probe on 2026-08-03;
-034 confirmed by the operator (its effect is not visible through PostgREST);
-043 applied 2026-08-13 and confirmed by insert probe — but see §1a for what that
-probe does and does not establish.
+All applied except 045. 027–033 and 035–042 confirmed by direct probe on
+2026-08-03; 034 confirmed by the operator (its effect is not visible through
+PostgREST); **041, 042, 043 and 044 confirmed by their verify files on
+2026-08-13** — catalog-level, results in §1a and §4a. 045 is the only one
+outstanding and must run after the deploy.
 
 | | | |
 |---|---|---|
@@ -169,8 +168,8 @@ probe does and does not establish.
 | 041 | owner UPDATE on applications + clamp | applied |
 | 042 | booth `is_sellable` / `house_use` | applied |
 | 043 | service_role trigger exemption + 4 owner policies | applied |
-| 044 | `schedule_items` + sponsor presentation credit | **NOT YET APPLIED** |
-| 045 | rename Apply Hub CMS key `home` → `applyHub` | **NOT YET APPLIED** |
+| 044 | `schedule_items` + sponsor presentation credit | applied + verified |
+| 045 | rename Apply Hub CMS key `home` → `applyHub` | **NOT YET APPLIED — run after the deploy** |
 
 **Convention adopted after 034 truncated in the SQL editor three times:**
 migrations stay short enough to paste; substantial verification goes in a
@@ -272,39 +271,44 @@ non-production hosts, and the vertical promo video section.
 - **Grandfathered prices** (Tattoo Goo $3,000, pre-July VIP Bag $800) are
   deliberate, not errors. `amount_locked` protects them; CUTOVER.md explains.
 
-## 4a. Migration 044 + the 2027 schedule — APPLY IN THIS ORDER
+## 4a. Migration 044 + the 2027 schedule — APPLIED AND VERIFIED 2026-08-13
 
-Nothing below renders until the migration and both seeds are run. The build is
-green either way — the pages degrade to an empty state and log the reason.
+**Done. Do not re-run.** `verify_044.sql` passed:
 
-1. `supabase/migrations/044_schedule_items.sql`
-2. `supabase/seeds/schedule_2027.sql` — 25 programme items
-3. `supabase/seeds/panels_2027.sql` — the two seminars. **Read its three notes
-   first**; `signup_type` is set to `'none'` and that is a decision, not a
-   default.
-4. `supabase/verify/verify_044.sql` — query D is the one that matters: it
-   catches a seminar whose `panel_date` does not match a schedule day label,
-   which makes it silently absent from the programme.
-5. `supabase/migrations/045_rename_apply_hub_content_key.sql` — **run this
-   close to the deploy.** It moves saved `/apply` CMS copy from `page_key`
-   `home` to `applyHub`. Without it the rename does not error; `/apply` just
-   silently falls back to registry defaults and the admin edits are orphaned.
-   A `rows_moved` of 0 is legitimate — it means the Apply Hub copy was never
-   edited.
+- day counts **10 / 9 / 6** across Fri–Sun (25 items), Saturday closing 22:00 —
+  matching the 2027 spec, not the 2026 schedule that was hardcoded before
+- **zero panels with a mismatched day label** — both seminars resolve against a
+  real schedule day, so neither is silently absent from the programme. That was
+  query D, the check most likely to fail quietly.
+
+`schedule_items` and both public views are live; `/events/schedule` and the
+homepage read them.
 
 **`presented_by` is a two-field design.** `presented_by_sponsorship_id` (FK) is
-authoritative; `presented_by_fallback` (text) exists only so the schedule could
-ship before Nomadica and Whole Life Aftercare have sponsorship rows. The FK wins
-the moment it is set — no schedule edit needed. The views join on
-`status = 'confirmed'`, so linking an unconfirmed sponsorship still renders the
-fallback rather than announcing them early. `verify_044.sql` F is the list of
-credits still carried as plain text; drive it to zero.
+authoritative; `presented_by_fallback` (text) exists so the schedule could ship
+before Nomadica and Whole Life Aftercare have sponsorship rows. The FK wins the
+moment it is set — no schedule edit. Both views join on `status = 'confirmed'`,
+so linking an unconfirmed sponsorship still renders the fallback rather than
+announcing them early. `verify_044.sql` F lists the credits still carried as
+plain text; it currently returns those two, and it will stay non-zero until the
+`presentation_credits` table exists (CUTOVER §E2).
+
+### Still outstanding — 045, then the import test
+
+1. `supabase/migrations/045_rename_apply_hub_content_key.sql` — **run it AFTER
+   the deploy is live, not before.** Step 0 in its header tells you whether the
+   ordering matters at all: `select count(*) from page_content where page_key =
+   'home';` — a 0 means no window exists and you can run it whenever. Full
+   sequence and rollback are in the migration header.
+2. The `/api/admin/import-returning` end-to-end test — procedure in §1a.
 
 ## 5. Next, in order
 
-1. **`/admin/schedule` CRUD.** The deliberate gap from 044 — `schedule_items`
-   has an `is_admin()` policy and no UI, so a schedule change currently means
-   editing the seed and re-running it. Needs a sponsor picker writing
+1. **`/admin/schedule` CRUD — NEXT, ahead of portal self-edit.** The
+   deliberate gap from 044: `schedule_items` has an `is_admin()` policy and no
+   UI, so a schedule change means editing the seed and re-running it — the same
+   problem as a config file needing a redeploy, and **the schedule will move in
+   the weeks before the show**. Needs a sponsor picker writing
    `presented_by_sponsorship_id`, and `guardedWrite()` on every write.
 2. **Portal profile self-edit.** Artists and vendors cannot change business name,
    website, Instagram, phone or logo — all directory-facing. 041 unblocked the

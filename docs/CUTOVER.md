@@ -295,40 +295,58 @@ reach zero once this is decided.
 cannot be reconciled against what was invoiced, and disappears the moment
 someone edits the seed. A sellable asset with no record of who bought it.
 
-#### Option A — add a tier value
+#### DECIDED — Option B: presentation credits as their own sellable. NOT YET BUILT.
 
-`alter type sponsor_tier add value 'presenting'`, then a real sponsorship row
-per credit at the price actually paid, and exclude the new tier from the
-`/sponsors` listing so it does not read as a headline sponsor.
+**Decision, 2026-08-13. Do not relitigate.** A credit is attached to an *item*,
+not to a sponsor — that is how it is priced and how it is delivered. One sponsor
+holding several credits with no way to record which item each belongs to was the
+disqualifying flaw in the tier approach, and a `sponsor_tier` enum value can
+never be dropped in PostgreSQL, which is the wrong kind of permanent for a
+guess.
 
-- **For:** small change; reuses sponsorships, so invoicing, `amount_locked` and
-  the payment flow all work unchanged; the FK resolves immediately.
-- **Against:** a presenting credit is not really a tier — it is per-item, and
-  one sponsor could hold several across the weekend while `sponsorships` has no
-  natural way to say which item each belongs to. It also needs a deliberate
-  exclusion in `/sponsors`, which is another place to forget. Enum values cannot
-  be dropped in PostgreSQL, so this is effectively permanent.
-- **Roughly half a day.**
+**Shape when picked up:**
 
-#### Option B — presentation credits as their own sellable
+```sql
+create table presentation_credits (
+  id               uuid primary key default gen_random_uuid(),
+  event_id         uuid not null references events(id) on delete cascade,
+  sponsorship_id   uuid references sponsorships(id) on delete set null,
+  buyer_name       text not null,   -- survives an unlinked/deleted sponsorship
+  schedule_item_id uuid references schedule_items(id) on delete set null,
+  panel_id         uuid references panels(id) on delete set null,
+  amount           int  not null default 0 check (amount >= 0),  -- cents
+  status           text not null default 'pending'
+                     check (status in ('pending','confirmed','cancelled')),
+  invoice_id       uuid references invoices(id) on delete set null,
+  created_at       timestamptz not null default now()
+);
+```
 
-A `presentation_credits` table: `sponsorship_id` (or standalone buyer fields),
-the target (`schedule_item_id` / `panel_id`), `amount`, `status`, `invoice_id`.
-`presented_by_sponsorship_id` becomes `presentation_credit_id`.
+`presented_by_sponsorship_id` on `schedule_items` and `panels` is then replaced
+by a read through this table, and `presented_by_fallback` is retired. Note
+`buyer_name` is denormalised on purpose, the same reasoning as the booth history
+table: the credit must stay reportable if the sponsorship row is unlinked.
 
-- **For:** models what was actually sold — a credit is attached to an *item*,
-  which is how it is priced and how it is delivered. Several per sponsor, or per
-  weekend, all fall out naturally. Reportable on its own without touching the
-  sponsor listing, so there is no exclusion to forget.
-- **Against:** a second sellable with its own invoicing and admin surface;
-  duplicates some of what `sponsorships` does. Correct, but bigger.
-- **Roughly 1.5–2 days.**
+Roughly **1.5–2 days**, including an admin surface and invoicing. **Sequenced
+after `/admin/schedule` CRUD and portal profile self-edit** — see HANDOFF §5.
 
-**Recommendation: B if presenting credits are going to be a recurring line —
-which the spec suggests ("there will be more") — and A only if these two are
-one-offs.** A is cheap but the enum value is permanent and the `/sponsors`
-exclusion is a standing footgun. Not urgent: the fallback text renders correctly
-and nothing is publicly wrong today. Decide before selling a third.
+#### THE COUNTER — 2 sold, 0 recordable, and it will grow
+
+| Credit | Item | Recorded as |
+|---|---|---|
+| Whole Life Aftercare | All American Tattoo Battle (Fri 1:00 PM) | plain text |
+| Nomadica | Bookkeeping seminar (Sun 1:30 PM) | plain text |
+
+**This number goes up every time another one is sold before the table exists,
+and each one is revenue with no record of who bought it, at what price, against
+which item.** They render correctly on the public pages — nothing is visibly
+wrong — which is exactly why this is easy to keep deferring. `verify_044.sql`
+query F is the live count; it will stay non-zero until the table lands, so treat
+a growing result there as the signal that this has waited long enough.
+
+The interim position is deliberate: the plain-text fallback is honest about what
+it is, and it beats fabricating a sponsorship row that would publish these two
+on `/sponsors` as full 2027 sponsors and overstate what was sold.
 
 ### No announce step — confirming a sponsor publishes them instantly
 
@@ -380,6 +398,30 @@ public build has nothing to wait on.
   rename — voting reads `photo_url` and runs live at the show.
 - Year derives from `contests.event_id -> events`. No year column, so 2028 needs
   no migration.
+
+### Panel `max_capacity` is stored but NEVER ENFORCED
+
+`/api/panel-register` inserts a registration without ever counting existing ones
+against `panels.max_capacity`. The column is stored, shown in the `/admin/panels`
+list as "N / M max", and typed on the public page — but nothing stops the N+1th
+signup. The admin list will read "45 / 30 max" without complaint.
+
+So `signup_type = 'free_registration'` buys a **roster, not a cap**. You will
+know you are oversubscribed; the form will not prevent it.
+
+This matters now that the two 2027 seminars exist. If either has genuinely
+limited seating, the current behaviour is: people register, everyone is
+accepted, and the overflow discovers it at the door.
+
+**Fix when picked up** (~2 hours): count `panel_registrations` for the panel
+inside the `free_registration` branch and reject with a "this session is full"
+response once `max_capacity` is reached. Two caveats — it needs to be a
+count-and-insert that tolerates a race (two people claiming the last seat
+simultaneously), so do it in a `SECURITY DEFINER` function or accept a small
+overshoot; and `aatc_invoice` panels need the same check or a paid registration
+can be taken for a full room, which is a refund rather than an apology.
+
+Not blocking launch — no panel has real registrations yet.
 
 ### Helper pass — revenue not captured (post-launch, not blocking)
 

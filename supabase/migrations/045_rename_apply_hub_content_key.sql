@@ -14,14 +14,43 @@
 -- the wrong one reading as the homepage. That is how someone edits the wrong
 -- page's copy at 11pm.
 --
--- DEPLOY ORDERING — there is a window either way, and it is cosmetic.
---   Migration first: code still asks for 'home', gets nothing, /apply shows
---                    registry defaults until the deploy lands.
---   Deploy first:    code asks for 'applyHub', gets nothing, same result.
--- Either way /apply renders correctly-formed default copy, never blank, and it
--- self-corrects the moment both sides are in place. Run them close together.
--- If /admin/content has never been used to edit the Apply Hub there are no rows
--- at all and the window does not exist.
+-- ════════════════════════════════════════════════════════════
+-- DEPLOY ORDER — RUN THIS *AFTER* THE DEPLOY IS LIVE. Not before.
+-- ════════════════════════════════════════════════════════════
+--
+-- STEP 0 — check whether any of this matters. Run this by itself first:
+--
+--     select count(*) from page_content where page_key = 'home';
+--
+--   0  → the Apply Hub copy was never edited in /admin/content. There is no
+--        data to move and NO WINDOW AT ALL. Run the rest whenever; order is
+--        irrelevant. Most likely outcome.
+--   >0 → that many edits exist. Continue to step 1.
+--
+-- STEP 1 — let the deploy land. Wait until Vercel shows Ready AND the domain
+--          is serving the new build.
+-- STEP 2 — run this migration immediately after.
+-- STEP 3 — /apply self-corrects within 60s (getContent caches for 60s).
+--
+-- WHY THIS ORDER, AND NOT THE REVERSE. Both orders have a window in which
+-- /apply renders registry defaults instead of the saved copy. The difference is
+-- who controls its length:
+--
+--   Deploy first, then SQL  → the window runs from the deploy going live until
+--                             you paste this in. SECONDS, and you decide when
+--                             it ends.
+--   SQL first, then deploy  → the window runs from the UPDATE until the build
+--                             finishes and propagates. MINUTES, and you cannot
+--                             shorten it.
+--
+-- Neither breaks the page — /apply renders correctly-formed default copy in the
+-- window, never blank, and never errors. This is about minimising how long the
+-- wrong copy is public, not about avoiding an outage.
+--
+-- ROLLBACK. If the deploy has to be reverted, put the key back so the old code
+-- finds its rows again:
+--
+--     update page_content set page_key = 'home' where page_key = 'applyHub';
 begin;
 
 update page_content
