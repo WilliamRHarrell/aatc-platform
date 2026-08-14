@@ -193,6 +193,25 @@ errors if something depends on it, which is information; cascade silently
 destroys it. Then reissue the `grant`, which the drop discards. Both statements
 inside the same transaction, so readers see no gap.
 
+**Convention adopted 2026-08-14: the Supabase SQL Editor shows only the LAST
+statement's result.** Every earlier statement runs but its output is discarded
+silently — nothing errors, the results just never appear, which reads as "this
+file only had one check in it".
+
+Consequences, all now applied:
+- Every `verify_NNN.sql` carries a header saying to run one lettered block at a
+  time, and blocks holding two queries are marked `(2 queries)` with the second
+  labelled `X2 of 2`.
+- A verify file must never END on a decorative `select 'note'` — that would be
+  the only thing displayed to anyone who ran it whole. `verify_046` did; it is
+  now a comment.
+- A migration that reports two figures must combine them into ONE select. `045`
+  reported `rows_moved` and `stale_home_rows` separately, so `rows_moved` — the
+  actual outcome — was invisible. Now one row, two columns.
+- `verify_034` is immune by construction: it is a single `union all` returning
+  one row per check. That is the most robust shape for this editor and is worth
+  copying when a file's checks are homogeneous.
+
 **Convention adopted after 034 truncated in the SQL editor three times:**
 migrations stay short enough to paste; substantial verification goes in a
 companion `supabase/verify/verify_NNN.sql` rather than an embedded `DO` block.

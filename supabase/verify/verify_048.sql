@@ -1,4 +1,21 @@
 -- ============================================================
+-- ⚠  RUN ONE LETTERED BLOCK AT A TIME — DO NOT RUN THIS FILE WHOLE.
+--
+-- The Supabase SQL Editor displays only the LAST statement's result. Running
+-- the whole file returns the final query and silently discards every check
+-- above it, which looks exactly like a file that only ever had one check in
+-- it. Nothing errors; the other results simply never appear.
+--
+-- Select from a block's `-- ── X.` header down to its semicolon, run that,
+-- read the result, then move to the next. The expected result is stated in
+-- each block, usually as a `want:` comment or an `expected` column.
+--
+-- A few blocks are marked `(2 queries)` and contain a second statement labelled
+-- `X2 of 2`. Run those separately too — the same last-statement-wins rule
+-- applies inside a block.
+-- ============================================================
+
+-- ============================================================
 -- VERIFY 048 — run after the migration. Nothing mutates.
 --
 -- Query A: the audit table and its indexes exist.
@@ -17,7 +34,7 @@ select column_name, data_type, is_nullable
  order by ordinal_position;
 
 
--- ── B. Trigger installed, enabled, and AFTER ────────────────
+-- ── B. Trigger installed, enabled, and AFTER ──────── (2 queries) ─
 -- want: 1 row, tgenabled = 'O', timing = 'AFTER'.
 --
 -- AFTER is not cosmetic. applications already carries a BEFORE UPDATE clamp
@@ -35,7 +52,7 @@ select t.tgname,
    and not t.tgisinternal
    and t.tgname = 'applications_log_profile_edit_trg';
 
--- Both triggers on applications, for ordering. PostgreSQL fires same-timing
+-- B2 of 2 — run separately. Both triggers on applications, for ordering. PostgreSQL fires same-timing
 -- triggers alphabetically; these are different timings, so BEFORE always wins.
 select tgname,
        case when (tgtype::int & 2) = 0 then 'AFTER' else 'BEFORE' end as timing
@@ -66,7 +83,7 @@ select policyname, cmd, qual, with_check
  where schemaname = 'public' and tablename = 'profile_edits';
 
 
--- ── E. The write path — restated, not changed ───────────────
+-- ── E. The write path — restated, not changed ────── (2 queries) ─
 -- 048 adds NO table policy for the self-edit itself, because 041 already
 -- granted owners UPDATE on their own application and its clamp does not cover
 -- the directory-facing fields. Confirm that is still true: want the owner
@@ -76,6 +93,7 @@ select policyname, cmd, qual as using_expr, with_check
  where schemaname = 'public' and tablename = 'applications'
    and policyname = 'applications: own update';
 
+-- E2 of 2 — run separately.
 -- want: all six false. A true means that field is clamped and the portal will
 -- silently fail to change it — the write returns success and the value reverts.
 select

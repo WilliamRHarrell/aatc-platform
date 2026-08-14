@@ -1,4 +1,21 @@
 -- ============================================================
+-- ⚠  RUN ONE LETTERED BLOCK AT A TIME — DO NOT RUN THIS FILE WHOLE.
+--
+-- The Supabase SQL Editor displays only the LAST statement's result. Running
+-- the whole file returns the final query and silently discards every check
+-- above it, which looks exactly like a file that only ever had one check in
+-- it. Nothing errors; the other results simply never appear.
+--
+-- Select from a block's `-- ── X.` header down to its semicolon, run that,
+-- read the result, then move to the next. The expected result is stated in
+-- each block, usually as a `want:` comment or an `expected` column.
+--
+-- A few blocks are marked `(2 queries)` and contain a second statement labelled
+-- `X2 of 2`. Run those separately too — the same last-statement-wins rule
+-- applies inside a block.
+-- ============================================================
+
+-- ============================================================
 -- VERIFY 044 — run after the migration AND both seeds. Nothing mutates.
 --
 -- Order: 044 → seeds/schedule_2027.sql → seeds/panels_2027.sql → this file.
@@ -55,7 +72,7 @@ select grantee, privilege_type
    and grantee      = 'anon';
 
 
--- ── D. THE JOIN KEY — the silent failure ────────────────────
+-- ── D. THE JOIN KEY — the silent failure ──────────── (2 queries) ─
 -- The schedule page groups panels by matching `panels.panel_date` (free text)
 -- against a day label it GENERATES from schedule_items.day_date, formatted as
 -- 'Friday, April 16'. A panel whose panel_date does not match one of those
@@ -76,7 +93,8 @@ select p.title, p.panel_date, p.panel_time,
  where p.event_id = (select id from events where is_active)
  order by p.panel_time;
 
--- The labels themselves, for eyeballing against panel_date above.
+-- D2 of 2 — run separately. The labels themselves, for eyeballing against
+-- panel_date above.
 select distinct to_char(day_date, 'FMDay, FMMonth FMDD') as day_label
   from schedule_items
  where event_id = (select id from events where is_active)

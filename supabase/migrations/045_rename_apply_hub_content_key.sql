@@ -57,19 +57,20 @@ update page_content
    set page_key = 'applyHub'
  where page_key = 'home';
 
--- Row count is the whole verification. 0 is a legitimate result — it means the
--- Apply Hub copy was never edited and /apply was always rendering registry
--- defaults. Any other number is how many edits were carried across.
-select count(*) as rows_moved
-  from page_content
- where page_key = 'applyHub';
-
--- Must be 0. A surviving 'home' row means the UPDATE was blocked by the
--- (page_key, section_key) unique constraint because an 'applyHub' row with the
--- same section_key already existed — which would only happen if this migration
--- were run twice with edits made in between.
-select count(*) as stale_home_rows_want_zero
-  from page_content
- where page_key = 'home';
+-- ONE statement, deliberately: the SQL editor shows only the last result, and
+-- as two separate selects the rows_moved figure — the actual outcome of this
+-- migration — would be invisible behind the stale-row check.
+--
+-- rows_moved: 0 is a legitimate result. It means the Apply Hub copy was never
+--   edited and /apply was always rendering registry defaults. Any other number
+--   is how many edits were carried across.
+-- stale_home_rows: MUST be 0. A surviving 'home' row means the UPDATE was
+--   blocked by the (page_key, section_key) unique constraint because an
+--   'applyHub' row with the same section_key already existed — which only
+--   happens if this migration is run twice with edits made in between.
+select
+  (select count(*) from page_content where page_key = 'applyHub') as rows_moved,
+  (select count(*) from page_content where page_key = 'home')     as stale_home_rows,
+  'stale_home_rows must be 0' as expected;
 
 commit;

@@ -1,6 +1,11 @@
 -- ============================================================
 -- TEARDOWN for an /api/admin/import-returning test.
 --
+-- ⚠  RUN ONE NUMBERED SECTION AT A TIME. The Supabase SQL Editor shows only the
+-- LAST statement's result, so running this file whole would display the final
+-- confirmation and hide the two "what will be deleted" queries — the ones you
+-- are meant to read BEFORE anything is destroyed.
+--
 -- Replace the address on the next line and nothing else. Every statement is
 -- scoped to it. Run the SELECTs first and read them — this deletes an auth
 -- user, and there is no undo.

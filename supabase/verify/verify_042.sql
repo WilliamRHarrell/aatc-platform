@@ -1,4 +1,21 @@
 -- ============================================================
+-- ⚠  RUN ONE LETTERED BLOCK AT A TIME — DO NOT RUN THIS FILE WHOLE.
+--
+-- The Supabase SQL Editor displays only the LAST statement's result. Running
+-- the whole file returns the final query and silently discards every check
+-- above it, which looks exactly like a file that only ever had one check in
+-- it. Nothing errors; the other results simply never appear.
+--
+-- Select from a block's `-- ── X.` header down to its semicolon, run that,
+-- read the result, then move to the next. The expected result is stated in
+-- each block, usually as a `want:` comment or an `expected` column.
+--
+-- A few blocks are marked `(2 queries)` and contain a second statement labelled
+-- `X2 of 2`. Run those separately too — the same last-statement-wins rule
+-- applies inside a block.
+-- ============================================================
+
+-- ============================================================
 -- VERIFY 042 — run after the migration. Read the results; nothing mutates.
 --
 -- 042 added booth inventory flags (is_sellable / house_use), marked four booths

@@ -1,4 +1,21 @@
 -- ============================================================
+-- ⚠  RUN ONE LETTERED BLOCK AT A TIME — DO NOT RUN THIS FILE WHOLE.
+--
+-- The Supabase SQL Editor displays only the LAST statement's result. Running
+-- the whole file returns the final query and silently discards every check
+-- above it, which looks exactly like a file that only ever had one check in
+-- it. Nothing errors; the other results simply never appear.
+--
+-- Select from a block's `-- ── X.` header down to its semicolon, run that,
+-- read the result, then move to the next. The expected result is stated in
+-- each block, usually as a `want:` comment or an `expected` column.
+--
+-- A few blocks are marked `(2 queries)` and contain a second statement labelled
+-- `X2 of 2`. Run those separately too — the same last-statement-wins rule
+-- applies inside a block.
+-- ============================================================
+
+-- ============================================================
 -- VERIFY 049 — run after the migration. Nothing mutates.
 --
 -- Query A: every policy on sponsorships, for the record.     ← the standing rule
@@ -34,7 +51,7 @@ select policyname, qual as using_expr, with_check as with_check_expr,
    and policyname = 'sponsorships: own update';
 
 
--- ── C. CENTREPIECE — the clamp is an ALLOW-LIST ─────────────
+-- ── C. CENTREPIECE — the clamp is an ALLOW-LIST ──── (2 queries) ─
 -- 049 inverts 041 deliberately: NEW is rebuilt from OLD and only the listed
 -- keys are taken from the submitted row, so a column added to sponsorships
 -- later is protected by DEFAULT rather than editable by default.
@@ -55,6 +72,7 @@ select p.proname,
  where n.nspname = 'public'
    and p.proname = 'sponsorships_protect_commercial_columns';
 
+-- C2 of 2 — run separately.
 -- The allowed set, spelled out. want: all seven true, and all nine false.
 select
   regexp_replace(p.prosrc, '\s+', ' ', 'g') like '%''contact_name''%' as allows_contact_name,
@@ -121,7 +139,7 @@ select tgname,
  order by timing, tgname;
 
 
--- ── F. Nothing is already self-linked ───────────────────────
+-- ── F. Nothing is already self-linked ───────────── (2 queries) ─
 -- The insert hole was open until now, so check whether any existing row has a
 -- user_id nobody set on purpose. Every link here should be one an admin made.
 -- Cross-reference against who you have actually linked.
@@ -133,6 +151,7 @@ select s.id, s.sponsor_name, s.status, s.tier, s.amount, s.amount_locked,
  where s.user_id is not null
  order by s.created_at desc;
 
+-- F2 of 2 — run separately.
 -- Also worth a look: any row that arrived with a placement flag or a lock
 -- already set. want: 0 rows other than ones staff set deliberately.
 select id, sponsor_name, status, amount, amount_locked, is_in_kind,

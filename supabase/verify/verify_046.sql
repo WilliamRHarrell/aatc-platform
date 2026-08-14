@@ -1,4 +1,21 @@
 -- ============================================================
+-- ⚠  RUN ONE LETTERED BLOCK AT A TIME — DO NOT RUN THIS FILE WHOLE.
+--
+-- The Supabase SQL Editor displays only the LAST statement's result. Running
+-- the whole file returns the final query and silently discards every check
+-- above it, which looks exactly like a file that only ever had one check in
+-- it. Nothing errors; the other results simply never appear.
+--
+-- Select from a block's `-- ── X.` header down to its semicolon, run that,
+-- read the result, then move to the next. The expected result is stated in
+-- each block, usually as a `want:` comment or an `expected` column.
+--
+-- A few blocks are marked `(2 queries)` and contain a second statement labelled
+-- `X2 of 2`. Run those separately too — the same last-statement-wins rule
+-- applies inside a block.
+-- ============================================================
+
+-- ============================================================
 -- VERIFY 046 — run after 046 and BEFORE 047. Nothing mutates.
 --
 -- 046 gave panels a real `panel_day date` and `panel_start time`, replacing
@@ -75,4 +92,6 @@ select p.title, p.panel_day,
 --
 -- Once 047 has run, verify_044 query D can be deleted. It is left in place
 -- until then because until 047 the text columns still exist.
-select 'verify_044 query D is obsolete once 047 has run' as note;
+-- (No query here — this block is a note. Deliberately not a `select 'note'`:
+-- as the file's LAST statement that would be the only thing displayed if
+-- anyone ran the file whole, hiding every real check above it.)
