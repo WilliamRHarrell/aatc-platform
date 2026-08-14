@@ -23,7 +23,7 @@ state; that file is the plan.
 probe: a service-role insert now retains `status='approved'` and
 `deposit_due_at`, which it did not before.
 
-**(1) service_role clamped by the 031/041 triggers — FIXED AND VERIFIED.** Both test `is_admin()`,
+**(1) service_role clamped by the 031/041 triggers — FIXED; END-TO-END TEST NOW READY TO RUN.** Both test `is_admin()`,
 which is false for service_role (no `auth.uid()`), and **triggers are not
 bypassed by service role the way RLS is**. Confirmed by probe: a service-role
 insert with `deposit_due_at` set returns it NULL. This silently breaks
@@ -32,6 +32,35 @@ with `status:'approved'`, `deposit_due_at` and `final_due_at` — all three
 clamped, so imported returning exhibitors land as `pending` with no lifecycle
 dates. **`/api/admin/import-returning` is still not tested end to end** — the clamp is
 gone, but nobody has actually run an import.
+
+**The test is written and waiting for you to run it:**
+1. Sign in as admin → `/admin/import-returning` → submit with a **throwaway
+   address you control**. The route sends a real `returner_invite`.
+2. `node scripts/verify-import-returning.mjs --email <that address>` — 17
+   checks. 3–8 are the 043 clamp measured through the real route; 14–17 replay
+   the lifecycle sweep's four predicates and confirm the exhibitor matches
+   none of them.
+3. `supabase/seeds/teardown_import_returning.sql` — read the SELECTs first, it
+   deletes an auth user.
+
+**The orphaned-auth-user defect is fixed.** The auth user is created before the
+application because `applications.user_id` references it, so every later
+failure could strand a loggable-in account with no application AND make the
+import unrepeatable for that address ("email already registered"). There is no
+transaction spanning `auth.users` and the public schema, so the route now
+compensates: a failure at the event lookup, the application insert or the
+invoice insert deletes what it created and logs loudly if the compensation
+itself fails. Invoice failure also removes the application — an approved
+application with no invoice has a `deposit_due_at` and no `deposit_paid_at`,
+which is the sweep's expiry profile exactly.
+
+**`deposit_paid_at` — asked and answered: the route is correct.** It sets
+`deposit_paid_at` AND `final_paid_at` on the invoice it creates, and the sweep
+keys on those same two columns in all four branches, so an imported returner
+matches none of them. This is NOT the admin-payment-handler failure mode. The
+invariant is now commented at the call site, because it is load-bearing and
+non-obvious: dropping to `status`/`amount_paid` alone would silently arm the
+sweep against every imported exhibitor.
 043 exempts `auth.uid() is null`. Do not widen further — the clamp is what stops
 applicants self-approving.
 

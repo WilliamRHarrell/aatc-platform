@@ -72,13 +72,41 @@ export async function POST(req: Request) {
 
   const userId = authResult.user.id
 
+  // ── Rollback ────────────────────────────────────────────────
+  // The auth user is created FIRST because applications.user_id references it,
+  // so the order cannot be reversed. That makes every failure below capable of
+  // stranding a real, logged-in-able account with no application behind it —
+  // and worse, making the import UNREPEATABLE for that address, because the
+  // operator's retry hits "email already registered" and needs manual cleanup
+  // in the Supabase dashboard to get past it.
+  //
+  // There is no transaction spanning auth.users and the public schema, so this
+  // is a compensating delete rather than a real rollback. If the compensation
+  // itself fails there is nothing further to try — log loudly enough that the
+  // orphan is findable, because nothing else will report it.
+  const rollback = async (stage: string) => {
+    const { error } = await adminClient.auth.admin.deleteUser(userId)
+    if (error) {
+      console.error(
+        `[import-returning] ROLLBACK FAILED after ${stage} for ${body.email} (${userId}): ` +
+        `${error.message}. An orphaned auth user now exists — it must be deleted by hand ` +
+        'before this address can be imported again.'
+      )
+      return
+    }
+    console.warn(`[import-returning] rolled back auth user ${userId} (${body.email}) after ${stage}.`)
+  }
+
   // 2. Get the active event id
   const { data: event } = await adminClient
     .from('events')
     .select('id')
     .eq('is_active', true)
     .single()
-  if (!event) return NextResponse.json({ error: 'No active event' }, { status: 500 })
+  if (!event) {
+    await rollback('no active event')
+    return NextResponse.json({ error: 'No active event' }, { status: 500 })
+  }
 
   // 3. Insert application — needs_roster=true
   const now = new Date()
@@ -114,10 +142,24 @@ export async function POST(req: Request) {
     .select('id')
     .single()
   if (appErr || !app) {
+    await rollback('application insert failed')
     return NextResponse.json({ error: `Failed to create application: ${appErr?.message}` }, { status: 500 })
   }
 
   // 4. Insert paid-in-full invoice
+  //
+  // deposit_paid_at AND final_paid_at ARE LOAD-BEARING — do not drop them to
+  // "just" amount_paid/status. The lifecycle sweep's four branches all key on
+  // `invoices.deposit_paid_at is null` / `invoices.final_paid_at is null`, NOT
+  // on status or amount_paid. An imported returner with these unset would be
+  // approved with a deposit_due_at 30 days out and no deposit milestone — i.e.
+  // a sweep target — and the destructive branch releases their booth
+  // irreversibly. Setting the milestone columns directly is what keeps every
+  // imported exhibitor out of all four branches.
+  //
+  // This marks the invoice paid IN FULL. Correct for a returning exhibitor who
+  // paid in full; there is no partial-payment path here, so anyone who only
+  // paid a deposit must be recorded through the admin payment modal instead.
   const nowIso = now.toISOString()
   const { error: invErr } = await adminClient.from('invoices').insert({
     application_id: app.id,
@@ -129,7 +171,21 @@ export async function POST(req: Request) {
     final_paid_at: nowIso,
   })
   if (invErr) {
-    return NextResponse.json({ error: `Application created but invoice failed: ${invErr.message}` }, { status: 500 })
+    // Roll back the application too, not just the auth user. Leaving an
+    // approved application with no invoice behind is worse than leaving
+    // nothing: it has a deposit_due_at and no deposit_paid_at, which is
+    // precisely the lifecycle sweep's expiry profile. A half-finished import
+    // would arm the sweep against the exhibitor it was meant to onboard.
+    const { error: appDelErr } = await adminClient.from('applications').delete().eq('id', app.id)
+    if (appDelErr) {
+      console.error(
+        `[import-returning] could not remove application ${app.id} after invoice failure: ` +
+        `${appDelErr.message}. It is approved with no invoice and IS A SWEEP TARGET — ` +
+        'delete it or record its payment before LIFECYCLE_SWEEP_ENABLED is set.'
+      )
+    }
+    await rollback('invoice insert failed')
+    return NextResponse.json({ error: `Import failed at the invoice step and was rolled back: ${invErr.message}` }, { status: 500 })
   }
 
   // 5. Trigger launch email (fire-and-forget; don't block on failure)
