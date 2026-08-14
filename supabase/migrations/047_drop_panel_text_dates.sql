@@ -33,9 +33,44 @@
 -- from the seed, not from the table. That is why step 3 exists.
 begin;
 
--- Restate the view without the deprecated pair, first — a column cannot be
--- dropped while a view depends on it.
-create or replace view public.panels_public with (security_invoker = false) as
+-- ── The view must be DROPPED, not replaced ─────────────────
+-- `create or replace view` compares column lists positionally and may only
+-- APPEND. It cannot reorder, rename, or REMOVE — and this migration removes
+-- panel_date and panel_time. Replacing in place fails with:
+--
+--   42P16: cannot drop columns from view
+--
+-- the mirror of the error 046 hit when it tried to insert columns mid-list.
+-- Same rule, opposite direction.
+--
+-- DROP WITHOUT CASCADE, DELIBERATELY. `cascade` would silently destroy anything
+-- that depends on this view — another view, a materialised view, a function
+-- with a hard dependency. Plain `drop view` uses RESTRICT and ERRORS instead,
+-- which is what you want: a failure here is information, not an obstacle.
+--
+-- Nothing in this schema depended on panels_public when 047 was written (only
+-- app-code reads, which are unaffected by a drop inside a transaction). Run
+-- the check below FIRST anyway — it costs nothing and this is the irreversible
+-- migration.
+--
+--   select dependent_ns.nspname as schema, dependent_view.relname as depends_on_panels_public
+--     from pg_depend d
+--     join pg_rewrite r          on r.oid = d.objid
+--     join pg_class dependent_view on dependent_view.oid = r.ev_class
+--     join pg_namespace dependent_ns on dependent_ns.oid = dependent_view.relnamespace
+--     join pg_class source_table on source_table.oid = d.refobjid
+--    where source_table.relname = 'panels_public'
+--      and dependent_view.relname <> 'panels_public';
+--
+-- 0 rows → the drop below is safe. Any rows → recreate them in THIS migration
+-- after the view, rather than reaching for cascade.
+--
+-- The drop also discards the GRANT, which is why it is reissued below. Both
+-- statements are inside the transaction, so no window exists where the view is
+-- missing from a reader's point of view.
+drop view if exists public.panels_public;
+
+create view public.panels_public with (security_invoker = false) as
 select p.id, p.event_id, p.title, p.description,
        p.panel_day, p.panel_start,
        p.location, p.panelists, p.is_free, p.cost, p.signup_type,
@@ -51,6 +86,8 @@ select p.id, p.event_id, p.title, p.description,
    and sp.status = 'confirmed'
  where p.is_published = true;
 
+-- Reissued because the DROP above discarded it. Omitting this is a silent
+-- outage: every public page reads this view as anon.
 grant select on public.panels_public to anon, authenticated;
 
 alter table panels

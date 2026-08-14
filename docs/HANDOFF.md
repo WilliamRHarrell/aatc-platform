@@ -175,6 +175,24 @@ outstanding and must run after the deploy.
 | 048 | profile self-edit: audit trail + logo storage path | **NOT YET APPLIED** |
 | 049 | sponsor owner UPDATE + commercial clamp + insert clamp | **NOT YET APPLIED** |
 
+**Convention adopted after 046 failed with 42P16 (2026-08-14): `create or
+replace view` can only APPEND columns.** It compares the new column list
+positionally against the existing one and cannot reorder, rename or remove.
+Both directions bite:
+
+- Inserting a column mid-list → `cannot change name of view column "X" to "Y"`,
+  which names the column at that POSITION, not the column at fault. 046 hit
+  this putting `panel_day` where `location` was.
+- Removing a column → `cannot drop columns from view`. 047 would have hit this.
+
+**Rule: adding to a view? Append at the end and keep `create or replace` —
+column order in a view is cosmetic, every caller selects by name, and no DROP
+means the GRANT survives and no dependency can be destroyed. Changing shape any
+other way? `drop view` then `create view`, WITHOUT `cascade`** — plain RESTRICT
+errors if something depends on it, which is information; cascade silently
+destroys it. Then reissue the `grant`, which the drop discards. Both statements
+inside the same transaction, so readers see no gap.
+
 **Convention adopted after 034 truncated in the SQL editor three times:**
 migrations stay short enough to paste; substantial verification goes in a
 companion `supabase/verify/verify_NNN.sql` rather than an embedded `DO` block.

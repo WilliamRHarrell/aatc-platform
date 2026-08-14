@@ -36,6 +36,15 @@ comment on column panels.panel_start is
 -- Reuses the exact format the public page generates, so anything that WAS
 -- matching before matches here. Anything that was not is reported below and is
 -- precisely the set that query D was written to find.
+--
+-- lc_time is pinned for the duration of this transaction. to_char's day and
+-- month names are locale-dependent, and the stored strings are English
+-- ('Sunday, April 18'). On a database with a non-English lc_time this join
+-- would match NOTHING and the backfill would silently do nothing — leaving
+-- panel_day null on every row, which reads identically to "there was nothing
+-- to migrate". SET LOCAL reverts at commit.
+set local lc_time = 'C';
+
 update panels p
    set panel_day = s.day_date
   from (select distinct day_date,
@@ -54,17 +63,35 @@ update panels
 -- ── Expose BOTH on the public view ──────────────────────────
 -- Old columns stay so the live deploy keeps working; new columns are there for
 -- the deploy that follows. 047 removes the old pair from both table and view.
+--
+-- THE NEW COLUMNS ARE APPENDED AT THE END, AND THAT IS NOT A STYLE CHOICE.
+-- `create or replace view` compares the new column list POSITIONALLY against
+-- the existing one. It may only ADD columns at the end — it cannot reorder,
+-- rename or remove. An earlier draft of this migration put panel_day/panel_start
+-- next to panel_date/panel_time, where they read better, and Postgres refused:
+--
+--   42P16: cannot change name of view column "location" to "panel_day"
+--
+-- which is Postgres saying "position 7 used to be `location` and now it is
+-- `panel_day`", not anything about `location` being wrong.
+--
+-- Appending keeps this a pure `create or replace`: no DROP, so the GRANT
+-- survives, and no dependency on this view can be silently destroyed. Column
+-- order in a view is cosmetic — every caller selects by name — and 047
+-- restores a tidy order once the old pair is gone, which it can do because it
+-- drops and recreates.
 create or replace view public.panels_public with (security_invoker = false) as
 select p.id, p.event_id, p.title, p.description,
        p.panel_date, p.panel_time,          -- deprecated, dropped by 047
-       p.panel_day, p.panel_start,          -- authoritative
        p.location, p.panelists, p.is_free, p.cost, p.signup_type,
        p.max_capacity, p.image_url,
        case when p.signup_type = 'email_host' then p.host_email end as host_email,
        coalesce(sp.sponsor_name, p.presented_by_fallback) as presented_by,
        sp.website  as presented_by_website,
        sp.logo_url as presented_by_logo_url,
-       (sp.id is not null) as presented_by_linked
+       (sp.id is not null) as presented_by_linked,
+       -- Appended. Must stay last until 047 drops the deprecated pair.
+       p.panel_day, p.panel_start
   from panels p
   left join sponsorships sp
     on sp.id = p.presented_by_sponsorship_id
