@@ -1,6 +1,6 @@
 # AATC Platform — Handoff
 
-**Last session:** 2026-08-03
+**Last session:** 2026-08-13
 **State:** build green, 66 routes, both prebuild guards passing.
 **Git:** see §1 — push state changes as soon as this is acted on.
 
@@ -53,24 +53,58 @@ approved but has not yet paid **cannot see their own booth assignment in
 /portal** — precisely the person the portal exists to serve. Found by applying
 the rule in §4 rather than by a report. Mine.
 
-**Findings 2, 3 and 4 are reasoned from policy state, not measured** —
-`food_trucks`, `exhibitors` and the relevant `booths` rows are all empty or
-unassigned after the teardown. That is weaker evidence than everything else in
-this document. **Re-test all three surfaces once real rows exist:** the /portal
-food-truck panel, roster completion creating an exhibitor row, and an approved
-unpaid exhibitor seeing their booth.
+**Policy EXISTENCE is measured. Policy BEHAVIOUR is not.** Keep these apart —
+conflating them is what let all four faults ship unnoticed.
 
-### 1b. Then### 1b. Then
+- **Measured (2026-08-13):** all four owner policies confirmed present by
+  catalog query — `food_trucks: own read`, `exhibitors: own insert`,
+  `exhibitors: own read`, `booths: own read`. Re-checked by
+  [verify_043.sql](../supabase/verify/verify_043.sql) query E.
+- **NOT measured:** that any of them actually works. `food_trucks` and
+  `exhibitors` have no rows and no booth has an `application_id`, so **no owner
+  has ever read their own row through any of these policies.** A policy whose
+  `using` clause is subtly wrong is indistinguishable in `pg_policies` from a
+  correct one and returns zero rows at runtime.
+
+That is still reasoned, not measured, and it is the weakest evidence in this
+document. **Re-test all three surfaces once real rows exist:**
+
+1. `/portal` food-truck panel — vendor reads their own truck
+2. `RosterCompletionPanel` — creates an exhibitor row
+3. `/portal` booth display — an **approved but UNPAID** exhibitor sees their
+   booth. Test with an unpaid one specifically: a paid exhibitor is also covered
+   by the deposit-gated public policy, so that case passes whether
+   `booths: own read` works or not.
+
+The service-role exemption (finding 1) is in a different position: it was
+measured behaviourally by probe, but the **deployed function bodies have never
+been read**. A probe proves the symptom is gone, not which change removed it —
+and a partial paste (the failure that hit 034 three times) would fix the INSERT
+clamp and leave the UPDATE clamp broken with no error raised. That is what
+[verify_043.sql](../supabase/verify/verify_043.sql) queries A–D exist to catch.
+
+### 1b. Then
 
 - [x] **EMAIL GATE MET — all nine confirmed as INBOX ARRIVALS** in
       `accounting@`, 2026-08-13. Not acceptances. Settled; do not re-litigate.
       Re-run the harness only if the sending domain, the Resend key or
       `/api/send-email` changes.
+- [ ] **Run the three new verify files.** 041, 042 and 043 all cited a
+      `verify_NNN.sql` in their header that did not exist; all three are now
+      written. Read-only, pasteable, nothing mutates.
+      - [verify_043.sql](../supabase/verify/verify_043.sql) — **run this one
+        first.** Its centrepiece (A/B) reads the deployed clamp function bodies
+        to confirm the `auth.uid() is null` exemption is present in BOTH, which
+        the insert probe could not distinguish from a partial apply.
+      - [verify_041.sql](../supabase/verify/verify_041.sql) — owner UPDATE
+        policy, and query B lists every other UPDATE path on `applications`
+        (the permissive-baseline check).
+      - [verify_042.sql](../supabase/verify/verify_042.sql) — booth flags; query
+        C wants eyeballing against the current floor plan, query E checks no
+        non-sellable booth is still assigned.
 - [ ] **Run `supabase/verify/verify_034.sql`** if you want the per-FK output on
       record. 034 is the one migration whose effect cannot be probed through
       PostgREST — everything else below was confirmed by direct probe.
-- [ ] Confirm the **8 accepted templates actually arrived** at
-      `accounting@allamericantattooconvention.com` — inbox and spam.
 - [ ] **Finish the auth-then-read sweep.** Two routes were checked in depth
       (`send-email`, `create-checkout`). The remaining pattern to look for: a
       route that authenticates its caller and then reads with the
@@ -80,11 +114,12 @@ unpaid exhibitor seeing their booth.
       scope them — but it reads `food_trucks`, which is why finding (2) above
       matters there.
 
-## 2. Migration state — 027 through 042
+## 2. Migration state — 027 through 045
 
-All 16 applied and verified. 027–033 and 035–042 confirmed by direct probe on
-2026-08-03; 034 confirmed by the operator (its effect is not visible through
-PostgREST).
+All 17 applied. 027–033 and 035–042 confirmed by direct probe on 2026-08-03;
+034 confirmed by the operator (its effect is not visible through PostgREST);
+043 applied 2026-08-13 and confirmed by insert probe — but see §1a for what that
+probe does and does not establish.
 
 | | | |
 |---|---|---|
@@ -104,6 +139,9 @@ PostgREST).
 | 040 | contest results schema | applied |
 | 041 | owner UPDATE on applications + clamp | applied |
 | 042 | booth `is_sellable` / `house_use` | applied |
+| 043 | service_role trigger exemption + 4 owner policies | applied |
+| 044 | `schedule_items` + sponsor presentation credit | **NOT YET APPLIED** |
+| 045 | rename Apply Hub CMS key `home` → `applyHub` | **NOT YET APPLIED** |
 
 **Convention adopted after 034 truncated in the SQL editor three times:**
 migrations stay short enough to paste; substantial verification goes in a
@@ -205,24 +243,66 @@ non-production hosts, and the vertical promo video section.
 - **Grandfathered prices** (Tattoo Goo $3,000, pre-July VIP Bag $800) are
   deliberate, not errors. `amount_locked` protects them; CUTOVER.md explains.
 
+## 4a. Migration 044 + the 2027 schedule — APPLY IN THIS ORDER
+
+Nothing below renders until the migration and both seeds are run. The build is
+green either way — the pages degrade to an empty state and log the reason.
+
+1. `supabase/migrations/044_schedule_items.sql`
+2. `supabase/seeds/schedule_2027.sql` — 25 programme items
+3. `supabase/seeds/panels_2027.sql` — the two seminars. **Read its three notes
+   first**; `signup_type` is set to `'none'` and that is a decision, not a
+   default.
+4. `supabase/verify/verify_044.sql` — query D is the one that matters: it
+   catches a seminar whose `panel_date` does not match a schedule day label,
+   which makes it silently absent from the programme.
+5. `supabase/migrations/045_rename_apply_hub_content_key.sql` — **run this
+   close to the deploy.** It moves saved `/apply` CMS copy from `page_key`
+   `home` to `applyHub`. Without it the rename does not error; `/apply` just
+   silently falls back to registry defaults and the admin edits are orphaned.
+   A `rows_moved` of 0 is legitimate — it means the Apply Hub copy was never
+   edited.
+
+**`presented_by` is a two-field design.** `presented_by_sponsorship_id` (FK) is
+authoritative; `presented_by_fallback` (text) exists only so the schedule could
+ship before Nomadica and Whole Life Aftercare have sponsorship rows. The FK wins
+the moment it is set — no schedule edit needed. The views join on
+`status = 'confirmed'`, so linking an unconfirmed sponsorship still renders the
+fallback rather than announcing them early. `verify_044.sql` F is the list of
+credits still carried as plain text; drive it to zero.
+
 ## 5. Next, in order
 
-1. **Portal profile self-edit.** Artists and vendors cannot change business name,
+1. **`/admin/schedule` CRUD.** The deliberate gap from 044 — `schedule_items`
+   has an `is_admin()` policy and no UI, so a schedule change currently means
+   editing the seed and re-running it. Needs a sponsor picker writing
+   `presented_by_sponsorship_id`, and `guardedWrite()` on every write.
+2. **Portal profile self-edit.** Artists and vendors cannot change business name,
    website, Instagram, phone or logo — all directory-facing. 041 unblocked the
    write path. Publish immediately, no queue, plus an admin recent-edits feed.
    ~2–2.5 days.
-2. **Admin "link sponsor to user account"** — replaces the removed self-claim.
-3. **Floor plan, read-only. ~2.5 days** now that booth coordinates are
+3. **Admin "link sponsor to user account"** — replaces the removed self-claim.
+4. **Floor plan, read-only. ~2.5 days** now that booth coordinates are
    extractable from the venue PDF. Needs the current-year plan from the Crown
    Complex; the 2024 one has 265 real booths, a mislabelled 165/166, and no 233.
-4. **Wall of Honor. 8–9 days.** Largest unscoped item, and its WordPress media is
+5. **Wall of Honor. 8–9 days.** Largest unscoped item, and its WordPress media is
    a cutover dependency. `scripts/import-wall-of-honor.mjs` is written and tested
    against a representative CSV.
-5. **Role split part 2** — column-level protection. Today's split is
+
+   **It has a slot in the programme: Friday 12:30 PM.** The *Missing Man Table
+   Presentation / Fallen Artists Moment of Silence* is the Wall of Honor's
+   in-show moment, seeded as a `schedule_items` row with `kind = 'tribute'`.
+   That changes the scope: the Wall of Honor is not only ambient signage and a
+   web page, it is a scheduled presentation, and whatever is built needs
+   something presentable in the room at that time. Treat the copy accordingly —
+   same for the **Gold Star VIP Meet & Greet** (Sat 10:00 AM), where Gold Star
+   means the families of fallen service members and must not read as a ticket
+   tier.
+6. **Role split part 2** — column-level protection. Today's split is
    navigation-only: a `content_editor` who knows the API can still read artist
    government photo IDs. Accepted for two trusted colleagues; not for anyone
    external.
-6. **Contest results public build** — early 2027; schema already landed.
+7. **Contest results public build** — early 2027; schema already landed.
 
 ## 6. Scripts
 

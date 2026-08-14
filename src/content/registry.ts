@@ -125,7 +125,10 @@ export const REGISTRY: PageDef[] = [
     },
   },
   {
-    key: 'home',
+    // Renamed from 'home' by migration 045. 'home' read as the homepage and
+    // sat directly beside 'homepage', which is the real one — two keys one
+    // letter apart, pointing at different pages. See 045 for the data move.
+    key: 'applyHub',
     title: 'Apply Hub (/apply)',
     sections: {
       hero_eyebrow: { label: 'Hero eyebrow', type: 'text', default: 'Applications Are Open' },

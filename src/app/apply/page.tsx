@@ -32,7 +32,7 @@ const CALENDAR_HREF = `data:text/calendar;charset=utf-8,${encodeURIComponent(
 )}`
 
 export default async function ApplyPage() {
-  const c = await getContent('home')
+  const c = await getContent('applyHub')
 
   const steps = [
     { title: c.expect_step1_title, desc: c.expect_step1_desc },

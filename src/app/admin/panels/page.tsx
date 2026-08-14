@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
+import { guardedWrite } from '@/lib/db-write'
 import toast from 'react-hot-toast'
 
 interface Panel {
@@ -236,29 +237,33 @@ export default function AdminPanelsPage() {
         ;(payload as Record<string, unknown>).image_url = path
       }
 
-      const { error } = await supabase
-        .from('panels')
-        .update(payload)
-        .eq('id', editingPanel.id)
+      // Guarded: every panels policy is `is_admin()`, so a content_editor's
+      // update is filtered to zero rows and returns error: null. Unguarded,
+      // this toasted "Panel updated" and changed nothing.
+      const res = await guardedWrite(
+        supabase.from('panels').update(payload).eq('id', editingPanel.id).select('id'),
+        'Could not update the panel',
+        'admin/panels update',
+      )
 
-      if (!error) {
+      if (res.ok) {
         setPanels(prev =>
           prev.map(p => (p.id === editingPanel.id ? { ...p, ...payload } as Panel : p))
         )
         toast.success('Panel updated')
         closeModal()
       } else {
-        toast.error('Failed to update panel')
+        toast.error(res.error!)
       }
     } else {
-      const { data, error } = await supabase
-        .from('panels')
-        .insert(payload)
-        .select('*')
-        .single()
+      const res = await guardedWrite(
+        supabase.from('panels').insert(payload).select('*'),
+        'Could not add the panel',
+        'admin/panels insert',
+      )
 
-      if (!error && data) {
-        const newPanel = data as unknown as Panel
+      if (res.ok) {
+        const newPanel = res.data[0] as unknown as Panel
 
         // Upload image if provided
         if (imageFile) {
@@ -268,11 +273,20 @@ export default function AdminPanelsPage() {
             .from('panel-images')
             .upload(path, imageFile)
           if (!uploadError) {
-            await supabase
-              .from('panels')
-              .update({ image_url: path })
-              .eq('id', newPanel.id)
-            newPanel.image_url = path
+            // Guarded separately: the row exists (the insert above succeeded),
+            // so a zero-row result here means the image landed in storage and
+            // the panel still points at nothing — worth a real error, not a
+            // silent mismatch between bucket and table.
+            const imgRes = await guardedWrite(
+              supabase.from('panels').update({ image_url: path }).eq('id', newPanel.id).select('id'),
+              'Panel added, but its image could not be attached',
+              'admin/panels image_url update',
+            )
+            if (imgRes.ok) {
+              newPanel.image_url = path
+            } else {
+              toast.error(imgRes.error!)
+            }
           }
         }
 
@@ -280,7 +294,7 @@ export default function AdminPanelsPage() {
         toast.success('Panel added')
         closeModal()
       } else {
-        toast.error('Failed to add panel')
+        toast.error(res.error!)
       }
     }
 
@@ -291,15 +305,22 @@ export default function AdminPanelsPage() {
     if (!window.confirm('Delete this panel and all its registrations?')) return
     setDeleting(id)
 
-    const { error } = await supabase.from('panels').delete().eq('id', id)
-    if (!error) {
+    // A filtered DELETE is the worst of the three: it returns error: null,
+    // toasts "Panel deleted", removes the row from local state — and the panel
+    // is still live on the public schedule after a refresh.
+    const res = await guardedWrite(
+      supabase.from('panels').delete().eq('id', id).select('id'),
+      'Could not delete the panel',
+      'admin/panels delete',
+    )
+    if (res.ok) {
       setPanels(prev => prev.filter(p => p.id !== id))
       const newCounts = { ...registrationCounts }
       delete newCounts[id]
       setRegistrationCounts(newCounts)
       toast.success('Panel deleted')
     } else {
-      toast.error('Failed to delete panel')
+      toast.error(res.error!)
     }
     setDeleting(null)
   }

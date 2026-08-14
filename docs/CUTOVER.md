@@ -268,6 +268,68 @@ policy is never sufficient on its own. `select * from pg_policies where tablenam
 
 Migration 038 drops the last of these baselines.
 
+### COMMERCIAL GAP — presentation credits cannot be represented
+
+**Two have already been sold and the system cannot record either of them.** The
+Tattoo Battle is presented by Whole Life Aftercare; the Bookkeeping seminar by
+Nomadica. Migration 044 gave `schedule_items` and `panels` a
+`presented_by_sponsorship_id` FK so the credit is data rather than copy — but
+there is nothing valid to point it at.
+
+**Why the FK cannot simply be filled in.** It resolves only against a
+sponsorship with `status = 'confirmed'`, and `/sponsors` lists every confirmed
+sponsorship for the event with no placement flag consulted (see the section
+below). So creating a confirmed sponsorship to make the credit render would
+**publicly list them as a full 2027 sponsor**, which overstates what was sold.
+And no `sponsor_tier` value means "presentation credit" — the enum is `title`,
+`platinum`, `gold`, `silver`, `brass`, `collectible_coin`, `vip_bag`. Picking
+the nearest tier misstates the amount and the package.
+
+**Current state, and it is a deliberate holding position, not a bug:** both
+credits render as plain text from `presented_by_fallback`. The pages are
+correct and shipped. `supabase/verify/verify_044.sql` query F lists every
+credit still carried this way — it is the reconciliation report, and it should
+reach zero once this is decided.
+
+**What is actually lost while it stays text:** the credit cannot be reported on,
+cannot be reconciled against what was invoiced, and disappears the moment
+someone edits the seed. A sellable asset with no record of who bought it.
+
+#### Option A — add a tier value
+
+`alter type sponsor_tier add value 'presenting'`, then a real sponsorship row
+per credit at the price actually paid, and exclude the new tier from the
+`/sponsors` listing so it does not read as a headline sponsor.
+
+- **For:** small change; reuses sponsorships, so invoicing, `amount_locked` and
+  the payment flow all work unchanged; the FK resolves immediately.
+- **Against:** a presenting credit is not really a tier — it is per-item, and
+  one sponsor could hold several across the weekend while `sponsorships` has no
+  natural way to say which item each belongs to. It also needs a deliberate
+  exclusion in `/sponsors`, which is another place to forget. Enum values cannot
+  be dropped in PostgreSQL, so this is effectively permanent.
+- **Roughly half a day.**
+
+#### Option B — presentation credits as their own sellable
+
+A `presentation_credits` table: `sponsorship_id` (or standalone buyer fields),
+the target (`schedule_item_id` / `panel_id`), `amount`, `status`, `invoice_id`.
+`presented_by_sponsorship_id` becomes `presentation_credit_id`.
+
+- **For:** models what was actually sold — a credit is attached to an *item*,
+  which is how it is priced and how it is delivered. Several per sponsor, or per
+  weekend, all fall out naturally. Reportable on its own without touching the
+  sponsor listing, so there is no exclusion to forget.
+- **Against:** a second sellable with its own invoicing and admin surface;
+  duplicates some of what `sponsorships` does. Correct, but bigger.
+- **Roughly 1.5–2 days.**
+
+**Recommendation: B if presenting credits are going to be a recurring line —
+which the spec suggests ("there will be more") — and A only if these two are
+one-offs.** A is cheap but the enum value is permanent and the `/sponsors`
+exclusion is a standing footgun. Not urgent: the fallback text renders correctly
+and nothing is publicly wrong today. Decide before selling a third.
+
 ### No announce step — confirming a sponsor publishes them instantly
 
 `status = 'confirmed'` is the **sole** publish gate. The public read policy is
