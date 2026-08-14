@@ -764,6 +764,8 @@ export type Database = {
           max_capacity: number | null
           panel_date: string
           panel_time: string
+          panel_day: string | null
+          panel_start: string | null
           panelists: string
           presented_by_sponsorship_id: string | null
           presented_by_fallback: string | null
@@ -785,6 +787,8 @@ export type Database = {
           max_capacity?: number | null
           panel_date?: string
           panel_time?: string
+          panel_day?: string | null
+          panel_start?: string | null
           panelists?: string
           presented_by_sponsorship_id?: string | null
           presented_by_fallback?: string | null
@@ -806,6 +810,8 @@ export type Database = {
           max_capacity?: number | null
           panel_date?: string
           panel_time?: string
+          panel_day?: string | null
+          panel_start?: string | null
           panelists?: string
           presented_by_sponsorship_id?: string | null
           presented_by_fallback?: string | null
@@ -1026,6 +1032,8 @@ export type Database = {
           description: string
           panel_date: string
           panel_time: string
+          panel_day: string | null
+          panel_start: string | null
           location: string
           panelists: string
           is_free: boolean
@@ -1064,6 +1072,19 @@ export type Database = {
     }
     Functions: {
       is_admin: { Args: never; Returns: boolean }
+      /** Migration 047 — atomic capacity check + insert. Locks the panels row. */
+      register_for_panel: {
+        Args: {
+          p_panel_id: string
+          p_name: string
+          p_email: string
+          p_phone: string | null
+          p_social: string | null
+          p_attendee_type: Database["public"]["Enums"]["panel_attendee_type"]
+          p_payment_status: string
+        }
+        Returns: { registration_id: string; seats_taken: number; capacity: number | null }[]
+      }
       /** Migration 039 — true when the caller holds any of the given roles. */
       has_role: { Args: { p_roles: string[] }; Returns: boolean }
       /** Migration 035 — atomic lifecycle transitions (service_role only). */

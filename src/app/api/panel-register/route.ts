@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
+import { guardedWrite } from '@/lib/db-write'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,11 +44,19 @@ export async function POST(req: NextRequest) {
     }
 
     if (panel.signup_type === 'free_registration') {
-      // .select() required — a zero-row insert returns no error, and a
-      // registration that silently vanishes is a seat nobody knows was claimed.
-      const { data: reg, error: insertError } = await supabase
-        .from('panel_registrations')
-        .insert({
+      // NO CAPACITY CHECK, DELIBERATELY. Seminars are not access-controlled:
+      // registration exists for planning and follow-up, and walk-ins are
+      // welcome if there is room. Refusing the 51st signup would turn away
+      // someone who would have walked in anyway — losing both the attendee and
+      // the forecast. max_capacity is a PLANNING TARGET, not a gate; see
+      // /admin/panels. Nothing is being claimed, so there is no race to lose.
+      //
+      // guardedWrite is still required: a filtered or zero-row insert returns
+      // error: null, and someone who thinks they are on a list they are not on
+      // is worse than an error — they do not re-register, and the room is
+      // undercounted.
+      const res = await guardedWrite(
+        supabase.from('panel_registrations').insert({
           panel_id: panelId,
           name,
           email,
@@ -55,18 +64,14 @@ export async function POST(req: NextRequest) {
           social_media: socialMedia || null,
           attendee_type: attendeeType || 'patron',
           payment_status: 'na',
-        })
-        .select('id')
+        }).select('id'),
+        'Registration did not save',
+        `panel-register free_registration panel=${panelId}`,
+      )
 
-      if (!insertError && (!reg || reg.length === 0)) {
-        console.error(`[panel-register] 0 rows inserted for panel ${panelId} — no error returned`)
-        return NextResponse.json({ error: 'Registration did not save. Please try again.' }, { status: 500 })
-      }
-
-      if (insertError) {
-        console.error('Panel registration insert error:', insertError)
+      if (!res.ok) {
         return NextResponse.json(
-          { error: 'Failed to register. Please try again.' },
+          { error: `${res.error} Please try again, or just come along on the day — walk-ins are welcome.` },
           { status: 500 }
         )
       }
@@ -75,9 +80,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (panel.signup_type === 'aatc_invoice') {
-      const { data: registration, error: insertError } = await supabase
-        .from('panel_registrations')
-        .insert({
+      // NOTE — A PAID SEAT IS A CLAIM, AND THIS PATH HAS NO CAP.
+      // Unlike the free seminars above, someone paying for a panel is buying a
+      // specific seat, so overselling here is a refund rather than an apology.
+      // No paid panel exists today, which is the only reason this is acceptable.
+      // Before the first one is sold this branch needs an atomic capacity check
+      // — a SECURITY DEFINER function that locks the panels row FOR UPDATE,
+      // counts and inserts. Counting here and inserting after is two statements
+      // and two people can take the last seat. Scoped in CUTOVER §E2.
+      const res = await guardedWrite(
+        supabase.from('panel_registrations').insert({
           panel_id: panelId,
           name,
           email,
@@ -85,17 +97,15 @@ export async function POST(req: NextRequest) {
           social_media: socialMedia || null,
           attendee_type: attendeeType || 'patron',
           payment_status: 'pending',
-        })
-        .select('id')
-        .single()
+        }).select('id'),
+        'Registration did not save',
+        `panel-register aatc_invoice panel=${panelId}`,
+      )
 
-      if (insertError || !registration) {
-        console.error('Panel registration insert error:', insertError)
-        return NextResponse.json(
-          { error: 'Failed to register. Please try again.' },
-          { status: 500 }
-        )
+      if (!res.ok) {
+        return NextResponse.json({ error: `${res.error} Please try again.` }, { status: 500 })
       }
+      const registration = res.data[0] as { id: string }
 
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 

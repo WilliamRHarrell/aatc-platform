@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { guardedWrite } from '@/lib/db-write'
+import { dayLabel, timeLabel } from '@/lib/schedule-format'
 import toast from 'react-hot-toast'
 
 interface Panel {
@@ -11,8 +12,8 @@ interface Panel {
   event_id: string
   title: string
   description: string | null
-  panel_date: string | null
-  panel_time: string | null
+  panel_day: string | null
+  panel_start: string | null
   location: string | null
   panelists: string | null
   is_free: boolean
@@ -40,8 +41,8 @@ interface PanelRegistration {
 interface PanelFormState {
   title: string
   description: string
-  panel_date: string
-  panel_time: string
+  panel_day: string
+  panel_start: string
   location: string
   booth_number: string
   panelists: string
@@ -56,8 +57,8 @@ interface PanelFormState {
 const EMPTY_FORM: PanelFormState = {
   title: '',
   description: '',
-  panel_date: '',
-  panel_time: '',
+  panel_day: '',
+  panel_start: '',
   location: '',
   booth_number: '',
   panelists: '',
@@ -68,12 +69,6 @@ const EMPTY_FORM: PanelFormState = {
   max_capacity: '',
   is_published: false,
 }
-
-const SHOW_DAYS = [
-  { value: 'Friday, April 16', label: 'Friday, April 16' },
-  { value: 'Saturday, April 17', label: 'Saturday, April 17' },
-  { value: 'Sunday, April 18', label: 'Sunday, April 18' },
-]
 
 const LOCATIONS = ['Front Room', 'Ballroom', 'Main Stage', 'Booth']
 
@@ -130,7 +125,7 @@ export default function AdminPanelsPage() {
       .from('panels')
       .select('*')
       .eq('event_id', event.id)
-      .order('panel_date', { ascending: true })
+      .order('panel_day', { ascending: true })
 
     const loadedPanels = (panelsData as unknown as Panel[]) ?? []
     setPanels(loadedPanels)
@@ -172,8 +167,8 @@ export default function AdminPanelsPage() {
     setForm({
       title: panel.title,
       description: panel.description ?? '',
-      panel_date: panel.panel_date ?? '',
-      panel_time: panel.panel_time ?? '',
+      panel_day: panel.panel_day ?? '',
+      panel_start: (panel.panel_start ?? '').slice(0, 5),
       location,
       booth_number,
       panelists: panel.panelists ?? '',
@@ -209,8 +204,8 @@ export default function AdminPanelsPage() {
       event_id: eventId,
       title: form.title.trim(),
       description: form.description.trim(),
-      panel_date: form.panel_date,
-      panel_time: form.panel_time.trim(),
+      panel_day: form.panel_day || null,
+      panel_start: form.panel_start || null,
       location: locationValue,
       panelists: form.panelists.trim(),
       is_free: form.is_free,
@@ -451,22 +446,38 @@ export default function AdminPanelsPage() {
 
                   {/* Date / Time / Location */}
                   <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-xs" style={{ color: '#999' }}>
-                    {panel.panel_date && (
-                      <span>{panel.panel_date}</span>
+                    {panel.panel_day && (
+                      <span>{dayLabel(panel.panel_day)}</span>
                     )}
-                    {panel.panel_time && (
-                      <span>{panel.panel_time}</span>
+                    {panel.panel_start && (
+                      <span>{timeLabel(panel.panel_start)}</span>
                     )}
                     {panel.location && (
                       <span>{panel.location}</span>
                     )}
                   </div>
 
-                  {/* Registration count */}
-                  <p className="mt-1 text-xs" style={{ color: '#555' }}>
-                    {registrationCounts[panel.id] ?? 0} registration{(registrationCounts[panel.id] ?? 0) !== 1 ? 's' : ''}
-                    {panel.max_capacity ? ` / ${panel.max_capacity} max` : ''}
-                  </p>
+                  {/* Registrations against the room's planning target.
+                      Deliberately NOT "42 / 50 max" — that reads as an enforced
+                      gate, and nothing is gated. Registration stays open past
+                      the target; the number is there so the room can be
+                      changed or chairs added. */}
+                  {(() => {
+                    const count = registrationCounts[panel.id] ?? 0
+                    const target = panel.max_capacity
+                    const ratio = target ? count / target : 0
+                    const over = !!target && count > target
+                    const near = !!target && !over && ratio >= 0.8
+                    const colour = over ? '#ef4444' : near ? '#facc15' : '#555'
+                    return (
+                      <p className="mt-1 text-xs" style={{ color: colour }}>
+                        {count} registered
+                        {target ? ` · room seats ${target}` : ''}
+                        {over && ' · OVER TARGET — bigger room or more chairs'}
+                        {near && ' · approaching the room’s size'}
+                      </p>
+                    )
+                  })()}
                 </div>
 
                 {/* Right: Actions */}
@@ -542,30 +553,29 @@ export default function AdminPanelsPage() {
                 />
               </div>
 
-              {/* Date */}
+              {/* Date — a real date input since migration 046. Was a select of
+                  three hardcoded display strings, which is what made panel_date
+                  free text and let a seminar silently miss the schedule. */}
               <div>
                 <label className={labelClass} style={{ color: '#8B7355' }}>Date *</label>
-                <select
-                  value={form.panel_date}
-                  onChange={e => setForm({ ...form, panel_date: e.target.value })}
+                <input
+                  type="date"
+                  value={form.panel_day}
+                  onChange={e => setForm({ ...form, panel_day: e.target.value })}
                   className={inputBase}
-                  style={{ ...inputStyle, appearance: 'none' as const, backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center' }}
-                >
-                  <option value="" disabled>Select a day</option>
-                  {SHOW_DAYS.map(d => (
-                    <option key={d.value} value={d.value}>{d.label}</option>
-                  ))}
-                </select>
+                  style={inputStyle}
+                />
               </div>
 
-              {/* Time */}
+              {/* Time — a real time input since 046. Was free text accepting
+                  "2:00 PM - 3:30 PM"; only the start was ever used, and the end
+                  time had nowhere to be stored. */}
               <div>
-                <label className={labelClass} style={{ color: '#8B7355' }}>Time</label>
+                <label className={labelClass} style={{ color: '#8B7355' }}>Start time</label>
                 <input
-                  type="text"
-                  placeholder="e.g. 2:00 PM - 3:30 PM"
-                  value={form.panel_time}
-                  onChange={e => setForm({ ...form, panel_time: e.target.value })}
+                  type="time"
+                  value={form.panel_start}
+                  onChange={e => setForm({ ...form, panel_start: e.target.value })}
                   className={inputBase}
                   style={inputStyle}
                 />
@@ -670,10 +680,11 @@ export default function AdminPanelsPage() {
                 </div>
               </div>
 
-              {/* Max Capacity */}
+              {/* Room size — a PLANNING TARGET, not a cap. Nothing enforces
+                  it and registration never closes. */}
               <div>
                 <label className={labelClass} style={{ color: '#8B7355' }}>
-                  Max Capacity
+                  Room seats
                 </label>
                 <input
                   type="number"
@@ -683,6 +694,11 @@ export default function AdminPanelsPage() {
                   className={inputBase}
                   style={inputStyle}
                 />
+                <p className="mt-1 text-[11px]" style={{ color: '#666' }}>
+                  Planning target only. Registration is never closed and no
+                  attendee is ever turned away — this is what the count is
+                  flagged against so you can move rooms or add chairs.
+                </p>
               </div>
 
               {/* Signup Type */}
@@ -828,7 +844,8 @@ export default function AdminPanelsPage() {
                   Registrations
                 </h2>
                 <p className="mt-0.5 text-sm" style={{ color: '#999' }}>
-                  {viewingRegistrations.title} -- {registrations.length} registrant{registrations.length !== 1 ? 's' : ''}
+                  {viewingRegistrations.title} — {registrations.length} registrant{registrations.length !== 1 ? 's' : ''}
+                  {viewingRegistrations.max_capacity ? ` · room seats ${viewingRegistrations.max_capacity}` : ''}
                 </p>
               </div>
               <button
@@ -855,6 +872,17 @@ export default function AdminPanelsPage() {
                 <p className="text-sm" style={{ color: '#555' }}>No registrations yet.</p>
               </div>
             ) : (
+              <>
+                {/* The caveat belongs HERE, next to the number being read.
+                    In CUTOVER it would be read once and forgotten. */}
+                <div className="mb-3 rounded-xl px-4 py-3 text-xs leading-relaxed"
+                     style={{ backgroundColor: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.25)', color: '#d4b545' }}>
+                  <strong>This list undercounts the room.</strong> Seminars are open —
+                  walk-ins are welcome and do not register, so actual attendance runs
+                  higher than the roster. Last year the accounting seminar drew roughly
+                  50 people. Plan the room against the registration count plus a walk-in
+                  margin, not against the count itself.
+                </div>
               <div className="overflow-x-auto rounded-xl" style={{ border: '1px solid #2a2a2a' }}>
                 <table className="w-full text-left text-sm">
                   <thead>
@@ -918,6 +946,7 @@ export default function AdminPanelsPage() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </div>
         </div>

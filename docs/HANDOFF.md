@@ -293,7 +293,21 @@ announcing them early. `verify_044.sql` F lists the credits still carried as
 plain text; it currently returns those two, and it will stay non-zero until the
 `presentation_credits` table exists (CUTOVER §E2).
 
-### Still outstanding — 045, then the import test
+### Still outstanding — apply in THIS order
+
+**046 and 045 have OPPOSITE deploy orders. Read both before starting.**
+
+| # | Step | When |
+|---|---|---|
+| 1 | `046_panel_real_dates.sql` | **BEFORE the deploy.** Purely additive; the live code keeps working because panel_date/panel_time stay. The new code reads `panel_day`, so deploying first would 42703 three public pages. |
+| 2 | Deploy | after 046 |
+| 3 | `verify_046.sql` | **B is the gate for 047** — 0 rows required. C is the backfill, side by side; eyeball it, because 047 is the irreversible part. |
+| 4 | `047_drop_panel_text_dates.sql` | only once step 3 is clean |
+| 5 | `045_rename_apply_hub_content_key.sql` | **AFTER the deploy** — opposite of 046. Its step 0 tells you whether ordering matters at all. |
+| 6 | `seeds/panels_2027_signup_type.sql` | opens registration on both seminars. Any time after 046. |
+| 7 | The import-returning end-to-end test | §1a |
+
+### Detail
 
 1. `supabase/migrations/045_rename_apply_hub_content_key.sql` — **run it AFTER
    the deploy is live, not before.** Step 0 in its header tells you whether the

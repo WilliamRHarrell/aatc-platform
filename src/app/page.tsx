@@ -13,6 +13,7 @@ import Countdown from '@/components/home/Countdown'
 import VideoFacade from '@/components/home/VideoFacade'
 import { HOME_EVENTS, AFTER_PARTIES, mapsUrl } from '@/lib/homepage-content'
 import PresentedBy from '@/components/PresentedBy'
+import { dayLabel as panelDayLabel, timeLabel as panelTimeLabel } from '@/lib/schedule-format'
 import {
   EVENT_NAME,
   EVENT_DATES_LABEL,
@@ -71,8 +72,8 @@ interface HomePanel {
   id: string
   title: string
   description: string
-  panel_date: string
-  panel_time: string
+  panel_day: string | null
+  panel_start: string | null
   location: string
   /**
    * Resolved by panels_public: the linked sponsorship's name when one is
@@ -114,9 +115,9 @@ const getHomepageData = unstable_cache(
         .eq('show_on_homepage', true),
       supabase
         .from('panels_public')
-        .select('id, title, description, panel_date, panel_time, location, presented_by, presented_by_website, presented_by_linked')
+        .select('id, title, description, panel_day, panel_start, location, presented_by, presented_by_website, presented_by_linked')
         .eq('event_id', event.id)
-        .order('panel_date')
+        .order('panel_day')
         .limit(4),
     ])
 
@@ -386,9 +387,9 @@ export default async function HomePage() {
               {panels.map(p => (
                 <div key={p.id} className="rounded-2xl border border-[#2a2a2a] bg-[#1a1a1a] p-5">
                   <h3 className="text-base font-bold text-white">{p.title}</h3>
-                  {(p.panel_date || p.panel_time || p.location) && (
+                  {(p.panel_day || p.panel_start || p.location) && (
                     <p className="mt-1 text-xs font-medium uppercase tracking-wider" style={{ color: '#8B7355' }}>
-                      {[p.panel_date, p.panel_time, p.location].filter(Boolean).join(' · ')}
+                      {[p.panel_day && panelDayLabel(p.panel_day), p.panel_start && panelTimeLabel(p.panel_start), p.location].filter(Boolean).join(' · ')}
                     </p>
                   )}
                   {p.description && (

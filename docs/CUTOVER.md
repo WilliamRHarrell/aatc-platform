@@ -399,29 +399,45 @@ public build has nothing to wait on.
 - Year derives from `contests.event_id -> events`. No year column, so 2028 needs
   no migration.
 
-### Panel `max_capacity` is stored but NEVER ENFORCED
+### Panel capacity — NOT enforced, and that is the decision
 
-`/api/panel-register` inserts a registration without ever counting existing ones
-against `panels.max_capacity`. The column is stored, shown in the `/admin/panels`
-list as "N / M max", and typed on the public page — but nothing stops the N+1th
-signup. The admin list will read "45 / 30 max" without complaint.
+`max_capacity` is a **planning target, not a limit**, and nothing enforces it.
+That is deliberate, decided 2026-08-13. Do not "fix" it for the seminars.
 
-So `signup_type = 'free_registration'` buys a **roster, not a cap**. You will
-know you are oversubscribed; the form will not prevent it.
+**Why.** Seminars are not access-controlled. Registration exists so the team can
+plan the room and follow up afterwards; walk-ins are welcome if there is space.
+A form that refuses the 51st signup turns away someone who would have walked in
+anyway — losing both the attendee and the forecast. Nothing is being claimed, so
+there is no race condition to fix either.
 
-This matters now that the two 2027 seminars exist. If either has genuinely
-limited seating, the current behaviour is: people register, everyone is
-accepted, and the overflow discovers it at the door.
+**How it surfaces instead.** `/admin/panels` reads the count against the target
+as "42 registered · room seats 50", amber at 80%, red once it is passed, with a
+prompt to move rooms or add chairs. It is deliberately NOT rendered as
+"42 / 50 max" — that phrasing reads as an enforced gate. Nothing on the public
+page mentions capacity, remaining spots or fullness.
 
-**Fix when picked up** (~2 hours): count `panel_registrations` for the panel
-inside the `free_registration` branch and reject with a "this session is full"
-response once `max_capacity` is reached. Two caveats — it needs to be a
-count-and-insert that tolerates a race (two people claiming the last seat
-simultaneously), so do it in a `SECURITY DEFINER` function or accept a small
-overshoot; and `aatc_invoice` panels need the same check or a paid registration
-can be taken for a full room, which is a refund rather than an apology.
+**THE FORECAST UNDERCOUNTS. Say this to anyone planning a room.** Walk-ins do
+not register, so actual attendance runs higher than the roster — the 2026
+accounting seminar drew roughly 50. Plan against the registration count plus a
+walk-in margin, never the count itself. This caveat is also rendered directly
+above the registration list in `/admin/panels`, which is where it will actually
+be read.
 
-Not blocking launch — no panel has real registrations yet.
+#### BUT — `aatc_invoice` panels are different, and that path IS wrong
+
+A paid seat is a **claim**. Someone who pays for a panel has bought a specific
+seat, so overselling is a refund rather than an apology — and
+`/api/panel-register` has no capacity check on that branch either.
+
+**No paid panel exists today, which is the only reason this is acceptable.**
+Before the first one is sold, that branch needs a real cap, and a count in the
+route will not do it: counting and then inserting is two statements, so two
+people can read `count = cap - 1` and both succeed. It needs a `SECURITY
+DEFINER` function that does `select ... from panels where id = ... for update`,
+then counts and inserts in the same transaction — the row lock on the panel is
+what serialises concurrent registrations.
+
+Roughly 2 hours. **Trigger: the first paid panel, not a date.**
 
 ### Helper pass — revenue not captured (post-launch, not blocking)
 

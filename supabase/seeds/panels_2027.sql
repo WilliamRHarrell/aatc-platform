@@ -8,20 +8,23 @@
 -- payment (panel_registrations, signup_type, cost). The schedule page merges
 -- panels in at render, so these appear in the programme without a second copy.
 --
--- NOTE 1 — panel_date IS TEXT AND IS MATCHED EXACTLY.
---   The schedule page groups panels by matching panel_date against the day
---   label string. It must be exactly 'Sunday, April 18' — not '2027-04-18',
---   not 'Sun, April 18'. A mismatch does not error: the seminar simply does
---   not appear in the programme. Same silent-failure shape as everything else
---   in this codebase, so it is called out rather than assumed.
+-- ALREADY RUN — 2026-08-13. Kept as the record of what was inserted. Both
+-- notes below have since been superseded; read them for history, not for
+-- instruction.
 --
--- NOTE 2 — signup_type IS SET TO 'none'. DECIDE THIS.
---   The spec does not say whether either seminar takes registration. 'none'
---   is the no-claim default: the seminar is listed, nothing invites a signup,
---   and no capacity is implied. If either should take registrations, change it
---   to 'free_registration' (free, capped by max_capacity), 'aatc_invoice'
---   (paid — set cost in CENTS) or 'email_host' (set host_email; that address
---   becomes a PUBLIC mailto: via panels_public).
+-- NOTE 1 — SUPERSEDED BY MIGRATION 046. panel_date/panel_time were free text,
+--   and the schedule matched panel_date against a generated day label, so a
+--   mismatch silently dropped the seminar from the programme. They are now real
+--   `panel_day date` / `panel_start time` columns and the join is a date
+--   equality. 047 drops the text pair. Do not re-run this seed as written after
+--   047 — the columns it inserts into will not exist.
+--
+-- NOTE 2 — SUPERSEDED. signup_type was set to 'none' here, and both seminars
+--   move to 'free_registration' via panels_2027_signup_type.sql. Note that the
+--   original wording below called free_registration "capped by max_capacity",
+--   which was wrong in two ways: nothing enforced max_capacity then, and
+--   nothing enforces it now BY DESIGN. Seminars are open, walk-ins welcome, and
+--   max_capacity is a planning target only. See CUTOVER §E2.
 --
 -- NOTE 3 — description AND panelists ARE DELIBERATELY EMPTY.
 --   No speaker names or session blurbs were given, and inventing them puts

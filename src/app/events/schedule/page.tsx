@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { formatCurrency } from '@/lib/utils'
 import PublicNav from '@/components/PublicNav'
 import PresentedBy from '@/components/PresentedBy'
+import { dayLabel, timeLabel, timeToMinutes } from '@/lib/schedule-format'
 
 /**
  * The 2027 programme. Server-rendered: this is public content with no
@@ -37,10 +38,12 @@ interface ScheduleRow {
 
 interface PanelRow {
   id: string
-  title: string
-  panel_date: string
-  panel_time: string
+  /** Real date (migration 046). Replaced the free-text panel_date this page
+   *  used to string-match against a generated label. */
+  panel_day: string | null
+  panel_start: string | null
   location: string
+  title: string
   is_free: boolean
   cost: number
   signup_type: string
@@ -66,45 +69,6 @@ interface Item {
   presentedByLinked: boolean
 }
 
-/**
- * 'YYYY-MM-DD' → 'Friday, April 16'.
- *
- * Split and rebuild from parts rather than `new Date(iso)`: the string form is
- * parsed as UTC midnight, which renders as the PREVIOUS DAY anywhere west of
- * Greenwich. A schedule page that shows Thursday for Friday's programme is the
- * kind of bug nobody reports because it looks deliberate.
- *
- * This format is also the join key for panels — `panels.panel_date` is free
- * text and /admin/panels offers exactly these three strings.
- */
-function dayLabel(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number)
-  return new Date(y, m - 1, d).toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  })
-}
-
-/** 'HH:MM:SS' → '1:00 PM' */
-function formatTime(t: string): string {
-  const [h, m] = t.split(':').map(Number)
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  const hour = h % 12 === 0 ? 12 : h % 12
-  return `${hour}:${String(m).padStart(2, '0')} ${ampm}`
-}
-
-/** '1:30 PM' or '1:30 PM - 3:00 PM' → minutes since midnight (start only). */
-function parseTime(timeStr: string): number {
-  const part = timeStr.split('-')[0].trim()
-  const match = part.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
-  if (!match) return 0
-  let hours = parseInt(match[1], 10)
-  const minutes = parseInt(match[2], 10)
-  if (match[3].toUpperCase() === 'PM' && hours !== 12) hours += 12
-  if (match[3].toUpperCase() === 'AM' && hours === 12) hours = 0
-  return hours * 60 + minutes
-}
 
 function signupLabel(signupType: string): string {
   switch (signupType) {
@@ -135,7 +99,7 @@ const getSchedule = unstable_cache(
         .order('sort_order'),
       supabase
         .from('panels_public')
-        .select('id, title, panel_date, panel_time, location, is_free, cost, signup_type, presented_by, presented_by_website, presented_by_linked')
+        .select('id, title, panel_day, panel_start, location, is_free, cost, signup_type, presented_by, presented_by_website, presented_by_linked')
         .eq('event_id', event.id),
     ])
 
@@ -160,14 +124,14 @@ const getSchedule = unstable_cache(
     const dayOrder = [...new Set(scheduleRows.map(r => r.day_date))].sort()
 
     return dayOrder.map(iso => {
-      const label = dayLabel(iso)
+      const label = dayLabel(iso)  // display only — no longer a join key
 
       const programme: Item[] = scheduleRows
         .filter(r => r.day_date === iso)
         .map(r => ({
           key: r.id,
-          minutes: parseTime(formatTime(r.start_time)) + r.sort_order / 100,
-          time: formatTime(r.start_time),
+          minutes: timeToMinutes(r.start_time) + r.sort_order / 100,
+          time: timeLabel(r.start_time),
           title: r.title,
           location: r.location,
           note: r.note,
@@ -177,12 +141,17 @@ const getSchedule = unstable_cache(
           presentedByLinked: r.presented_by_linked,
         }))
 
+      // A REAL EQUALITY ON A REAL DATE (migration 046). This used to compare
+      // panels.panel_date — free text — against the generated `label`, so a
+      // seminar whose string did not match exactly was silently absent from the
+      // programme with nothing reporting it. That is the entire reason
+      // verify_044.sql query D existed.
       const seminars: Item[] = panels
-        .filter(p => p.panel_date === label)
+        .filter(p => p.panel_day === iso)
         .map(p => ({
           key: p.id,
-          minutes: parseTime(p.panel_time),
-          time: p.panel_time.split('-')[0].trim() || p.panel_time,
+          minutes: timeToMinutes(p.panel_start ?? '00:00:00'),
+          time: timeLabel(p.panel_start ?? '00:00:00'),
           title: p.title,
           location: p.location,
           note: '',

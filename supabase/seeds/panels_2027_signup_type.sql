@@ -1,72 +1,78 @@
 -- ============================================================
--- Change the two 2027 seminars from signup_type 'none' to 'free_registration'.
+-- Open registration on both 2027 seminars: signup_type 'none' → 'free_registration'.
 --
--- RUN THIS ONLY IF THE SEATING IS LIMITED. If both seminars are open, walk-in,
--- sit-where-you-like, then 'none' is already correct and you should not run it.
+-- WHAT THIS DOES AND DOES NOT DO.
+--   Does:     turns on the registration form, so attendees can sign up in
+--             advance and you get names, emails, phones and attendee type.
+--   Does NOT: cap, gate, or close anything. Registration stays open no matter
+--             how many people sign up. Nobody is ever turned away.
 --
--- ── The four values, and what each actually does ────────────
+-- Seminars are not access-controlled. Registration is for PLANNING and
+-- FOLLOW-UP; walk-ins are welcome if there is room. Refusing the 51st signup
+-- would turn away someone who would have walked in anyway, and lose both the
+-- attendee and the forecast.
 --
---   'none'              Listed on the schedule and the panels page. NOT
---                       registerable — /api/panel-register REJECTS it outright
---                       (400, "Registration is not available for this panel").
---                       No roster, no headcount, no attendee emails. Correct
---                       for an open, walk-in session.
---
+-- ── The four signup_type values ─────────────────────────────
+--   'none'              Listed, but NOT registerable — /api/panel-register
+--                       rejects it with a 400. No roster, no contact details.
+--                       This is what both seminars are set to now.
 --   'free_registration' Free, and registrations are collected into
---                       panel_registrations. You get names, emails, phones and
---                       attendee type. THIS is the value for limited seating.
---
+--                       panel_registrations. ← what this migration sets.
 --   'aatc_invoice'      Paid. Creates a Stripe checkout for `cost` (CENTS).
---                       Wrong here — both seminars are is_free = true, cost 0.
+--                       Not applicable — both seminars are is_free, cost 0.
+--   'email_host'        Sends people to the host. WARNING: host_email becomes
+--                       PUBLIC through panels_public for this value only.
 --
---   'email_host'        Sends people to the host by email. NOTE: host_email is
---                       exposed PUBLICLY through panels_public for this value
---                       and only this value. Wrong here — host_email is null.
+-- ── max_capacity is a PLANNING TARGET, not a limit ──────────
+-- Nothing enforces it and nothing ever will for these seminars. /admin/panels
+-- reads it as "42 registered · room seats 50" and flags amber at 80% and red
+-- when the count passes it, so you can move rooms or add chairs. It is
+-- deliberately NOT rendered as "42 / 50 max", which reads as a gate.
 --
--- ── READ THIS BEFORE ASSUMING IT CAPS ATTENDANCE ────────────
+-- Nothing on the public page mentions capacity, remaining spots or fullness.
 --
--- **max_capacity IS NOT ENFORCED ANYWHERE.** /api/panel-register never counts
--- existing registrations against it — it inserts unconditionally. The column is
--- stored, shown in the /admin/panels list as "N / M max", and typed on the
--- public page, but nothing stops the N+1th signup.
---
--- So 'free_registration' buys you a ROSTER, not a CAP. You will know you are
--- oversubscribed; the form will not stop it, and the admin list will cheerfully
--- read "45 / 30 max". If a hard cap is needed before the show, that is a code
--- change in /api/panel-register, logged in CUTOVER §E2.
---
--- Setting max_capacity is still worth doing — it is the number to compare the
--- roster against, and it is what a future enforcement check would read.
+-- SET THE SEAT COUNTS when you know the rooms — leave them null until then,
+-- rather than guessing. A wrong target is worse than none: it will flag red on
+-- a room that is actually fine.
 -- ============================================================
 
 begin;
 
 update panels
-   set signup_type  = 'free_registration'::panel_signup_type,
-       -- Set the real seat counts, or drop these two lines to leave them null.
-       -- Remember: this records intent, it does not enforce anything.
-       max_capacity = case title
-                        when 'Bookkeeping for Tattoo Industry Professionals' then 30
-                        when 'Tooth Gem Seminar'                             then 30
-                      end
+   set signup_type = 'free_registration'::panel_signup_type
  where event_id = (select id from events where is_active)
    and title in ('Bookkeeping for Tattoo Industry Professionals',
                  'Tooth Gem Seminar');
 
 -- Expect 2 rows, both free_registration, is_free true, cost 0.
+-- max_capacity stays as it is — set it separately below once the rooms are known.
 select title, signup_type, is_free, cost, max_capacity, is_published
   from panels
  where event_id = (select id from events where is_active)
- order by panel_time;
+ order by panel_start;
 
 commit;
 
 
 -- ============================================================
--- REVERT — back to 'none' if the seminars turn out to be walk-in.
+-- ROOM SIZES — run when you know them. Planning targets only.
+-- The Bookkeeping seminar drew roughly 50 last year, so a room seating fewer
+-- than that is worth knowing about early.
+-- ============================================================
+-- update panels set max_capacity = 60
+--  where event_id = (select id from events where is_active)
+--    and title = 'Bookkeeping for Tattoo Industry Professionals';
+--
+-- update panels set max_capacity = 40
+--  where event_id = (select id from events where is_active)
+--    and title = 'Tooth Gem Seminar';
+
+
+-- ============================================================
+-- REVERT — closes registration entirely. The seminars stay listed.
 -- ============================================================
 -- update panels
---    set signup_type = 'none'::panel_signup_type, max_capacity = null
+--    set signup_type = 'none'::panel_signup_type
 --  where event_id = (select id from events where is_active)
 --    and title in ('Bookkeeping for Tattoo Industry Professionals',
 --                  'Tooth Gem Seminar');

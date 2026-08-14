@@ -5,20 +5,23 @@ import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import PublicNav from '@/components/PublicNav'
 import { formatCurrency } from '@/lib/utils'
+import { dayLabel, timeLabel } from '@/lib/schedule-format'
 
 interface Panel {
   id: string
   title: string
   description: string
-  panel_date: string
-  panel_time: string
+  panel_day: string | null
+  panel_start: string | null
   location: string
   panelists: string
   is_free: boolean
   cost: number
   signup_type: 'none' | 'aatc_invoice' | 'email_host' | 'free_registration'
   host_email: string | null
-  max_capacity: number | null
+  // max_capacity is deliberately NOT read here. It is a planning target for
+  // /admin/panels, not a limit — nothing public should imply limited
+  // availability, remaining spots or fullness. Registration never closes.
   image_url: string | null
 }
 
@@ -64,7 +67,7 @@ function TattooPanelsContent() {
         .from('panels_public')
         .select('*')
         .eq('event_id', event.id)
-        .order('panel_date')
+        .order('panel_day')
 
       if (data) {
         const fetched = data as Panel[]
@@ -139,14 +142,15 @@ function TattooPanelsContent() {
     }
   }
 
-  const formatPanelDate = (dateStr: string) => {
-    const date = new Date(dateStr + 'T00:00:00')
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-    })
-  }
+  /**
+   * panel_day is a real `date` since migration 046, so this is now plain
+   * formatting. It previously received a free-text display string
+   * ('Sunday, April 18') and did `new Date(str + 'T00:00:00')`, which rendered
+   * the literal text "Invalid Date" as the day heading on the live page.
+   * 'TBD' (a panel with no date set) still passes through.
+   */
+  const formatPanelDate = (value: string) =>
+    /^\d{4}-\d{2}-\d{2}$/.test(value) ? dayLabel(value) : value
 
   return (
     <div className="min-h-screen">
@@ -185,7 +189,7 @@ function TattooPanelsContent() {
           <div className="space-y-10">
             {(() => {
               const grouped = panels.reduce<Record<string, Panel[]>>((acc, panel) => {
-                const day = panel.panel_date || 'TBD'
+                const day = panel.panel_day ?? 'TBD'
                 if (!acc[day]) acc[day] = []
                 acc[day].push(panel)
                 return acc
@@ -212,7 +216,7 @@ function TattooPanelsContent() {
 
                           <div className="mt-2 flex flex-wrap items-center gap-3">
                             <span className="text-xs" style={{ color: '#999' }}>
-                              {panel.panel_time}
+                              {panel.panel_start ? timeLabel(panel.panel_start) : 'Time TBA'}
                             </span>
                             <span className="text-xs" style={{ color: '#666' }}>
                               {panel.location}
