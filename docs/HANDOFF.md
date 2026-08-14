@@ -17,44 +17,55 @@ state; that file is the plan.
 
 ## 1. Do these first
 
-### 1a. OPEN BUG — service_role is clamped by the 031/041 triggers
+### 1a. Apply migration 043 — three faults, all the same class
 
-Migrations 031 and 041 clamp staff-controlled columns for anyone where
-`is_admin()` is false. **`service_role` has no `auth.uid()`, so `is_admin()`
-returns false and the triggers fire against it too** — triggers are not bypassed
-by service role the way RLS is.
+Written and committed, **not applied**. `supabase/migrations/043_service_role_and_owner_reads.sql`.
 
-Confirmed: inserting an application as service role with `deposit_due_at` set
-returns the row with `deposit_due_at = NULL`.
+**(1) service_role is clamped by the 031/041 triggers.** Both test `is_admin()`,
+which is false for service_role (no `auth.uid()`), and **triggers are not
+bypassed by service role the way RLS is**. Confirmed by probe: a service-role
+insert with `deposit_due_at` set returns it NULL. This silently breaks
+`/api/admin/import-returning` (route.ts ~107-110), which inserts applications
+with `status:'approved'`, `deposit_due_at` and `final_due_at` — all three
+clamped, so imported returning exhibitors land as `pending` with no lifecycle
+dates. **Verify that end to end after applying; it is not yet tested.**
+043 exempts `auth.uid() is null`. Do not widen further — the clamp is what stops
+applicants self-approving.
 
-**Known blast radius:** `/api/admin/import-returning` (route.ts:107-110) inserts
-applications with `status: 'approved'`, `deposit_due_at` and `final_due_at` as
-service role. All three are silently clamped, so imported returning exhibitors
-land as `pending` with no lifecycle dates. Not yet tested end to end — it is the
-first thing to verify.
+**(2) REGRESSION from 038 — food_trucks.** Dropping `"Public read published
+food_trucks"` removed the only SELECT path a vendor had to their own row: 017
+granted them UPDATE but never SELECT, so the public policy was silently carrying
+it. Breaks the `/portal` food-truck panel and the food_truck branch of
+`/api/create-checkout`. Untestable behaviourally right now — `food_trucks` is
+empty after the teardown — so **re-test both surfaces once a real food truck
+exists.**
 
-**Fix shape:** exempt the service role in both triggers, e.g.
-`if public.is_admin() or auth.uid() is null then return new; end if;`
-(service role presents no JWT, so `auth.uid()` is null; a real applicant always
-has one). Needs a migration 043 and a re-test of import-returning. Do not widen
-it further than that — the clamp is what stops applicants self-approving.
+**(3) PRE-EXISTING — exhibitors.** No owner INSERT policy has ever existed, so
+`RosterCompletionPanel`'s exhibitor-row creation has always been denied for
+non-admins. Not caused by 038; found by the same sweep.
 
-This is also why the email harness reports 8/9: `deposit_reminder` requires
-`deposit_due_at`, which the harness cannot seed for the same reason. That last
-template is unproven, not broken.
+### 1b. Then### 1b. Then
 
-### 1b. Then
-
-- [ ] **Prove the nine email templates deliver.**
-      `node scripts/verify-email-templates.mjs --to <address>`, then tick off all
-      nine arrivals from the inbox, spam included. This is the gate on
-      `LIFECYCLE_SWEEP_ENABLED` — see §4.
+- [ ] **Prove the nine email templates deliver.** Currently **8/9 accepted**.
+      `deposit_reminder` is the holdout and is **unproven, not broken** — it
+      needs `deposit_due_at`, which the harness cannot seed until 043 lands.
+      Re-run after applying 043:
+      `node scripts/verify-email-templates.mjs --to accounting@allamericantattooconvention.com --base https://aatc-platform.vercel.app`
+      Then tick off all nine ARRIVALS from the inbox, spam included — API-accepted
+      is not delivered. This is the gate on `LIFECYCLE_SWEEP_ENABLED`, see §4.
 - [ ] **Run `supabase/verify/verify_034.sql`** if you want the per-FK output on
       record. 034 is the one migration whose effect cannot be probed through
       PostgREST — everything else below was confirmed by direct probe.
-- [ ] Confirm the **8 templates already accepted actually arrived** at
-      `accounting@allamericantattooconvention.com` — inbox and spam. API-accepted
-      is not delivered.
+- [ ] Confirm the **8 accepted templates actually arrived** at
+      `accounting@allamericantattooconvention.com` — inbox and spam.
+- [ ] **Finish the auth-then-read sweep.** Two routes were checked in depth
+      (`send-email`, `create-checkout`). The remaining pattern to look for: a
+      route that authenticates its caller and then reads with the
+      request-scoped client. Cron and webhook callers expose it because they
+      have no session. `create-checkout` is request-scoped **correctly** — its
+      caller is a logged-in exhibitor paying their own invoice, so RLS should
+      scope them — but it reads `food_trucks`, which is why finding (2) above
+      matters there.
 
 ## 2. Migration state — 027 through 042
 

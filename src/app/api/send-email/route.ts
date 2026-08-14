@@ -458,6 +458,11 @@ export async function POST(req: Request) {
     }
 
     if (sponsorshipId) {
+      // SERVICE ROLE, DELIBERATELY — do not "tidy" this back to `supabase`.
+      // The caller is already authenticated at the top of this route (admin
+      // session or valid x-cron-secret), so RLS here is redundant. Worse, a
+      // cron caller has no session, so the request-scoped client reads as anon
+      // and this returns nothing.
       const { data: spon } = await adminFetchClient
         .from('sponsorships')
         .select('sponsor_name, email, tier, amount')
@@ -493,6 +498,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing applicationId or kind/status' }, { status: 400 })
     }
 
+    // SERVICE ROLE, DELIBERATELY — do not "tidy" this back to `supabase`.
+    // The caller is already authenticated at the top of this route (admin
+    // session or valid x-cron-secret), so RLS here is redundant. Worse, a
+    // cron caller has no session, so the request-scoped client reads as anon
+    // and this returns nothing.
     const { data: app } = await adminFetchClient
       .from('applications')
       .select('business_name, email, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, total_amount, deposit_due_at')
@@ -517,6 +527,12 @@ export async function POST(req: Request) {
       subject = `You're on the AATC 2027 waitlist — ${app.business_name}`
       html = waitlistedEmail(app.business_name, app.exhibitor_type)
     } else if (resolvedKind === 'deposit_reminder') {
+        // SERVICE ROLE, DELIBERATELY — do not "tidy" this back to `supabase`.
+        // The caller is authenticated at the top of this route (admin session
+        // or valid x-cron-secret), so RLS here is redundant. Worse, a cron
+        // caller has no session, so the request-scoped client reads as anon and
+        // this returns nothing — which is how deposit_reminder and
+        // final_reminder silently failed.
       const { data: inv } = await adminFetchClient
         .from('invoices')
         .select('id, amount, amount_paid')
@@ -532,6 +548,12 @@ export async function POST(req: Request) {
       html = depositReminderEmail(app.business_name, app.deposit_due_at, minDeposit, balance, payUrl)
     } else if (resolvedKind === 'final_reminder') {
       const days = daysRemaining ?? 0
+        // SERVICE ROLE, DELIBERATELY — do not "tidy" this back to `supabase`.
+        // The caller is authenticated at the top of this route (admin session
+        // or valid x-cron-secret), so RLS here is redundant. Worse, a cron
+        // caller has no session, so the request-scoped client reads as anon and
+        // this returns nothing — which is how deposit_reminder and
+        // final_reminder silently failed.
       const { data: inv } = await adminFetchClient
         .from('invoices')
         .select('id, amount, amount_paid')
