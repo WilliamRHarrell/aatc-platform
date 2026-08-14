@@ -1,8 +1,20 @@
 -- Migration 047: drop the free-text panel_date / panel_time. Phase 2 of 2.
 --
 -- ════════════════════════════════════════════════════════════
--- DO NOT RUN THIS UNTIL THE DEPLOY THAT READS panel_day IS LIVE AND CONFIRMED.
+-- HELD UNTIL 2026-08-20. DEFERRED ON PURPOSE — NOT FORGOTTEN.
 -- ════════════════════════════════════════════════════════════
+--
+-- Decision 2026-08-13: leave the text columns in place for a week after the 046
+-- deploy before dropping them. This is the only irreversible step in the whole
+-- change, the overlap costs nothing, and if any path neither of us checked
+-- still reads panel_date, it keeps working instead of throwing 42703 on a
+-- public page — and we find out while the columns still exist.
+--
+-- On 2026-08-20: re-run verify_046.sql, confirm B is still 0 rows, then run
+-- this. Afterwards verify_044.sql query D can be deleted — it checks a failure
+-- mode that no longer exists.
+--
+-- DO NOT RUN THIS UNTIL THE DEPLOY THAT READS panel_day IS LIVE AND CONFIRMED.
 --
 -- Sequence for the whole change:
 --   1. run 046           (additive — old code keeps working, no window)

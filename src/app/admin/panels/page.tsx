@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { guardedWrite } from '@/lib/db-write'
 import { dayLabel, timeLabel } from '@/lib/schedule-format'
+import { toCsv, slugify, downloadCsv } from '@/lib/csv'
 import toast from 'react-hot-toast'
 
 interface Panel {
@@ -332,6 +333,35 @@ export default function AdminPanelsPage() {
 
     setRegistrations((data as unknown as PanelRegistration[]) ?? [])
     setLoadingRegistrations(false)
+  }
+
+  /**
+   * Attendance list as CSV. Built for a printed/offline workflow at the desk —
+   * the roster is only useful if it leaves the browser.
+   *
+   * Ordered by registration time (as loaded) rather than by name: the desk
+   * works down a list, and "who signed up first" is the useful tiebreak when
+   * the room is fuller than the roster. Columns match the on-screen table so
+   * nobody has to reconcile two different views of the same list.
+   */
+  const exportRegistrations = (panel: Panel) => {
+    if (registrations.length === 0) return
+
+    const csv = toCsv(
+      ['Name', 'Email', 'Phone', 'Social', 'Attendee type', 'Payment', 'Registered'],
+      registrations.map(r => [
+        r.name,
+        r.email,
+        r.phone ?? '',
+        r.social_media ?? '',
+        r.attendee_type,
+        r.payment_status === 'na' ? 'Free' : r.payment_status,
+        new Date(r.created_at).toLocaleString('en-US'),
+      ]),
+    )
+
+    const day = panel.panel_day ? `-${panel.panel_day}` : ''
+    downloadCsv(`${slugify(panel.title)}${day}-registrations.csv`, csv)
   }
 
   const closeRegistrations = () => {
@@ -848,13 +878,23 @@ export default function AdminPanelsPage() {
                   {viewingRegistrations.max_capacity ? ` · room seats ${viewingRegistrations.max_capacity}` : ''}
                 </p>
               </div>
-              <button
-                onClick={closeRegistrations}
-                className="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
-                style={{ color: '#666', border: '1px solid #2a2a2a' }}
-              >
-                Close
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => exportRegistrations(viewingRegistrations)}
+                  disabled={registrations.length === 0}
+                  className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-40"
+                  style={{ backgroundColor: '#8B7355', color: '#fff' }}
+                >
+                  Download CSV
+                </button>
+                <button
+                  onClick={closeRegistrations}
+                  className="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                  style={{ color: '#666', border: '1px solid #2a2a2a' }}
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             {loadingRegistrations ? (

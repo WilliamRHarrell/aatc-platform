@@ -302,10 +302,48 @@ plain text; it currently returns those two, and it will stay non-zero until the
 | 1 | `046_panel_real_dates.sql` | **BEFORE the deploy.** Purely additive; the live code keeps working because panel_date/panel_time stay. The new code reads `panel_day`, so deploying first would 42703 three public pages. |
 | 2 | Deploy | after 046 |
 | 3 | `verify_046.sql` | **B is the gate for 047** — 0 rows required. C is the backfill, side by side; eyeball it, because 047 is the irreversible part. |
-| 4 | `047_drop_panel_text_dates.sql` | only once step 3 is clean |
+| 4 | ~~`047_drop_panel_text_dates.sql`~~ | **DEFERRED — see below** |
 | 5 | `045_rename_apply_hub_content_key.sql` | **AFTER the deploy** — opposite of 046. Its step 0 tells you whether ordering matters at all. |
-| 6 | `seeds/panels_2027_signup_type.sql` | opens registration on both seminars. Any time after 046. |
+| 6 | `seeds/panels_2027_signup_type.sql` | opens registration on both seminars and sets `max_capacity = 150`. Any time after 046. |
 | 7 | The import-returning end-to-end test | §1a |
+
+#### 047 IS DEFERRED ON PURPOSE — REVISIT 2026-08-20
+
+**Not forgotten, and not blocked.** `047_drop_panel_text_dates.sql` is written,
+correct and ready. It is being held for a week after the 046 deploy.
+
+**Why.** Dropping `panel_date` / `panel_time` is the only irreversible step in
+this change — once they are gone, the original display strings are gone, and a
+bad backfill has to be rebuilt from the seed rather than compared against the
+table. The overlap costs nothing: 046 is purely additive, both column pairs
+coexist happily, and nothing reads the old ones any more.
+
+**What the week buys.** If any path neither of us checked still selects
+`panel_date`, it keeps working instead of throwing 42703 on a public page — and
+we find out while the columns still exist. Grep found every reader we know of;
+this is insurance against the ones grep does not catch (a saved query, a
+script, an integration).
+
+**On 2026-08-20**, if nothing has surfaced: run `verify_046.sql` once more,
+confirm B is still 0 rows, then run 047. After it, `verify_044.sql` query D can
+be deleted — it checks a failure mode that no longer exists.
+
+#### Seminar rooms — confirmed 2026-08-13
+
+Both 2027 seminars are on **Sunday**, so both are in the **Ballroom, 150 seats**
+— that is what the signup_type seed sets. At 150 the amber flag in
+`/admin/panels` does not fire until 120 registrations, so last year's ~50
+turnout raises nothing.
+
+**The 50-seat Seminar Room is Friday and Saturday only, and nothing is scheduled
+in it.** If a Friday or Saturday seminar is ever added, **its `max_capacity` is
+50** — and that is the room where a Bookkeeping-sized turnout (~50) would
+actually be tight. Worth knowing before a session is placed there.
+
+Remember `max_capacity` is a planning target throughout: nothing enforces it,
+registration never closes, and the roster **undercounts the room** because
+walk-ins do not register. That caveat is rendered above the registration list in
+`/admin/panels` as well as here.
 
 ### Detail
 
