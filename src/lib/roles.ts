@@ -36,6 +36,11 @@ const PATHS: Record<AdminRole, string[] | '*'> = {
   admin: '*',
   content_editor: [
     '/admin/content',
+    // '/admin/schedule' is deliberately NOT here yet. schedule_items carries
+    // only `schedule_items: admin all` (is_admin()), so a content_editor would
+    // reach the page, see an EMPTY schedule, and have every write refused.
+    // Shipping that entry would be shipping a broken page. Add it in the same
+    // change that gives the role a real policy — see HANDOFF §5.
     '/admin/panels',
     '/admin/contests',
     '/admin/food-trucks',

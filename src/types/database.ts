@@ -697,6 +697,58 @@ export type Database = {
           },
         ]
       }
+      /** Migration 044 — the 2027 programme. Seminars live in `panels`. */
+      schedule_items: {
+        Row: {
+          id: string
+          event_id: string
+          day_date: string
+          start_time: string
+          sort_order: number
+          title: string
+          location: string
+          note: string
+          kind: string
+          presented_by_sponsorship_id: string | null
+          presented_by_fallback: string | null
+          is_published: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          day_date: string
+          start_time: string
+          sort_order?: number
+          title: string
+          location?: string
+          note?: string
+          kind?: string
+          presented_by_sponsorship_id?: string | null
+          presented_by_fallback?: string | null
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          day_date?: string
+          start_time?: string
+          sort_order?: number
+          title?: string
+          location?: string
+          note?: string
+          kind?: string
+          presented_by_sponsorship_id?: string | null
+          presented_by_fallback?: string | null
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       panels: {
         Row: {
           cost: number
@@ -713,6 +765,8 @@ export type Database = {
           panel_date: string
           panel_time: string
           panelists: string
+          presented_by_sponsorship_id: string | null
+          presented_by_fallback: string | null
           signup_type: Database["public"]["Enums"]["panel_signup_type"]
           title: string
           updated_at: string
@@ -732,6 +786,8 @@ export type Database = {
           panel_date?: string
           panel_time?: string
           panelists?: string
+          presented_by_sponsorship_id?: string | null
+          presented_by_fallback?: string | null
           signup_type?: Database["public"]["Enums"]["panel_signup_type"]
           title: string
           updated_at?: string
@@ -751,6 +807,8 @@ export type Database = {
           panel_date?: string
           panel_time?: string
           panelists?: string
+          presented_by_sponsorship_id?: string | null
+          presented_by_fallback?: string | null
           signup_type?: Database["public"]["Enums"]["panel_signup_type"]
           title?: string
           updated_at?: string

@@ -304,21 +304,42 @@ plain text; it currently returns those two, and it will stay non-zero until the
 
 ## 5. Next, in order
 
-1. **`/admin/schedule` CRUD — NEXT, ahead of portal self-edit.** The
-   deliberate gap from 044: `schedule_items` has an `is_admin()` policy and no
-   UI, so a schedule change means editing the seed and re-running it — the same
-   problem as a config file needing a redeploy, and **the schedule will move in
-   the weeks before the show**. Needs a sponsor picker writing
-   `presented_by_sponsorship_id`, and `guardedWrite()` on every write.
-2. **Portal profile self-edit.** Artists and vendors cannot change business name,
+1. **BUILT — `/admin/schedule` CRUD.** Full add/edit/delete/publish-toggle with
+   a sponsor picker offering only CONFIRMED sponsorships, and `guardedWrite()`
+   on all four write paths. A banner points at `/admin/panels` for seminars so
+   nobody creates a duplicate. **Admin-only for now — see item 2.**
+
+2. **`content_editor` CANNOT USE THE CONTENT PAGES. Fifth instance of the
+   permissive-baseline pattern, and this one is live.** `panels` now carries
+   exactly one policy — `panels: admin all` (`is_admin()`) — because 038 dropped
+   `"panels: public read"`, which had been the only thing letting a non-admin
+   read the table at all. But `/admin/panels` is in `content_editor`'s allowed
+   PATHS and in their sidebar.
+
+   So a `content_editor` navigating to Panels sees an **empty list**, and every
+   write is refused. The role split is documented as "navigation-level only",
+   which undersells it: for panels it is not a weaker boundary, it is a
+   **non-functional page**. `schedule_items` has the identical shape, which is
+   why `/admin/schedule` was deliberately left out of their PATHS rather than
+   shipped broken.
+
+   Not measured against a live `content_editor` session — reasoned from policy
+   state, same evidence class as §1a. **Verify before fixing:** sign in as a
+   `content_editor` and open `/admin/panels`.
+
+   Fix is a small migration adding `has_role('content_editor')` policies to
+   `panels` and `schedule_items` — 039 added `has_role()` and nothing has ever
+   used it. Then add `/admin/schedule` to their PATHS in the same change.
+
+3. **Portal profile self-edit.** Artists and vendors cannot change business name,
    website, Instagram, phone or logo — all directory-facing. 041 unblocked the
    write path. Publish immediately, no queue, plus an admin recent-edits feed.
    ~2–2.5 days.
-3. **Admin "link sponsor to user account"** — replaces the removed self-claim.
-4. **Floor plan, read-only. ~2.5 days** now that booth coordinates are
+4. **Admin "link sponsor to user account"** — replaces the removed self-claim.
+5. **Floor plan, read-only. ~2.5 days** now that booth coordinates are
    extractable from the venue PDF. Needs the current-year plan from the Crown
    Complex; the 2024 one has 265 real booths, a mislabelled 165/166, and no 233.
-5. **Wall of Honor. 8–9 days.** Largest unscoped item, and its WordPress media is
+6. **Wall of Honor. 8–9 days.** Largest unscoped item, and its WordPress media is
    a cutover dependency. `scripts/import-wall-of-honor.mjs` is written and tested
    against a representative CSV.
 
@@ -331,11 +352,11 @@ plain text; it currently returns those two, and it will stay non-zero until the
    same for the **Gold Star VIP Meet & Greet** (Sat 10:00 AM), where Gold Star
    means the families of fallen service members and must not read as a ticket
    tier.
-6. **Role split part 2** — column-level protection. Today's split is
+7. **Role split part 2** — column-level protection. Today's split is
    navigation-only: a `content_editor` who knows the API can still read artist
    government photo IDs. Accepted for two trusted colleagues; not for anyone
    external.
-7. **Contest results public build** — early 2027; schema already landed.
+8. **Contest results public build** — early 2027; schema already landed.
 
 ## 6. Scripts
 
