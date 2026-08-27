@@ -10,7 +10,7 @@
 -- Their INSERTs are in supabase/seeds/panels_2027.sql.
 --
 -- MEDIEVAL ARMORED COMBAT IS A NOTE, NOT A ROW. It runs during the Saturday
--- 1:30 PM Team Strongman block, in the breaks between rounds. Every column in
+-- 1:00 PM Team Strongman block, in the breaks between rounds. Every column in
 -- this table hangs off `start_time`, and the page sorts and renders by it — a
 -- row of its own would have to assert a start time the event does not have,
 -- and would sort as though it displaced the Strongman entry rather than
@@ -65,8 +65,14 @@ select e.id, v.day_date, v.start_time, v.sort_order, v.title, v.location,
   -- Medieval armored combat runs INSIDE this block, in the breaks between
   -- rounds — it is a note on this item rather than a row of its own because it
   -- has no start time to assert. See the seed header for the reasoning.
-  (date '2027-04-17', time '13:30', 0, 'Strongest at the Sideshow', 'Ballroom', 'contest',
-   'Team strongman competition. Medieval armored combat demonstrations run in the breaks between rounds.', null),
+  -- sort_order 1: moving this from 1:30 to 1:00 puts it on the same start time
+  -- as contest registration above. Registration leads (attendees act on it
+  -- first); this is the editorial tiebreak the column exists for.
+  (date '2027-04-17', time '13:00', 1, 'Strongest at the Sideshow', 'Crown Ballroom', 'contest',
+   'Team strongman competition. Medieval armored combat demonstrations run between team strongman contest events, starting at 1:00 PM in the Crown Ballroom.', null),
+  -- Dating Game runs BOTH Friday and Saturday at 6:00 PM (§10.1). The Friday
+  -- row is above; this is the Saturday instance the original seed omitted.
+  (date '2027-04-17', time '18:00', 0, 'Tattoo Dating Game', 'Main Stage', 'programme', '', null),
   (date '2027-04-17', time '14:00', 0, 'Miss All American Pin-Up Contest', 'Main Stage', 'contest', '', null),
   (date '2027-04-17', time '16:00', 0, 'Tattoo Contest Begins', 'Main Stage', 'contest', '', null),
   (date '2027-04-17', time '19:00', 0, 'Tattoo Contest Continues', 'Main Stage', 'contest', '', null),

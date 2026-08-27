@@ -62,7 +62,7 @@ export const HOME_EVENTS: HomeEvent[] = [
     // 2027 CHANGE: team strongman only. Dead-lift and bench press are dropped —
     // do not reinstate them here without checking the schedule spec.
     description:
-      'Team strongman competition in the Ballroom, Saturday at 1:30 PM.',
+      'Team strongman competition in the Crown Ballroom, Saturday at 1:00 PM.',
     href: '/events/strongest-sideshow',
   },
   {
