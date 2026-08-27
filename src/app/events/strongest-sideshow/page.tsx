@@ -61,11 +61,15 @@ export default function StrongestSideshowPage() {
             <span className="text-emboss">When & Where</span>
           </h2>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          {/* 2027 is a SINGLE Saturday session, team strongman only. The Friday
+              and Sunday rows here were stale multi-day content and the Saturday
+              time (2:00 PM) disagreed with both other places the time lived.
+              Strongman time now lives in exactly two places — the schedule_items
+              seed and homepage-content.ts — both 1:00 PM. Do not reintroduce a
+              third copy here; link to the schedule instead. */}
+          <div className="grid gap-4 sm:grid-cols-1">
             {[
-              { label: 'Friday', value: '5:30 PM - Exhibition Events' },
-              { label: 'Saturday', value: '2:00 PM - Open Competitions' },
-              { label: 'Sunday', value: '1:30 PM - Finals & Champions' },
+              { label: 'Saturday', value: '1:00 PM - Team Strongman, Crown Ballroom' },
             ].map(item => (
               <div
                 key={item.label}

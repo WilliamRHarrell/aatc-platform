@@ -198,6 +198,13 @@ export default function VipMeetGreetPage() {
           >
             <h3 className="text-lg font-bold text-white">VIP 3-Day Pass</h3>
             <p className="mt-1 text-2xl font-bold" style={{ color: '#C4A882' }}>$70</p>
+            {/* The bare $70 understated what someone pays at the door. Real
+                pricing lives in src/content/registry.ts as `price_vip_note`;
+                this mirrors it rather than sourcing it, which is a second copy
+                and therefore a drift risk — see the note there. */}
+            <p className="mt-1 text-xs" style={{ color: '#999' }}>
+              $70 advance / $72 at the door · $5 military discount
+            </p>
             <p className="mt-3 text-sm leading-relaxed" style={{ color: '#999' }}>
               The Gold Star VIP Meet & Greet is included with every VIP 3-Day Pass. Your VIP pass also includes a special convention badge, swag bag, meet-and-greet poster, and an official AATC t-shirt.
             </p>
