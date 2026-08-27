@@ -2,57 +2,26 @@
 
 import PublicNav from '@/components/PublicNav'
 
-const PARTIES = [
-  {
-    night: 'Friday Night',
-    date: 'Friday, April 16',
-    title: 'Ink After Dark: Opening Night Party',
-    time: '10:30 PM - 2:00 AM',
-    venue: 'The Bunker Bar & Lounge',
-    address: 'Downtown Fayetteville, NC',
-    description: 'Kick off the convention weekend with the official opening night party. Live DJ sets, drink specials, and a crowd full of tattoo enthusiasts ready to celebrate. This is where the weekend really begins.',
-    entertainment: [
-      'DJ Razorblade spinning hip-hop, rock, and metal',
-      'Drink specials all night',
-      'Free entry for VIP 3-Day Pass holders',
-      'Convention artist meet & mingle',
-    ],
-    cover: '$10 at the door / Free with VIP Pass',
-  },
-  {
-    night: 'Saturday Night',
-    date: 'Saturday, April 17',
-    title: 'Main Event: Saturday Night Throwdown',
-    time: '10:30 PM - 2:00 AM',
-    venue: 'The Hangar Event Space',
-    address: 'Downtown Fayetteville, NC',
-    description: 'The biggest night of the weekend. Live bands, a packed house, and the energy of a full day of tattooing and contests still buzzing in the air. This is the party everyone talks about.',
-    entertainment: [
-      'Live performance by Iron Serpent (metal/rock)',
-      'Opening set by The Devil\'s Handshake',
-      'Full bar with craft cocktail specials',
-      'Photo booth with convention backdrop',
-      'Midnight raffle with tattoo session giveaways',
-    ],
-    cover: '$15 at the door / $10 with convention wristband / Free with VIP Pass',
-  },
-  {
-    night: 'Sunday Night',
-    date: 'Sunday, April 18',
-    title: 'Closing Night: The Last Drop',
-    time: '8:00 PM - 12:00 AM',
-    venue: 'Yadkin Tap House',
-    address: 'Downtown Fayetteville, NC',
-    description: 'A more relaxed closing night celebration. Raise a glass with the artists and attendees you have spent the weekend with. Acoustic sets, cold drinks, and good conversation to cap off an unforgettable weekend.',
-    entertainment: [
-      'Acoustic performances by local artists',
-      'Convention award winner recognition',
-      'Casual atmosphere with outdoor patio seating',
-      'Drink specials for convention attendees',
-    ],
-    cover: '$5 at the door / Free with convention wristband',
-  },
-]
+// REMOVED 2026-08-27: this held three invented venues (one of which names a
+// real Fayetteville business that has not agreed to host), invented DJ and band
+// names, and door prices — "$10 at the door / Free with VIP Pass" is a pricing
+// promise the show would have had to honor, the same class of error as the
+// fabricated hotel rates.
+//
+// Venues are not confirmed. Per §3.4 there is no hardcoded day list here or on
+// the homepage: both render whatever published rows exist, grouped by day, and
+// a day with no rows does not render at all.
+const PARTIES: {
+  night: string
+  date: string
+  title: string
+  time: string
+  venue: string
+  address: string
+  description: string
+  entertainment: string[]
+  cover: string
+}[] = []
 
 export default function AfterPartiesPage() {
   return (
@@ -75,6 +44,17 @@ export default function AfterPartiesPage() {
       {/* Party Cards */}
       <section className="px-4 py-12">
         <div className="mx-auto max-w-4xl space-y-6">
+          {PARTIES.length === 0 && (
+            <div
+              className="rounded-2xl px-6 py-10 text-center"
+              style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
+            >
+              <p className="text-sm" style={{ color: '#999' }}>
+                After-party venues for {'2027'} are being finalized. Nights, venues and
+                cover will be posted here once they are confirmed.
+              </p>
+            </div>
+          )}
           {PARTIES.map(party => (
             <div
               key={party.night}

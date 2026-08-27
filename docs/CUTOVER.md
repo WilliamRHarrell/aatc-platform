@@ -462,7 +462,7 @@ the meantime, but the gap should be a decision rather than an oversight.
       directory only ever lived on `aatc-platform.vercel.app`, which has no
       equity and no sitemap, so there is likely nothing indexed to repair.
 - [ ] Update the Google Business Profile address to match the `<address>`
-      element exactly: Crown Complex Event Center, 131 E. Mountain Dr.,
+      element exactly: Crown Complex Event Center, 1960 Coliseum Drive,
       Fayetteville, NC 28306.
 
 ---

@@ -22,7 +22,7 @@
 **Column 1 — Contact**
 > **All American Tattoo Convention**
 > Crown Complex Event Center
-> 131 E. Mountain Dr., Fayetteville, NC 28306
+> 1960 Coliseum Drive, Fayetteville, NC 28306
 > (910) 850-2566
 > info@allamericantattooconvention.com
 
@@ -249,7 +249,7 @@ Upon receipt of your invoice, a **25% deposit** is due, with the remainder paid 
 
 **Dates:** Friday, April 16 – Sunday, April 18, 2027
 **Hours:** Friday 12–11 PM · Saturday 12–11 PM · Sunday 12–8 PM *(2026 hours shown — confirm 2027)*
-**Location:** Crown Complex Event Center, 131 E. Mountain Dr., Fayetteville, NC 28306
+**Location:** Crown Complex Event Center, 1960 Coliseum Drive, Fayetteville, NC 28306
 
 ## Schedule of Events
 *(Tentative and subject to change — structure below follows the 2025 program; swap in 2027 times/events when Ryan's schedule arrives)*
@@ -707,7 +707,7 @@ First five posts I recommend, in order:
 - Booth pricing — confirmed, 2026 prices carry over
 - Ticket pricing — confirmed: Single-day $25 (any day) · Weekend $60 · VIP $70 ($72 door); $5 military discount on all; links go live ~October
 - Official email — info@allamericantattooconvention.com (confirmed working; gmail retired from public-facing copy — update the sponsorship packet to match when fixing its other errors)
-- Venue address — 131 E. Mountain Dr., Fayetteville, NC 28306
+- Venue address — 1960 Coliseum Drive, Fayetteville, NC 28306
 - X/Twitter — @officialaatc (dev: fix portal footer, currently @ATStattoos)
 - Veteran booth discount — $150 off any booth with a veteran tattooing/vending in it
 - Age policy — kids under 16 free

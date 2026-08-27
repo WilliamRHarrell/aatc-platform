@@ -2,26 +2,16 @@
 
 import PublicNav from '@/components/PublicNav'
 
-const FEATURED_HONOREES = [
-  {
-    name: 'SSG David M. Torres',
-    branch: 'U.S. Army, 82nd Airborne Division',
-    years: '2003 - 2011',
-    tribute: 'A devoted father, husband, and soldier who served two tours in Afghanistan. David was known for his unwavering loyalty to his fellow paratroopers and his infectious sense of humor that kept morale high even in the most difficult moments.',
-  },
-  {
-    name: 'Cpl. Angela R. Brooks',
-    branch: 'U.S. Marine Corps',
-    years: '2008 - 2015',
-    tribute: 'Angela served with distinction and was passionate about mentoring younger Marines. Her dedication to service extended beyond the uniform — she volunteered tirelessly with veteran support organizations after her deployment.',
-  },
-  {
-    name: 'SPC Michael J. Dawson',
-    branch: 'U.S. Army, 3rd Special Forces Group',
-    years: '2010 - 2018',
-    tribute: 'Michael embodied the Green Beret creed of quiet professionalism. A skilled operator and a compassionate leader, he is deeply missed by his team and his family. His courage in the face of adversity inspired all who served alongside him.',
-  },
-]
+// REMOVED 2026-08-27: this held three fabricated fallen service members —
+// full names, ranks, units, service dates and family-voice tributes — rendered
+// under "In Memoriam" on the page Gold Star families are invited to submit to.
+// Invented dead soldiers presented as real is the worst instance of the
+// placeholder-human pattern in this codebase.
+//
+// NO PLACEHOLDER HUMANS. Nothing goes in this array that is not a real,
+// family-confirmed honoree. Ship the empty state until then. When the CMS table
+// lands, seed it EMPTY — do not migrate anything from git history.
+const FEATURED_HONOREES: { name: string; branch: string; years: string; tribute: string }[] = []
 
 const SUBMISSION_FIELDS = [
   { label: 'Service Member Name', description: 'Full name and rank of the service member being honored.' },
@@ -90,6 +80,17 @@ export default function WallOfHonorPage() {
           <p className="mb-8 text-center text-xs" style={{ color: '#666' }}>
             <span className="text-emboss">Honoring their service and sacrifice</span>
           </p>
+          {FEATURED_HONOREES.length === 0 && (
+            <div
+              className="rounded-2xl px-6 py-10 text-center"
+              style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
+            >
+              <p className="text-sm" style={{ color: '#999' }}>
+                The Wall of Honor is being assembled from family submissions. Names will
+                appear here as families share them with us.
+              </p>
+            </div>
+          )}
           <div className="grid gap-4 md:grid-cols-3">
             {FEATURED_HONOREES.map((honoree) => (
               <div

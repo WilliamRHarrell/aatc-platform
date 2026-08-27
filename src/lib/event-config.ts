@@ -21,7 +21,13 @@ export const EVENT_DATES_LABEL = 'April 16–18, 2027'
 export const EVENT_DATES_SHORT = 'Apr 16–18, 2027'
 
 export const VENUE_NAME = 'Crown Complex Event Center'
-export const VENUE_STREET = '131 E. Mountain Dr.'
+// Confirmed 2026-08-27 against what the Crown Complex publishes. 1960 Coliseum
+// Drive is the official address for the complex and specifically for the Expo
+// Center, and it is what navigation apps resolve. East Mountain Drive is an
+// ENTRANCE, not an address — the old value ("131 E. Mountain Dr.") appears to
+// have been a recorded entrance, and 131 is a digit off a catering contractor's
+// office at 121. Never reintroduce it as the address.
+export const VENUE_STREET = '1960 Coliseum Drive'
 export const VENUE_CITY = 'Fayetteville'
 export const VENUE_STATE = 'NC'
 export const VENUE_POSTAL = '28306'

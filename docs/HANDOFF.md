@@ -579,3 +579,30 @@ walk-ins do not register. That caveat is rendered above the registration list in
 - Two requests late in the session — a consent/pixel audit and an SEO schema —
   belong to other repositories. Neither has anything in this one: no pixels, no
   consent layer, no `/privacy-policy`.
+
+---
+
+## No placeholder humans
+
+**Never generate a person's name, biography, credential, title, or quote.** This
+covers team members, judges, artists, speakers, honorees, staff and performers.
+If a slot needs filling before real data exists, **ship the empty state.**
+
+The same applies to anything the show would have to honor: prices, rates, prize
+amounts, door covers, weight classes, division names, venue names.
+
+Why this is a hard rule rather than a style preference — three instances found in
+one sweep, all of them live liabilities:
+
+- **A fabricated Head of Veterans Outreach** on the page Gold Star families read.
+  The copy invited bereaved families to contact a person who does not exist.
+- **Three invented fallen service members** under "In Memoriam" on the Wall of
+  Honor — names, ranks, units, service dates and family-voice tributes.
+- **Three named hotels with nightly rates and an "AATC RATE" badge**, and
+  **three after-party venues with door prices**. Anyone who called and asked for
+  the AATC rate was told it does not exist.
+
+Rewording an invented person is worse than deleting them: a reworded fabrication
+still reads as a commitment. Delete, ship empty, and seed the CMS table empty —
+**do not migrate anything out of git history without confirming the person is
+real.**

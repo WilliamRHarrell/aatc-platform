@@ -73,7 +73,7 @@ export default function DirectionsPage() {
                 on approach, so it must not be letterboxed on mobile. */}
             <img
               src="/images/venue/crown-complex.jpg"
-              alt="Crown Complex, 131 E. Mountain Dr., Fayetteville, NC — home of the All American Tattoo Convention"
+              alt="Crown Complex, 1960 Coliseum Drive, Fayetteville, NC — home of the All American Tattoo Convention"
               width={1200}
               height={675}
               loading="lazy"
@@ -82,14 +82,12 @@ export default function DirectionsPage() {
             />
 
             <h3 className="text-xl font-bold text-white">{VENUE_NAME}</h3>
-            {/* ⚠ ADDRESS CONFLICT — read the note above VENUE_STREET usage.
-                This page hardcoded "1960 Coliseum Dr" while event-config.ts,
-                the /apply calendar invite and CUTOVER §F all say
-                "131 E. Mountain Dr." Those are DIFFERENT BUILDINGS in the
-                Crown Complex. Now sourced from event-config so the site cannot
-                disagree with itself — but which building is correct still
-                needs confirming, and the turn-by-turn directions below still
-                route to Coliseum Dr. */}
+            {/* Address settled 2026-08-27: 1960 Coliseum Drive is the official Crown
+                Complex / Expo Center address and what maps resolve. East Mountain
+                Drive is an entrance, not an address — see the note in
+                event-config.ts. Sourced from event-config so the site cannot
+                disagree with itself; the turn-by-turn below already routed to
+                Coliseum Dr and was correct. */}
             <p className="mt-2 text-sm" style={{ color: '#C4A882' }}>
               {VENUE_STREET}, {VENUE_CITY}, {VENUE_STATE} {VENUE_POSTAL}
             </p>

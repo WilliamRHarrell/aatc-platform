@@ -24,7 +24,7 @@ const CALENDAR_HREF = `data:text/calendar;charset=utf-8,${encodeURIComponent(
     'DTSTART:20270416T120000',
     'DTEND:20270418T200000',
     'SUMMARY:All American Tattoo Convention 2027',
-    'LOCATION:Crown Complex Event Center, 131 E. Mountain Dr., Fayetteville, NC 28306',
+    'LOCATION:Crown Complex Event Center, 1960 Coliseum Drive, Fayetteville, NC 28306',
     'DESCRIPTION:All American Tattoo Convention — April 16-18, 2027. Get your tickets at allamericantattooconvention.com',
     'END:VEVENT',
     'END:VCALENDAR',
