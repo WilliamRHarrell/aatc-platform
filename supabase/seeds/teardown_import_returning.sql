@@ -32,7 +32,7 @@ do $$
 declare
   ---------------------------------------------------------------
   -- SET THIS. The only line you edit.
-  v_email    text    := 'REPLACE-ME@example.com';
+  v_email    text    := 'ryan@skinreserve.com';
   -- Set to false to actually delete. Leave true to preview.
   v_dry_run  boolean := true;
   ---------------------------------------------------------------

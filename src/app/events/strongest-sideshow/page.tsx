@@ -2,32 +2,18 @@
 
 import PublicNav from '@/components/PublicNav'
 
-const EVENTS = [
-  {
-    title: 'Deadlift Challenge',
-    description: 'Test your raw pulling power. Competitors attempt progressively heavier deadlifts in a last-man-standing format. Weight classes available for fair competition.',
-  },
-  {
-    title: 'Arm Wrestling Tournament',
-    description: 'A bracket-style arm wrestling tournament open to all skill levels. Left and right hand divisions. Think you have what it takes to be champion? Step up to the table.',
-  },
-  {
-    title: 'Grip Strength Challenge',
-    description: 'Crush a dynamometer for the highest reading, hold a loaded barbell for time, or hang from a bar until you drop. Multiple grip events test every aspect of hand and forearm strength.',
-  },
-  {
-    title: 'Atlas Stone Carry',
-    description: 'Lift a heavy atlas stone and carry it as far as you can. Inspired by strongman competition, this event is a crowd favorite and a true test of full-body power.',
-  },
-  {
-    title: 'Keg Toss',
-    description: 'Launch an empty keg over a bar set at increasing heights. Explosive power meets technique in this classic strongman event adapted for the sideshow stage.',
-  },
-  {
-    title: 'Truck Pull (Exhibition)',
-    description: 'Watch as top competitors attempt to pull a military vehicle across the parking lot. This exhibition event is open to select competitors and draws massive crowds.',
-  },
-]
+/**
+ * 2027 IS TEAM STRONGMAN ONLY.
+ *
+ * This page previously listed six individual events — Deadlift Challenge, Arm
+ * Wrestling, Grip Strength, Atlas Stone Carry, Keg Toss and a military-vehicle
+ * Truck Pull — with formats, weight classes and rules. None of that is running.
+ * Dead-lift and bench were dropped for 2027 and the event is now a team
+ * competition whose lineup has not been announced.
+ *
+ * Removed rather than trimmed: a partial list of invented events reads as
+ * confirmed programming to someone deciding whether to enter.
+ */
 
 export default function StrongestSideshowPage() {
   return (
@@ -45,6 +31,27 @@ export default function StrongestSideshowPage() {
         <p className="mx-auto mt-0 max-w-xl text-sm" style={{ color: '#999' }}>
           <span className="text-emboss">Brute strength meets tattoo culture in this crowd-pumping series of strength competitions. Open to attendees who think they have what it takes. Watch or compete -- either way, you will not want to miss it.</span>
         </p>
+      </div>
+
+      {/* ── §11.2 Logo, between hero and "When & Where" ────────
+          Renders nothing until the asset exists. The file is not in the repo
+          yet (§0.3 lists it as provided, but it has not landed) and §0.8 says
+          no broken image icons and no reserved blank space — so this hides
+          itself on error rather than showing Next's broken-image frame.
+
+          NOTE: this is the LIGHT-BACKGROUND logo on a #0a0a0a page. Verify it
+          reads correctly once it lands; if it disappears into the dark, a
+          dark-background variant is needed (§17.3). */}
+      <div className="flex justify-center px-4 py-10">
+        <img
+          src="/images/events/strongest-at-sideshow.png"
+          alt="Strongest at the Sideshow"
+          width={360}
+          height={360}
+          loading="lazy"
+          className="h-auto w-full max-w-[360px]"
+          onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none' }}
+        />
       </div>
 
       {/* Schedule */}
@@ -83,18 +90,14 @@ export default function StrongestSideshowPage() {
           <h2 className="mb-6 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
             <span className="text-emboss">Competition Events</span>
           </h2>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            {EVENTS.map(event => (
-              <div
-                key={event.title}
-                className="rounded-2xl p-6"
-                style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
-              >
-                <h3 className="text-sm font-bold text-white">{event.title}</h3>
-                <p className="mt-2 text-xs leading-relaxed" style={{ color: '#999' }}>{event.description}</p>
-              </div>
-            ))}
+          <div
+            className="rounded-2xl p-6 text-center"
+            style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
+          >
+            <p className="text-sm leading-relaxed" style={{ color: '#bbb' }}>
+              Strongest at the Sideshow is a <strong className="text-white">team strongman
+              competition</strong>. Event lineup and team sign-up details will be announced soon.
+            </p>
           </div>
         </div>
       </section>
@@ -110,21 +113,9 @@ export default function StrongestSideshowPage() {
             className="rounded-2xl p-6"
             style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
           >
-            <ul className="space-y-3">
-              {[
-                'Registration is available at the Sideshow Stage area. Walk-up registration is accepted on event days.',
-                'Competitors must be 18 years or older and sign a liability waiver before participating.',
-                'No entry fee required. All competitions are free to enter with your convention admission.',
-                'Weight classes are available for the Deadlift Challenge and Arm Wrestling Tournament.',
-                'Competitors should wear appropriate athletic clothing and closed-toe shoes.',
-                'The Truck Pull is an exhibition event with select competitors. Inquire at the booth for details.',
-              ].map((item, i) => (
-                <li key={i} className="flex items-start gap-2 text-xs" style={{ color: '#999' }}>
-                  <span className="mt-1 h-1 w-1 shrink-0 rounded-full" style={{ backgroundColor: '#8B7355' }} />
-                  {item}
-                </li>
-              ))}
-            </ul>
+            <p className="text-center text-sm" style={{ color: '#999' }}>
+              More information coming soon.
+            </p>
           </div>
         </div>
       </section>
@@ -136,21 +127,11 @@ export default function StrongestSideshowPage() {
             <span className="text-emboss">Prizes</span>
           </h2>
 
-          <div className="space-y-3">
-            {[
-              { place: 'Event Winners', prize: 'Custom Medal + Bragging Rights' },
-              { place: 'Overall Strongest (Sunday Finals)', prize: 'Custom Trophy + $300 Cash + AATC Champion Belt' },
-              { place: 'Military Division Winner', prize: 'Custom Trophy + $200 Cash' },
-            ].map(item => (
-              <div
-                key={item.place}
-                className="flex items-center justify-between rounded-2xl p-5"
-                style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
-              >
-                <span className="text-sm font-bold text-white">{item.place}</span>
-                <span className="text-right text-xs" style={{ color: '#C4A882' }}>{item.prize}</span>
-              </div>
-            ))}
+          <div
+            className="rounded-2xl p-6 text-center"
+            style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
+          >
+            <p className="text-sm" style={{ color: '#999' }}>Prizes will be announced soon.</p>
           </div>
         </div>
       </section>

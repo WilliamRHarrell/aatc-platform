@@ -2,11 +2,34 @@
 
 import PublicNav from '@/components/PublicNav'
 
+/**
+ * THREE OF THE FOUR PEOPLE HERE DID NOT EXIST.
+ *
+ * Sarah Mitchell, Marcus Thompson and Jessica Rivera were placeholder copy
+ * shipped to a live page as named staff with invented biographies — including
+ * "Veteran advocate" and "Tattoo industry veteran". Removed rather than
+ * reworded. This codebase already refuses to fabricate panel speakers for
+ * exactly this reason; a fake head of Veterans Outreach on a page aimed at
+ * Gold Star families is the same problem with more at stake.
+ *
+ * Ryan's bio also claimed he is an Army veteran. He is not. Corrected — see
+ * spec §3.1/§3.3.
+ *
+ * Real team, per the spec. Two further members are coming and will be
+ * unpublished rows once the `team_members` table lands (§16.3); until then the
+ * grid renders whoever is actually here, and it must handle 2, 3 or 4.
+ */
 const TEAM = [
-  { name: 'Ryan Harrell', role: 'Founder & Director', bio: 'Army veteran and lifelong tattoo enthusiast dedicated to bridging military culture and the tattoo community.' },
-  { name: 'Sarah Mitchell', role: 'Operations Manager', bio: 'Event planning specialist with over a decade of experience producing large-scale conventions and expos.' },
-  { name: 'Marcus Thompson', role: 'Artist Relations', bio: 'Tattoo industry veteran responsible for curating the lineup of world-class artists at every AATC event.' },
-  { name: 'Jessica Rivera', role: 'Community & Veterans Outreach', bio: 'Veteran advocate connecting the convention with military families, veteran organizations, and Gold Star families.' },
+  {
+    name: 'Ryan Harrell',
+    role: 'Founder & Director',
+    bio: 'Born and raised in Fayetteville, with a large part of his family serving. Built AATC to put the tattoo community and the military community in the same room.',
+  },
+  {
+    name: 'Nicole Harrell',
+    role: 'Co-Founder',
+    bio: 'Military brat. Her dad would still be jumping out of planes if Uncle Sam would let him.',
+  },
 ]
 
 const DIFFERENTIATORS = [
@@ -15,8 +38,11 @@ const DIFFERENTIATORS = [
     description: 'Every aspect of AATC is designed with service members and veterans in mind, from discounted admission for active duty and veterans to dedicated programming that honors military culture.',
   },
   {
-    title: 'Veteran-Owned & Operated',
-    description: 'AATC is founded and led by veterans who understand the deep connection between tattoo culture and military service firsthand.',
+    // FACTUAL CORRECTION (spec §3.1). AATC is not veteran-owned — Ryan Harrell
+    // is not a veteran. What is true is that the show platforms veteran-owned
+    // businesses. Do not reword this back toward the original claim.
+    title: 'Highlighting Veteran-Owned & Operated Businesses',
+    description: 'AATC gives veteran-owned shops and businesses a place at the front of the show, and the founding family has deep roots in the Fort Bragg community.',
   },
   {
     title: 'Supporting Veteran Causes',
@@ -132,7 +158,15 @@ export default function AboutPage() {
           <p className="mb-8 text-center text-xs" style={{ color: '#666' }}>
             <span className="text-emboss">The people behind the convention</span>
           </p>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Columns track the member count so 2, 3 or 4 all sit centred rather
+              than leaving dead cells at the end of a fixed 4-up grid (§3.3). */}
+          <div
+            className={`mx-auto grid gap-4 sm:grid-cols-2 ${
+              TEAM.length >= 4 ? 'lg:max-w-none lg:grid-cols-4'
+                : TEAM.length === 3 ? 'lg:max-w-3xl lg:grid-cols-3'
+                : 'lg:max-w-2xl lg:grid-cols-2'
+            }`}
+          >
             {TEAM.map((member) => (
               <div
                 key={member.name}

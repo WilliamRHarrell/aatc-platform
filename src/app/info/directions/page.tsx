@@ -1,6 +1,7 @@
 'use client'
 
 import PublicNav from '@/components/PublicNav'
+import { VENUE_NAME, VENUE_STREET, VENUE_CITY, VENUE_STATE, VENUE_POSTAL } from '@/lib/event-config'
 
 const DRIVING_DIRECTIONS = [
   {
@@ -65,9 +66,32 @@ export default function DirectionsPage() {
             className="rounded-2xl p-6 text-center"
             style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
           >
-            <h3 className="text-xl font-bold text-white">Crown Complex Event Center</h3>
+            {/* ── §2.1 Venue photo ──────────────────────────────
+                Renders nothing until public/images/venue/crown-complex.jpg
+                exists — no broken-image icon, no reserved space (§0.8).
+                Responsive and uncropped: the point is recognising the building
+                on approach, so it must not be letterboxed on mobile. */}
+            <img
+              src="/images/venue/crown-complex.jpg"
+              alt="Crown Complex, 131 E. Mountain Dr., Fayetteville, NC — home of the All American Tattoo Convention"
+              width={1200}
+              height={675}
+              loading="lazy"
+              className="mx-auto mb-6 h-auto w-full max-w-3xl rounded-xl object-contain"
+              onError={e => { e.currentTarget.style.display = 'none' }}
+            />
+
+            <h3 className="text-xl font-bold text-white">{VENUE_NAME}</h3>
+            {/* ⚠ ADDRESS CONFLICT — read the note above VENUE_STREET usage.
+                This page hardcoded "1960 Coliseum Dr" while event-config.ts,
+                the /apply calendar invite and CUTOVER §F all say
+                "131 E. Mountain Dr." Those are DIFFERENT BUILDINGS in the
+                Crown Complex. Now sourced from event-config so the site cannot
+                disagree with itself — but which building is correct still
+                needs confirming, and the turn-by-turn directions below still
+                route to Coliseum Dr. */}
             <p className="mt-2 text-sm" style={{ color: '#C4A882' }}>
-              1960 Coliseum Dr, Fayetteville, NC 28306
+              {VENUE_STREET}, {VENUE_CITY}, {VENUE_STATE} {VENUE_POSTAL}
             </p>
             <p className="mt-3 text-sm" style={{ color: '#999' }}>
               Located just minutes from Fort Bragg, the Crown Complex is one of the premier event venues in the Fayetteville region with over 100,000 square feet of flexible event space.

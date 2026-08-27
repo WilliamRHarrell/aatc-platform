@@ -64,7 +64,7 @@ export default function VipMeetGreetPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { label: 'Date', value: 'Saturday, April 17' },
-              { label: 'Time', value: '10:00 AM - 10:30 AM' },
+              { label: 'Time', value: '10:00 AM' },
               { label: 'Location', value: 'VIP Lounge' },
               { label: 'Access', value: 'VIP 3-Day Pass Only' },
             ].map(item => (
@@ -99,6 +99,57 @@ export default function VipMeetGreetPage() {
                 <p className="mt-2 text-xs leading-relaxed" style={{ color: '#999' }}>{item.description}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── §13.2 Gold Star Families ────────────────────────
+          Deliberately plain. Gold Star means a family that lost a service
+          member; this is not a promotion and must not read like one. No
+          exclamation points, no "don't miss out", no urgency language beyond
+          the factual "first come, first served".
+
+          No phone number or email is listed — §17.5 is open, and ACS
+          coordinator contacts change. A stale number on THIS page is worse
+          than none, because the person dialling it is already dealing with
+          enough. */}
+      <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
+        <div className="mx-auto max-w-3xl">
+          <h2 className="mb-6 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
+            <span className="text-emboss">Gold Star Families</span>
+          </h2>
+          <div
+            className="rounded-2xl p-6"
+            style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
+          >
+            <p className="text-sm leading-relaxed" style={{ color: '#bbb' }}>
+              American Tattoo Society donates VIP passes to Gold Star Family members. To sign
+              up, contact the Army Community Service Survivor Outreach Services Support
+              Coordinator, USAG Fort Bragg. Passes are first come, first served.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── §13.4 Panel access ──────────────────────────────
+          Worded so it does not imply VIPs are shut out of something that
+          exists. Every seminar currently scheduled for 2027 — Bookkeeping for
+          Tattoo Industry Professionals and the Tooth Gem Seminar — is free and
+          open to all attendees, so the paid-panel caveat is forward-looking
+          rather than a live restriction. If a paid panel is ever added, this
+          copy already covers it. */}
+      <section className="border-t px-4 py-10" style={{ borderColor: '#2a2a2a' }}>
+        <div className="mx-auto max-w-3xl">
+          <div
+            className="rounded-2xl p-5"
+            style={{ backgroundColor: 'rgba(139,115,85,0.08)', border: '1px solid #2a2a2a' }}
+          >
+            <p className="text-xs leading-relaxed" style={{ color: '#999' }}>
+              <strong className="text-white">Panels and seminars.</strong> Every seminar on the
+              2027 schedule is free and open to all attendees — a VIP ticket is not needed for
+              any of them. Should a paid panel be added later, a VIP ticket would not include
+              entry to it.
+            </p>
           </div>
         </div>
       </section>
@@ -148,7 +199,7 @@ export default function VipMeetGreetPage() {
             <h3 className="text-lg font-bold text-white">VIP 3-Day Pass</h3>
             <p className="mt-1 text-2xl font-bold" style={{ color: '#C4A882' }}>$70</p>
             <p className="mt-3 text-sm leading-relaxed" style={{ color: '#999' }}>
-              The Gold Star VIP Meet & Greet is included with every VIP 3-Day Pass. Your VIP pass also includes a special convention badge, swag bag, meet and greet poster, official AATC t-shirt, 30-minute early admission each day, and complimentary entry to all after parties.
+              The Gold Star VIP Meet & Greet is included with every VIP 3-Day Pass. Your VIP pass also includes a special convention badge, swag bag, meet-and-greet poster, and an official AATC t-shirt.
             </p>
             <div className="mt-5">
               <a
@@ -176,14 +227,10 @@ export default function VipMeetGreetPage() {
           >
             <ul className="space-y-2.5">
               {[
-                'Gold Star VIP Meet & Greet with TV tattoo artists (Saturday morning)',
-                '30-minute early admission to the convention floor each day',
-                'Exclusive VIP convention badge',
-                'Official AATC swag bag with sponsor goodies',
-                'Limited-edition signed convention poster',
-                'Official AATC convention t-shirt',
-                'Complimentary entry to all three after parties',
-                'Full 3-day access to all convention events, panels, and contests',
+                'Special convention badge',
+                'Swag bag',
+                'Meet-and-greet poster',
+                'Official AATC t-shirt',
               ].map((item, i) => (
                 <li key={i} className="flex items-center gap-2 text-xs" style={{ color: '#999' }}>
                   <span className="h-1 w-1 shrink-0 rounded-full" style={{ backgroundColor: '#8B7355' }} />

@@ -58,17 +58,17 @@ export default function DatingGamePage() {
               {
                 step: '1',
                 title: 'Sign Up to Play',
-                desc: 'Interested contestants can sign up at the main stage registration desk starting at 2:00 PM on Saturday. Space is limited, so sign up early.',
+                desc: 'Sign up at the main stage contest table on Friday & Saturday starting at 1:00 PM.',
               },
               {
                 step: '2',
                 title: 'Take the Stage',
-                desc: 'Inspired by classic TV dating shows, one contestant sits on one side of a partition while three potential matches sit on the other. The contestants cannot see each other.',
+                desc: 'Inspired by classic TV dating shows, one contestant sits on one side of a partition while potential matches sit on the other. The contestants cannot see each other.',
               },
               {
                 step: '3',
                 title: 'Ask Your Questions',
-                desc: 'The choosing contestant asks a series of fun, quirky, and tattoo-themed questions to the three potential matches. Expect questions about ink preferences, first tattoo stories, and ideal date nights.',
+                desc: 'The choosing contestant asks a series of fun, quirky, and tattoo-themed questions to the potential matches. Expect questions about ink preferences, first tattoo stories, and ideal date nights.',
               },
               {
                 step: '4',
@@ -78,7 +78,7 @@ export default function DatingGamePage() {
               {
                 step: '5',
                 title: 'Win Prizes Together',
-                desc: 'The matched pair wins a prize package to enjoy together, courtesy of our event sponsors.',
+                desc: 'The matched pair wins a Date Night — food and fun courtesy of our sponsors.',
               },
             ].map(item => (
               <div
@@ -129,7 +129,7 @@ export default function DatingGamePage() {
 
           <div className="space-y-3">
             {[
-              { label: 'Winning Couple', prize: 'Dinner for two at a local Fayetteville restaurant + AATC gift bag' },
+              { label: 'Winning Couple', prize: 'A Date Night — food and fun courtesy of our sponsors' },
               { label: 'Runner-Up Contestants', prize: 'AATC merchandise package' },
               { label: 'Audience Giveaways', prize: 'Convention t-shirts, stickers, and sponsor swag' },
             ].map(item => (
@@ -152,7 +152,7 @@ export default function DatingGamePage() {
           <span className="text-emboss">Ready to find your ink match?</span>
         </p>
         <p className="text-sm" style={{ color: '#999' }}>
-          <span className="text-emboss">Sign up at the main stage on Saturday starting at 2:00 PM.</span>
+          <span className="text-emboss">Sign up at the main stage contest table on Friday &amp; Saturday starting at 1:00 PM.</span>
         </p>
       </div>
     </div>

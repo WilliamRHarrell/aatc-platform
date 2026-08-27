@@ -43,8 +43,8 @@ const HEALTH_SAFETY = [
     description: 'A first aid station staffed by certified medical personnel is located on site throughout the convention. If you experience a medical emergency, alert the nearest staff member or security personnel immediately.',
   },
   {
-    title: 'Tattoo Aftercare',
-    description: 'A dedicated tattoo aftercare station is available where you can receive bandaging, cleaning supplies, and aftercare instructions from experienced professionals. Your artist will also provide specific aftercare guidance after your session.',
+    title: 'Aftercare',
+    description: 'Aftercare products are available for purchase from several booths throughout the convention floor, including Skin Reserve, Whole Life Aftercare, and After Inked, among others. Your artist will walk you through caring for fresh work before you leave the booth.',
   },
   {
     title: 'Hygiene & Sanitation',

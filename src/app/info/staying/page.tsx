@@ -2,30 +2,6 @@
 
 import PublicNav from '@/components/PublicNav'
 
-const PARTNER_HOTELS = [
-  {
-    name: 'Holiday Inn Fayetteville - Fort Bragg',
-    distance: '0.5 miles from venue',
-    rate: '$109/night',
-    amenities: ['Free breakfast', 'Indoor pool', 'Free parking', 'Shuttle to Crown Complex'],
-    partner: true,
-  },
-  {
-    name: 'Hampton Inn & Suites Fayetteville',
-    distance: '1.2 miles from venue',
-    rate: '$119/night',
-    amenities: ['Free hot breakfast', 'Fitness center', 'Free Wi-Fi', 'Pet-friendly'],
-    partner: true,
-  },
-  {
-    name: 'Fairfield Inn & Suites by Marriott',
-    distance: '2.0 miles from venue',
-    rate: '$99/night',
-    amenities: ['Complimentary breakfast', 'Outdoor pool', 'Free parking', 'Business center'],
-    partner: true,
-  },
-]
-
 const TIPS = [
   {
     title: 'What to Bring',
@@ -34,7 +10,6 @@ const TIPS = [
       'Cash and cards — most artists and vendors accept both',
       'Reference photos if you plan to get tattooed',
       'Comfortable clothing that allows access to the area being tattooed',
-      'Snacks and a water bottle (concessions are also available on site)',
       'A light jacket — convention halls can be cool',
     ],
   },
@@ -45,6 +20,7 @@ const TIPS = [
       'Wear clothing you do not mind getting ink on if you are getting tattooed',
       'Comfortable shoes are highly recommended — there is a lot to see and the venue is large',
       'Show off your existing ink with pride',
+      'Entering a tattoo contest? Wear something that lets you show the tattoo easily. Judges need clear access to the piece, and you don\'t want to be wrestling with a sleeve at the judging table.',
     ],
   },
   {
@@ -63,10 +39,11 @@ const NEARBY = [
   {
     category: 'Restaurants',
     spots: [
-      { name: 'Huske Hardware House', desc: 'Brewpub and restaurant in a restored 1903 hardware store in downtown Fayetteville.' },
-      { name: 'Hilltop House Restaurant', desc: 'Upscale dining with Southern cuisine and a popular weekend brunch.' },
-      { name: 'Luigi\'s Italian Restaurant', desc: 'Local favorite for authentic Italian food, just minutes from the Crown Complex.' },
-      { name: 'Mash House Brewing', desc: 'Craft brewery with a full menu of American favorites and house-brewed beers.' },
+      { name: "Uptown's Chicken and Waffles", desc: '' },
+      { name: "Sammio's Italian Restaurant", desc: '' },
+      { name: "Chris's Steakhouse", desc: '' },
+      { name: "Luigi's Italian Restaurant", desc: '' },
+      { name: 'Dad Bod District', desc: '' },
     ],
   },
   {
@@ -76,6 +53,7 @@ const NEARBY = [
       { name: 'Downtown Fayetteville', desc: 'Explore local shops, galleries, and nightlife in the revitalized downtown district.' },
       { name: 'ZipQuest Waterfall & Treetop Adventure', desc: 'Outdoor zipline adventure through the forest canopy near Carvers Falls.' },
       { name: 'Fort Bragg Area', desc: 'Explore the military heritage of the region with guided tours and monuments.' },
+      { name: 'Group Therapy', desc: 'Skibo Road, Fayetteville.' },
     ],
   },
 ]
@@ -94,120 +72,63 @@ export default function StayingPage() {
           <span className="text-emboss">Staying with AATC</span>
         </h1>
         <p className="mx-auto mt-0 max-w-xl text-sm" style={{ color: '#999' }}>
-          <span className="text-emboss">Make the most of your convention weekend. We have partnered with local hotels to offer exclusive rates for AATC attendees, and put together tips to help you plan the perfect trip.</span>
+          <span className="text-emboss">Make the most of your convention weekend. Here is where to stay, where to eat, and what to know before you arrive.</span>
         </p>
       </div>
 
-      {/* Partner Hotels */}
-      <section className="px-4 py-12">
-        <div className="mx-auto max-w-5xl">
-          <h2 className="mb-2 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
-            <span className="text-emboss">Partner Hotels</span>
-          </h2>
-          <p className="mb-8 text-center text-xs" style={{ color: '#666' }}>
-            <span className="text-emboss">Exclusive rates for AATC attendees</span>
-          </p>
-          <div className="grid gap-4 md:grid-cols-3">
-            {PARTNER_HOTELS.map((hotel) => (
-              <div
-                key={hotel.name}
-                className="relative rounded-2xl p-6"
-                style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
-              >
-                {hotel.partner && (
-                  <div
-                    className="absolute right-4 top-4 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
-                    style={{ backgroundColor: '#8B7355', color: '#fff' }}
-                  >
-                    AATC Rate
-                  </div>
-                )}
-                <h3 className="pr-20 text-sm font-bold text-white">{hotel.name}</h3>
-                <p className="mt-1 text-xs" style={{ color: '#C4A882' }}>{hotel.distance}</p>
-                <p className="mt-3 font-display text-2xl font-bold" style={{ color: '#C4A882' }}>
-                  {hotel.rate}
-                </p>
-                <ul className="mt-4 space-y-2">
-                  {hotel.amenities.map((amenity) => (
-                    <li key={amenity} className="flex items-center gap-2 text-xs" style={{ color: '#999' }}>
-                      <span className="h-1 w-1 shrink-0 rounded-full" style={{ backgroundColor: '#8B7355' }} />
-                      {amenity}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* ── Where to Stay (spec §1.1) ──────────────────────────
+          REPLACED "Partner Hotels" AND "How to Book Your AATC Rate".
+          Those sections listed three named hotels with specific nightly rates
+          and an "AATC RATE" badge. None of it was real — there is no room
+          block and no negotiated rate, so the page was quoting prices AATC
+          cannot honour and sending people to ask hotels for a discount that
+          does not exist.
 
-      {/* Booking Instructions */}
-      <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
+          Kept structurally separate so a genuine host hotel can be added later
+          without rebuilding the section. */}
+      <section className="px-4 py-12">
         <div className="mx-auto max-w-3xl">
-          <h2 className="mb-8 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
-            <span className="text-emboss">How to Book Your AATC Rate</span>
+          <h2 className="mb-6 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
+            <span className="text-emboss">Where to Stay</span>
           </h2>
           <div
             className="rounded-2xl p-6"
             style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
           >
-            <div className="space-y-4">
-              <div className="flex gap-3">
-                <span
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                  style={{ backgroundColor: '#8B7355' }}
-                >
-                  1
-                </span>
-                <p className="text-sm" style={{ color: '#999' }}>
-                  Call the hotel directly or visit their website and navigate to the reservations page.
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <span
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                  style={{ backgroundColor: '#8B7355' }}
-                >
-                  2
-                </span>
-                <p className="text-sm" style={{ color: '#999' }}>
-                  Select your check-in and check-out dates (April 15-19, 2027 for the full convention weekend).
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <span
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                  style={{ backgroundColor: '#8B7355' }}
-                >
-                  3
-                </span>
-                <div>
-                  <p className="text-sm" style={{ color: '#999' }}>
-                    Enter the group discount code when prompted:
-                  </p>
-                  <p
-                    className="mt-2 inline-block rounded-lg px-4 py-2 text-sm font-bold tracking-wider text-white"
-                    style={{ backgroundColor: '#2a2a2a', border: '1px solid #8B7355' }}
-                  >
-                    AATC2027
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <span
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                  style={{ backgroundColor: '#8B7355' }}
-                >
-                  4
-                </span>
-                <p className="text-sm" style={{ color: '#999' }}>
-                  The discounted AATC rate will be applied automatically. Book early — rooms in the block are limited and go fast.
-                </p>
-              </div>
+            <p className="text-sm leading-relaxed" style={{ color: '#bbb' }}>
+              Fayetteville is a military town, which means hotel group rates aren&apos;t the
+              bargain they are in most convention cities — the local market is already priced
+              for constant government and military travel. For that reason we don&apos;t
+              negotiate a room block.
+            </p>
+            <p className="mt-4 text-sm leading-relaxed" style={{ color: '#bbb' }}>
+              We&apos;d suggest looking at Airbnb or Expedia for your stay in the Fayetteville
+              / Fort Bragg area this April.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <a
+                href="https://www.airbnb.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: '#8B7355' }}
+              >
+                Search Airbnb
+              </a>
+              <a
+                href="https://www.expedia.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg px-5 py-2.5 text-sm font-semibold transition-colors"
+                style={{ border: '1px solid #2a2a2a', color: '#C4A882' }}
+              >
+                Search Expedia
+              </a>
             </div>
           </div>
         </div>
       </section>
+
 
       {/* Tips for the Weekend */}
       <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
@@ -263,7 +184,12 @@ export default function StayingPage() {
                   {section.spots.map((spot) => (
                     <div key={spot.name}>
                       <p className="text-xs font-bold" style={{ color: '#C4A882' }}>{spot.name}</p>
-                      <p className="mt-1 text-xs" style={{ color: '#999' }}>{spot.desc}</p>
+                      {/* Descriptions are optional — the five restaurants in §1.2
+                          were given as names only, and an empty <p> would leave a
+                          ragged gap under half the list. */}
+                      {spot.desc && (
+                        <p className="mt-1 text-xs" style={{ color: '#999' }}>{spot.desc}</p>
+                      )}
                     </div>
                   ))}
                 </div>

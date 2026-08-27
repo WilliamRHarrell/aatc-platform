@@ -100,6 +100,12 @@ export default function FoodTruckRodeoPage() {
                   <span className="font-medium text-white">Sunday:</span> 10:00 AM - 7:00 PM
                 </p>
               </div>
+              {/* §9.1 — the times above are the rodeo window, not a guarantee
+                  every truck is serving. Vendors set their own hours and most
+                  pack up earlier than the window suggests. */}
+              <p className="mt-3 border-t pt-3 text-[11px] leading-relaxed" style={{ borderColor: '#2a2a2a', color: '#777' }}>
+                Truck hours vary — each vendor sets its own. Most trucks will be closed by 9:00 PM.
+              </p>
             </div>
           </div>
         </div>
@@ -233,8 +239,8 @@ export default function FoodTruckRodeoPage() {
               {[
                 'The food truck rodeo is open to everyone, no convention admission required.',
                 'Most trucks accept cash and card. An ATM is available inside the venue.',
-                'Covered seating is available in the outdoor dining area.',
                 'Re-entry to the convention is permitted with your wristband.',
+                'The Crown Complex is a Pepsi venue. Coca-Cola products purchased outside cannot be brought back into the convention center.',
               ].map(item => (
                 <li key={item} className="flex items-start gap-2 text-xs" style={{ color: '#999' }}>
                   <span className="mt-1 h-1 w-1 shrink-0 rounded-full" style={{ backgroundColor: '#8B7355' }} />
