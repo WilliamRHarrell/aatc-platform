@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { PINUP_REGISTRATION_OPEN } from '@/lib/event-config'
 
 import PublicNav from '@/components/PublicNav'
 
@@ -184,7 +185,16 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
               style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
             >
               {entrySlot}
-              {result ? (
+              {!PINUP_REGISTRATION_OPEN ? (
+                <div className="py-8 text-center">
+                  <p className="text-lg font-bold text-white">Registration opens soon</p>
+                  <p className="mx-auto mt-3 max-w-sm text-xs leading-relaxed" style={{ color: '#999' }}>
+                    Online entry for the Miss AATC Pinup Contest is not open yet. Check back
+                    shortly - places are limited and will be filled in the order they are
+                    received.
+                  </p>
+                </div>
+              ) : result ? (
                 <div className="py-10 text-center">
                   <div
                     className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"

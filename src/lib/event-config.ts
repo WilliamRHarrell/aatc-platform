@@ -146,3 +146,21 @@ export function daysUntilDoors(now: number = Date.now()): number {
   const diff = new Date(DOORS_OPEN_ISO).getTime() - now
   return diff <= 0 ? 0 : Math.floor(diff / 86400000)
 }
+
+/**
+ * Miss AATC Pinup Contest online registration.
+ *
+ * FALSE until rate limiting lands. POST /api/pinup-entry is the first anonymous
+ * unauthenticated write path in this repo and there is no rate limiting or
+ * captcha anywhere in it. 25 junk entries would corrupt the list for a contest
+ * capped at 25, days before the show, with no way to tell real from fake.
+ *
+ * Read by BOTH the form and the route. Hiding the form alone would not close
+ * anything - the endpoint is the exposed surface, and it accepts a POST whether
+ * or not a form is rendered. Flip this once, in the commit that adds the rate
+ * limiting.
+ */
+export const PINUP_REGISTRATION_OPEN = false
+
+/** Places in the pinup contest. Past this, entries are waitlisted, not refused. */
+export const PINUP_CAPACITY = 25

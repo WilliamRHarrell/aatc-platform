@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { guardedWrite } from '@/lib/db-write'
+import { PINUP_REGISTRATION_OPEN } from '@/lib/event-config'
 
 // POST /api/pinup-entry - Miss AATC Pinup Contest intake.
 //
@@ -84,6 +85,16 @@ function normalisePhone(raw: string): string | null {
 }
 
 export async function POST(req: NextRequest) {
+  // Closed at the ROUTE, not just in the UI. Hiding the form changes nothing
+  // about what this endpoint accepts - it is reachable by anyone who has seen
+  // the path, form or no form. This is the gate.
+  if (!PINUP_REGISTRATION_OPEN) {
+    return NextResponse.json(
+      { error: 'Online registration is not open yet. Please check back shortly.' },
+      { status: 503 }
+    )
+  }
+
   let body: Record<string, unknown>
   try {
     body = await req.json()
