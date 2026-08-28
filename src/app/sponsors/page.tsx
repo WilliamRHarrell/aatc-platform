@@ -6,6 +6,7 @@ import type { Database } from '@/types/database'
 import { getContent } from '@/content/getContent'
 import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
+import { excludeHarnessSponsors } from '@/lib/sponsor-display'
 
 export const metadata: Metadata = {
   title: 'Our Sponsors | All American Tattoo Convention 2027',
@@ -73,7 +74,8 @@ const getSponsors = unstable_cache(
       )
     }
 
-    return (data as unknown as Sponsor[]) ?? []
+    // Harness rows are anon-visible on purpose; see src/lib/sponsor-display.ts.
+    return excludeHarnessSponsors((data as unknown as Sponsor[]) ?? [])
   },
   ['sponsors_public'],
   { revalidate: 60, tags: ['sponsors'] }

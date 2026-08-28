@@ -562,10 +562,43 @@ walk-ins do not register. That caveat is rendered above the registration list in
 
 ## 7. Loose ends
 
-- **RLS harness records are live and public.** `ZZ TEST - RLS Harness (DELETE
-  ME)` renders on the homepage sponsor grid and in the footer. Deliberate - the
-  verify script needs them. Remove at cutover; teardown SQL is in
-  `supabase/seeds/rls_harness_records.sql`.
+- **RLS harness records are live, anon-readable, and must stay that way.**
+  Two sponsorships named `ZZ TEST ... RLS Harness`, plus an invoice and an auth
+  user. Their visibility to anon is the thing under test: delete them and
+  `scripts/verify-sponsor-visibility.mjs:131` does not fail, it goes **vacuous**
+  - printing PASS with no pending row left to prove anything about. A test that
+  cannot fail is worse than no test.
+
+  They are hidden from visitors at the **presentation layer only**, by
+  `src/lib/sponsor-display.ts`, applied at the three public read sites (homepage,
+  `/sponsors`, footer). Never hide them with RLS - that would disable the thing
+  being verified. This filter could not wait for cutover because `sponsor_name`
+  is rendered as an image `alt`, so screen readers announced the row as a real
+  sponsor of the convention.
+
+  Full removal is a cutover step and is FK-ordered; see docs/CUTOVER.md section B.
+
+- **Dashes: the real exclusion category is data, not syntax.** The repo-wide em
+  dash sweep excluded regexes, URLs and import paths - all of them syntactic.
+  That list was wrong. The category that actually matters is **any string
+  literal compared against stored data**: SQL `LIKE` patterns and `WHERE`
+  clauses, fixture strings, enum values matched to rows. They read as prose,
+  which is exactly why they slip through.
+
+  This is not hypothetical. The sweep rewrote the harness `LIKE` patterns in
+  `supabase/seeds/` from an em dash to a hyphen while the rows still stored an
+  em dash, taking every teardown match from two to zero. Both teardown scripts
+  would have aborted their preflight and the harness would have been
+  unremovable - and the teardown block would have deleted nothing while
+  reporting success. It failed closed, so nothing was destroyed, but nothing
+  announced it either.
+
+  Guarding: `scripts/check-no-em-dashes.mjs` covers **`src/` only**. It does two
+  opposite things - it fails on any dash in `src/`, and it fails if the harness
+  literals in `supabase/seeds/` have **lost** theirs. The second half exists
+  because a dash-presence guard cannot catch a dash being removed: after the
+  sweep there is no dash left to find. `supabase/migrations/` is not guarded and
+  must never be edited; the rest of `supabase/` is swept by hand.
 - **Tattoo Goo** is `status='pending'` - an unanswered Gold offer at $3,000, hold
   expiring 2026-08-28. Accept path is held, commented, in
   `supabase/seeds/tattoo_goo_offer.sql`.

@@ -30,6 +30,7 @@ import {
   BEST_IN_SHOW_YEAR,
   daysUntilDoors,
 } from '@/lib/event-config'
+import { excludeHarnessSponsors } from '@/lib/sponsor-display'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://allamericantattooconvention.com'
 
@@ -144,7 +145,8 @@ const getHomepageData = unstable_cache(
     }
 
     // homepage_order first (nulls last), then tier, then name.
-    const sponsors = ((sponsorRows as unknown as HomeSponsor[]) ?? []).sort((a, b) => {
+    // Harness rows are anon-visible on purpose; see src/lib/sponsor-display.ts.
+    const sponsors = excludeHarnessSponsors((sponsorRows as unknown as HomeSponsor[]) ?? []).sort((a, b) => {
       const ao = a.homepage_order ?? Number.MAX_SAFE_INTEGER
       const bo = b.homepage_order ?? Number.MAX_SAFE_INTEGER
       if (ao !== bo) return ao - bo

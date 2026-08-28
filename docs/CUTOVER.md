@@ -51,13 +51,42 @@ things worse, not better.
 
 ## B. Remove test and harness data
 
-- [ ] **Delete the harness sponsor and its records.** `f2a007e0` renders on the
-      live homepage sponsor grid and (post-hydration) the footer as
-      **"ZZ TEST - RLS Harness (DELETE ME)"**. Teardown SQL:
-      [supabase/seeds/rls_harness_records.sql](../supabase/seeds/rls_harness_records.sql)
-      (the commented block at the bottom). Removing it also removes the
-      non-vacuous case from the verify harness - expected, once real sponsors exist.
-- [ ] Delete the harness auth user `rls-harness@allamericantattooconvention.com`.
+- [ ] **Remove the whole RLS harness, in FK order.** Run the block at
+      [rls_harness_records.sql:107-122](../supabase/seeds/rls_harness_records.sql)
+      - invoices, then sponsorships, then the auth user. Do NOT hand-delete the
+      two sponsorship rows: invoice `2ef5dc4e` is attached to the pending one and
+      would be orphaned, and the auth user
+      `rls-harness@allamericantattooconvention.com` would be left behind.
+
+      The harness is three sponsorship-adjacent objects, not two rows:
+
+      | object | id | note |
+      |---|---|---|
+      | sponsorship | `f2a007e0` | gold, confirmed, `show_on_homepage`, `featured_footer` |
+      | sponsorship | `8a7cd934` | brass, pending, owned by the harness user |
+      | invoice | `2ef5dc4e` | pending, on `8a7cd934` |
+      | auth user | `bb38e89d` | `rls-harness@allamericantattooconvention.com` |
+
+- [ ] **Know what stops being tested when you do.** Three things lose coverage
+      the moment the harness goes, and none of them fail loudly:
+
+      - `scripts/verify-sponsor-visibility.mjs:131` goes **vacuous**. With no
+        pending row for anon to be blocked from seeing, the assertion keeps
+        printing PASS while proving nothing. Line 169 skips the "sponsor reads
+        own invoice" check entirely without `VERIFY_SPONSOR_EMAIL`. Re-point both
+        at a real sponsor account, or accept the loss knowingly.
+      - `supabase/seeds/teardown_test_applications.sql:92` preflight wants
+        user=1, sponsorships=2, invoices=1 and **aborts** otherwise.
+      - `supabase/seeds/teardown_test_event_content.sql:130` preflight wants
+        harness=2/1 and **aborts** otherwise.
+
+      Both teardowns are therefore single-use after this point. Run them before
+      removing the harness, or update their guards at the same time.
+
+- [ ] **Presentation filter can go too.** `src/lib/sponsor-display.ts` exists only
+      to keep these rows out of the public UI. Once the rows are gone it is dead
+      code, along with its three call sites and the harness block in
+      `scripts/check-no-em-dashes.mjs`.
 - [ ] Decide on the retained inactive event row `b3630abd…`. It is empty of
       content now and is kept only as a rollback anchor; safe to delete once
       confident, but migration 034's one-active-event index does not require it.

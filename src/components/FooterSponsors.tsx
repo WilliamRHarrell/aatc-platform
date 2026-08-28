@@ -1,6 +1,7 @@
 import { unstable_cache } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { excludeHarnessSponsors } from '@/lib/sponsor-display'
 
 /**
  * Footer sponsor logos - SERVER rendered.
@@ -40,7 +41,8 @@ const getFooterSponsors = unstable_cache(
       console.error(`[footer] sponsor query failed (${error.code}): ${error.message}`)
       return []
     }
-    return (data as unknown as FooterSponsor[]) ?? []
+    // Harness rows are anon-visible on purpose; see src/lib/sponsor-display.ts.
+    return excludeHarnessSponsors((data as unknown as FooterSponsor[]) ?? [])
   },
   ['footer_sponsors'],
   { revalidate: 60, tags: ['sponsors'] }
