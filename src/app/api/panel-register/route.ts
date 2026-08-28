@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { guardedWrite } from '@/lib/db-write'
+import { botTrapRejection } from '@/lib/bot-trap'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,7 +11,20 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { panelId, name, email, phone, socialMedia, attendeeType } = await req.json()
+    const body = await req.json()
+
+    // Same bot filter as /api/pinup-entry. Both are anonymous public write
+    // paths; the rate limit for both is a Vercel WAF rule, not code.
+    const trap = botTrapRejection(body)
+    if (trap) {
+      console.warn(`[panel-register] rejected as automated: ${trap}`)
+      return NextResponse.json(
+        { error: 'We could not verify that submission. Please try again.' },
+        { status: 400 }
+      )
+    }
+
+    const { panelId, name, email, phone, socialMedia, attendeeType } = body
 
     // Validate required fields
     if (!panelId || !name || !email) {

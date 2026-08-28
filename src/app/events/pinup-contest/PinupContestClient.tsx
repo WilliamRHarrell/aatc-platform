@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { PINUP_REGISTRATION_OPEN } from '@/lib/event-config'
+import HoneypotField from '@/components/HoneypotField'
 
 import PublicNav from '@/components/PublicNav'
 
@@ -48,6 +49,11 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
   // Null until the server confirms a write. There is no optimistic success:
   // the stub this replaced set its success flag without asking anyone.
   const [result, setResult] = useState<'confirmed' | 'waitlist' | null>(null)
+  // Bot trap. `website` must arrive empty; mountedAt gives the server an
+  // elapsed time so an instant post can be spotted. Neither is the rate limit -
+  // that is a Vercel WAF rule on this path.
+  const [honeypot, setHoneypot] = useState('')
+  const [mountedAt] = useState(() => Date.now())
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,7 +65,12 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
       const res = await fetch('/api/pinup-entry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, ageConfirmed: form.ageConfirmed === 'yes' }),
+        body: JSON.stringify({
+          ...form,
+          ageConfirmed: form.ageConfirmed === 'yes',
+          website: honeypot,
+          elapsedMs: Date.now() - mountedAt,
+        }),
       })
 
       // Parsed defensively: a 502 from the platform is HTML, not JSON, and
@@ -231,6 +242,8 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                  <HoneypotField value={honeypot} onChange={setHoneypot} />
+
                   <p className="text-xs" style={{ color: '#666' }}>
                     Entry is free. Fields marked * are required.
                   </p>

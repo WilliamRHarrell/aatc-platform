@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { guardedWrite } from '@/lib/db-write'
 import { PINUP_REGISTRATION_OPEN } from '@/lib/event-config'
+import { botTrapRejection } from '@/lib/bot-trap'
 
 // POST /api/pinup-entry - Miss AATC Pinup Contest intake.
 //
@@ -100,6 +101,17 @@ export async function POST(req: NextRequest) {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Could not read that submission. Please try again.' }, { status: 400 })
+  }
+
+  // Bot filter before any work. Rejected submissions are never told which
+  // signal caught them - naming it is how the next attempt avoids both.
+  const trap = botTrapRejection(body)
+  if (trap) {
+    console.warn(`[pinup-entry] rejected as automated: ${trap}`)
+    return NextResponse.json(
+      { error: 'We could not verify that submission. Please try again.' },
+      { status: 400 }
+    )
   }
 
   const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')

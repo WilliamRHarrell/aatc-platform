@@ -578,6 +578,42 @@ walk-ins do not register. That caveat is rendered above the registration list in
 
   Full removal is a cutover step and is FK-ordered; see docs/CUTOVER.md section B.
 
+- **Rate limiting is a Vercel WAF rule and is NOT in this repository.** Read
+  the code alone and both anonymous public write paths look unprotected,
+  because at the application level they are. That is by design, not an
+  oversight.
+
+  | path | method | rule | where |
+  |---|---|---|---|
+  | `/api/pinup-entry` | POST | 5 req / 60s per IP, deny | Vercel dashboard |
+  | `/api/panel-register` | POST | 5 req / 60s per IP, deny | Vercel dashboard |
+
+  Project -> Firewall -> Custom Rules, Pro plan or above. Chosen over an
+  application throttle because it runs at the edge before a function is
+  invoked, needs no dependency, no table and no migration, and cannot drift out
+  of sync with the code it protects.
+
+  Two consequences worth holding on to:
+
+  1. **It is invisible to every check in this repo.** No test, no build guard
+     and no verify script can observe it. Deleting the rules breaks nothing and
+     reports nothing.
+  2. **It does not survive recreating the Vercel project.** It is not in
+     `vercel.json` and is not restored by a redeploy or a re-import. See
+     docs/CUTOVER.md section B2.
+
+  `src/lib/bot-trap.ts` is a complement, not a substitute: a honeypot field and
+  a minimum fill time, both client-supplied and both forgeable. It filters
+  generic form spam, which fills every input and posts instantly. The WAF is
+  what stops anything written for this site specifically.
+
+  The honeypot is rendered by `src/components/HoneypotField.tsx` off-screen
+  rather than with `display:none`, with `aria-hidden` on the wrapper and
+  `tabIndex={-1}` on the input, so nobody using a screen reader or a keyboard
+  can land in it - the penalty for touching it is a silently rejected
+  submission, which is not a thing to leave reachable. `autoComplete="off"`
+  stops a saved-address feature filling it in and locking a real person out.
+
 - **RULE: a negative assertion needs a positive control.** Any check that
   something is absent, blocked, invisible, or rejected must be paired with a
   check proving the query could have found something in the first place.

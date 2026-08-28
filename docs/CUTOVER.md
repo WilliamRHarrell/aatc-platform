@@ -97,6 +97,32 @@ things worse, not better.
       `food-truck-logos`, `panel-images`. **KEEP:**
       `exhibitor-media/sponsors/`, `exhibitor-media/aatc-graphics`, `site-assets`.
 
+## B2. Vercel WAF - rate limiting (NOT in this repo)
+
+- [ ] **Confirm both WAF rules exist and are enabled before go-live.** They are
+      the only rate limiting on the two anonymous public write paths. Nothing in
+      the codebase enforces a request rate, so a code review will not find them
+      and their absence will not fail a build, a test or a deploy.
+
+      | path | method | rule |
+      |---|---|---|
+      | `/api/pinup-entry` | POST | 5 requests / 60s per IP, deny |
+      | `/api/panel-register` | POST | 5 requests / 60s per IP, deny |
+
+      Configured in the Vercel dashboard: Project -> Firewall -> Custom Rules.
+      Requires a Pro plan or above.
+
+- [ ] **If the Vercel project is ever recreated, deleted and restored, or moved
+      to another account or team, RE-CREATE THESE RULES.** They do not live in
+      `vercel.json` and are not restored by redeploying, by reconnecting the git
+      repository, or by importing the project again. The site will come back up
+      fully functional with both endpoints wide open, and nothing will say so.
+
+- [ ] After any change to either rule, re-check that a normal submission still
+      succeeds. A threshold set too low fails closed on the primary intake for a
+      contest that needs 25 sign-ups, and it fails silently from the visitor's
+      side - they see a generic error, not a rate limit.
+
 ## C. Payments and reconciliation
 
 - [ ] **Reconcile the externally-collected Stripe deposits** into the platform.

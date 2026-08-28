@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
+import HoneypotField from '@/components/HoneypotField'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import PublicNav from '@/components/PublicNav'
@@ -47,6 +48,9 @@ function TattooPanelsContent() {
   })
   const [submitting, setSubmitting] = useState(false)
   const [submitMessage, setSubmitMessage] = useState<string | null>(null)
+  // Bot trap, same pair as /events/pinup-contest. See src/lib/bot-trap.ts.
+  const [honeypot, setHoneypot] = useState('')
+  const [mountedAt] = useState(() => Date.now())
 
   useEffect(() => {
     async function fetchPanels() {
@@ -118,6 +122,8 @@ function TattooPanelsContent() {
           phone: form.phone || null,
           socialMedia: form.socialMedia || null,
           attendeeType: form.attendeeType,
+          website: honeypot,
+          elapsedMs: Date.now() - mountedAt,
         }),
       })
 
@@ -388,6 +394,7 @@ function TattooPanelsContent() {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
+                <HoneypotField value={honeypot} onChange={setHoneypot} />
                 <div>
                   <label className="mb-1 block text-xs font-bold uppercase tracking-wider" style={{ color: '#999' }}>
                     Name *
