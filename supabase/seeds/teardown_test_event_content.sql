@@ -27,8 +27,8 @@
 -- ── PROTECTED, WITH ABORTS ──────────────────────────────────
 --   sponsorship  32ef207d  Tattoo Goo ($3,000, confirmed) - real
 --   invoice      d5f1c5f3  its invoice
---   sponsorship  8a7cd934  ZZ TEST - RLS Harness Pending
---   sponsorship  f2a007e0  ZZ TEST - RLS Harness (confirmed, homepage)
+--   sponsorship  8a7cd934  ZZ TEST — RLS Harness Pending
+--   sponsorship  f2a007e0  ZZ TEST — RLS Harness (confirmed, homepage)
 --   invoice      2ef5dc4e  the harness invoice
 -- No statement below touches sponsorships. Invoice deletes are restricted to
 -- `food_truck_id is not null`, which cannot match a sponsorship invoice. The
@@ -100,9 +100,9 @@ begin
   select count(*) into n_goo      from sponsorships where sponsor_name = 'Tattoo Goo';
   select count(*) into n_goo_inv  from invoices i join sponsorships s on s.id = i.sponsorship_id
                                   where s.sponsor_name = 'Tattoo Goo';
-  select count(*) into n_harness_sp  from sponsorships where sponsor_name like 'ZZ TEST - RLS Harness%';
+  select count(*) into n_harness_sp  from sponsorships where sponsor_name like 'ZZ TEST — RLS Harness%';
   select count(*) into n_harness_inv from invoices i join sponsorships s on s.id = i.sponsorship_id
-                                     where s.sponsor_name like 'ZZ TEST - RLS Harness%';
+                                     where s.sponsor_name like 'ZZ TEST — RLS Harness%';
 
   raise notice '';
   raise notice '════════ BEFORE ════════';
@@ -214,9 +214,9 @@ begin
   select count(*) into n_goo      from sponsorships where sponsor_name = 'Tattoo Goo';
   select count(*) into n_goo_inv  from invoices i join sponsorships s on s.id = i.sponsorship_id
                                   where s.sponsor_name = 'Tattoo Goo';
-  select count(*) into n_harness_sp  from sponsorships where sponsor_name like 'ZZ TEST - RLS Harness%';
+  select count(*) into n_harness_sp  from sponsorships where sponsor_name like 'ZZ TEST — RLS Harness%';
   select count(*) into n_harness_inv from invoices i join sponsorships s on s.id = i.sponsorship_id
-                                     where s.sponsor_name like 'ZZ TEST - RLS Harness%';
+                                     where s.sponsor_name like 'ZZ TEST — RLS Harness%';
 
   raise notice '';
   raise notice '════════ AFTER ════════';

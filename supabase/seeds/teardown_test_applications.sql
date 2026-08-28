@@ -8,8 +8,8 @@
 -- The RLS harness records are excluded by name and by user. The verify script
 -- needs them:
 --     auth user     rls-harness@allamericantattooconvention.com
---     sponsorship   'ZZ TEST - RLS Harness Pending (DELETE ME)'  (pending)
---     sponsorship   'ZZ TEST - RLS Harness (DELETE ME)'          (confirmed)
+--     sponsorship   'ZZ TEST — RLS Harness Pending (DELETE ME)'  (pending)
+--     sponsorship   'ZZ TEST — RLS Harness (DELETE ME)'          (confirmed)
 --     invoice       the one attached to the pending harness sponsorship
 -- The script ABORTS if those are not all present, so it cannot run against the
 -- wrong database or after a partial cleanup.
@@ -66,11 +66,11 @@ begin
   select count(*) into n_booth_asgn from booths where application_id is not null;
   select count(*) into n_spon       from sponsorships;
 
-  select count(*) into n_harness_sp  from sponsorships where sponsor_name like 'ZZ TEST - RLS Harness%';
+  select count(*) into n_harness_sp  from sponsorships where sponsor_name like 'ZZ TEST — RLS Harness%';
   select count(*) into n_harness_usr from auth.users   where email = 'rls-harness@allamericantattooconvention.com';
   select count(*) into n_harness_inv from invoices i
     join sponsorships s on s.id = i.sponsorship_id
-   where s.sponsor_name like 'ZZ TEST - RLS Harness%';
+   where s.sponsor_name like 'ZZ TEST — RLS Harness%';
 
   raise notice '';
   raise notice '════ BEFORE ════';
@@ -141,11 +141,11 @@ begin
   select count(*) into n_booth_asgn  from booths where application_id is not null;
   select count(*) into n_booth_avail from booths where status = 'available';
 
-  select count(*) into n_harness_sp  from sponsorships where sponsor_name like 'ZZ TEST - RLS Harness%';
+  select count(*) into n_harness_sp  from sponsorships where sponsor_name like 'ZZ TEST — RLS Harness%';
   select count(*) into n_harness_usr from auth.users   where email = 'rls-harness@allamericantattooconvention.com';
   select count(*) into n_harness_inv from invoices i
     join sponsorships s on s.id = i.sponsorship_id
-   where s.sponsor_name like 'ZZ TEST - RLS Harness%';
+   where s.sponsor_name like 'ZZ TEST — RLS Harness%';
 
   raise notice '';
   raise notice '════ AFTER ════';

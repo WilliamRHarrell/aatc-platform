@@ -1,4 +1,8 @@
 -- ============================================================
+-- NOTE: the em dash in 'ZZ TEST — RLS Harness' is DATA, not copy. These are
+-- string literals matched with LIKE against rows that already exist in the
+-- database, so they must stay byte-identical to sponsor_name. A repo-wide dash
+-- sweep rewrote them once and silently reduced every LIKE here to zero matches.
 -- RLS HARNESS TEST RECORDS
 -- For scripts/verify-sponsor-visibility.mjs assertions 1 and 3.
 -- Written against the schema as of migration 030.
@@ -61,7 +65,7 @@ begin
     additional_items, featured_footer, show_on_homepage, is_in_kind
   ) values (
     v_event_id, v_user_id,
-    'ZZ TEST - RLS Harness Pending (DELETE ME)',
+    'ZZ TEST — RLS Harness Pending (DELETE ME)',
     'brass', 50000, 'pending',
     'RLS Harness', 'rls-harness@allamericantattooconvention.com',
     '910-555-0100', 'rlsharness', 'rlsharness',
@@ -90,7 +94,7 @@ begin
     additional_items, featured_footer, show_on_homepage, homepage_order, is_in_kind
   ) values (
     v_event_id, null,
-    'ZZ TEST - RLS Harness (DELETE ME)',
+    'ZZ TEST — RLS Harness (DELETE ME)',
     'gold', 300000, 'confirmed',
     'RLS Harness', 'rls-harness@allamericantattooconvention.com',
     'TEST RECORD - RLS verification harness. Publicly visible. Safe to delete.',
@@ -110,11 +114,11 @@ end $$;
 /*
 delete from invoices
  where sponsorship_id in (
-   select id from sponsorships where sponsor_name like 'ZZ TEST - RLS Harness%'
+   select id from sponsorships where sponsor_name like 'ZZ TEST — RLS Harness%'
  );
 
 delete from sponsorships
- where sponsor_name like 'ZZ TEST - RLS Harness%';
+ where sponsor_name like 'ZZ TEST — RLS Harness%';
 
 -- Optional: remove the harness account entirely (cascades to profiles).
 -- Leave it if you intend to re-run the harness later.
