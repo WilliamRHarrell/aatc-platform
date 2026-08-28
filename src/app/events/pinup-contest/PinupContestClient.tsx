@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import PublicNav from '@/components/PublicNav'
 
 const CRITERIA = [
@@ -24,41 +23,6 @@ const PRIZES = [
 ]
 
 export default function PinupContestClient({ entrySlot }: { entrySlot: React.ReactNode }) {
-  const [form, setForm] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    address: '',
-    socials: {
-      instagram: '',
-      facebook: '',
-      tiktok: '',
-      x: '',
-    },
-    socialPlatforms: {
-      instagram: false,
-      facebook: false,
-      tiktok: false,
-      x: false,
-    },
-  })
-  const [submitting, setSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSubmitting(true)
-
-    // TODO: wire up to API / Supabase when ready
-    await new Promise(r => setTimeout(r, 800))
-
-    setSubmitted(true)
-    setSubmitting(false)
-  }
-
-  const inputBase = 'w-full rounded-lg px-3 py-2 text-sm text-white outline-none'
-  const inputStyle = { backgroundColor: '#2a2a2a', border: '1px solid #3a3a3a' }
-
   return (
     <div className="min-h-screen">
       <PublicNav />
@@ -92,10 +56,10 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
               >
                 <div className="space-y-3">
                   {[
-                    { label: 'When', value: 'Saturday, April 17 at 7:00 PM' },
+                    { label: 'When', value: 'Saturday, April 17 at 2:00 PM' },
                     { label: 'Where', value: 'Main Stage, Crown Complex Event Center' },
                     { label: 'Entry Fee', value: 'FREE', gold: true },
-                    { label: 'Check-In', value: 'Backstage by 6:30 PM Saturday' },
+                    { label: 'Check-In', value: 'Backstage by 1:00 PM Saturday' },
                     { label: 'Eligibility', value: 'Must be 18 years or older' },
                   ].map(item => (
                     <div key={item.label} className="flex gap-3">
@@ -136,10 +100,10 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
               >
                 <div className="space-y-3 text-xs leading-relaxed" style={{ color: '#999' }}>
                   <p>
-                    Entry is <strong style={{ color: '#C4A882' }}>FREE</strong>. Fill out the registration form to secure your spot. Walk-up registration is also accepted at the event registration booth on Friday or Saturday before 5:00 PM, but pre-registration is encouraged as spots may be limited.
+                    Entry is <strong style={{ color: '#C4A882' }}>FREE</strong>. Places are limited to 25 contestants and online registration comes first. If fewer than 25 register in advance, additional entries are taken at the contest table on the day.
                   </p>
                   <p>
-                    Contestants should arrive backstage by 6:30 PM on Saturday for check-in and lineup coordination. The contest begins promptly at 7:00 PM on the main stage.
+                    Contestants should arrive backstage by 1:00 PM on Saturday for check-in and lineup coordination. The contest begins at 2:00 PM on the main stage.
                   </p>
                 </div>
               </div>
@@ -155,136 +119,23 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
               className="rounded-2xl p-6"
               style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
             >
-              {submitted ? (
-                <div className="py-10 text-center">
-                  <div
-                    className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
-                    style={{ backgroundColor: 'rgba(34,197,94,0.15)' }}
-                  >
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                  </div>
-                  <p className="text-lg font-bold text-white">You&apos;re Registered!</p>
-                  <p className="mt-2 text-sm" style={{ color: '#999' }}>
-                    We&apos;ll see you backstage at 6:30 PM on Saturday. Good luck!
-                  </p>
-                </div>
-              ) : (
-                <>
-                  {entrySlot}
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                  <p className="text-xs" style={{ color: '#666' }}>
-                    Entry is free. All fields marked with * are required.
-                  </p>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-bold uppercase tracking-wider" style={{ color: '#999' }}>
-                      Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={form.name}
-                      onChange={e => setForm({ ...form, name: e.target.value })}
-                      className={inputBase}
-                      style={inputStyle}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-bold uppercase tracking-wider" style={{ color: '#999' }}>
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={form.email}
-                      onChange={e => setForm({ ...form, email: e.target.value })}
-                      className={inputBase}
-                      style={inputStyle}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-bold uppercase tracking-wider" style={{ color: '#999' }}>
-                      Phone *
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      value={form.phone}
-                      onChange={e => setForm({ ...form, phone: e.target.value })}
-                      className={inputBase}
-                      style={inputStyle}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-bold uppercase tracking-wider" style={{ color: '#999' }}>
-                      Address
-                    </label>
-                    <input
-                      type="text"
-                      value={form.address}
-                      onChange={e => setForm({ ...form, address: e.target.value })}
-                      placeholder="City, State"
-                      className={inputBase}
-                      style={inputStyle}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-xs font-bold uppercase tracking-wider" style={{ color: '#999' }}>
-                      Social Media
-                    </label>
-                    <div className="space-y-2">
-                      {([
-                        { key: 'instagram' as const, label: 'Instagram', placeholder: '@username' },
-                        { key: 'facebook' as const, label: 'Facebook', placeholder: '/username' },
-                        { key: 'tiktok' as const, label: 'TikTok', placeholder: '@username' },
-                        { key: 'x' as const, label: 'X', placeholder: '@username' },
-                      ]).map(platform => (
-                        <div key={platform.key}>
-                          <label className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={form.socialPlatforms[platform.key]}
-                              onChange={e => setForm({
-                                ...form,
-                                socialPlatforms: { ...form.socialPlatforms, [platform.key]: e.target.checked },
-                                socials: e.target.checked ? form.socials : { ...form.socials, [platform.key]: '' },
-                              })}
-                              className="h-3.5 w-3.5 rounded accent-[#8B7355]"
-                            />
-                            <span className="text-xs font-medium" style={{ color: '#999' }}>{platform.label}</span>
-                          </label>
-                          {form.socialPlatforms[platform.key] && (
-                            <input
-                              type="text"
-                              value={form.socials[platform.key]}
-                              onChange={e => setForm({ ...form, socials: { ...form.socials, [platform.key]: e.target.value } })}
-                              placeholder={platform.placeholder}
-                              className={`${inputBase} mt-1`}
-                              style={inputStyle}
-                            />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full rounded-lg py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                    style={{ backgroundColor: '#8B7355' }}
-                  >
-                    {submitting ? 'Submitting...' : 'Register for the Pinup Contest'}
-                  </button>
-                  </form>
-                </>
-              )}
+              {entrySlot}
+              {/* INTERIM STATE - the submit path is deliberately removed.
+                  The form that stood here recorded nothing: handleSubmit() waited
+                  800ms and showed "You're Registered!" with no API route, no table
+                  and no error path, so entrants were told they had a place in a
+                  capped 25 person contest while nothing was stored anywhere.
+                  Taken down ahead of the real intake (pinup_entries) rather than
+                  left up, because a form that looks like it works is worse than no
+                  form: it stops someone from registering by another route. */}
+              <div className="py-8 text-center">
+                <p className="text-lg font-bold text-white">Registration opens soon</p>
+                <p className="mx-auto mt-3 max-w-sm text-xs leading-relaxed" style={{ color: '#999' }}>
+                  Online entry for the Miss AATC Pinup Contest is not open yet. Check back
+                  shortly - places are limited and will be filled in the order they are
+                  received.
+                </p>
+              </div>
             </div>
           </div>
         </div>
