@@ -5,6 +5,7 @@ import { formatCurrency } from '@/lib/utils'
 import PublicNav from '@/components/PublicNav'
 import PresentedBy from '@/components/PresentedBy'
 import { dayLabel, timeLabel, timeToMinutes } from '@/lib/schedule-format'
+import PageImage from '@/components/PageImage'
 
 /**
  * The 2027 programme. Server-rendered: this is public content with no
@@ -204,6 +205,9 @@ export default async function SchedulePage() {
           </span>
         </p>
       </div>
+
+      {/* Slot 'schedule-hero'. Renders nothing until an admin uploads. */}
+      <PageImage slug="schedule-hero" className="mx-auto mt-8 max-w-3xl px-4" />
 
       {/* Schedule */}
       <section className="px-4 py-12">
