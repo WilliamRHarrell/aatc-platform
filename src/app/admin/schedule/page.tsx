@@ -274,13 +274,13 @@ export default function AdminSchedulePage() {
         </button>
       </div>
 
-      {/* Seminars live elsewhere — say so before someone adds a duplicate. */}
+      {/* Seminars live elsewhere - say so before someone adds a duplicate. */}
       <div className="mb-6 rounded-xl px-4 py-3 text-sm"
            style={{ backgroundColor: 'rgba(139,115,85,0.1)', border: '1px solid #2a2a2a', color: '#bbb' }}>
         <strong className="text-white">Seminars are not on this page.</strong>{' '}
         They are managed in{' '}
         <Link href="/admin/panels" className="underline" style={{ color: '#C4A882' }}>Panels</Link>{' '}
-        — that is where registration, capacity and pricing live — and they are merged into the public
+ - that is where registration, capacity and pricing live - and they are merged into the public
         schedule automatically. Adding one here would create a second copy that drifts.
       </div>
 
@@ -333,7 +333,7 @@ export default function AdminSchedulePage() {
                         <p className="mt-1 text-[11px] italic" style={{ color: '#8B7355' }}>
                           Presented by {sponsorName(item.presented_by_sponsorship_id) ?? item.presented_by_fallback}
                           {!item.presented_by_sponsorship_id && (
-                            <span style={{ color: '#a16207' }}> · unlinked text — no sponsorship record</span>
+                            <span style={{ color: '#a16207' }}> · unlinked text - no sponsorship record</span>
                           )}
                         </p>
                       )}
@@ -413,7 +413,7 @@ export default function AdminSchedulePage() {
               </div>
 
               <Field label="Note"
-                     hint="Shown under the title. Use for a qualifier on the item — e.g. a demo that runs inside it.">
+                     hint="Shown under the title. Use for a qualifier on the item - e.g. a demo that runs inside it.">
                 <input type="text" value={form.note}
                        onChange={e => setForm({ ...form, note: e.target.value })}
                        className={inputCls} style={inputStyle} />
@@ -433,11 +433,11 @@ export default function AdminSchedulePage() {
                 </p>
 
                 <Field label="Sponsor"
-                       hint="Only CONFIRMED sponsorships appear. Linking one makes the credit a real record — reportable, and rendered with a link.">
+                       hint="Only CONFIRMED sponsorships appear. Linking one makes the credit a real record - reportable, and rendered with a link.">
                   <select value={form.presented_by_sponsorship_id}
                           onChange={e => setForm({ ...form, presented_by_sponsorship_id: e.target.value })}
                           className={inputCls} style={inputStyle}>
-                    <option value="">— none —</option>
+                    <option value=""> - none - </option>
                     {sponsors.map(s => (
                       <option key={s.id} value={s.id}>{s.sponsor_name} ({s.tier})</option>
                     ))}
@@ -446,7 +446,7 @@ export default function AdminSchedulePage() {
 
                 <div className="mt-3">
                   <Field label="Fallback text"
-                         hint="Used ONLY when no sponsor is linked above. For a credit that is sold but has no sponsorship record yet — it renders as plain text, unlinked.">
+                         hint="Used ONLY when no sponsor is linked above. For a credit that is sold but has no sponsorship record yet - it renders as plain text, unlinked.">
                     <input type="text" value={form.presented_by_fallback}
                            onChange={e => setForm({ ...form, presented_by_fallback: e.target.value })}
                            className={inputCls} style={inputStyle} placeholder="Whole Life Aftercare" />

@@ -50,13 +50,13 @@ export async function guardedWrite<T>(
   if (rows.length === 0) {
     // The silent case. Almost always a missing or too-narrow RLS policy.
     console.error(
-      `[write] ${context ?? friendlyMessage}: 0 rows affected — no error returned. ` +
+      `[write] ${context ?? friendlyMessage}: 0 rows affected - no error returned. ` +
       'This is normally a missing owner policy, not a client bug.'
     )
     return {
       ok: false,
       data: [],
-      error: `${friendlyMessage} — nothing was saved. Please contact us if this keeps happening.`,
+      error: `${friendlyMessage} - nothing was saved. Please contact us if this keeps happening.`,
     }
   }
 

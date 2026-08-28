@@ -108,7 +108,7 @@ const getSchedule = unstable_cache(
     // 42P01 here means migration 044 has not been applied.
     if (schedErr) {
       console.error(
-        `[schedule] schedule_items_public query failed (${schedErr.code}): ${schedErr.message} — ` +
+        `[schedule] schedule_items_public query failed (${schedErr.code}): ${schedErr.message} - ` +
         'page will render empty. If 42P01, migration 044 has not been applied.'
       )
     }
@@ -124,7 +124,7 @@ const getSchedule = unstable_cache(
     const dayOrder = [...new Set(scheduleRows.map(r => r.day_date))].sort()
 
     return dayOrder.map(iso => {
-      const label = dayLabel(iso)  // display only — no longer a join key
+      const label = dayLabel(iso)  // display only - no longer a join key
 
       const programme: Item[] = scheduleRows
         .filter(r => r.day_date === iso)
@@ -178,7 +178,7 @@ const getSchedule = unstable_cache(
 export const metadata = {
   title: 'Event Schedule | All American Tattoo Convention 2027',
   description:
-    'The full three-day programme for AATC 2027 — tattoo contests, the All American Tattoo Battle, seminars and ceremonies, April 16–18 in Fayetteville, NC.',
+    'The full three-day programme for AATC 2027 - tattoo contests, the All American Tattoo Battle, seminars and ceremonies, April 16-18 in Fayetteville, NC.',
 }
 
 export default async function SchedulePage() {

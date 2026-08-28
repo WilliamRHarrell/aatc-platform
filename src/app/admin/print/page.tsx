@@ -131,7 +131,7 @@ export default function AdminPrintPage() {
     if (row.exhibitorType === 'artist') {
       row.artists.forEach((a, i) => {
         if (!a.id_url && !a.id_later) {
-          missing.push(`${a.nickname || a.name || `Artist ${i + 1}`} — ID missing`)
+          missing.push(`${a.nickname || a.name || `Artist ${i + 1}`} - ID missing`)
         }
       })
       if (row.artists.length === 0 && row.artistCount > 0) {
@@ -249,7 +249,7 @@ export default function AdminPrintPage() {
                     {/* Artists count */}
                     <div className="hidden sm:block">
                       <span className="text-sm text-white">
-                        {row.exhibitorType === 'artist' ? `${row.artists.length} artist${row.artists.length !== 1 ? 's' : ''}` : '—'}
+                        {row.exhibitorType === 'artist' ? `${row.artists.length} artist${row.artists.length !== 1 ? 's' : ''}` : ' - '}
                       </span>
                     </div>
 

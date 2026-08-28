@@ -10,7 +10,7 @@ import Markdown from '@/components/Markdown'
 export const metadata: Metadata = {
   title: 'Our Sponsors | All American Tattoo Convention 2027',
   description:
-    'Meet the sponsors who make the All American Tattoo Convention possible — supporting tattoo artists, veterans, and the Fayetteville & Fort Bragg community.',
+    'Meet the sponsors who make the All American Tattoo Convention possible - supporting tattoo artists, veterans, and the Fayetteville & Fort Bragg community.',
 }
 
 interface Sponsor {
@@ -69,7 +69,7 @@ const getSponsors = unstable_cache(
 
     if (error) {
       console.error(
-        `[sponsors] query failed (${error.code}): ${error.message} — rendering empty state.`
+        `[sponsors] query failed (${error.code}): ${error.message} - rendering empty state.`
       )
     }
 

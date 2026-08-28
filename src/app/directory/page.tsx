@@ -110,7 +110,7 @@ export default function DirectoryPage() {
           <span className="text-emboss">Exhibitor Directory</span>
         </h1>
         <p className="mt-2 text-sm" style={{ color: '#999' }}>
-          <span className="text-emboss">AATC 2027 · April 16–18 · Crown Complex Event Center</span>
+          <span className="text-emboss">AATC 2027 · April 16-18 · Crown Complex Event Center</span>
         </p>
         {exhibitors.length > 0 && (
           <p className="mt-1 text-xs" style={{ color: '#555' }}>

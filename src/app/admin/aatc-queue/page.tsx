@@ -113,7 +113,7 @@ export default function AATCQueuePage() {
             </div>
 
             {/* Square set */}
-            <div style={{ fontSize: 11, color: '#666', marginTop: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Square — FB / X / GMB / IG</div>
+            <div style={{ fontSize: 11, color: '#666', marginTop: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Square - FB / X / GMB / IG</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px,1fr))', gap: 8, marginTop: 6 }}>
               {s.square_paths.map((p, i) => (
                 <a key={i} href={pub(p)} target="_blank" rel="noreferrer">
@@ -123,7 +123,7 @@ export default function AATCQueuePage() {
             </div>
 
             {/* Vertical set */}
-            <div style={{ fontSize: 11, color: '#666', marginTop: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Vertical — TikTok</div>
+            <div style={{ fontSize: 11, color: '#666', marginTop: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Vertical - TikTok</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px,1fr))', gap: 8, marginTop: 6 }}>
               {s.vertical_paths.map((p, i) => (
                 <a key={i} href={pub(p)} target="_blank" rel="noreferrer">

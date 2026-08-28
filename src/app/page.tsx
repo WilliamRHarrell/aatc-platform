@@ -36,14 +36,14 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://allamericantattooc
 export const metadata: Metadata = {
   title: 'All American Tattoo Convention 2027 | Fayetteville, NC',
   description:
-    '300+ world-class tattoo artists, live contests, and entertainment at the Crown Complex in Fayetteville, NC, April 16–18, 2027. Honoring our military heroes.',
+    '300+ world-class tattoo artists, live contests, and entertainment at the Crown Complex in Fayetteville, NC, April 16-18, 2027. Honoring our military heroes.',
   // Off-production this is undefined: emitting a canonical to the real
   // domain before cutover would assert URLs WordPress does not serve.
   alternates: { canonical: canonical('/') },
   openGraph: {
     title: 'All American Tattoo Convention 2027 | Fayetteville, NC',
     description:
-      '300+ world-class tattoo artists, live contests, and entertainment at the Crown Complex in Fayetteville, NC, April 16–18, 2027.',
+      '300+ world-class tattoo artists, live contests, and entertainment at the Crown Complex in Fayetteville, NC, April 16-18, 2027.',
     url: SITE_URL,
     siteName: EVENT_NAME,
     images: [{ url: ASSETS.ogImage, width: 1200, height: 630, alt: EVENT_NAME }],
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     site: SOCIAL.xHandle,
     creator: SOCIAL.xHandle,
     title: 'All American Tattoo Convention 2027 | Fayetteville, NC',
-    description: '300+ tattoo artists, live contests, and entertainment. April 16–18, 2027 — Fayetteville, NC.',
+    description: '300+ tattoo artists, live contests, and entertainment. April 16-18, 2027 - Fayetteville, NC.',
     images: [ASSETS.ogImage],
   },
 }
@@ -127,7 +127,7 @@ const getHomepageData = unstable_cache(
     // (42703 undefined_column), or an RLS recursion (42P17).
     if (sponsorErr) {
       console.error(
-        `[homepage] sponsor query failed (${sponsorErr.code}): ${sponsorErr.message} — ` +
+        `[homepage] sponsor query failed (${sponsorErr.code}): ${sponsorErr.message} - ` +
         'grid will render empty. If 42703, migration 027 has not been applied.'
       )
     }
@@ -138,7 +138,7 @@ const getHomepageData = unstable_cache(
     // has not been applied yet.
     if (panelErr) {
       console.error(
-        `[homepage] panel query failed (${panelErr.code}): ${panelErr.message} — ` +
+        `[homepage] panel query failed (${panelErr.code}): ${panelErr.message} - ` +
         'seminars section will show placeholders. If 42703, migration 044 has not been applied.'
       )
     }
@@ -226,7 +226,7 @@ export default async function HomePage() {
           <span className="text-emboss">{c.hero_subtitle}</span>
         </p>
 
-        {/* Server-rendered, crawlable event line + day count — meaningful before
+        {/* Server-rendered, crawlable event line + day count - meaningful before
             the countdown hydrates and for no-JS visitors. */}
         <p className="mt-6 text-sm font-semibold" style={{ color: '#999999' }}>
           <span className="text-emboss">
@@ -298,7 +298,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── 3. Promo video — renders only when an ID is configured ──
+      {/* ── 3. Promo video - renders only when an ID is configured ──
           The footage is vertical (9:16), so it sits in a width-capped column
           beside the copy rather than being pillarboxed into a 16:9 frame. */}
       {PROMO_VIDEO.youTubeId && (
@@ -430,7 +430,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── 6. Best in Show — renders only when winner data exists ── */}
+      {/* ── 6. Best in Show - renders only when winner data exists ── */}
       {winners.length > 0 && (
         <section className="border-t px-4 py-14" style={{ borderColor: '#2a2a2a' }}>
           <div className="mx-auto max-w-4xl">
@@ -442,7 +442,7 @@ export default async function HomePage() {
                 <figure key={w.category} className="overflow-hidden rounded-2xl border border-[#2a2a2a] bg-[#1a1a1a]">
                   <Image
                     src={w.imageUrl}
-                    alt={`${w.category} winner at AATC ${BEST_IN_SHOW_YEAR} — tattoo by ${w.artistName}`}
+                    alt={`${w.category} winner at AATC ${BEST_IN_SHOW_YEAR} - tattoo by ${w.artistName}`}
                     width={800}
                     height={1000}
                     priority={false}
@@ -473,7 +473,7 @@ export default async function HomePage() {
       {/* ── 7. Sponsors ── */}
       <section className="border-t px-4 py-14" style={{ borderColor: '#2a2a2a' }}>
         <div className="mx-auto max-w-4xl">
-          {/* Grid hidden entirely when empty — never a heading over nothing. */}
+          {/* Grid hidden entirely when empty - never a heading over nothing. */}
           {sponsors.length > 0 && (
             <>
               <h2 className="font-display mb-7 text-center text-2xl font-bold text-white sm:text-3xl">
@@ -616,7 +616,7 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* Real <address> element — local SEO signal; must match the Google
+          {/* Real <address> element - local SEO signal; must match the Google
               Business Profile exactly. */}
           <address className="mt-8 text-sm not-italic leading-relaxed" style={{ color: '#999999' }}>
             <span className="font-semibold text-white">{VENUE_NAME}</span>

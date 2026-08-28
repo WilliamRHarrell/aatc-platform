@@ -87,7 +87,7 @@ export default function Countdown() {
           That’s a wrap on AATC {EVENT_YEAR}
         </p>
         <p className="mt-2 text-sm" style={{ color: '#999999' }}>
-          Dates for {EVENT_YEAR + 1} will be announced soon — follow us so you don’t miss it.
+          Dates for {EVENT_YEAR + 1} will be announced soon - follow us so you don’t miss it.
         </p>
       </div>
     )

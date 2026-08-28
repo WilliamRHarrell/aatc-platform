@@ -488,7 +488,7 @@ export default function AdminPanelsPage() {
                   </div>
 
                   {/* Registrations against the room's planning target.
-                      Deliberately NOT "42 / 50 max" — that reads as an enforced
+                      Deliberately NOT "42 / 50 max" - that reads as an enforced
                       gate, and nothing is gated. Registration stays open past
                       the target; the number is there so the room can be
                       changed or chairs added. */}
@@ -503,7 +503,7 @@ export default function AdminPanelsPage() {
                       <p className="mt-1 text-xs" style={{ color: colour }}>
                         {count} registered
                         {target ? ` · room seats ${target}` : ''}
-                        {over && ' · OVER TARGET — bigger room or more chairs'}
+                        {over && ' · OVER TARGET - bigger room or more chairs'}
                         {near && ' · approaching the room’s size'}
                       </p>
                     )
@@ -583,7 +583,7 @@ export default function AdminPanelsPage() {
                 />
               </div>
 
-              {/* Date — a real date input since migration 046. Was a select of
+              {/* Date - a real date input since migration 046. Was a select of
                   three hardcoded display strings, which is what made panel_date
                   free text and let a seminar silently miss the schedule. */}
               <div>
@@ -597,7 +597,7 @@ export default function AdminPanelsPage() {
                 />
               </div>
 
-              {/* Time — a real time input since 046. Was free text accepting
+              {/* Time - a real time input since 046. Was free text accepting
                   "2:00 PM - 3:30 PM"; only the start was ever used, and the end
                   time had nowhere to be stored. */}
               <div>
@@ -627,7 +627,7 @@ export default function AdminPanelsPage() {
                 </select>
               </div>
 
-              {/* Booth Number — only when location is Booth */}
+              {/* Booth Number - only when location is Booth */}
               {form.location === 'Booth' && (
                 <div>
                   <label className={labelClass} style={{ color: '#8B7355' }}>Booth #</label>
@@ -710,7 +710,7 @@ export default function AdminPanelsPage() {
                 </div>
               </div>
 
-              {/* Room size — a PLANNING TARGET, not a cap. Nothing enforces
+              {/* Room size - a PLANNING TARGET, not a cap. Nothing enforces
                   it and registration never closes. */}
               <div>
                 <label className={labelClass} style={{ color: '#8B7355' }}>
@@ -726,7 +726,7 @@ export default function AdminPanelsPage() {
                 />
                 <p className="mt-1 text-[11px]" style={{ color: '#666' }}>
                   Planning target only. Registration is never closed and no
-                  attendee is ever turned away — this is what the count is
+                  attendee is ever turned away - this is what the count is
                   flagged against so you can move rooms or add chairs.
                 </p>
               </div>
@@ -874,7 +874,7 @@ export default function AdminPanelsPage() {
                   Registrations
                 </h2>
                 <p className="mt-0.5 text-sm" style={{ color: '#999' }}>
-                  {viewingRegistrations.title} — {registrations.length} registrant{registrations.length !== 1 ? 's' : ''}
+                  {viewingRegistrations.title} - {registrations.length} registrant{registrations.length !== 1 ? 's' : ''}
                   {viewingRegistrations.max_capacity ? ` · room seats ${viewingRegistrations.max_capacity}` : ''}
                 </p>
               </div>
@@ -917,7 +917,7 @@ export default function AdminPanelsPage() {
                     In CUTOVER it would be read once and forgotten. */}
                 <div className="mb-3 rounded-xl px-4 py-3 text-xs leading-relaxed"
                      style={{ backgroundColor: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.25)', color: '#d4b545' }}>
-                  <strong>This list undercounts the room.</strong> Seminars are open —
+                  <strong>This list undercounts the room.</strong> Seminars are open -
                   walk-ins are welcome and do not register, so actual attendance runs
                   higher than the roster. Last year the accounting seminar drew roughly
                   50 people. Plan the room against the registration count plus a walk-in

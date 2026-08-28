@@ -206,7 +206,7 @@ function DetailDrawer({
           status: compEnabled ? 'paid' : 'pending',
         })
         if (invErr) {
-          toast.error('Approved, but failed to create invoice — fix manually in admin/invoices')
+          toast.error('Approved, but failed to create invoice - fix manually in admin/invoices')
           setWorking(false)
           return
         }
@@ -346,11 +346,11 @@ function DetailDrawer({
                 <div className="space-y-2">
                   {/* Per-artist IDs */}
                   {app.artists_ids_later && (
-                    <p className="text-sm" style={{ color: '#eab308' }}>Artist IDs pending — to be collected before event</p>
+                    <p className="text-sm" style={{ color: '#eab308' }}>Artist IDs pending - to be collected before event</p>
                   )}
                   {app.artists && app.artists.map((a, i) => (
                     <div key={i} className="rounded-lg px-4 py-3" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
-                      <p className="mb-1 text-xs font-semibold" style={{ color: '#8B7355' }}>Artist {i + 1}{a.name ? ` — ${a.name}` : ''}</p>
+                      <p className="mb-1 text-xs font-semibold" style={{ color: '#8B7355' }}>Artist {i + 1}{a.name ? ` - ${a.name}` : ''}</p>
                       {artistSignedUrls[i] ? (
                         <a
                           href={artistSignedUrls[i]!}
@@ -452,7 +452,7 @@ function DetailDrawer({
                 <label htmlFor="comp-check" className="cursor-pointer text-sm font-semibold text-white">
                   Comp Booth
                 </label>
-                <span className="text-xs" style={{ color: '#555' }}>waives full amount — auto-marks invoice paid</span>
+                <span className="text-xs" style={{ color: '#555' }}>waives full amount - auto-marks invoice paid</span>
               </div>
 
               {/* Running total */}
@@ -734,7 +734,7 @@ export default function AdminApplicationsPage() {
                     <TypeBadge type={app.exhibitor_type} />
                     <span className="text-sm text-white">{describeBooths(app)}</span>
                     <span className="text-sm" style={{ color: '#999' }}>
-                      {app.exhibitor_type === 'artist' ? app.artist_count : '—'}
+                      {app.exhibitor_type === 'artist' ? app.artist_count : ' - '}
                     </span>
                     <span className="text-sm font-medium" style={{ color: '#C4A882' }}>{formatCurrency(app.total_amount)}</span>
                     <StatusBadge status={app.status} />

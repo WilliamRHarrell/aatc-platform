@@ -98,7 +98,7 @@ export function RosterCompletionPanel({ application, onComplete }: { application
     // The trigger in migration 041 refuses to clear needs_roster unless the
     // roster is genuinely complete, so a row can come back unchanged.
     if (rosterWrite.data[0]?.needs_roster) {
-      toast.error('Roster incomplete — every artist needs a name and an ID upload.')
+      toast.error('Roster incomplete - every artist needs a name and an ID upload.')
       setSubmitting(false); return
     }
 
@@ -118,7 +118,7 @@ export function RosterCompletionPanel({ application, onComplete }: { application
       return
     }
 
-    toast.success('Roster complete — your booth is now visible publicly')
+    toast.success('Roster complete - your booth is now visible publicly')
     onComplete()
   }
 

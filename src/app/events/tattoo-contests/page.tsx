@@ -31,8 +31,8 @@ const CATEGORIES: Record<string, string[]> = {
     'Best Hand Tattoo',
     'Best Neck / Face Tattoo',
     'Best Cover Up Tattoo',
-    'Tattoo of the Day \u2014 Black & Gray',
-    'Tattoo of the Day \u2014 Color',
+    'Tattoo of the Day - Black & Gray',
+    'Tattoo of the Day - Color',
   ],
   'Saturday, April 17': [
     'Large Color Tattoo',
@@ -53,8 +53,8 @@ const CATEGORIES: Record<string, string[]> = {
     'Best Chest Piece',
     'Best Overall Male',
     'Best Overall Female',
-    'Tattoo of the Day \u2014 Black & Gray',
-    'Tattoo of the Day \u2014 Color',
+    'Tattoo of the Day - Black & Gray',
+    'Tattoo of the Day - Color',
   ],
   'Sunday, April 18': [
     'Large Color Tattoo',
@@ -69,10 +69,10 @@ const CATEGORIES: Record<string, string[]> = {
     'Best Tattooed Flesh (Fake Skin)',
     'Best Original Flash',
     'Best Temporary Tattoo (Kids)',
-    'Tattoo of the Day \u2014 Black & Gray',
-    'Tattoo of the Day \u2014 Color',
-    'Best in Show \u2014 Black & Gray',
-    'Best in Show \u2014 Color',
+    'Tattoo of the Day - Black & Gray',
+    'Tattoo of the Day - Color',
+    'Best in Show - Black & Gray',
+    'Best in Show - Color',
   ],
 }
 
@@ -80,13 +80,13 @@ const CATEGORIES: Record<string, string[]> = {
  * §6.3. Four of the eight rules previously on this page were wrong, and two of
  * them were wrong in a way that would have cost an entrant money:
  *
- *   - "may only be entered in one category per day" — there is NO limit.
+ * - "may only be entered in one category per day" — there is NO limit.
  *     Someone reading that enters once instead of five times.
- *   - "AATC reserves the right to reassign entries to a more appropriate
+ * - "AATC reserves the right to reassign entries to a more appropriate
  *     category" — admins never move an entry after submission.
- *   - the under-18 rule implied minors could enter with a guardian present.
+ * - the under-18 rule implied minors could enter with a guardian present.
  *     They cannot; the only exception is the Kids' Temporary Tattoo Contest.
- *   - entries had to be "done at the convention or healed work" — fresh or
+ * - entries had to be "done at the convention or healed work" — fresh or
  *     healed is fine, except for Tattoo of the Day and Best in Show.
  *
  * Numbering is positional in the render, so the list renumbers itself.
@@ -156,7 +156,7 @@ export default function TattooContestsPage() {
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>
             </svg>
-            Vote Now — Tattoo Collectors Award
+            Vote Now - Tattoo Collectors Award
           </Link>
         </div>
       </section>

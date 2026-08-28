@@ -68,12 +68,12 @@ export default function DirectionsPage() {
           >
             {/* ── §2.1 Venue photo ──────────────────────────────
                 Renders nothing until public/images/venue/crown-complex.jpg
-                exists — no broken-image icon, no reserved space (§0.8).
+                exists - no broken-image icon, no reserved space (§0.8).
                 Responsive and uncropped: the point is recognising the building
                 on approach, so it must not be letterboxed on mobile. */}
             <img
               src="/images/venue/crown-complex.jpg"
-              alt="Crown Complex, 1960 Coliseum Drive, Fayetteville, NC — home of the All American Tattoo Convention"
+              alt="Crown Complex, 1960 Coliseum Drive, Fayetteville, NC - home of the All American Tattoo Convention"
               width={1200}
               height={675}
               loading="lazy"
@@ -84,7 +84,7 @@ export default function DirectionsPage() {
             <h3 className="text-xl font-bold text-white">{VENUE_NAME}</h3>
             {/* Address settled 2026-08-27: 1960 Coliseum Drive is the official Crown
                 Complex / Expo Center address and what maps resolve. East Mountain
-                Drive is an entrance, not an address — see the note in
+                Drive is an entrance, not an address - see the note in
                 event-config.ts. Sourced from event-config so the site cannot
                 disagree with itself; the turn-by-turn below already routed to
                 Coliseum Dr and was correct. */}
@@ -196,7 +196,7 @@ export default function DirectionsPage() {
             >
               <h3 className="text-sm font-bold text-white">Rideshare & Taxi</h3>
               <p className="mt-3 text-xs leading-relaxed" style={{ color: '#999' }}>
-                Uber and Lyft are both active in the Fayetteville area. The designated rideshare pickup and drop-off zone is located at the main entrance of the Crown Complex. Local taxi services are also available — ask the front desk at your hotel for recommended companies.
+                Uber and Lyft are both active in the Fayetteville area. The designated rideshare pickup and drop-off zone is located at the main entrance of the Crown Complex. Local taxi services are also available - ask the front desk at your hotel for recommended companies.
               </p>
             </div>
           </div>

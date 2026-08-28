@@ -224,7 +224,7 @@ export default function DirectoryDetailPage() {
                       const isOpen = expandedArtists.has(i)
                       return (
                         <div key={i}>
-                          {/* Artist row — always expandable */}
+                          {/* Artist row - always expandable */}
                           <div
                             className="flex items-center gap-3 px-5 py-3"
                             style={{ borderColor: '#2a2a2a' }}
@@ -418,7 +418,7 @@ export default function DirectoryDetailPage() {
               <p className="mb-2 text-xs font-bold uppercase tracking-widest" style={{ color: '#8B7355' }}>Event</p>
               <p className="text-sm font-semibold text-white">All American Tattoo Convention 2027</p>
               <p className="mt-0.5 text-xs" style={{ color: '#999' }}>
-                April 16–18, 2027 · Crown Complex Event Center · Fayetteville, NC
+                April 16-18, 2027 · Crown Complex Event Center · Fayetteville, NC
               </p>
             </div>
 

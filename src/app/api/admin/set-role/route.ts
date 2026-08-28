@@ -10,9 +10,9 @@ import { ADMIN_ROLES } from '@/lib/roles'
  * would mean nothing.
  *
  * Two guards beyond that:
- *  - you cannot change your own role, so the last admin cannot lock themselves
+ * - you cannot change your own role, so the last admin cannot lock themselves
  *    out or accidentally self-demote mid-session
- *  - the last remaining full admin cannot be demoted, so the install can never
+ * - the last remaining full admin cannot be demoted, so the install can never
  *    end up with nobody able to grant roles (which would need SQL to escape)
  */
 const ASSIGNABLE = [...ADMIN_ROLES, 'exhibitor', 'public'] as const

@@ -72,7 +72,7 @@ export default function DirectoryHealth() {
                 className="font-display text-3xl font-bold"
                 style={{ color: bad ? '#f87171' : isLast ? '#C4A882' : '#fff' }}
               >
-                {value ?? '—'}
+                {value ?? ' - '}
               </p>
               <p className="mt-0.5 text-xs font-semibold text-white">{step.label}</p>
               <p className="mt-0.5 text-[11px] leading-tight" style={{ color: '#666' }}>{step.hint}</p>

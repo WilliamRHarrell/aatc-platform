@@ -29,7 +29,7 @@ const POLICIES = [
   },
   {
     title: 'Alcohol',
-    description: 'Alcoholic beverages are available for purchase at designated areas within the convention. You must be 21 years of age or older with a valid photo ID to purchase or consume alcohol. Drink responsibly — visibly intoxicated attendees may be asked to leave.',
+    description: 'Alcoholic beverages are available for purchase at designated areas within the convention. You must be 21 years of age or older with a valid photo ID to purchase or consume alcohol. Drink responsibly - visibly intoxicated attendees may be asked to leave.',
   },
   {
     title: 'Smoking',
@@ -54,7 +54,7 @@ const HEALTH_SAFETY = [
 
 const CONDUCT_RULES = [
   'Treat all attendees, artists, vendors, and staff with respect and courtesy.',
-  'Harassment of any kind — including verbal, physical, or sexual harassment — will not be tolerated.',
+  'Harassment of any kind - including verbal, physical, or sexual harassment - will not be tolerated.',
   'Discriminatory behavior based on race, gender, sexual orientation, religion, disability, or military branch is strictly prohibited.',
   'Do not touch other attendees, their tattoos, or their belongings without explicit consent.',
   'Follow the instructions of convention staff and security at all times.',

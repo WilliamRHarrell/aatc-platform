@@ -24,10 +24,10 @@ export const metadata: Metadata = {
   robots: ROBOTS_META,
   title: 'All American Tattoo Convention',
   description:
-    'The premier tattoo convention experience — AATC Fayetteville 2027 at the Crown Complex Event Center.',
+    'The premier tattoo convention experience - AATC Fayetteville 2027 at the Crown Complex Event Center.',
   openGraph: {
     title: 'All American Tattoo Convention',
-    description: 'AATC Fayetteville 2027 — April 16–18, Crown Complex Event Center',
+    description: 'AATC Fayetteville 2027 - April 16-18, Crown Complex Event Center',
     type: 'website',
   },
 }
@@ -40,7 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
       <body className="bg-background text-text-primary antialiased">
-        {/* Site-wide hero background — fades to black at bottom */}
+        {/* Site-wide hero background - fades to black at bottom */}
         <div
           aria-hidden="true"
           className="pointer-events-none fixed inset-0 z-0"

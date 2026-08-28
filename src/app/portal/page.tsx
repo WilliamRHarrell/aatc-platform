@@ -392,7 +392,7 @@ function PortalContent() {
       toast.error('Failed to save artist info')
     } else if (!rows || rows.length === 0) {
       // Zero rows with no error = RLS filtered it (see migration 041).
-      console.error('[portal] artist edit affected 0 rows — no error returned')
+      console.error('[portal] artist edit affected 0 rows - no error returned')
       toast.error('Nothing was saved. Please contact us if this keeps happening.')
     } else {
       setApplication(prev => prev ? { ...prev, artists: updatedArtists } : prev)
@@ -414,7 +414,7 @@ function PortalContent() {
   const saveProfile = async () => {
     if (!application) return
     if (!profileForm.business_name.trim()) {
-      toast.error('Business name cannot be empty — it is how you appear in the directory')
+      toast.error('Business name cannot be empty - it is how you appear in the directory')
       return
     }
     setSavingProfile(true)
@@ -435,7 +435,7 @@ function PortalContent() {
 
     if (res.ok) {
       setApplication(prev => (prev ? { ...prev, ...patch } : prev))
-      toast.success('Profile updated — your directory listing is live')
+      toast.success('Profile updated - your directory listing is live')
     } else {
       toast.error(res.error!)
     }
@@ -633,7 +633,7 @@ function PortalContent() {
             style={{ backgroundColor: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)' }}
           >
             <p className="text-sm font-semibold" style={{ color: '#4ade80' }}>
-              Payment received — thank you!
+              Payment received - thank you!
             </p>
             <p className="mt-0.5 text-xs" style={{ color: '#999' }}>
               A receipt has been sent to your email by Stripe. Check your balance below.
@@ -666,7 +666,7 @@ function PortalContent() {
         {/* Header */}
         <div className="mb-8">
           <p className="mb-1 text-sm font-medium uppercase tracking-widest" style={{ color: '#8B7355' }}>
-            {/* "My Application" is wrong for someone who has none — and this is
+            {/* "My Application" is wrong for someone who has none - and this is
                 the first thing a new exhibitor sees after registering. */}
             <span className="text-emboss">{
               application ? 'My Application'
@@ -817,7 +817,7 @@ function PortalContent() {
                   </div>
                 ) : (
                   <p className="text-sm" style={{ color: '#666' }}>
-                    Your booth is being assigned — check back soon.
+                    Your booth is being assigned - check back soon.
                   </p>
                 )}
               </Card>
@@ -902,7 +902,7 @@ function PortalContent() {
                   {invoice.status === 'paid' && (
                     <div className="mt-4 flex items-center justify-center gap-2 rounded-xl py-3" style={{ backgroundColor: 'rgba(74,222,128,0.1)' }}>
                       <span style={{ color: '#4ade80' }}>✓</span>
-                      <span className="text-sm font-semibold" style={{ color: '#4ade80' }}>Booth confirmed — you&apos;re all set!</span>
+                      <span className="text-sm font-semibold" style={{ color: '#4ade80' }}>Booth confirmed - you&apos;re all set!</span>
                     </div>
                   )}
                 </Card>
@@ -1038,7 +1038,7 @@ function PortalContent() {
 
                             <div>
                               <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>
-                                Government-issued ID {a.id_url ? <span style={{ color: '#4ade80' }}>(on file — upload to replace)</span> : '(optional)'}
+                                Government-issued ID {a.id_url ? <span style={{ color: '#4ade80' }}>(on file - upload to replace)</span> : '(optional)'}
                               </label>
                               <input
                                 type="file"
@@ -1152,12 +1152,12 @@ function PortalContent() {
               </dl>
             </Card>
 
-            {/* ── Directory profile — self-edit, publishes immediately ── */}
+            {/* ── Directory profile - self-edit, publishes immediately ── */}
             <Card>
               <SectionLabel>Directory Profile</SectionLabel>
               <p className="mb-4 text-xs leading-relaxed" style={{ color: '#777' }}>
                 This is how you appear in the public directory. Changes go live
-                straight away — there is no approval step.
+                straight away - there is no approval step.
               </p>
 
               <div className="space-y-4">
@@ -1324,7 +1324,7 @@ function PortalContent() {
                   {inv.status === 'paid' && (
                     <div className="mt-4 flex items-center justify-center gap-2 rounded-xl py-3" style={{ backgroundColor: 'rgba(74,222,128,0.1)' }}>
                       <span style={{ color: '#4ade80' }}>✓</span>
-                      <span className="text-sm font-semibold" style={{ color: '#4ade80' }}>Sponsorship paid — thank you!</span>
+                      <span className="text-sm font-semibold" style={{ color: '#4ade80' }}>Sponsorship paid - thank you!</span>
                     </div>
                   )}
                 </Card>
@@ -1433,7 +1433,7 @@ function PortalContent() {
                   {inv.status === 'paid' && (
                     <div className="mt-4 flex items-center justify-center gap-2 rounded-xl py-3" style={{ backgroundColor: 'rgba(74,222,128,0.1)' }}>
                       <span style={{ color: '#4ade80' }}>✓</span>
-                      <span className="text-sm font-semibold" style={{ color: '#4ade80' }}>Payment confirmed — you&apos;re all set!</span>
+                      <span className="text-sm font-semibold" style={{ color: '#4ade80' }}>Payment confirmed - you&apos;re all set!</span>
                     </div>
                   )}
                 </Card>

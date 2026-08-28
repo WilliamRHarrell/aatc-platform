@@ -43,7 +43,7 @@ export async function GET(req: Request) {
   if (process.env.LIFECYCLE_SWEEP_ENABLED !== 'true') {
     return NextResponse.json({
       skipped: true,
-      reason: 'LIFECYCLE_SWEEP_ENABLED is not "true" — sweep disabled.',
+      reason: 'LIFECYCLE_SWEEP_ENABLED is not "true" - sweep disabled.',
     })
   }
 
@@ -82,7 +82,7 @@ export async function GET(req: Request) {
 
   for (const app of toExpire ?? []) {
     if (!destructive) {
-      console.log(`[sweep] WOULD EXPIRE ${app.id} (${app.business_name}) — destructive branch disabled`)
+      console.log(`[sweep] WOULD EXPIRE ${app.id} (${app.business_name}) - destructive branch disabled`)
       summary.would_expire++
       continue
     }
@@ -109,7 +109,7 @@ export async function GET(req: Request) {
 
   for (const app of toCancel ?? []) {
     if (!destructive) {
-      console.log(`[sweep] WOULD CANCEL ${app.id} — destructive branch disabled`)
+      console.log(`[sweep] WOULD CANCEL ${app.id} - destructive branch disabled`)
       summary.would_cancel++
       continue
     }

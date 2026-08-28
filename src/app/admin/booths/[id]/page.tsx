@@ -203,7 +203,7 @@ export default function BoothDetailPage() {
   const saveBoothAssignment = async () => {
     if (!app) return
     if (!app.event_id) {
-      toast.error('Application has no event ID — cannot assign booths')
+      toast.error('Application has no event ID - cannot assign booths')
       return
     }
 
@@ -235,7 +235,7 @@ export default function BoothDetailPage() {
       const found = boothRows.map(b => b.booth_number)
       const missing = nums.filter(n => !found.includes(n))
       if (allBooths.length === 0) {
-        toast.error('Booths table is empty — run migration 005_seed_booths.sql in Supabase SQL Editor first')
+        toast.error('Booths table is empty - run migration 005_seed_booths.sql in Supabase SQL Editor first')
       } else {
         toast.error(`Booth #${missing.join(', #')} not found (${allBooths.length} booths in DB)`)
       }

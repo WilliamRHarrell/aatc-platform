@@ -36,7 +36,7 @@ export default function StrongestSideshowPage() {
       {/* ── §11.2 Logo, between hero and "When & Where" ────────
           Renders nothing until the asset exists. The file is not in the repo
           yet (§0.3 lists it as provided, but it has not landed) and §0.8 says
-          no broken image icons and no reserved blank space — so this hides
+          no broken image icons and no reserved blank space - so this hides
           itself on error rather than showing Next's broken-image frame.
 
           NOTE: this is the LIGHT-BACKGROUND logo on a #0a0a0a page. Verify it
@@ -64,8 +64,8 @@ export default function StrongestSideshowPage() {
           {/* 2027 is a SINGLE Saturday session, team strongman only. The Friday
               and Sunday rows here were stale multi-day content and the Saturday
               time (2:00 PM) disagreed with both other places the time lived.
-              Strongman time now lives in exactly two places — the schedule_items
-              seed and homepage-content.ts — both 1:00 PM. Do not reintroduce a
+              Strongman time now lives in exactly two places - the schedule_items
+              seed and homepage-content.ts - both 1:00 PM. Do not reintroduce a
               third copy here; link to the schedule instead. */}
           <div className="grid gap-4 sm:grid-cols-1">
             {[

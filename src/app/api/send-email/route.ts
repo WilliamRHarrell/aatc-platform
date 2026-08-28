@@ -49,7 +49,7 @@ function emailWrapper(content: string) {
                 TATTOO CONVENTION
               </p>
               <p style="margin:6px 0 0; font-size:12px; color:#555555; letter-spacing:2px; text-transform:uppercase;">
-                April 16–18, 2027 · Fayetteville, NC
+                April 16-18, 2027 · Fayetteville, NC
               </p>
               <div style="margin:20px auto 0; height:1px; width:120px; background:#8B7355; opacity:0.5;"></div>
             </td>
@@ -108,7 +108,7 @@ function approvedEmail(businessName: string, exhibitorType: string, boothSize: s
     </h2>
 
     <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
-      Congratulations — your <strong style="color:#ffffff;">${exhibitorType}</strong> application for AATC 2027 has been approved.
+      Congratulations - your <strong style="color:#ffffff;">${exhibitorType}</strong> application for AATC 2027 has been approved.
       We're excited to have you at the Crown Complex Event Center this April.
     </p>
 
@@ -168,7 +168,7 @@ function rejectedEmail(businessName: string, exhibitorType: string) {
     </p>
 
     <p style="margin:0 0 24px; font-size:15px; line-height:1.7; color:#cccccc;">
-      We encourage you to apply again for future events — we hope to see you at AATC.
+      We encourage you to apply again for future events - we hope to see you at AATC.
     </p>
 
     <p style="margin:0; font-size:13px; line-height:1.7; color:#666666; text-align:center;">
@@ -194,7 +194,7 @@ function waitlistedEmail(businessName: string, exhibitorType: string) {
 
     <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
       If a spot opens up, we'll contact you immediately at this email address.
-      No action is required from you — just sit tight.
+      No action is required from you - just sit tight.
     </p>
 
     <p style="margin:0; font-size:13px; line-height:1.7; color:#666666; text-align:center;">
@@ -218,7 +218,7 @@ function depositReminderEmail(businessName: string, depositDueAt: string, minDep
     </p>
     <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
       Your AATC 2027 booth is still being held but your <strong style="color:#ffffff;">25% deposit hasn't been received yet</strong>.
-      The deadline is <strong style="color:#ffffff;">${dueDate}</strong> — if we don't have the deposit by then,
+      The deadline is <strong style="color:#ffffff;">${dueDate}</strong> - if we don't have the deposit by then,
       the booth is released to the next applicant.
     </p>
     <div style="background:#0a0a0a; border:1px solid #2a2a2a; border-radius:12px; padding:20px 24px; margin:20px 0;">
@@ -244,7 +244,7 @@ function depositReminderEmail(businessName: string, depositDueAt: string, minDep
 function finalReminderEmail(businessName: string, daysRemaining: number, balance: number, payUrl: string) {
   const tagline = daysRemaining === 1 ? 'final reminder' : `${daysRemaining} days left`
   const message = daysRemaining === 1
-    ? 'This is your final reminder — payment is due tomorrow.'
+    ? 'This is your final reminder - payment is due tomorrow.'
     : `That's ${daysRemaining} days from now.`
   return emailWrapper(`
     <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:${daysRemaining <= 7 ? '#f87171' : '#eab308'};">
@@ -288,7 +288,7 @@ function expirationEmail(businessName: string) {
     </p>
     <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
       If you'd still like to be part of AATC 2027, please reapply at
-      <a href="${SITE_URL}/apply" style="color:#C4A882;">${SITE_URL}/apply</a> — pending availability.
+      <a href="${SITE_URL}/apply" style="color:#C4A882;">${SITE_URL}/apply</a> - pending availability.
     </p>
   `)
 }
@@ -370,7 +370,7 @@ function returnerInviteEmail(businessName: string, loginUrl: string, resetUrl: s
       Hi ${businessName},
     </p>
     <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
-      Thanks for paying in full at 2026 pricing during the early-bird window. Your AATC 2027 booth is locked in —
+      Thanks for paying in full at 2026 pricing during the early-bird window. Your AATC 2027 booth is locked in -
       no further payment is required.
     </p>
     <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
@@ -473,7 +473,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Sponsorship not found or no email' }, { status: 404 })
       }
 
-      const subject = `🎉 Your AATC 2027 sponsorship is confirmed — ${spon.sponsor_name}`
+      const subject = `🎉 Your AATC 2027 sponsorship is confirmed - ${spon.sponsor_name}`
       const html = sponsorApprovedEmail(spon.sponsor_name, spon.tier, spon.amount)
 
       const { error } = await resend.emails.send({
@@ -518,13 +518,13 @@ export async function POST(req: Request) {
     let html: string
 
     if (resolvedKind === 'approved') {
-      subject = `🎉 Your AATC 2027 application is approved — ${app.business_name}`
+      subject = `🎉 Your AATC 2027 application is approved - ${app.business_name}`
       html = approvedEmail(app.business_name, app.exhibitor_type, describeBooths(app), app.total_amount, app.deposit_due_at)
     } else if (resolvedKind === 'rejected') {
-      subject = `Update on your AATC 2027 application — ${app.business_name}`
+      subject = `Update on your AATC 2027 application - ${app.business_name}`
       html = rejectedEmail(app.business_name, app.exhibitor_type)
     } else if (resolvedKind === 'waitlisted') {
-      subject = `You're on the AATC 2027 waitlist — ${app.business_name}`
+      subject = `You're on the AATC 2027 waitlist - ${app.business_name}`
       html = waitlistedEmail(app.business_name, app.exhibitor_type)
     } else if (resolvedKind === 'deposit_reminder') {
         // SERVICE ROLE, DELIBERATELY — do not "tidy" this back to `supabase`.
@@ -539,12 +539,12 @@ export async function POST(req: Request) {
         .eq('application_id', applicationId)
         .maybeSingle()
       if (!app.deposit_due_at || !inv) {
-        return NextResponse.json({ error: 'Cannot send deposit reminder — missing deposit_due_at or invoice' }, { status: 400 })
+        return NextResponse.json({ error: 'Cannot send deposit reminder - missing deposit_due_at or invoice' }, { status: 400 })
       }
       const balance = inv.amount - (inv.amount_paid ?? 0)
       const minDeposit = minDepositCents(inv.amount)
       const payUrl = `${SITE_URL}/portal/pay?invoice=${inv.id}`
-      subject = `Reminder: AATC 2027 deposit due — ${app.business_name}`
+      subject = `Reminder: AATC 2027 deposit due - ${app.business_name}`
       html = depositReminderEmail(app.business_name, app.deposit_due_at, minDeposit, balance, payUrl)
     } else if (resolvedKind === 'final_reminder') {
       const days = daysRemaining ?? 0
@@ -564,14 +564,14 @@ export async function POST(req: Request) {
       }
       const balance = inv.amount - (inv.amount_paid ?? 0)
       const payUrl = `${SITE_URL}/portal/pay?invoice=${inv.id}`
-      subject = `${days} day${days === 1 ? '' : 's'} until your AATC 2027 balance is due — ${app.business_name}`
+      subject = `${days} day${days === 1 ? '' : 's'} until your AATC 2027 balance is due - ${app.business_name}`
       html = finalReminderEmail(app.business_name, days, balance, payUrl)
     } else if (resolvedKind === 'expiration') {
-      subject = `Your AATC 2027 booth has been released — ${app.business_name}`
+      subject = `Your AATC 2027 booth has been released - ${app.business_name}`
       html = expirationEmail(app.business_name)
     } else if (resolvedKind === 'cancellation') {
       const forfeited = depositForfeited ?? 0
-      subject = `Your AATC 2027 booth has been canceled — ${app.business_name}`
+      subject = `Your AATC 2027 booth has been canceled - ${app.business_name}`
       html = cancellationEmail(app.business_name, forfeited)
     } else if (resolvedKind === 'returner_invite') {
       const adminClient = createClient<Database>(
@@ -585,7 +585,7 @@ export async function POST(req: Request) {
       })
       const resetUrl = linkData?.properties?.action_link ?? `${SITE_URL}/auth/forgot-password`
       const loginUrl = `${SITE_URL}/auth/login`
-      subject = `Welcome back to AATC 2027 — ${app.business_name}`
+      subject = `Welcome back to AATC 2027 - ${app.business_name}`
       html = returnerInviteEmail(app.business_name, loginUrl, resetUrl)
     } else {
       return NextResponse.json({ error: `Unknown kind: ${resolvedKind}` }, { status: 400 })

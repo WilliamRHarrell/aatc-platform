@@ -89,7 +89,7 @@ export async function POST(req: Request) {
     if (error) {
       console.error(
         `[import-returning] ROLLBACK FAILED after ${stage} for ${body.email} (${userId}): ` +
-        `${error.message}. An orphaned auth user now exists — it must be deleted by hand ` +
+        `${error.message}. An orphaned auth user now exists - it must be deleted by hand ` +
         'before this address can be imported again.'
       )
       return
@@ -180,7 +180,7 @@ export async function POST(req: Request) {
     if (appDelErr) {
       console.error(
         `[import-returning] could not remove application ${app.id} after invoice failure: ` +
-        `${appDelErr.message}. It is approved with no invoice and IS A SWEEP TARGET — ` +
+        `${appDelErr.message}. It is approved with no invoice and IS A SWEEP TARGET - ` +
         'delete it or record its payment before LIFECYCLE_SWEEP_ENABLED is set.'
       )
     }

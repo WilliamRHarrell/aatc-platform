@@ -33,14 +33,14 @@ async function alertPaymentNotRecorded(d: {
   const to = process.env.PAYMENT_ALERT_EMAIL
   if (!to) {
     console.error(
-      '[stripe] ALERT NOT SENT — PAYMENT_ALERT_EMAIL is unset. A payment was ' +
+      '[stripe] ALERT NOT SENT - PAYMENT_ALERT_EMAIL is unset. A payment was ' +
       `taken for invoice ${d.invoiceId} and NOT recorded, and nobody has been ` +
       'told. Set PAYMENT_ALERT_EMAIL in Vercel immediately.'
     )
     return
   }
   if (!process.env.RESEND_API_KEY) {
-    console.error('[stripe] ALERT NOT SENT — RESEND_API_KEY unset.')
+    console.error('[stripe] ALERT NOT SENT - RESEND_API_KEY unset.')
     return
   }
   try {
@@ -53,7 +53,7 @@ async function alertPaymentNotRecorded(d: {
       body: JSON.stringify({
         from: process.env.RESEND_FROM_EMAIL,
         to,
-        subject: `[AATC] PAYMENT NOT RECORDED — invoice ${d.invoiceId}`,
+        subject: `[AATC] PAYMENT NOT RECORDED - invoice ${d.invoiceId}`,
         text:
           'A Stripe payment succeeded but no invoice row was updated.\n\n' +
           `invoice_id     ${d.invoiceId}\n` +
@@ -157,7 +157,7 @@ export async function POST(req: Request) {
         // cause self-heals and a permanent one keeps alerting rather than
         // disappearing after one silent success.
         console.error(
-          `[stripe] PAYMENT NOT RECORDED — invoice ${invoiceId} matched 0 rows. ` +
+          `[stripe] PAYMENT NOT RECORDED - invoice ${invoiceId} matched 0 rows. ` +
           `Session ${session.id}, amount ${payAmount}. Money is in Stripe and the ` +
           'database was not updated. Reconcile manually.'
         )

@@ -436,7 +436,7 @@ export default function AdminSponsorshipsPage() {
     const newVal = !s.featured_footer
     const currentFeatured = sponsorships.filter(sp => sp.featured_footer && sp.id !== s.id).length
     if (newVal && currentFeatured >= 5) {
-      toast.error('Max 5 footer sponsors — remove one first')
+      toast.error('Max 5 footer sponsors - remove one first')
       return
     }
     const { error } = await supabase
@@ -626,7 +626,7 @@ export default function AdminSponsorshipsPage() {
               <span>
                 <strong>Amount locked at {formatCurrency(editingRow.amount)}.</strong>{' '}
                 This is a grandfathered price from before the 13 July 2026 packet increase.
-                Changing the tier below will not reprice it — saving keeps{' '}
+                Changing the tier below will not reprice it - saving keeps{' '}
                 {formatCurrency(editingRow.amount)}.
               </span>
             </div>
@@ -810,7 +810,7 @@ export default function AdminSponsorshipsPage() {
       <div className="rounded-2xl" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
         {filtered.length === 0 ? (
           <div className="px-5 py-16 text-center text-sm" style={{ color: '#555' }}>
-            {sponsorships.length === 0 ? 'No sponsors yet — click "Add Sponsor" to get started.' : 'No sponsors match this filter.'}
+            {sponsorships.length === 0 ? 'No sponsors yet - click "Add Sponsor" to get started.' : 'No sponsors match this filter.'}
           </div>
         ) : (
           <div className="divide-y" style={{ borderColor: '#2a2a2a' }}>
@@ -906,7 +906,7 @@ export default function AdminSponsorshipsPage() {
                     Footer
                   </button>
 
-                  {/* Placed publicly but not paid — payment is no longer
+                  {/* Placed publicly but not paid - payment is no longer
                       enforced by RLS (migration 027), so surface it here at the
                       point of decision rather than letting it pass silently. */}
                   {(s.show_on_homepage || s.featured_footer) &&
@@ -957,7 +957,7 @@ export default function AdminSponsorshipsPage() {
                     )}
                   </div>
 
-                  {/* Hold expiry — a slot held against an unanswered offer */}
+                  {/* Hold expiry - a slot held against an unanswered offer */}
                   {s.status === 'pending' && s.hold_expires_at && (
                     <span
                       title={`Offer hold ${isStaleHold(s) ? 'lapsed' : 'expires'} ${new Date(s.hold_expires_at).toLocaleDateString()}`}
@@ -1045,7 +1045,7 @@ export default function AdminSponsorshipsPage() {
                         Links this sponsorship to an existing account so they can edit their
                         own contact details, website, socials and logo in the portal. They
                         can never change tier, amount, status or placement. <strong>The
-                        account must already exist</strong> — ask them to sign up first.
+                        account must already exist</strong> - ask them to sign up first.
                       </p>
                       <div className="flex flex-wrap gap-2">
                         <input

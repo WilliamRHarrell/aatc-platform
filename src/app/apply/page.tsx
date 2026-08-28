@@ -7,7 +7,7 @@ import CountdownDigits from './CountdownDigits'
 import { DOORS_OPEN_ISO } from '@/lib/event-config'
 
 export const metadata: Metadata = {
-  title: 'Apply — Booths, Contests & More | All American Tattoo Convention 2027',
+  title: 'Apply - Booths, Contests & More | All American Tattoo Convention 2027',
   description:
     'Applications for AATC 2027 are open. Apply for artist and vendor booths, food trucks, the tattoo contests, the Miss All American Pin-Up Contest, and sponsorships.',
 }
@@ -25,7 +25,7 @@ const CALENDAR_HREF = `data:text/calendar;charset=utf-8,${encodeURIComponent(
     'DTEND:20270418T200000',
     'SUMMARY:All American Tattoo Convention 2027',
     'LOCATION:Crown Complex Event Center, 1960 Coliseum Drive, Fayetteville, NC 28306',
-    'DESCRIPTION:All American Tattoo Convention — April 16-18, 2027. Get your tickets at allamericantattooconvention.com',
+    'DESCRIPTION:All American Tattoo Convention - April 16-18, 2027. Get your tickets at allamericantattooconvention.com',
     'END:VEVENT',
     'END:VCALENDAR',
   ].join('\r\n')
@@ -115,7 +115,7 @@ export default async function ApplyPage() {
           <CountdownDigits targetIso={CONVENTION_START} />
 
           <p className="mt-6 text-sm font-bold uppercase tracking-wider" style={{ color: '#C4A882' }}>
-            {c.countdown_opens_text} —{' '}
+            {c.countdown_opens_text} - {' '}
             <a
               href={CALENDAR_HREF}
               download="aatc-2027.ics"
@@ -164,7 +164,7 @@ export default async function ApplyPage() {
               {c.cta_vendor}
             </Link>
 
-            {/* No food-truck application route exists yet — render as pending
+            {/* No food-truck application route exists yet - render as pending
                 rather than pointing at the vendor form, which has no food-truck mode. */}
             <div
               className="flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[#3a3a3a] px-6 py-4 text-center"

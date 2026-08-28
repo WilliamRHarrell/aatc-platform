@@ -17,8 +17,8 @@ export const SHOW_CLOSE_ISO = '2027-04-19T00:00:00Z' // Sun Apr 18,  8:00 PM ET
 
 /** Human-readable strings — server-rendered so crawlers and no-JS users get
  *  something meaningful even before the countdown hydrates. */
-export const EVENT_DATES_LABEL = 'April 16–18, 2027'
-export const EVENT_DATES_SHORT = 'Apr 16–18, 2027'
+export const EVENT_DATES_LABEL = 'April 16-18, 2027'
+export const EVENT_DATES_SHORT = 'Apr 16-18, 2027'
 
 export const VENUE_NAME = 'Crown Complex Event Center'
 // Confirmed 2026-08-27 against what the Crown Complex publishes. 1960 Coliseum
@@ -80,7 +80,7 @@ export const PROMO_VIDEO: {
   posterUrl: string | null
 } = {
   youTubeId: 'gAZ5Y5Mqh6k',
-  title: '2025 AATC East Tattoo Convention — Fayetteville, Ft Bragg NC Highlights',
+  title: '2025 AATC East Tattoo Convention - Fayetteville, Ft Bragg NC Highlights',
   orientation: 'vertical',
   posterUrl: null,
 }

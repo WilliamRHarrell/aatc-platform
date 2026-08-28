@@ -69,7 +69,7 @@ function relative(iso: string): string {
 
 /** Logo URLs are long and unreadable in a feed; show that it changed, not what to. */
 function displayValue(field: string, value: string | null): string {
-  if (value === null || value === '') return '—'
+  if (value === null || value === '') return ' - '
   if (field === 'logo_url') return 'image'
   return value.length > 40 ? `${value.slice(0, 40)}…` : value
 }
@@ -132,7 +132,7 @@ export default function RecentProfileEdits() {
           Recent Profile Edits
         </p>
         <p className="mt-3 text-sm" style={{ color: '#777' }}>
-          Edit history is unavailable — migration 048 has not been applied.
+          Edit history is unavailable - migration 048 has not been applied.
           Self-edits are still working; they are just not being recorded yet.
         </p>
       </div>

@@ -109,7 +109,7 @@ export default function VipMeetGreetPage() {
           exclamation points, no "don't miss out", no urgency language beyond
           the factual "first come, first served".
 
-          No phone number or email is listed — §17.5 is open, and ACS
+          No phone number or email is listed - §17.5 is open, and ACS
           coordinator contacts change. A stale number on THIS page is worse
           than none, because the person dialling it is already dealing with
           enough. */}
@@ -133,8 +133,8 @@ export default function VipMeetGreetPage() {
 
       {/* ── §13.4 Panel access ──────────────────────────────
           Worded so it does not imply VIPs are shut out of something that
-          exists. Every seminar currently scheduled for 2027 — Bookkeeping for
-          Tattoo Industry Professionals and the Tooth Gem Seminar — is free and
+          exists. Every seminar currently scheduled for 2027 - Bookkeeping for
+          Tattoo Industry Professionals and the Tooth Gem Seminar - is free and
           open to all attendees, so the paid-panel caveat is forward-looking
           rather than a live restriction. If a paid panel is ever added, this
           copy already covers it. */}
@@ -146,7 +146,7 @@ export default function VipMeetGreetPage() {
           >
             <p className="text-xs leading-relaxed" style={{ color: '#999' }}>
               <strong className="text-white">Panels and seminars.</strong> Every seminar on the
-              2027 schedule is free and open to all attendees — a VIP ticket is not needed for
+              2027 schedule is free and open to all attendees - a VIP ticket is not needed for
               any of them. Should a paid panel be added later, a VIP ticket would not include
               entry to it.
             </p>
@@ -201,7 +201,7 @@ export default function VipMeetGreetPage() {
             {/* The bare $70 understated what someone pays at the door. Real
                 pricing lives in src/content/registry.ts as `price_vip_note`;
                 this mirrors it rather than sourcing it, which is a second copy
-                and therefore a drift risk — see the note there. */}
+                and therefore a drift risk - see the note there. */}
             <p className="mt-1 text-xs" style={{ color: '#999' }}>
               $70 advance / $72 at the door · $5 military discount
             </p>

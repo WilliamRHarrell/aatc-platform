@@ -68,7 +68,7 @@ export default function AboutPage() {
           <span className="text-emboss">About AATC</span>
         </h1>
         <p className="mx-auto mt-0 max-w-xl text-sm" style={{ color: '#999' }}>
-          <span className="text-emboss">The All American Tattoo Convention celebrates the intersection of tattoo culture and military service. Founded to honor our tattooed service members and veterans, AATC is more than a convention — it is a gathering of community, respect, and artistry.</span>
+          <span className="text-emboss">The All American Tattoo Convention celebrates the intersection of tattoo culture and military service. Founded to honor our tattooed service members and veterans, AATC is more than a convention - it is a gathering of community, respect, and artistry.</span>
         </p>
       </div>
 
@@ -116,7 +116,7 @@ export default function AboutPage() {
                 From its inaugural year, AATC has drawn thousands of attendees, hundreds of elite tattoo artists, and widespread support from veteran organizations across the country. The convention has raised funds for veteran mental health programs, supported Gold Star families, and provided a platform for service members to share their stories through ink.
               </p>
               <p className="mt-4 text-sm leading-relaxed" style={{ color: '#999' }}>
-                As we prepare for our 2027 convention, AATC continues to grow — not just in size, but in impact. Every year, we deepen our commitment to the military community and push the boundaries of what a tattoo convention can be.
+                As we prepare for our 2027 convention, AATC continues to grow - not just in size, but in impact. Every year, we deepen our commitment to the military community and push the boundaries of what a tattoo convention can be.
               </p>
             </div>
           </div>
@@ -137,7 +137,7 @@ export default function AboutPage() {
             style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
           >
             <p className="text-sm leading-relaxed" style={{ color: '#999' }}>
-              Fayetteville, North Carolina is home to Fort Bragg — the largest military installation in the world by population. With over 50,000 active-duty soldiers and tens of thousands of veterans and military families calling the region home, there is no better place for a convention that honors the bond between tattoo culture and military service.
+              Fayetteville, North Carolina is home to Fort Bragg - the largest military installation in the world by population. With over 50,000 active-duty soldiers and tens of thousands of veterans and military families calling the region home, there is no better place for a convention that honors the bond between tattoo culture and military service.
             </p>
             <p className="mt-4 text-sm leading-relaxed" style={{ color: '#999' }}>
               The city&apos;s deep connection to the military runs through every neighborhood, business, and community organization. Fayetteville understands service, sacrifice, and the pride that comes with wearing your story on your skin. The Crown Complex Event Center provides a world-class venue just minutes from post, making it accessible to the massive military population in the region.

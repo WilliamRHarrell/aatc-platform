@@ -34,7 +34,7 @@ export const HOME_EVENTS: HomeEvent[] = [
   },
   {
     name: 'The All American Tattoo Battle',
-    day: 'Fri – Sun',
+    day: 'Fri - Sun',
     // Fri 1:00 PM start, 5:00 PM voting opens; champion crowned Sun 6:00 PM.
     description:
       'Artists battle live on the main stage from Friday afternoon. Voting opens Friday evening and the champion is crowned Sunday at 6:00 PM.',
@@ -45,7 +45,7 @@ export const HOME_EVENTS: HomeEvent[] = [
     day: 'Saturday',
     // Sat 2:00 PM, Main Stage.
     description:
-      'Our most famous event, now in its 10th year — classic Americana on the main stage Saturday at 2:00 PM.',
+      'Our most famous event, now in its 10th year - classic Americana on the main stage Saturday at 2:00 PM.',
     href: '/events/pinup-contest',
   },
   {
@@ -86,7 +86,7 @@ export const HOME_EVENTS: HomeEvent[] = [
     name: 'Food Truck Rodeo',
     day: 'All weekend',
     description:
-      'Fayetteville’s largest food truck rodeo, right out front. Free and open to the public — no ticket required.',
+      'Fayetteville’s largest food truck rodeo, right out front. Free and open to the public - no ticket required.',
     href: '/events/food-truck-rodeo',
   },
 ]

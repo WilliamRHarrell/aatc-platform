@@ -6,7 +6,7 @@ import Markdown from '@/components/Markdown'
 export const metadata: Metadata = {
   title: 'Buy Tickets | All American Tattoo Convention 2027 | Fayetteville NC',
   description:
-    'Tickets for AATC 2027, April 16–18 at the Crown Complex. Single-day, weekend, and VIP passes with military discounts. VIP includes swag bag and artist meet & greet.',
+    'Tickets for AATC 2027, April 16-18 at the Crown Complex. Single-day, weekend, and VIP passes with military discounts. VIP includes swag bag and artist meet & greet.',
 }
 
 const SCHEDULE = [
@@ -14,34 +14,34 @@ const SCHEDULE = [
     day: 'Friday, April 16',
     events: [
       { time: '12:00 PM', title: 'All-Veteran Parachute Team jumps in' },
-      { time: '12:30 PM', title: 'Missing Man Table Ceremony — Main Stage' },
+      { time: '12:30 PM', title: 'Missing Man Table Ceremony - Main Stage' },
       { time: '1:00 PM', title: 'The All American Tattoo Battle begins' },
       { time: '1:00 PM', title: 'Tattoo contest registration opens' },
-      { time: '4:00 PM', title: 'Tattoo contests begin — Main Stage' },
-      { time: '9:30 PM', title: 'Tattoo of the Day — Main Stage' },
+      { time: '4:00 PM', title: 'Tattoo contests begin - Main Stage' },
+      { time: '9:30 PM', title: 'Tattoo of the Day - Main Stage' },
       { time: '10:00 PM', title: 'Show close' },
     ],
   },
   {
     day: 'Saturday, April 17',
     events: [
-      { time: '10:00 AM', title: 'Gold Star VIP Meet & Greet — Front Room' },
-      { time: '12:00 PM', title: 'Opening ceremonies — Main Stage' },
+      { time: '10:00 AM', title: 'Gold Star VIP Meet & Greet - Front Room' },
+      { time: '12:00 PM', title: 'Opening ceremonies - Main Stage' },
       { time: '1:00 PM', title: 'Tattoo contest registration opens' },
-      { time: '1:30 PM', title: 'Strongest at the Sideshow — Ballroom' },
-      { time: '2:00 PM', title: 'Miss All American Pin-Up Contest — Main Stage' },
-      { time: '4:00 PM', title: 'Tattoo contests begin — Main Stage' },
-      { time: '10:00 PM', title: 'Tattoo of the Day — Main Stage' },
+      { time: '1:30 PM', title: 'Strongest at the Sideshow - Ballroom' },
+      { time: '2:00 PM', title: 'Miss All American Pin-Up Contest - Main Stage' },
+      { time: '4:00 PM', title: 'Tattoo contests begin - Main Stage' },
+      { time: '10:00 PM', title: 'Tattoo of the Day - Main Stage' },
       { time: '11:00 PM', title: 'Show close' },
     ],
   },
   {
     day: 'Sunday, April 18',
     events: [
-      { time: '12:00 PM', title: 'Opening ceremonies — Main Stage' },
+      { time: '12:00 PM', title: 'Opening ceremonies - Main Stage' },
       { time: '1:00 PM', title: 'Tattoo contest registration opens' },
       { time: '3:00 PM', title: 'Presentation to nonprofit' },
-      { time: '4:00 PM', title: 'Tattoo contests begin — Main Stage' },
+      { time: '4:00 PM', title: 'Tattoo contests begin - Main Stage' },
       { time: '6:00 PM', title: 'All American Tattoo Battle Champion crowned' },
       { time: '7:00 PM', title: 'Tattoo of the Day & Best of Show' },
       { time: '8:00 PM', title: 'Show close' },
@@ -103,7 +103,7 @@ export default async function TicketsPage() {
     {
       id: 'weekend',
       label: 'Weekend Pass',
-      date: 'April 16–18',
+      date: 'April 16-18',
       price: c.price_weekend,
       note: c.price_weekend_note,
       desc: 'All three days. Every contest, every event, every artist.',
@@ -112,7 +112,7 @@ export default async function TicketsPage() {
     {
       id: 'vip',
       label: 'VIP Weekend Pass',
-      date: 'April 16–18',
+      date: 'April 16-18',
       price: c.price_vip,
       note: c.price_vip_note,
       desc: '30-minute early admission every day, VIP badge and swag bag, Meet & Greet signature poster and pen, access to the Saturday 10 AM VIP meet & greet with TV tattoo artists, and an official AATC t-shirt.',

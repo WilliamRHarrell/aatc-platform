@@ -119,13 +119,13 @@ export default function AATCGenerator() {
       {previews.length > 0 && (
         <div style={{ marginTop: 24 }}>
           <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 6 }}>
-            Square — Facebook / X / GMB / Instagram
+            Square - Facebook / X / GMB / Instagram
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
             {previews.map((p, i) => (
               <div key={i}>
                 <div style={{ fontSize: 11, opacity: 0.6 }}>
-                  Slide {i + 1}{i === 0 ? " — Announcement" : ` — Tattoo ${i}`}
+                  Slide {i + 1}{i === 0 ? " - Announcement" : ` - Tattoo ${i}`}
                 </div>
                 <img src={p} style={{ width: "100%", borderRadius: 6, border: "1px solid #333" }} />
                 <a href={p} download={`square${i + 1}.jpg`} style={{ fontSize: 12, color: "#C1A878" }}>
@@ -140,7 +140,7 @@ export default function AATCGenerator() {
       {vertPreviews.length > 0 && (
         <div style={{ marginTop: 24 }}>
           <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 6 }}>
-            Vertical 9:16 — TikTok
+            Vertical 9:16 - TikTok
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
             {vertPreviews.map((p, i) => (

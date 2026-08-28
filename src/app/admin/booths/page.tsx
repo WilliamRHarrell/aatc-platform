@@ -37,7 +37,7 @@ function docStatus(app: ApprovedApp): 'complete' | 'pending' | 'missing' | 'na' 
 }
 
 function DocBadge({ status }: { status: ReturnType<typeof docStatus> }) {
-  if (status === 'na') return <span className="text-xs" style={{ color: '#444' }}>—</span>
+  if (status === 'na') return <span className="text-xs" style={{ color: '#444' }}> - </span>
   const map = {
     complete: { bg: 'rgba(74,222,128,0.12)', color: '#4ade80', label: 'Complete' },
     pending:  { bg: 'rgba(234,179,8,0.12)',  color: '#eab308', label: 'Pending'  },
@@ -214,7 +214,7 @@ export default function AdminBoothsPage() {
     }
 
     const boothLabel = addForm.booths.length > 1 ? `${addForm.booths.length} booths` : 'booth'
-    toast.success(`${addForm.business_name} added (${boothLabel})${depositCents > 0 ? ` — ${formatCurrency(depositCents)} deposit recorded` : ''}`)
+    toast.success(`${addForm.business_name} added (${boothLabel})${depositCents > 0 ? ` - ${formatCurrency(depositCents)} deposit recorded` : ''}`)
     setShowAddModal(false)
     setAddForm({
       business_name: '', contact_name: '', email: '', phone: '',
@@ -416,13 +416,13 @@ export default function AdminBoothsPage() {
                       {app.is_corner ? (
                         <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: '#8B7355' }} title="Corner booth" />
                       ) : (
-                        <span className="text-xs" style={{ color: '#444' }}>—</span>
+                        <span className="text-xs" style={{ color: '#444' }}> - </span>
                       )}
                     </div>
 
                     {/* Artists */}
                     <span className="text-sm" style={{ color: '#999' }}>
-                      {app.exhibitor_type === 'artist' ? app.artist_count : '—'}
+                      {app.exhibitor_type === 'artist' ? app.artist_count : ' - '}
                     </span>
 
                     {/* Docs */}
@@ -497,7 +497,7 @@ export default function AdminBoothsPage() {
           <div>
             <p className="text-sm font-semibold text-white">Floor Plan Grid</p>
             <p className="text-xs" style={{ color: '#555' }}>
-              267 booths — available / reserved / sold
+              267 booths - available / reserved / sold
             </p>
           </div>
           <svg
@@ -519,8 +519,8 @@ export default function AdminBoothsPage() {
                     key={booth.id}
                     title={
                       booth.application_id
-                        ? `#${booth.booth_number} — ${apps.find(a => a.id === booth.application_id)?.business_name ?? 'Taken'}`
-                        : `#${booth.booth_number} — Available`
+                        ? `#${booth.booth_number} - ${apps.find(a => a.id === booth.application_id)?.business_name ?? 'Taken'}`
+                        : `#${booth.booth_number} - Available`
                     }
                     className="relative flex h-11 w-11 items-center justify-center rounded-lg text-xs font-bold"
                     style={{
@@ -761,7 +761,7 @@ export default function AdminBoothsPage() {
                     checked={addForm.payFull}
                     onChange={e => setAddForm(f => ({ ...f, payFull: e.target.checked, deposit: '' }))}
                   />
-                  Pay in Full — {formatCurrency(totalAllBooths)}
+                  Pay in Full - {formatCurrency(totalAllBooths)}
                 </label>
 
                 {!addForm.payFull && (

@@ -166,7 +166,7 @@ function FileUploadField({
           <line x1="12" y1="3" x2="12" y2="15"/>
         </svg>
         <span className="flex-1 truncate text-sm" style={{ color: file ? '#C4A882' : '#555555' }}>
-          {file ? file.name : 'Click to upload (JPG, PNG, PDF — max 50 MB)'}
+          {file ? file.name : 'Click to upload (JPG, PNG, PDF - max 50 MB)'}
         </span>
         {file && (
           <button
@@ -340,7 +340,7 @@ export default function VendorApplyPage() {
       return
     }
     if (!error && (!insRows || insRows.length === 0)) {
-      console.error('[vendor application] 0 rows inserted — no error returned')
+      console.error('[vendor application] 0 rows inserted - no error returned')
       toast.error('Nothing was saved. Please try again or contact us.')
       return
     }
@@ -417,7 +417,7 @@ export default function VendorApplyPage() {
           <h1 className="font-display text-3xl font-bold text-white sm:text-4xl"><span className="text-emboss">Apply for AATC 2027</span></h1>
           {event && (
             <p className="mt-1 text-sm" style={{ color: '#999999' }}>
-              <span className="text-emboss">{event.venue} · {event.city}, {event.state} · April 16–18, 2027</span>
+              <span className="text-emboss">{event.venue} · {event.city}, {event.state} · April 16-18, 2027</span>
             </p>
           )}
         </div>
@@ -670,7 +670,7 @@ export default function VendorApplyPage() {
                 <div className="mb-6 mt-6 space-y-3">
                   <label className="block text-sm font-medium text-white">Options</label>
                   {[
-                    { key: 'is_veteran', label: 'Military veteran discount', desc: `${VETERAN_DISCOUNT_LABEL} — thank you for your service`, value: booth.is_veteran },
+                    { key: 'is_veteran', label: 'Military veteran discount', desc: `${VETERAN_DISCOUNT_LABEL} - thank you for your service`, value: booth.is_veteran },
                   ].map(opt => (
                     <button
                       key={opt.key}
@@ -743,7 +743,7 @@ export default function VendorApplyPage() {
                     onChange={f => setDetails(d => ({ ...d, id_doc_file: f }))}
                   />
 
-                  {/* Veteran ID upload — only shown when veteran discount selected */}
+                  {/* Veteran ID upload - only shown when veteran discount selected */}
                   {booth.is_veteran && (
                     <FileUploadField
                       label="Veteran ID / proof of service"

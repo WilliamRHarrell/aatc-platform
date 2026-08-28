@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
 
       if (!res.ok) {
         return NextResponse.json(
-          { error: `${res.error} Please try again, or just come along on the day — walk-ins are welcome.` },
+          { error: `${res.error} Please try again, or just come along on the day - walk-ins are welcome.` },
           { status: 500 }
         )
       }

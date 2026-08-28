@@ -308,7 +308,7 @@ export default function AdminInvoicesPage() {
       <div className="rounded-2xl" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
         {filtered.length === 0 ? (
           <div className="px-5 py-16 text-center text-sm" style={{ color: '#555' }}>
-            {invoices.length === 0 ? 'No invoices yet — approve an application or send a sponsorship invoice to get started.' : 'No invoices match your filters.'}
+            {invoices.length === 0 ? 'No invoices yet - approve an application or send a sponsorship invoice to get started.' : 'No invoices match your filters.'}
           </div>
         ) : (
           <>
@@ -332,7 +332,7 @@ export default function AdminInvoicesPage() {
                 const amountPaid = inv.amount_paid ?? 0
                 const balance = inv.amount - amountPaid
                 const hasPartialPayment = amountPaid > 0 && amountPaid < inv.amount
-                const displayName = app?.business_name ?? spon?.sponsor_name ?? '—'
+                const displayName = app?.business_name ?? spon?.sponsor_name ?? ' - '
                 const displaySub = app
                   ? `${app.contact_name} · ${app.email}`
                   : spon
@@ -371,7 +371,7 @@ export default function AdminInvoicesPage() {
                             color: app?.exhibitor_type === 'artist' ? '#C4A882' : '#60a5fa',
                           }}
                         >
-                          {app?.exhibitor_type ?? '—'}
+                          {app?.exhibitor_type ?? ' - '}
                         </span>
                       )}
                     </div>

@@ -68,7 +68,7 @@ export default function AdminContentPage() {
       )
     setSavingKey(null)
     if (error) {
-      toast.error('Save failed — are you an admin?')
+      toast.error('Save failed - are you an admin?')
       return
     }
 

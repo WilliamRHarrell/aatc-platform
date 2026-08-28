@@ -384,7 +384,7 @@ export default function AdminFoodTrucksPage() {
       <div className="rounded-2xl" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
         {trucks.length === 0 ? (
           <div className="px-5 py-16 text-center text-sm" style={{ color: '#555' }}>
-            No food trucks yet — click &quot;Add Food Truck&quot; to get started.
+            No food trucks yet - click &quot;Add Food Truck&quot; to get started.
           </div>
         ) : (
           <div className="divide-y" style={{ borderColor: '#2a2a2a' }}>

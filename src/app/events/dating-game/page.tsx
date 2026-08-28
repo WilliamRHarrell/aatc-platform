@@ -78,7 +78,7 @@ export default function DatingGamePage() {
               {
                 step: '5',
                 title: 'Win Prizes Together',
-                desc: 'The matched pair wins a Date Night — food and fun courtesy of our sponsors.',
+                desc: 'The matched pair wins a Date Night - food and fun courtesy of our sponsors.',
               },
             ].map(item => (
               <div
@@ -129,7 +129,7 @@ export default function DatingGamePage() {
 
           <div className="space-y-3">
             {[
-              { label: 'Winning Couple', prize: 'A Date Night — food and fun courtesy of our sponsors' },
+              { label: 'Winning Couple', prize: 'A Date Night - food and fun courtesy of our sponsors' },
               { label: 'Runner-Up Contestants', prize: 'AATC merchandise package' },
               { label: 'Audience Giveaways', prize: 'Convention t-shirts, stickers, and sponsor swag' },
             ].map(item => (

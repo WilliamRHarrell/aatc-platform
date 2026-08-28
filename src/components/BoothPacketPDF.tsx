@@ -62,7 +62,7 @@ function InfoRow({ label, value }: { label: string; value: string | null | undef
 function PageFooter({ businessName, pageNum }: { businessName: string; pageNum: number }) {
   return (
     <>
-      <Text style={s.footer}>{businessName} — Booth Packet</Text>
+      <Text style={s.footer}>{businessName} - Booth Packet</Text>
       <Text style={s.pageNum}>Page {pageNum}</Text>
     </>
   )
@@ -77,13 +77,13 @@ export default function BoothPacketPDF({ data }: { data: BoothPacketData }) {
   }
 
   return (
-    <Document title={`${data.businessName} — Booth Packet`} author="AATC">
+    <Document title={`${data.businessName} - Booth Packet`} author="AATC">
       {/* ── Page 1: Studio Information ───────────────────── */}
       <Page size="LETTER" style={s.page}>
         <View style={s.header}>
           <Text style={s.title}>Booth Packet</Text>
           <Text style={s.subtitle}>All American Tattoo Convention 2027</Text>
-          <Text style={s.subtitle}>Crown Complex Event Center — Fayetteville, NC</Text>
+          <Text style={s.subtitle}>Crown Complex Event Center - Fayetteville, NC</Text>
         </View>
 
         <View style={s.hr} />
@@ -112,7 +112,7 @@ export default function BoothPacketPDF({ data }: { data: BoothPacketData }) {
 
         {data.isVeteran && (
           <View style={s.veteranBadge}>
-            <Text>VETERAN — Discount Applied</Text>
+            <Text>VETERAN - Discount Applied</Text>
           </View>
         )}
 
@@ -164,7 +164,7 @@ export default function BoothPacketPDF({ data }: { data: BoothPacketData }) {
           /* Artist ID Page */
           <Page key={`artist-id-${i}`} size="LETTER" style={s.page}>
             <View style={s.header}>
-              <Text style={s.sectionTitle}>Government ID — {artistName}</Text>
+              <Text style={s.sectionTitle}>Government ID - {artistName}</Text>
               <Text style={s.artistSubheader}>{data.businessName} · Artist {i + 1}</Text>
             </View>
 

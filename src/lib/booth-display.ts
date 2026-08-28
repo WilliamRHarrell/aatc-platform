@@ -18,7 +18,7 @@ export function describeBooths(
   if (app.vendor_single_qty > 0) parts.push(`${app.vendor_single_qty}× Vendor Single`)
   if (app.vendor_double_qty > 0) parts.push(`${app.vendor_double_qty}× Vendor Double`)
   if (app.corner_count > 0) parts.push(`${app.corner_count} corner`)
-  return parts.length > 0 ? parts.join(', ') : '—'
+  return parts.length > 0 ? parts.join(', ') : ' - '
 }
 
 export function totalBoothCount(

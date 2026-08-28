@@ -127,7 +127,7 @@ export default function PortalGraphicsPage() {
       }).select('id')
       if (error) throw error
       if (!subRows || subRows.length === 0) {
-        console.error('[graphics submission] 0 rows inserted — no error returned')
+        console.error('[graphics submission] 0 rows inserted - no error returned')
         throw new Error('Nothing was saved. Please try again or contact us.')
       }
 
@@ -220,7 +220,7 @@ export default function PortalGraphicsPage() {
                 <div style={{ fontWeight: 600 }}>{s.artist_name}</div>
                 <div style={{ fontSize: 12, color: '#777' }}>
                   {new Date(s.created_at).toLocaleDateString()}
-                  {s.status === 'rejected' && s.rejection_reason && ` — ${s.rejection_reason}`}
+                  {s.status === 'rejected' && s.rejection_reason && ` - ${s.rejection_reason}`}
                 </div>
               </div>
               <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase',

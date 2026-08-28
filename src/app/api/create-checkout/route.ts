@@ -89,7 +89,7 @@ export async function POST(req: Request) {
           if (app.vendor_double_qty > 0) parts.push(`${app.vendor_double_qty}× double`)
           boothSummary = parts.join(', ') || 'booth'
         }
-        description = `AATC 2027 — ${app.exhibitor_type} booth (${boothSummary})${isFullPayment ? '' : ' — partial payment'}`
+        description = `AATC 2027 - ${app.exhibitor_type} booth (${boothSummary})${isFullPayment ? '' : ' - partial payment'}`
       }
     } else if (inv.sponsorship_id) {
       const { data: spon } = await supabase
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
 
       if (spon) {
         productName = spon.sponsor_name
-        description = `AATC 2027 — ${spon.tier.replace(/_/g, ' ')} sponsorship${isFullPayment ? '' : ' — partial payment'}`
+        description = `AATC 2027 - ${spon.tier.replace(/_/g, ' ')} sponsorship${isFullPayment ? '' : ' - partial payment'}`
       }
     } else if (inv.food_truck_id) {
       const { data: truck } = await supabase
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
 
       if (truck) {
         productName = truck.business_name
-        description = `AATC 2027 — Food truck vendor fee${isFullPayment ? '' : ' — partial payment'}`
+        description = `AATC 2027 - Food truck vendor fee${isFullPayment ? '' : ' - partial payment'}`
       }
     }
 

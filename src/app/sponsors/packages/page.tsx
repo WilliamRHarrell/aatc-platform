@@ -99,7 +99,7 @@ const PACKAGE_PERKS: TierPackage[] = [
     perks: [
       'Your logo on the collectible AATC Challenge coin (one side AATC, one side sponsor)',
       'Coin included in every artist and vendor booth package',
-      'Limited to 1,500 coins per year — only one of these sold annually',
+      'Limited to 1,500 coins per year - only one of these sold annually',
     ],
   },
   {
@@ -166,7 +166,7 @@ export default function SponsorPackagesPage() {
 
       if (countErr) {
         console.error(
-          `[packages] sponsor_tier_counts failed (${countErr.code}): ${countErr.message} — ` +
+          `[packages] sponsor_tier_counts failed (${countErr.code}): ${countErr.message} - ` +
           'sold-out tiers will render as available. If 42883, migration 027 has not been applied.'
         )
       }
@@ -245,7 +245,7 @@ export default function SponsorPackagesPage() {
                   )}
                   {pkg.limit && (
                     <p className="mb-2 text-xs font-semibold" style={{ color: '#ef4444' }}>
-                      Limited — only {pkg.limit} available
+                      Limited - only {pkg.limit} available
                     </p>
                   )}
                   <ul className="space-y-2">
@@ -292,7 +292,7 @@ export default function SponsorPackagesPage() {
                   </div>
                   {pkg.limit && (
                     <p className="mb-2 text-xs font-semibold" style={{ color: '#ef4444' }}>
-                      Limited — only {pkg.limit} available
+                      Limited - only {pkg.limit} available
                     </p>
                   )}
                   <ul className="space-y-2">

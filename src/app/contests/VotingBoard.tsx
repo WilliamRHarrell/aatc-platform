@@ -137,7 +137,7 @@ export default function VotingBoard({
       .select('id')
 
     if (!error && (!inserted || inserted.length === 0)) {
-      console.error(`[vote] 0 rows inserted for entry ${entry.id} — no error returned`)
+      console.error(`[vote] 0 rows inserted for entry ${entry.id} - no error returned`)
       toast.error('Your vote did not register. Please try again.')
       setVoting(null)
       return

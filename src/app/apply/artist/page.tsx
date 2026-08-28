@@ -186,7 +186,7 @@ function FileUploadField({
           <line x1="12" y1="3" x2="12" y2="15"/>
         </svg>
         <span className="flex-1 truncate text-sm" style={{ color: file ? '#C4A882' : '#555555' }}>
-          {file ? file.name : 'Click to upload (JPG, PNG, PDF — max 50 MB)'}
+          {file ? file.name : 'Click to upload (JPG, PNG, PDF - max 50 MB)'}
         </span>
         {file && (
           <button
@@ -557,7 +557,7 @@ export default function ArtistApplyPage() {
           <h1 className="font-display text-3xl font-bold text-white sm:text-4xl"><span className="text-emboss">Apply for AATC 2027</span></h1>
           {event && (
             <p className="mt-1 text-sm" style={{ color: '#999999' }}>
-              <span className="text-emboss">{event.venue} · {event.city}, {event.state} · April 16–18, 2027</span>
+              <span className="text-emboss">{event.venue} · {event.city}, {event.state} · April 16-18, 2027</span>
             </p>
           )}
         </div>
@@ -835,7 +835,7 @@ export default function ArtistApplyPage() {
                 <div className="mb-6 space-y-3">
                   <label className="block text-sm font-medium text-white">Options</label>
                   {[
-                    { key: 'is_veteran', label: 'Military veteran discount', desc: `${VETERAN_DISCOUNT_LABEL} — thank you for your service`, value: booth.is_veteran },
+                    { key: 'is_veteran', label: 'Military veteran discount', desc: `${VETERAN_DISCOUNT_LABEL} - thank you for your service`, value: booth.is_veteran },
                   ].map(opt => (
                     <button
                       key={opt.key}
@@ -891,7 +891,7 @@ export default function ArtistApplyPage() {
               <div>
                 <h2 className="font-display mb-1 text-xl font-bold text-white">Artist IDs & Details</h2>
                 <p className="mb-6 text-sm" style={{ color: '#999999' }}>
-                  Fill in what you know now — all artist info can be added later. Government-issued IDs are required for health department permitting.
+                  Fill in what you know now - all artist info can be added later. Government-issued IDs are required for health department permitting.
                 </p>
 
                 <div className="space-y-6">
@@ -1032,7 +1032,7 @@ export default function ArtistApplyPage() {
                             {/* ID upload */}
                             <FileUploadField
                               label="Government-issued ID"
-                              hint="Driver's license, passport, or state ID. Kept confidential — permitting use only. Can be uploaded later."
+                              hint="Driver's license, passport, or state ID. Kept confidential - permitting use only. Can be uploaded later."
                               required={false}
                               file={entry.id_file}
                               onChange={f => setArtistEntries(prev =>
@@ -1062,7 +1062,7 @@ export default function ArtistApplyPage() {
                     ))}
                   </div>
 
-                  {/* Veteran ID upload — required when veteran discount selected */}
+                  {/* Veteran ID upload - required when veteran discount selected */}
                   {booth.is_veteran && (
                     <FileUploadField
                       label="Veteran ID / proof of service"
@@ -1242,7 +1242,7 @@ export default function ArtistApplyPage() {
                 </div>
 
                 <p className="mb-6 text-xs leading-relaxed" style={{ color: '#555' }}>
-                  By submitting you confirm all information is accurate. No payment is collected now —
+                  By submitting you confirm all information is accurate. No payment is collected now -
                   approved applicants will receive an invoice with payment instructions.
                 </p>
 

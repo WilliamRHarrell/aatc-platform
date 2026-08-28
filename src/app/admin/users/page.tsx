@@ -93,7 +93,7 @@ export default function AdminUsersPage() {
       >
         <strong>These roles restrict the admin interface, not the database.</strong> A
         content editor or sponsorship manager who knows the API can still read data their
-        sidebar hides — including artist photo ID uploads. Give these roles only to people
+        sidebar hides - including artist photo ID uploads. Give these roles only to people
         you would otherwise trust as full admins.
       </div>
 

@@ -7,18 +7,18 @@ const TIPS = [
     title: 'What to Bring',
     items: [
       'Valid photo ID (required for alcohol service and age verification)',
-      'Cash and cards — most artists and vendors accept both',
+      'Cash and cards - most artists and vendors accept both',
       'Reference photos if you plan to get tattooed',
       'Comfortable clothing that allows access to the area being tattooed',
-      'A light jacket — convention halls can be cool',
+      'A light jacket - convention halls can be cool',
     ],
   },
   {
     title: 'Dress Code',
     items: [
-      'There is no formal dress code — wear what makes you comfortable',
+      'There is no formal dress code - wear what makes you comfortable',
       'Wear clothing you do not mind getting ink on if you are getting tattooed',
-      'Comfortable shoes are highly recommended — there is a lot to see and the venue is large',
+      'Comfortable shoes are highly recommended - there is a lot to see and the venue is large',
       'Show off your existing ink with pride',
       'Entering a tattoo contest? Wear something that lets you show the tattoo easily. Judges need clear access to the piece, and you don\'t want to be wrestling with a sleeve at the judging table.',
     ],
@@ -26,7 +26,7 @@ const TIPS = [
   {
     title: 'Getting Tattooed',
     items: [
-      'Eat a full meal before your session — do not get tattooed on an empty stomach',
+      'Eat a full meal before your session - do not get tattooed on an empty stomach',
       'Stay hydrated throughout the day',
       'Avoid alcohol before and during your tattoo session',
       'Bring a deposit if you have a pre-booked appointment with an artist',
@@ -79,7 +79,7 @@ export default function StayingPage() {
       {/* ── Where to Stay (spec §1.1) ──────────────────────────
           REPLACED "Partner Hotels" AND "How to Book Your AATC Rate".
           Those sections listed three named hotels with specific nightly rates
-          and an "AATC RATE" badge. None of it was real — there is no room
+          and an "AATC RATE" badge. None of it was real - there is no room
           block and no negotiated rate, so the page was quoting prices AATC
           cannot honour and sending people to ask hotels for a discount that
           does not exist.
@@ -97,7 +97,7 @@ export default function StayingPage() {
           >
             <p className="text-sm leading-relaxed" style={{ color: '#bbb' }}>
               Fayetteville is a military town, which means hotel group rates aren&apos;t the
-              bargain they are in most convention cities — the local market is already priced
+              bargain they are in most convention cities - the local market is already priced
               for constant government and military travel. For that reason we don&apos;t
               negotiate a room block.
             </p>
@@ -184,7 +184,7 @@ export default function StayingPage() {
                   {section.spots.map((spot) => (
                     <div key={spot.name}>
                       <p className="text-xs font-bold" style={{ color: '#C4A882' }}>{spot.name}</p>
-                      {/* Descriptions are optional — the five restaurants in §1.2
+                      {/* Descriptions are optional - the five restaurants in §1.2
                           were given as names only, and an empty <p> would leave a
                           ragged gap under half the list. */}
                       {spot.desc && (

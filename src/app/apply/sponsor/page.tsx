@@ -62,7 +62,7 @@ const TIER_PERKS: Record<SponsorTier, string[]> = {
   collectible_coin: [
     'Your logo on the collectible AATC Challenge coin (one side AATC, one side sponsor)',
     'Coin included in every artist and vendor booth package',
-    'Limited to 1,500 coins per year — only one of these sold annually',
+    'Limited to 1,500 coins per year - only one of these sold annually',
   ],
   vip_bag: [
     'Your logo printed on every VIP bag',
@@ -253,7 +253,7 @@ export default function SponsorApplicationPage() {
         return
       }
     if (!insertErr && (!insRows || insRows.length === 0)) {
-      console.error('[sponsorship application] 0 rows inserted — no error returned')
+      console.error('[sponsorship application] 0 rows inserted - no error returned')
       toast.error('Nothing was saved. Please try again or contact us.')
       return
     }
@@ -428,7 +428,7 @@ export default function SponsorApplicationPage() {
               Choose one main tier and/or add individual sponsorship items.
             </p>
 
-            {/* Main Tiers — radio behavior */}
+            {/* Main Tiers - radio behavior */}
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: '#666' }}>
               Main Tiers <span className="normal-case font-normal">(select one)</span>
             </p>
@@ -457,7 +457,7 @@ export default function SponsorApplicationPage() {
               <PerksList tier={form.tier} />
             )}
 
-            {/* Individual Items — checkbox behavior */}
+            {/* Individual Items - checkbox behavior */}
             <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider" style={{ color: '#666' }}>
               Individual Items <span className="normal-case font-normal">(select any)</span>
             </p>

@@ -115,7 +115,7 @@ export default function AdminPage() {
     <div>
       <div className="mb-8">
         <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">Dashboard</h1>
-        <p className="mt-1 text-sm" style={{ color: '#999' }}>AATC 2027 — overview</p>
+        <p className="mt-1 text-sm" style={{ color: '#999' }}>AATC 2027 - overview</p>
       </div>
 
       {/* Stats grid */}
@@ -126,7 +126,7 @@ export default function AdminPage() {
         <StatCard label="Revenue (invoiced)" value={formatCurrency(stats?.revenue ?? 0)} sub="approved applications" />
       </div>
 
-      {/* Directory funnel — the last count is a real anonymous read */}
+      {/* Directory funnel - the last count is a real anonymous read */}
       <div className="mb-8">
         <DirectoryHealth />
       </div>

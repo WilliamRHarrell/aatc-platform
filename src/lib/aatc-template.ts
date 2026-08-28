@@ -57,7 +57,7 @@ export type FormatKey = "square" | "vertical";
 
 export function buildCaption(artistName: string, ig: string) {
   const handle = ig.replace(/^@/, "");
-  return `🔥 ${artistName} (@${handle}) is tattooing at the 10th Annual All American Tattoo Convention - #AATCEAST - Fayetteville/Ft Bragg, NC, April 16–18, 2027. Book via the instructions in their bio.
+  return `🔥 ${artistName} (@${handle}) is tattooing at the 10th Annual All American Tattoo Convention - #AATCEAST - Fayetteville/Ft Bragg, NC, April 16-18, 2027. Book via the instructions in their bio.
 
 For information about the event please check out our website at www.allamericantattooconvention.com or click the link in our bio.
 

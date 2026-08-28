@@ -18,9 +18,9 @@ const JUDGES = [
 ]
 
 const PRIZES = [
-  { place: '1st Place — Miss AATC', prize: 'Custom Crown, Sash, Trophy + $500 Cash + Convention Feature' },
-  { place: '2nd Place — 1st Runner-Up', prize: 'Trophy + $250 Cash' },
-  { place: '3rd Place — 2nd Runner-Up', prize: 'Trophy + $100 Cash' },
+  { place: '1st Place - Miss AATC', prize: 'Custom Crown, Sash, Trophy + $500 Cash + Convention Feature' },
+  { place: '2nd Place - 1st Runner-Up', prize: 'Trophy + $250 Cash' },
+  { place: '3rd Place - 2nd Runner-Up', prize: 'Trophy + $100 Cash' },
 ]
 
 export default function PinupContestPage() {
@@ -76,7 +76,7 @@ export default function PinupContestPage() {
         </p>
       </div>
 
-      {/* Event Details + Entry Form — side by side */}
+      {/* Event Details + Entry Form - side by side */}
       <section className="px-4 py-12">
         <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-2">
 
