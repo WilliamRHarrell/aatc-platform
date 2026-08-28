@@ -578,6 +578,76 @@ walk-ins do not register. That caveat is rendered above the registration list in
 
   Full removal is a cutover step and is FK-ordered; see docs/CUTOVER.md section B.
 
+- **RULE: a negative assertion needs a positive control.** Any check that
+  something is absent, blocked, invisible, or rejected must be paired with a
+  check proving the query could have found something in the first place.
+  Without the control, the assertion passes when the mechanism it tests is
+  broken, when the data is missing, and when the query is simply wrong - and it
+  prints PASS in all three cases.
+
+  This is not a style preference. It happened three times in one session, in
+  three unrelated places, and every instance was silent:
+
+  1. `verify_050.sql` block G asserted anon cannot read a deactivated row, using
+     `set local role anon` as a bare statement. SET LOCAL outside a transaction
+     is a no-op, so the check ran as `postgres` - the table owner, which
+     bypasses RLS entirely. It would have reported PASS while testing nothing.
+     Fixed by moving it into a DO block and adding an active-row control.
+  2. `scripts/verify-sponsor-visibility.mjs:131` asserts anon cannot see pending
+     sponsorships. Delete the harness rows and it does not fail - it goes
+     vacuous, with no pending row left for anon to be blocked from seeing. This
+     is why the harness rows are kept; see the entry above.
+  3. The dash sweep rewrote the harness LIKE literals in `supabase/seeds/` and
+     took every teardown match from two to zero. Both teardowns then aborted
+     their preflight, and the teardown block deleted nothing while reporting
+     success. Fails closed, announces nothing.
+
+  The shape is always the same: the check looks for an absence and an absence is
+  what a broken check produces too.
+
+- **Silent success is the default failure mode of an RLS write, not an edge
+  case.** Measured on the live `page_images` table, not reasoned about: an anon
+  `PATCH` to a row it has no policy for returns **HTTP 204**, and the row is
+  unchanged. There is no 403 and no error body. PostgREST reports success
+  because the UPDATE succeeded - against zero rows, since the policy's USING
+  clause filtered the row out before the update applied.
+
+  INSERT behaves differently: the WITH CHECK clause rejects the row outright and
+  raises 42501. So the two halves of "can this role write?" fail in different
+  shapes, and only one of them is loud.
+
+  This is the exact case `guardedWrite()` (src/lib/db-write.ts) exists to catch,
+  and why it treats `0 rows affected, no error` as a failure rather than a
+  no-op. Any new write path that does not go through it needs its own row-count
+  check. Any verify block asserting a write is blocked must assert on the row
+  count, not wait for an exception that never arrives.
+
+- **OPEN: `content_editor` write access on the section 16 content tables.**
+  Migration 039 added a `content_editor` role. `page_images` (migration 050) is
+  editorial content but is scoped to admin only, as specified. There are eight
+  section 16 tables coming; the decision should be made once and applied to all
+  of them rather than per migration. Widening is one line per table:
+  `has_role(array['admin','content_editor'])` in place of `is_admin()`.
+  Held deliberately - quietly granting write access is not a decision a
+  migration should make on its own.
+
+- **The pinup entry form does not submit anywhere.**
+  `src/app/events/pinup-contest/PinupContestClient.tsx` `handleSubmit()` is a
+  stub: it waits 800ms and sets `submitted`. There is no API route, no Supabase
+  write, no table, no try/catch and no error state. The entrant is then shown
+  **"You're Registered! We'll see you backstage at 6:30 PM on Saturday."**
+
+  So a real person can fill in name, email, phone and address, be told they are
+  registered for a contest with a $500 first prize, and have nothing recorded
+  anywhere. Predates the server-shell refactor - it arrived in `2cd1448` - and
+  the refactor did not change it, but it is a live intake path on a public page
+  and should either be wired up or the form removed. Contrast with
+  `/apply/artist` and `/apply/sponsor`, which write through `guardedWrite()`.
+
+  HTML validation is present (`required` on name/email/phone, `type=email`,
+  `type=tel`), so the browser blocks empty submits. Nothing else is validated
+  and no failure is possible, because there is no request to fail.
+
 - **Dashes: the real exclusion category is data, not syntax.** The repo-wide em
   dash sweep excluded regexes, URLs and import paths - all of them syntactic.
   That list was wrong. The category that actually matters is **any string
