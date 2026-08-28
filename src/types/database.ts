@@ -856,6 +856,84 @@ export type Database = {
           },
         ]
       }
+      page_images: {
+        Row: {
+          active: boolean
+          alt: string | null
+          caption: string | null
+          created_at: string
+          id: string
+          image_path: string | null
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          alt?: string | null
+          caption?: string | null
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          alt?: string | null
+          caption?: string | null
+          created_at?: string
+          id?: string
+          image_path?: string | null
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pinup_entries: {
+        Row: {
+          address: string | null
+          age_confirmed: boolean
+          created_at: string
+          email: string
+          event_id: string
+          full_name: string
+          id: string
+          notes: string | null
+          phone: string
+          stage_name: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          age_confirmed?: boolean
+          created_at?: string
+          email: string
+          event_id: string
+          full_name: string
+          id?: string
+          notes?: string | null
+          phone: string
+          stage_name?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          age_confirmed?: boolean
+          created_at?: string
+          email?: string
+          event_id?: string
+          full_name?: string
+          id?: string
+          notes?: string | null
+          phone?: string
+          stage_name?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       page_content: {
         Row: {
           content: string | null

@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 import PublicNav from '@/components/PublicNav'
 
 const CRITERIA = [
@@ -22,7 +24,69 @@ const PRIZES = [
   { place: '3rd Place - 2nd Runner-Up', prize: 'Trophy + $100 Cash' },
 ]
 
+const FIELDS = [
+  { key: 'fullName'  as const, label: 'Full name',            type: 'text',  required: true },
+  { key: 'stageName' as const, label: 'Stage name (optional)', type: 'text',  required: false },
+  { key: 'email'     as const, label: 'Email',                type: 'email', required: true },
+  { key: 'phone'     as const, label: 'Phone',                type: 'tel',   required: true },
+  { key: 'address'   as const, label: 'Address (optional)',   type: 'text',  required: false },
+]
+
 export default function PinupContestClient({ entrySlot }: { entrySlot: React.ReactNode }) {
+  const [form, setForm] = useState({
+    fullName: '',
+    stageName: '',
+    email: '',
+    phone: '',
+    address: '',
+    ageConfirmed: '',
+  })
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  // Null until the server confirms a write. There is no optimistic success:
+  // the stub this replaced set its success flag without asking anyone.
+  const [result, setResult] = useState<'confirmed' | 'waitlist' | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setError(null)
+    setFieldErrors({})
+
+    try {
+      const res = await fetch('/api/pinup-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, ageConfirmed: form.ageConfirmed === 'yes' }),
+      })
+
+      // Parsed defensively: a 502 from the platform is HTML, not JSON, and
+      // letting that throw would surface as the network branch below and tell
+      // the entrant to check their connection when the fault is ours.
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        setError(data?.error ?? 'Something went wrong saving your entry. Please try again.')
+        if (data?.fieldErrors) setFieldErrors(data.fieldErrors)
+        return
+      }
+
+      if (data?.status === 'confirmed' || data?.status === 'waitlist') {
+        setResult(data.status)
+      } else {
+        setError('Your entry may not have saved. Please contact us before travelling.')
+      }
+    } catch {
+      setError('Could not reach the server. Check your connection and try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const inputBase = 'w-full rounded-lg px-3 py-2 text-sm text-white outline-none'
+  const inputStyle = { backgroundColor: '#2a2a2a', border: '1px solid #3a3a3a' }
+
   return (
     <div className="min-h-screen">
       <PublicNav />
@@ -120,22 +184,107 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
               style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
             >
               {entrySlot}
-              {/* INTERIM STATE - the submit path is deliberately removed.
-                  The form that stood here recorded nothing: handleSubmit() waited
-                  800ms and showed "You're Registered!" with no API route, no table
-                  and no error path, so entrants were told they had a place in a
-                  capped 25 person contest while nothing was stored anywhere.
-                  Taken down ahead of the real intake (pinup_entries) rather than
-                  left up, because a form that looks like it works is worse than no
-                  form: it stops someone from registering by another route. */}
-              <div className="py-8 text-center">
-                <p className="text-lg font-bold text-white">Registration opens soon</p>
-                <p className="mx-auto mt-3 max-w-sm text-xs leading-relaxed" style={{ color: '#999' }}>
-                  Online entry for the Miss AATC Pinup Contest is not open yet. Check back
-                  shortly - places are limited and will be filled in the order they are
-                  received.
-                </p>
-              </div>
+              {result ? (
+                <div className="py-10 text-center">
+                  <div
+                    className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
+                    style={{ backgroundColor: result === 'confirmed' ? 'rgba(34,197,94,0.15)' : 'rgba(196,168,130,0.15)' }}
+                  >
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={result === 'confirmed' ? '#22c55e' : '#C4A882'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      {result === 'confirmed'
+                        ? <polyline points="20 6 9 17 4 12" />
+                        : <><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" /></>}
+                    </svg>
+                  </div>
+                  {/* The two outcomes say different things on purpose. Telling a
+                      waitlisted entrant they are registered is the same failure
+                      as the stub this replaced: a promise of a place that does
+                      not exist. No prize amounts here - they are unconfirmed. */}
+                  {result === 'confirmed' ? (
+                    <>
+                      <p className="text-lg font-bold text-white">You&apos;re registered</p>
+                      <p className="mx-auto mt-2 max-w-sm text-sm" style={{ color: '#999' }}>
+                        The contest is Saturday at 2:00 PM on the main stage. Please check in
+                        backstage by 1:00 PM.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-lg font-bold text-white">You&apos;re on the waitlist</p>
+                      <p className="mx-auto mt-2 max-w-sm text-sm" style={{ color: '#999' }}>
+                        All 25 places are currently taken. We&apos;ll contact you if one opens up.
+                        You can also try at the contest table on the day - if fewer contestants
+                        check in than registered, places are filled from the waitlist first.
+                      </p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                  <p className="text-xs" style={{ color: '#666' }}>
+                    Entry is free. Fields marked * are required.
+                  </p>
+
+                  {error && (
+                    <div
+                      className="rounded-lg px-3 py-2 text-xs"
+                      style={{ backgroundColor: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: '#fca5a5' }}
+                      role="alert"
+                    >
+                      {error}
+                    </div>
+                  )}
+
+                  {FIELDS.map(f => (
+                    <div key={f.key}>
+                      <label htmlFor={f.key} className="mb-1 block text-xs" style={{ color: '#999' }}>
+                        {f.label}{f.required && ' *'}
+                      </label>
+                      <input
+                        id={f.key}
+                        type={f.type}
+                        value={form[f.key]}
+                        onChange={e => setForm({ ...form, [f.key]: e.target.value })}
+                        className={inputBase}
+                        style={{ ...inputStyle, borderColor: fieldErrors[f.key] ? '#ef4444' : '#3a3a3a' }}
+                        aria-invalid={Boolean(fieldErrors[f.key])}
+                        aria-describedby={fieldErrors[f.key] ? `${f.key}-error` : undefined}
+                      />
+                      {fieldErrors[f.key] && (
+                        <p id={`${f.key}-error`} className="mt-1 text-xs" style={{ color: '#fca5a5' }}>
+                          {fieldErrors[f.key]}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Explicit, never inferred. Stored as age_confirmed. */}
+                  <div>
+                    <label className="flex items-start gap-2 text-xs" style={{ color: '#999' }}>
+                      <input
+                        type="checkbox"
+                        checked={form.ageConfirmed === 'yes'}
+                        onChange={e => setForm({ ...form, ageConfirmed: e.target.checked ? 'yes' : '' })}
+                        className="mt-0.5"
+                        aria-invalid={Boolean(fieldErrors.ageConfirmed)}
+                      />
+                      <span>I confirm I am 18 years of age or older. *</span>
+                    </label>
+                    {fieldErrors.ageConfirmed && (
+                      <p className="mt-1 text-xs" style={{ color: '#fca5a5' }}>{fieldErrors.ageConfirmed}</p>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full rounded-lg py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                    style={{ backgroundColor: '#8B7355' }}
+                  >
+                    {submitting ? 'Submitting...' : 'Register for the Pinup Contest'}
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         </div>
