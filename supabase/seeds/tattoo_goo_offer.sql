@@ -1,19 +1,19 @@
 -- ============================================================
--- Tattoo Goo — correct the record to reflect an OPEN OFFER
+-- Tattoo Goo - correct the record to reflect an OPEN OFFER
 --
 -- They were offered Gold at the grandfathered $3,000 and have not responded.
 -- The row says status = 'confirmed', which is wrong, and more exposed than it
 -- looks:
 --
 --   The public read policy (migration 030) is `status = 'confirmed'`, full stop.
---   /sponsors queries event_id + status='confirmed' and NOTHING ELSE — no
+--   /sponsors queries event_id + status='confirmed' and NOTHING ELSE - no
 --   placement flag is involved. So a confirmed sponsorship on the ACTIVE event
 --   appears in the public sponsor directory immediately.
 --
 -- Tattoo Goo is currently invisible only because the row still sits on the
 -- INACTIVE event. That is luck, not protection. Re-pointing it to the active
 -- event while status='confirmed' would publish them as a 2027 sponsor the
--- moment the page revalidated — without anyone ticking featured_footer or
+-- moment the page revalidated - without anyone ticking featured_footer or
 -- show_on_homepage.
 --
 -- Setting status='pending' removes them from the public policy's reach
@@ -41,13 +41,13 @@ begin
    where s.sponsor_name = 'Tattoo Goo';
 
   if v_status is null then
-    raise exception 'ABORT — Tattoo Goo row not found.';
+    raise exception 'ABORT - Tattoo Goo row not found.';
   end if;
   if v_status <> 'pending' then
-    raise exception 'FAILED — status is "%", expected pending. Rolled back.', v_status;
+    raise exception 'FAILED - status is "%", expected pending. Rolled back.', v_status;
   end if;
   if v_amount <> 300000 then
-    raise warning 'Tattoo Goo amount is % — expected 300000 ($3,000). Not changed by this script.', v_amount;
+    raise warning 'Tattoo Goo amount is % - expected 300000 ($3,000). Not changed by this script.', v_amount;
   end if;
 
   raise notice '';
@@ -61,7 +61,7 @@ commit;
 
 
 -- ════════════════════════════════════════════════════════════
--- HELD — run only when they ACCEPT. Three steps, in this order.
+-- HELD - run only when they ACCEPT. Three steps, in this order.
 -- ════════════════════════════════════════════════════════════
 /*
 begin;
@@ -73,7 +73,7 @@ update sponsorships
  where sponsor_name = 'Tattoo Goo' and amount = 300000;
 
 -- 2. Move to the active event and confirm. This alone publishes them to
---    /sponsors — the directory needs no placement flag.
+--    /sponsors - the directory needs no placement flag.
 update sponsorships
    set event_id = (select id from events where is_active = true),
        status   = 'confirmed',
@@ -92,7 +92,7 @@ begin
     from sponsorships s join events e on e.id = s.event_id
    where s.sponsor_name = 'Tattoo Goo';
   if not v_locked or v_status <> 'confirmed' or not v_active then
-    raise exception 'FAILED — locked=% status=% active_event=%. Rolled back.', v_locked, v_status, v_active;
+    raise exception 'FAILED - locked=% status=% active_event=%. Rolled back.', v_locked, v_status, v_active;
   end if;
   raise notice 'Tattoo Goo confirmed on the active event at a locked $3,000. Now public on /sponsors.';
 end $$;

@@ -7,7 +7,7 @@ import type { Database } from '@/types/database'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://aatc-platform.vercel.app'
 
 export async function POST(req: Request) {
-  // Auth check — caller must be an admin
+  // Auth check - caller must be an admin
   const cookieStore = await cookies()
   const userClient = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

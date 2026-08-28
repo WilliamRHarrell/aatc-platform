@@ -1,5 +1,5 @@
 -- ============================================================
--- ⚠  RUN ONE LETTERED BLOCK AT A TIME — DO NOT RUN THIS FILE WHOLE.
+-- ⚠  RUN ONE LETTERED BLOCK AT A TIME - DO NOT RUN THIS FILE WHOLE.
 --
 -- The Supabase SQL Editor displays only the LAST statement's result. Running
 -- the whole file returns the final query and silently discards every check
@@ -11,16 +11,16 @@
 -- each block, usually as a `want:` comment or an `expected` column.
 --
 -- A few blocks are marked `(2 queries)` and contain a second statement labelled
--- `X2 of 2`. Run those separately too — the same last-statement-wins rule
+-- `X2 of 2`. Run those separately too - the same last-statement-wins rule
 -- applies inside a block.
 -- ============================================================
 
 -- ============================================================
--- VERIFY 049 — run after the migration. Nothing mutates.
+-- VERIFY 049 - run after the migration. Nothing mutates.
 --
 -- Query A: every policy on sponsorships, for the record.     ← the standing rule
 -- Query B: the owner UPDATE policy is scoped both ways.
--- Query C: THE ALLOW-LIST — the clamp keeps only seven fields. ← CENTREPIECE
+-- Query C: THE ALLOW-LIST - the clamp keeps only seven fields. ← CENTREPIECE
 -- Query D: the insert clamp closes the self-link hole.
 -- Query E: both triggers installed, enabled, and ordered correctly.
 -- Query F: nothing is already self-linked.                   ← check before trusting
@@ -43,7 +43,7 @@ select policyname, cmd, permissive, roles::text,
 -- want: 1 row, BOTH qual and with_check present and equal to user_id = auth.uid().
 -- A null with_check would let a linked sponsor reassign user_id to someone else
 -- on the way out. (The clamp also restores user_id, so this is belt and braces
--- — but the policy should not depend on the trigger.)
+-- - but the policy should not depend on the trigger.)
 select policyname, qual as using_expr, with_check as with_check_expr,
        'want both non-null' as expected
   from pg_policies
@@ -51,7 +51,7 @@ select policyname, qual as using_expr, with_check as with_check_expr,
    and policyname = 'sponsorships: own update';
 
 
--- ── C. CENTREPIECE — the clamp is an ALLOW-LIST ──── (2 queries) ─
+-- ── C. CENTREPIECE - the clamp is an ALLOW-LIST ──── (2 queries) ─
 -- 049 inverts 041 deliberately: NEW is rebuilt from OLD and only the listed
 -- keys are taken from the submitted row, so a column added to sponsorships
 -- later is protected by DEFAULT rather than editable by default.
@@ -72,7 +72,7 @@ select p.proname,
  where n.nspname = 'public'
    and p.proname = 'sponsorships_protect_commercial_columns';
 
--- C2 of 2 — run separately.
+-- C2 of 2 - run separately.
 -- The allowed set, spelled out. want: all seven true, and all nine false.
 select
   regexp_replace(p.prosrc, '\s+', ' ', 'g') like '%''contact_name''%' as allows_contact_name,
@@ -102,8 +102,8 @@ select
 -- ── D. The insert clamp ─────────────────────────────────────
 -- "Anyone can submit sponsor application" is with check (status = 'pending'),
 -- which constrains ONE column. Without this trigger a public submission can set
--- user_id — SELF-LINKING itself past the admin linking step and granting itself
--- the owner UPDATE that 049 just created — and amount_locked, the flag designed
+-- user_id - SELF-LINKING itself past the admin linking step and granting itself
+-- the owner UPDATE that 049 just created - and amount_locked, the flag designed
 -- to resist price correction.
 -- want: all true.
 select
@@ -123,7 +123,7 @@ select
 -- want: 3 rows, all tgenabled = 'O'.
 -- Ordering matters for the two BEFORE UPDATE triggers: PostgreSQL fires
 -- same-timing triggers ALPHABETICALLY, so sponsorships_protect_commercial_
--- columns_trg must sort before sponsorships_updated_at. 'p' < 'u', so it does —
+-- columns_trg must sort before sponsorships_updated_at. 'p' < 'u', so it does -
 -- the clamp rebuilds the row first and updated_at is stamped afterwards. If the
 -- clamp ran second it would restore the OLD updated_at and the column would
 -- freeze.
@@ -151,7 +151,7 @@ select s.id, s.sponsor_name, s.status, s.tier, s.amount, s.amount_locked,
  where s.user_id is not null
  order by s.created_at desc;
 
--- F2 of 2 — run separately.
+-- F2 of 2 - run separately.
 -- Also worth a look: any row that arrived with a placement flag or a lock
 -- already set. want: 0 rows other than ones staff set deliberately.
 select id, sponsor_name, status, amount, amount_locked, is_in_kind,
@@ -163,7 +163,7 @@ select id, sponsor_name, status, amount, amount_locked, is_in_kind,
 
 
 -- ============================================================
--- STILL UNVERIFIED — the behaviour.
+-- STILL UNVERIFIED - the behaviour.
 --
 -- Test with a real linked, NON-ADMIN sponsor account:
 --   1. edit website / instagram / phone in /portal  → saves, visible on /sponsors

@@ -31,13 +31,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // ── Kill switch — default OFF ───────────────────────────────
+  // ── Kill switch - default OFF ───────────────────────────────
   // This sweep does not merely send reminders: it flips applications to
   // expired/canceled AND releases their booths, and the booth release is not
   // reversible from inside the platform (no assignment history is kept).
   //
   // Its target profile is "approved application whose invoice has no
-  // deposit_paid_at" — which is exactly an exhibitor who paid through a Stripe
+  // deposit_paid_at" - which is exactly an exhibitor who paid through a Stripe
   // invoice outside the platform. Set LIFECYCLE_SWEEP_ENABLED=true only once
   // those payments are recorded against their invoices.
   if (process.env.LIFECYCLE_SWEEP_ENABLED !== 'true') {
@@ -50,7 +50,7 @@ export async function GET(req: Request) {
   // ── Second gate: the destructive branches ───────────────────
   // Staged arming. LIFECYCLE_SWEEP_ENABLED turns the sweep on; this turns on
   // the two branches that expire applications and RELEASE BOOTHS. Booth release
-  // is irreversible — there is no assignment history table — so the first live
+  // is irreversible - there is no assignment history table - so the first live
   // run must not be the first real test. Run reminders-only for a full cycle,
   // confirm the right people were warned and nobody else was, then set this.
   const destructive = process.env.LIFECYCLE_SWEEP_DESTRUCTIVE === 'true'
@@ -72,7 +72,7 @@ export async function GET(req: Request) {
   }
 
   // ── 1. Expire un-deposited applications past deposit_due_at ──
-  // DESTRUCTIVE — releases booths. Counted but not acted on until the flag is set.
+  // DESTRUCTIVE - releases booths. Counted but not acted on until the flag is set.
   const { data: toExpire } = await supabase
     .from('applications')
     .select('id, business_name, invoices!inner(id, deposit_paid_at)')
@@ -88,7 +88,7 @@ export async function GET(req: Request) {
     }
     // One RPC, one transaction (migration 035). Previously two round trips:
     // a failure between them left the application expired with its booth still
-    // assigned — held by an expired application, invisible to both the
+    // assigned - held by an expired application, invisible to both the
     // available-booths view and the exhibitor.
     const { error } = await supabase.rpc('expire_application', { p_application_id: app.id })
     if (error) {

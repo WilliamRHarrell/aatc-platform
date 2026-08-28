@@ -6,14 +6,14 @@
  *   node scripts/test-payment-alert.mjs
  *
  * Sends the same subject/body shape the webhook sends, via the same Resend
- * setup, to the same resolved address — prefixed [TEST] so it cannot be
+ * setup, to the same resolved address - prefixed [TEST] so it cannot be
  * mistaken for a real incident.
  *
  * WHAT THIS DOES AND DOES NOT PROVE
  *   proves    Resend key valid, from-address accepted, PAYMENT_ALERT_EMAIL
  *             resolves, message arrives, not spam-filtered, readable on mobile
  *   does NOT  that the webhook's zero-row branch fires. That needs a real
- *             Stripe event — see the Stripe CLI recipe at the bottom.
+ *             Stripe event - see the Stripe CLI recipe at the bottom.
  */
 import { readFileSync, existsSync } from 'node:fs'
 
@@ -27,11 +27,11 @@ if (existsSync(`${ROOT}.env.local`)) {
 
 const key = process.env.RESEND_API_KEY
 const from = process.env.RESEND_FROM_EMAIL
-const to = process.env.PAYMENT_ALERT_EMAIL // no fallback — see the webhook
+const to = process.env.PAYMENT_ALERT_EMAIL // no fallback - see the webhook
 
 console.log('  RESEND_API_KEY      :', key ? 'set' : 'MISSING')
 console.log('  RESEND_FROM_EMAIL   :', from ?? 'MISSING')
-console.log('  PAYMENT_ALERT_EMAIL :', process.env.PAYMENT_ALERT_EMAIL ?? 'UNSET — the webhook will refuse to alert')
+console.log('  PAYMENT_ALERT_EMAIL :', process.env.PAYMENT_ALERT_EMAIL ?? 'UNSET - the webhook will refuse to alert')
 console.log('  resolved recipient  :', to ?? 'NONE')
 
 if (!key || !from || !to) {
@@ -51,7 +51,7 @@ const res = await fetch('https://api.resend.com/emails', {
   body: JSON.stringify({
     from,
     to,
-    subject: `[TEST] [AATC] PAYMENT NOT RECORDED — invoice ${fake.invoiceId}`,
+    subject: `[TEST] [AATC] PAYMENT NOT RECORDED - invoice ${fake.invoiceId}`,
     text:
       'THIS IS A TEST. No payment was taken and nothing is wrong.\n' +
       'Sent by scripts/test-payment-alert.mjs to confirm the alert path works.\n\n' +
@@ -65,7 +65,7 @@ const res = await fetch('https://api.resend.com/emails', {
 })
 
 if (!res.ok) {
-  console.error(`\nFAILED — HTTP ${res.status}: ${await res.text()}`)
+  console.error(`\nFAILED - HTTP ${res.status}: ${await res.text()}`)
   process.exit(1)
 }
 console.log(`\nSent. Check ${to} (including spam).`)

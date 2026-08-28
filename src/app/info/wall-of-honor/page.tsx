@@ -2,15 +2,15 @@
 
 import PublicNav from '@/components/PublicNav'
 
-// REMOVED 2026-08-27: this held three fabricated fallen service members —
-// full names, ranks, units, service dates and family-voice tributes — rendered
+// REMOVED 2026-08-27: this held three fabricated fallen service members -
+// full names, ranks, units, service dates and family-voice tributes - rendered
 // under "In Memoriam" on the page Gold Star families are invited to submit to.
 // Invented dead soldiers presented as real is the worst instance of the
 // placeholder-human pattern in this codebase.
 //
 // NO PLACEHOLDER HUMANS. Nothing goes in this array that is not a real,
 // family-confirmed honoree. Ship the empty state until then. When the CMS table
-// lands, seed it EMPTY — do not migrate anything from git history.
+// lands, seed it EMPTY - do not migrate anything from git history.
 const FEATURED_HONOREES: { name: string; branch: string; years: string; tribute: string }[] = []
 
 const SUBMISSION_FIELDS = [

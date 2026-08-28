@@ -5,9 +5,9 @@ import PublicNav from '@/components/PublicNav'
 /**
  * 2027 IS TEAM STRONGMAN ONLY.
  *
- * This page previously listed six individual events — Deadlift Challenge, Arm
+ * This page previously listed six individual events - Deadlift Challenge, Arm
  * Wrestling, Grip Strength, Atlas Stone Carry, Keg Toss and a military-vehicle
- * Truck Pull — with formats, weight classes and rules. None of that is running.
+ * Truck Pull - with formats, weight classes and rules. None of that is running.
  * Dead-lift and bench were dropped for 2027 and the event is now a team
  * competition whose lineup has not been announced.
  *

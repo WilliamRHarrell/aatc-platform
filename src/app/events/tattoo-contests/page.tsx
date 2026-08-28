@@ -4,17 +4,17 @@ import Link from 'next/link'
 import PublicNav from '@/components/PublicNav'
 
 /**
- * The real 2027 category list — 49 categories, from the source graphic
+ * The real 2027 category list - 49 categories, from the source graphic
  * (spec §6.4). What was here before was six invented categories per day with
  * names that do not exist ("Best Biomechanical", "People's Choice").
  *
  * TEMPORARY HOME. §16.10 moves these into the database, because contest
  * registration, entry records and judging all need to reference a category by
  * ID. They are inlined here only so the page stops showing the wrong list
- * today — the copy fix ships ahead of the schema work, per §0.2. When the
+ * today - the copy fix ships ahead of the schema work, per §0.2. When the
  * table lands this constant is deleted, not synchronised.
  *
- * DAY ASSIGNMENTS ARE UNCONFIRMED — the source graphic is titled "2026 AATC
+ * DAY ASSIGNMENTS ARE UNCONFIRMED - the source graphic is titled "2026 AATC
  * East" and §17.2 asks Ryan to confirm the Fri/Sat/Sun splits carry over
  * before registration is wired to them.
  */
@@ -80,13 +80,13 @@ const CATEGORIES: Record<string, string[]> = {
  * §6.3. Four of the eight rules previously on this page were wrong, and two of
  * them were wrong in a way that would have cost an entrant money:
  *
- * - "may only be entered in one category per day" — there is NO limit.
+ * - "may only be entered in one category per day" - there is NO limit.
  *     Someone reading that enters once instead of five times.
  * - "AATC reserves the right to reassign entries to a more appropriate
- *     category" — admins never move an entry after submission.
+ *     category" - admins never move an entry after submission.
  * - the under-18 rule implied minors could enter with a guardian present.
  *     They cannot; the only exception is the Kids' Temporary Tattoo Contest.
- * - entries had to be "done at the convention or healed work" — fresh or
+ * - entries had to be "done at the convention or healed work" - fresh or
  *     healed is fine, except for Tattoo of the Day and Best in Show.
  *
  * Numbering is positional in the render, so the list renumbers itself.
@@ -103,7 +103,7 @@ const RULES = [
 
 /**
  * Emptied. The four entries here were named "Judge TBA" but carried invented
- * biographies — "Award-winning tattoo artist with over 20 years", "multiple
+ * biographies - "Award-winning tattoo artist with over 20 years", "multiple
  * Best of Show winner". Placeholder names with real-sounding credentials are
  * still fabrication, and this is a page artists decide whether to enter based
  * on who is judging.

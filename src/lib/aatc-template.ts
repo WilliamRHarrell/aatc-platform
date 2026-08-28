@@ -3,7 +3,7 @@
 // 1242x2208 template. Do not change without re-measuring against /public/aatc.
 
 // ---------------------------------------------------------------------------
-// SQUARE FORMAT (1024x1024) — Facebook, X, GMB, Instagram
+// SQUARE FORMAT (1024x1024) - Facebook, X, GMB, Instagram
 // ---------------------------------------------------------------------------
 export const CANVAS_SIZE = 1024;
 
@@ -22,7 +22,7 @@ export const NAME = { rightX: 980, centerY: 70, maxW: 410, startSize: 56, minSiz
 export const IG = { rightX: 945, centerY: 123, maxW: 375, startSize: 27, minSize: 15, tracking: 1 };
 
 // ---------------------------------------------------------------------------
-// VERTICAL FORMAT (1242x2208, 9:16) — TikTok
+// VERTICAL FORMAT (1242x2208, 9:16) - TikTok
 // Every slide uses ONE template: slide 1 = artist photo, slides 2-4 = tattoos.
 // No grid, no separate announcement template.
 // ---------------------------------------------------------------------------
@@ -43,7 +43,7 @@ export const TEMPLATE_SRC = {
 };
 
 // ---------------------------------------------------------------------------
-// CHANNEL ROUTING — which format each Postiz channel receives.
+// CHANNEL ROUTING - which format each Postiz channel receives.
 // ---------------------------------------------------------------------------
 export const CHANNELS = {
   facebook: { id: "cmpeo33qx03mzlg0y8oauzo5q", format: "square" as const },

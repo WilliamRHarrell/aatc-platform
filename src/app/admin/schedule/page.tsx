@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * /admin/schedule — CRUD for the 2027 programme.
+ * /admin/schedule - CRUD for the 2027 programme.
  *
  * Closes the deliberate gap from migration 044: schedule_items shipped seeded
  * by SQL with an is_admin() policy and no UI, so changing the schedule meant
@@ -17,7 +17,7 @@
  *
  * Every write is wrapped in guardedWrite(). The policy on schedule_items is
  * is_admin(), so a content_editor's write is filtered to zero rows and returns
- * error: null — success-looking and completely inert.
+ * error: null - success-looking and completely inert.
  */
 
 import { useEffect, useState } from 'react'
@@ -130,8 +130,8 @@ export default function AdminSchedulePage() {
         .eq('event_id', event.id)
         .order('day_date').order('start_time').order('sort_order'),
       // Only CONFIRMED sponsorships are offered. Linking an unconfirmed one
-      // would resolve to the fallback anyway — schedule_items_public joins on
-      // status='confirmed' — so offering it would just look broken.
+      // would resolve to the fallback anyway - schedule_items_public joins on
+      // status='confirmed' - so offering it would just look broken.
       supabase
         .from('sponsorships')
         .select('id, sponsor_name, tier')

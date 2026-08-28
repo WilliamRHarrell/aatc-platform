@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     'Applications for AATC 2027 are open. Apply for artist and vendor booths, food trucks, the tattoo contests, the Miss All American Pin-Up Contest, and sponsorships.',
 }
 
-/** Show dates live in src/lib/event-config.ts — do not re-declare them here. */
+/** Show dates live in src/lib/event-config.ts - do not re-declare them here. */
 const CONVENTION_START = DOORS_OPEN_ISO
 
 const CALENDAR_HREF = `data:text/calendar;charset=utf-8,${encodeURIComponent(

@@ -8,10 +8,10 @@
  * the sole publish gate everywhere else on the site.
  *
  * Three states, all valid:
- *   linked   — a confirmed sponsorship is attached; render the name as a link
- *   fallback — the credit is agreed but no sponsorship row exists yet; render
+ *   linked - a confirmed sponsorship is attached; render the name as a link
+ *   fallback - the credit is agreed but no sponsorship row exists yet; render
  *              it as plain text so the schedule ships rather than breaking
- *   none     — no credit; render nothing at all, not an empty slot
+ *   none - no credit; render nothing at all, not an empty slot
  */
 interface PresentedByProps {
   name: string | null

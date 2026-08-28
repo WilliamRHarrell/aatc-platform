@@ -90,7 +90,7 @@ const TIER_RANK: Record<string, number> = {
   collectible_coin: 5, vip_bag: 6, collectors_choice: 7, artist_lounge: 8, rafter_banner: 9,
 }
 
-/** Logos sized by tier — Title and Platinum read noticeably larger. */
+/** Logos sized by tier - Title and Platinum read noticeably larger. */
 const TIER_SIZE: Record<string, number> = { title: 200, platinum: 160 }
 const DEFAULT_TIER_SIZE = 116
 
@@ -104,7 +104,7 @@ const getHomepageData = unstable_cache(
     const { data: event } = await supabase.from('events').select('id').eq('is_active', true).single()
     if (!event) return { sponsors: [], panels: [] }
 
-    // No join into `invoices` — that subquery is what triggers the RLS
+    // No join into `invoices` - that subquery is what triggers the RLS
     // recursion (see migration 027). Placement is decided by admin-set columns
     // on sponsorships, which also lets trade/in-kind sponsors appear.
     const [{ data: sponsorRows, error: sponsorErr }, { data: panelRows, error: panelErr }] = await Promise.all([
@@ -121,7 +121,7 @@ const getHomepageData = unstable_cache(
         .limit(4),
     ])
 
-    // Degrade to an empty grid rather than throwing — but say so in the logs.
+    // Degrade to an empty grid rather than throwing - but say so in the logs.
     // Silently swallowing this is how "I ticked the box and nothing appeared"
     // becomes undiagnosable. Common causes: migration 027 not applied yet
     // (42703 undefined_column), or an RLS recursion (42P17).
@@ -405,7 +405,7 @@ export default async function HomePage() {
               ))}
             </div>
           ) : (
-            /* No fabricated speakers or topics — fake names on a live page is a
+            /* No fabricated speakers or topics - fake names on a live page is a
                credibility problem with the artist community. */
             <div className="grid gap-4 sm:grid-cols-2">
               {[0, 1, 2].map(i => (

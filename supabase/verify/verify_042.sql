@@ -1,5 +1,5 @@
 -- ============================================================
--- ⚠  RUN ONE LETTERED BLOCK AT A TIME — DO NOT RUN THIS FILE WHOLE.
+-- ⚠  RUN ONE LETTERED BLOCK AT A TIME - DO NOT RUN THIS FILE WHOLE.
 --
 -- The Supabase SQL Editor displays only the LAST statement's result. Running
 -- the whole file returns the final query and silently discards every check
@@ -11,12 +11,12 @@
 -- each block, usually as a `want:` comment or an `expected` column.
 --
 -- A few blocks are marked `(2 queries)` and contain a second statement labelled
--- `X2 of 2`. Run those separately too — the same last-statement-wins rule
+-- `X2 of 2`. Run those separately too - the same last-statement-wins rule
 -- applies inside a block.
 -- ============================================================
 
 -- ============================================================
--- VERIFY 042 — run after the migration. Read the results; nothing mutates.
+-- VERIFY 042 - run after the migration. Read the results; nothing mutates.
 --
 -- 042 added booth inventory flags (is_sellable / house_use), marked four booths
 -- non-sellable per the 2024 floor plan, and rewrote the public booth policy to
@@ -61,14 +61,14 @@ select policyname, cmd, roles::text,
    and policyname = 'booths: public read deposit-paid';
 
 
--- ── C. EYEBALL THIS — the non-sellable set ──────────────────
--- want: exactly 4 rows for the active event —
+-- ── C. EYEBALL THIS - the non-sellable set ──────────────────
+-- want: exactly 4 rows for the active event -
 --   108 AATC Help Desk
 --   241 Merch & Contest Registration
 --   166 Does not exist on the floor plan
 --   233 Does not exist on the floor plan
 --
--- If a booth number is missing here, the UPDATE matched nothing — 042's updates
+-- If a booth number is missing here, the UPDATE matched nothing - 042's updates
 -- are unguarded `update ... where booth_number = '...'` with no row-count
 -- assertion, so a booth_number stored as '108 ' or 'A108' would silently skip.
 select b.booth_number, b.is_sellable, b.house_use
@@ -80,7 +80,7 @@ select b.booth_number, b.is_sellable, b.house_use
 
 
 -- ── D. Sellable inventory ───────────────────────────────────
--- want: total 267, non_sellable 4, sellable 263 — assuming the duplicate
+-- want: total 267, non_sellable 4, sellable 263 - assuming the duplicate
 -- 267-booth set removed in the teardown is in fact gone. A total of 534 means
 -- it is not.
 select count(*)                                as total_booths,
@@ -92,10 +92,10 @@ select count(*)                                as total_booths,
  where e.is_active;
 
 
--- ── E. THE LIVE RISK — non-sellable booths must not be assigned ─
+-- ── E. THE LIVE RISK - non-sellable booths must not be assigned ─
 -- 042 added the flags but did not clear any assignment that already existed on
 -- a booth it marked non-sellable. If /admin/booths assigned the Help Desk to an
--- exhibitor before 042 ran, that assignment is still there — now invisible to
+-- exhibitor before 042 ran, that assignment is still there - now invisible to
 -- the public policy (B correctly hides it) AND invisible to the exhibitor,
 -- while still occupying the booth. Silent either way.
 -- want: 0 rows.
@@ -126,11 +126,11 @@ select indexname, indexdef
 --    (HANDOFF §5) is blocked on the same document. Re-run C against it.
 --
 -- 2. THE OWNER READ PATH. 042 dropped 001's `booths: public read using (true)`,
---    which had been silently carrying owner reads — an approved-but-unpaid
+--    which had been silently carrying owner reads - an approved-but-unpaid
 --    exhibitor could no longer see their own booth. Migration 043 added
 --    "booths: own read" to restore it. That policy EXISTS but has never been
 --    exercised: no booth currently has an application_id (E returns 0 rows for
 --    that reason too, which is why E passing today proves less than it looks).
---    Re-test with an approved, UNPAID exhibitor once one exists — a paid one is
+--    Re-test with an approved, UNPAID exhibitor once one exists - a paid one is
 --    covered by the deposit-gated policy and passes either way.
 -- ============================================================

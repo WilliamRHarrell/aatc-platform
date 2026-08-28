@@ -6,12 +6,12 @@ import { createServerClient } from '@/lib/supabase-server'
  * Admin-only cache purge.
  *
  * The public pages are statically prerendered with a 60s revalidate window, so
- * an admin edit would otherwise take up to a minute — and, on a fresh deploy
+ * an admin edit would otherwise take up to a minute - and, on a fresh deploy
  * with no traffic, could sit stale much longer. Admin screens call this after a
  * save so the change is visible immediately rather than "eventually".
  *
  * Auth: session cookie must belong to a profile with role='admin'. Deliberately
- * not a shared-secret endpoint — this runs from the browser after an admin save.
+ * not a shared-secret endpoint - this runs from the browser after an admin save.
  */
 const ALLOWED_PATHS = new Set(['/', '/apply', '/tickets', '/contests', '/sponsors'])
 const ALLOWED_TAGS = new Set(['page_content', 'sponsors', 'panels', 'contests'])
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   try {
     body = await request.json()
   } catch {
-    // No body — fall through to defaults below.
+    // No body - fall through to defaults below.
   }
 
   const paths = (body.paths ?? ['/']).filter(p => ALLOWED_PATHS.has(p))
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
   paths.forEach(p => revalidatePath(p))
   // Next.js 16 requires a cache-life profile; expire: 0 purges immediately.
-  // Needed as well as revalidatePath — the pages read through unstable_cache,
+  // Needed as well as revalidatePath - the pages read through unstable_cache,
   // which revalidatePath alone would leave serving stale data for up to 60s.
   tags.forEach(t => revalidateTag(t, { expire: 0 }))
 

@@ -2,7 +2,7 @@
 /**
  * Prove all nine transactional templates actually deliver.
  *
- * Every one has been failing since launch — the sandbox sender refused any
+ * Every one has been failing since launch - the sandbox sender refused any
  * recipient but the account owner, and not one call site checked the response.
  * This is the gate before LIFECYCLE_SWEEP_ENABLED is ever set, because the
  * sweep releases booths on the assumption that its warnings arrived.
@@ -17,13 +17,13 @@
  *   3. Tears the records down again unless --keep.
  *
  * WHY IT SEEDS RATHER THAN USING REAL ROWS
- *   The templates read live data — business name, booth description, amounts,
- *   due dates — so a dry run against fabricated payloads would prove the
+ *   The templates read live data - business name, booth description, amounts,
+ *   due dates - so a dry run against fabricated payloads would prove the
  *   transport and not the template. Seeding exercises the real query path with
  *   data shaped like production, and redirects delivery to one inbox you watch.
  *
  * A PASS HERE MEANS: the API accepted it and Resend queued it. You must still
- * confirm each arrives — check the inbox, and check spam. The script prints a
+ * confirm each arrives - check the inbox, and check spam. The script prints a
  * checklist to tick off.
  */
 import { readFileSync, existsSync } from 'node:fs'
@@ -144,9 +144,9 @@ if (failed.length) {
 }
 
 console.log(`\n  Now open ${TO} and tick each one off. API-accepted is NOT delivered.`)
-for (const r of results) console.log(`    [ ] ${r.name}${r.ok ? '' : '   (never sent — fix first)'}`)
+for (const r of results) console.log(`    [ ] ${r.name}${r.ok ? '' : '   (never sent - fix first)'}`)
 console.log('\n  Check spam as well as inbox. All nine must arrive before')
-console.log('  LIFECYCLE_SWEEP_ENABLED is set — the sweep releases booths on the')
+console.log('  LIFECYCLE_SWEEP_ENABLED is set - the sweep releases booths on the')
 console.log('  assumption that its warnings were delivered.')
 
 process.exit(failed.length ? 1 : 0)

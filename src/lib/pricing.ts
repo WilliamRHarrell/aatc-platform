@@ -51,8 +51,8 @@ const ADDON_PRICES: Record<AddOnKind, Record<string, number>> = {
  * Prior-year prices, kept for the returning-exhibitor import screen only.
  *
  * DECISION: these live here rather than as static label text. They are real
- * pricing data that the import screen compares against, and the alternative —
- * baked into a label string — is exactly how the sponsor tiers came to disagree
+ * pricing data that the import screen compares against, and the alternative -
+ * baked into a label string - is exactly how the sponsor tiers came to disagree
  * with the packet. A prior-year map is also where next year's rollover belongs:
  * move 2027 in here when 2028 pricing lands, rather than editing prose.
  */
@@ -64,7 +64,7 @@ export const PRIOR_YEAR_PRICES = {
   vendorDouble: 70000,
 } as const
 
-/** Booth options for the application forms — the single source for both. */
+/** Booth options for the application forms - the single source for both. */
 export const ARTIST_BOOTH_OPTIONS = [
   { kind: 'single' as const, label: 'Single', sqft: '10×10', price: ARTIST_SINGLE_PRICE },
   { kind: 'double' as const, label: 'Double', sqft: '10×20', price: ARTIST_DOUBLE_PRICE },
@@ -75,7 +75,7 @@ export const VENDOR_BOOTH_OPTIONS = [
   { kind: 'double' as const, label: 'Double', sqft: '10×20', price: VENDOR_DOUBLE_PRICE },
 ]
 
-/** "$800" — for labels. Never hand-write the dollar figure. */
+/** "$800" - for labels. Never hand-write the dollar figure. */
 export function usd(cents: number): string {
   return `$${(cents / 100).toLocaleString('en-US')}`
 }
@@ -116,7 +116,7 @@ export function addOnOptions(): AddOnOption[] {
   })
 }
 
-/** "−$150 — thank you for your service" style copy, derived. */
+/** "−$150 - thank you for your service" style copy, derived. */
 export const VETERAN_DISCOUNT_LABEL = `−${usd(VETERAN_DISCOUNT)}`
 export const PERMIT_FEE_LABEL = usd(PERMIT_FEE_PER_ARTIST)
 export const CORNER_FEE_LABEL = usd(CORNER_FEE)
@@ -217,7 +217,7 @@ export function calculatePricing(o: PricingOptions): PricingBreakdown {
   }
 }
 
-// Legacy shim — given a 2026 application row's stored fields, return its total.
+// Legacy shim - given a 2026 application row's stored fields, return its total.
 // Used by admin views / reports that read historical (pre-2027) applications.
 export function legacyPriceFor(opts: {
   exhibitorType: ExhibitorType

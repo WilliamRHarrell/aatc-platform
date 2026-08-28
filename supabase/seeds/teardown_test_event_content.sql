@@ -1,5 +1,5 @@
 -- ============================================================
--- TEST CONTENT TEARDOWN — the March 2026 test data on the inactive event
+-- TEST CONTENT TEARDOWN - the March 2026 test data on the inactive event
 --
 -- ONE transaction. Scope:
 --   5 panels (all is_published = true)
@@ -25,10 +25,10 @@
 -- two parentless invoices (pre-033).
 --
 -- ── PROTECTED, WITH ABORTS ──────────────────────────────────
---   sponsorship  32ef207d  Tattoo Goo ($3,000, confirmed) — real
+--   sponsorship  32ef207d  Tattoo Goo ($3,000, confirmed) - real
 --   invoice      d5f1c5f3  its invoice
---   sponsorship  8a7cd934  ZZ TEST — RLS Harness Pending
---   sponsorship  f2a007e0  ZZ TEST — RLS Harness (confirmed, homepage)
+--   sponsorship  8a7cd934  ZZ TEST - RLS Harness Pending
+--   sponsorship  f2a007e0  ZZ TEST - RLS Harness (confirmed, homepage)
 --   invoice      2ef5dc4e  the harness invoice
 -- No statement below touches sponsorships. Invoice deletes are restricted to
 -- `food_truck_id is not null`, which cannot match a sponsorship invoice. The
@@ -45,8 +45,8 @@
 -- ── RESTORE ─────────────────────────────────────────────────
 -- Deliberately no restore INSERTs: the panel/contest text and entry photos are
 -- not recorded anywhere else, so reconstruction from SQL is not possible and a
--- fake safety net would be worse than none. Rollback is the daily snapshot —
--- but note that snapshot predates the end-date fix and migrations 027–030, so
+-- fake safety net would be worse than none. Rollback is the daily snapshot -
+-- but note that snapshot predates the end-date fix and migrations 027-030, so
 -- restoring it would revert those too. The assertions below are the real
 -- protection.
 -- ============================================================
@@ -69,21 +69,21 @@ begin
   -- row, and NOT be the active event.
   select name, is_active into v_name, v_is_act from events where id = v_target;
   if v_name is null then
-    raise exception 'ABORT — target event % not found. Wrong database?', v_target;
+    raise exception 'ABORT - target event % not found. Wrong database?', v_target;
   end if;
   if v_is_act then
-    raise exception 'ABORT — target event % is ACTIVE. Refusing to touch it.', v_target;
+    raise exception 'ABORT - target event % is ACTIVE. Refusing to touch it.', v_target;
   end if;
   if v_name <> 'AATC Fayetteville 2027' then
-    raise exception 'ABORT — target event % is named "%", expected "AATC Fayetteville 2027".', v_target, v_name;
+    raise exception 'ABORT - target event % is named "%", expected "AATC Fayetteville 2027".', v_target, v_name;
   end if;
 
   select id into v_active from events where is_active = true;
   if v_active is null then
-    raise exception 'ABORT — no active event. Refusing to run.';
+    raise exception 'ABORT - no active event. Refusing to run.';
   end if;
   if v_active = v_target then
-    raise exception 'ABORT — target equals the active event.';
+    raise exception 'ABORT - target equals the active event.';
   end if;
 
   select count(*) into n_panels   from panels   where event_id = v_target;
@@ -100,9 +100,9 @@ begin
   select count(*) into n_goo      from sponsorships where sponsor_name = 'Tattoo Goo';
   select count(*) into n_goo_inv  from invoices i join sponsorships s on s.id = i.sponsorship_id
                                   where s.sponsor_name = 'Tattoo Goo';
-  select count(*) into n_harness_sp  from sponsorships where sponsor_name like 'ZZ TEST — RLS Harness%';
+  select count(*) into n_harness_sp  from sponsorships where sponsor_name like 'ZZ TEST - RLS Harness%';
   select count(*) into n_harness_inv from invoices i join sponsorships s on s.id = i.sponsorship_id
-                                     where s.sponsor_name like 'ZZ TEST — RLS Harness%';
+                                     where s.sponsor_name like 'ZZ TEST - RLS Harness%';
 
   raise notice '';
   raise notice '════════ BEFORE ════════';
@@ -127,18 +127,18 @@ begin
 
   if n_goo <> 1 or n_goo_inv <> 1 or n_harness_sp <> 2 or n_harness_inv <> 1 then
     raise exception
-      'ABORT — protected rows not as expected (Goo=%, Goo invoice=%, harness sponsorships=%, harness invoice=%; wanted 1/1/2/1).',
+      'ABORT - protected rows not as expected (Goo=%, Goo invoice=%, harness sponsorships=%, harness invoice=%; wanted 1/1/2/1).',
       n_goo, n_goo_inv, n_harness_sp, n_harness_inv;
   end if;
 
   if n_booths_a <> 267 then
-    raise exception 'ABORT — active event has % booths, expected 267.', n_booths_a;
+    raise exception 'ABORT - active event has % booths, expected 267.', n_booths_a;
   end if;
 
   -- A target booth still holding an assignment would mean a real exhibitor is
   -- attached; refuse rather than orphan them.
   if exists (select 1 from booths where event_id = v_target and application_id is not null) then
-    raise exception 'ABORT — target-event booths still hold application assignments.';
+    raise exception 'ABORT - target-event booths still hold application assignments.';
   end if;
 end $$;
 
@@ -214,9 +214,9 @@ begin
   select count(*) into n_goo      from sponsorships where sponsor_name = 'Tattoo Goo';
   select count(*) into n_goo_inv  from invoices i join sponsorships s on s.id = i.sponsorship_id
                                   where s.sponsor_name = 'Tattoo Goo';
-  select count(*) into n_harness_sp  from sponsorships where sponsor_name like 'ZZ TEST — RLS Harness%';
+  select count(*) into n_harness_sp  from sponsorships where sponsor_name like 'ZZ TEST - RLS Harness%';
   select count(*) into n_harness_inv from invoices i join sponsorships s on s.id = i.sponsorship_id
-                                     where s.sponsor_name like 'ZZ TEST — RLS Harness%';
+                                     where s.sponsor_name like 'ZZ TEST - RLS Harness%';
 
   raise notice '';
   raise notice '════════ AFTER ════════';
@@ -226,11 +226,11 @@ begin
   raise notice '  contest_votes             : %  (want 0)', n_votes;
   raise notice '  food_trucks               : %  (want 0)', n_ft;
   raise notice '  food-truck invoices       : %  (want 0)', n_ft_inv;
-  raise notice '  invoices TOTAL            : %  (want 2 — Tattoo Goo + harness)', n_inv_all;
+  raise notice '  invoices TOTAL            : %  (want 2 - Tattoo Goo + harness)', n_inv_all;
   raise notice '  booths on target          : %  (want 0)', n_booths_t;
   raise notice '  booths on ACTIVE event    : %  (want 267)', n_booths_a;
   raise notice '  booths TOTAL              : %  (want 267)', n_booths_all;
-  raise notice '  events rows               : %  (want 2 — inactive row retained)', n_events;
+  raise notice '  events rows               : %  (want 2 - inactive row retained)', n_events;
   raise notice '  ---- protected ----';
   raise notice '  Tattoo Goo sponsorship    : %  (want 1)', n_goo;
   raise notice '  Tattoo Goo invoice        : %  (want 1)', n_goo_inv;
@@ -254,11 +254,11 @@ begin
   if n_harness_inv<> 1   then problems := problems || ' HARNESS INVOICE LOST;'; end if;
 
   if problems <> '' then
-    raise exception 'TEARDOWN FAILED —%  Transaction rolled back, nothing removed.', problems;
+    raise exception 'TEARDOWN FAILED - %  Transaction rolled back, nothing removed.', problems;
   end if;
 
   raise notice '';
-  raise notice '  OK — test content removed. Active event intact at 267 booths.';
+  raise notice '  OK - test content removed. Active event intact at 267 booths.';
   raise notice '  Protected rows all present. Inactive event row retained.';
   raise notice '';
 end $$;
@@ -267,18 +267,18 @@ commit;
 
 
 -- ════════════════════════════════════════════════════════════
--- HELD — Tattoo Goo re-point. Run ONE variant, after your team confirms.
+-- HELD - Tattoo Goo re-point. Run ONE variant, after your team confirms.
 --
 -- Grandfathered at the $3,000 pre-July Gold price. Only the sponsorship needs
 -- moving: invoices carry no event_id, so d5f1c5f3 follows automatically.
 --
--- Re-pointing alone does NOT make them visible. A placement flag is required —
+-- Re-pointing alone does NOT make them visible. A placement flag is required -
 -- which is what differs between the two variants below.
 -- ════════════════════════════════════════════════════════════
 
 -- ── VARIANT A: paying Gold sponsor ──────────────────────────
 -- is_in_kind stays false, so the admin "Featured, unpaid" warning WILL show
--- while the $3,000 invoice is unpaid. That is correct — it is a real receivable
+-- while the $3,000 invoice is unpaid. That is correct - it is a real receivable
 -- and the warning is telling you something true.
 /*
 begin;
@@ -299,7 +299,7 @@ begin
   select count(*) into v_inv from invoices i join sponsorships s on s.id = i.sponsorship_id
    where s.sponsor_name = 'Tattoo Goo';
   if n <> 1 or v_inv <> 1 then
-    raise exception 'FAILED — on active event + homepage: %, invoice attached: %. Rolled back.', n, v_inv;
+    raise exception 'FAILED - on active event + homepage: %, invoice attached: %. Rolled back.', n, v_inv;
   end if;
   raise notice 'Tattoo Goo live on homepage + footer. Invoice intact. "Featured, unpaid" will show until the $3,000 is recorded.';
 end $$;
@@ -309,7 +309,7 @@ commit;
 -- ── VARIANT B: trade / in-kind arrangement ──────────────────
 -- is_in_kind = true suppresses the "Featured, unpaid" warning, because no cash
 -- was ever going to arrive. Consider also cancelling the $3,000 invoice so it
--- stops counting as an outstanding receivable — uncomment that line if so.
+-- stops counting as an outstanding receivable - uncomment that line if so.
 /*
 begin;
 update sponsorships
@@ -331,7 +331,7 @@ begin
   select count(*) into n from sponsorships s join events e on e.id = s.event_id
    where s.sponsor_name = 'Tattoo Goo' and e.is_active = true and s.is_in_kind;
   if n <> 1 then
-    raise exception 'FAILED — in-kind on active event: %. Rolled back.', n;
+    raise exception 'FAILED - in-kind on active event: %. Rolled back.', n;
   end if;
   raise notice 'Tattoo Goo live as in-kind. "Featured, unpaid" suppressed.';
 end $$;

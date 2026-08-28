@@ -89,7 +89,7 @@ export default function AdminSponsorshipsPage() {
   const [filter, setFilter] = useState<'all' | SponsorStatus | 'stale'>('all')
   const [sendingInvoice, setSendingInvoice] = useState<string | null>(null)
   const [approvingId, setApprovingId] = useState<string | null>(null)
-  // Account linking — replaces the removed email-only self-claim.
+  // Account linking - replaces the removed email-only self-claim.
   const [linkingId, setLinkingId] = useState<string | null>(null)
   const [linkEmail, setLinkEmail] = useState('')
   const [linkWorking, setLinkWorking] = useState(false)
@@ -137,7 +137,7 @@ export default function AdminSponsorshipsPage() {
   // The row currently open in the edit form, for the amount-lock notice.
   const editingRow = editing ? sponsorships.find(sp => sp.id === editing) : undefined
 
-  /** A pending offer whose hold has lapsed — the slot is being held for nobody. */
+  /** A pending offer whose hold has lapsed - the slot is being held for nobody. */
   const isStaleHold = (s: Sponsorship) =>
     s.status === 'pending' && !!s.hold_expires_at && new Date(s.hold_expires_at) < new Date()
 
@@ -293,7 +293,7 @@ export default function AdminSponsorshipsPage() {
 
   /**
    * Link a sponsorship to an existing account. The account must already exist
-   * — see the route for why we do not create one here.
+   * - see the route for why we do not create one here.
    */
   const submitLink = async (sponsorshipId: string) => {
     if (!linkEmail.trim()) { toast.error('Enter the account email'); return }

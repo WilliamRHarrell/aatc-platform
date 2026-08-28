@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "prebuild": "node scripts/check-event-dates.mjs && node scripts/check-no-date-literals.mjs"
+    "prebuild": "node scripts/check-event-dates.mjs && node scripts/check-no-date-literals.mjs && node scripts/check-no-em-dashes.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

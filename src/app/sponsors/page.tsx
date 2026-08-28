@@ -40,7 +40,7 @@ const TIER_META: Record<string, { label: string; color: string; borderColor: str
 
 /**
  * Server-side sponsor fetch. Cookieless anon client so the result is cacheable
- * and the sponsor wall lands in the server HTML — sponsors pay for visibility,
+ * and the sponsor wall lands in the server HTML - sponsors pay for visibility,
  * so this has to be crawlable rather than hydrated in after paint.
  */
 const getSponsors = unstable_cache(
@@ -58,7 +58,7 @@ const getSponsors = unstable_cache(
 
     if (!event) return []
 
-    // No join into `invoices` — that subquery triggers the RLS recursion fixed
+    // No join into `invoices` - that subquery triggers the RLS recursion fixed
     // in migration 027, and it also excluded trade/in-kind sponsors, who have
     // no invoice row. Visibility is admin-controlled via the placement flags.
     const { data, error } = await supabase

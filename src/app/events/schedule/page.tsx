@@ -11,13 +11,13 @@ import { dayLabel, timeLabel, timeToMinutes } from '@/lib/schedule-format'
  * per-visitor state, and CUTOVER §F wants public pages server-rendered before
  * indexing is requested.
  *
- * TWO SOURCES, MERGED — and neither duplicates the other:
+ * TWO SOURCES, MERGED - and neither duplicates the other:
  *   schedule_items_public  the programme (doors, contests, ceremonies)
  *   panels_public          seminars and workshops, which own registration,
  *                          capacity and payment
  *
  * The previous version of this page held the whole schedule in a hardcoded
- * STATIC_SCHEDULE const carrying 2026 content — wrong times, wrong closing
+ * STATIC_SCHEDULE const carrying 2026 content - wrong times, wrong closing
  * times, and events that are not running in 2027. That is why the programme is
  * now a table.
  */
@@ -103,7 +103,7 @@ const getSchedule = unstable_cache(
         .eq('event_id', event.id),
     ])
 
-    // Degrade to an empty page rather than throwing, but say so in the logs —
+    // Degrade to an empty page rather than throwing, but say so in the logs -
     // a silently empty schedule is indistinguishable from an unseeded one.
     // 42P01 here means migration 044 has not been applied.
     if (schedErr) {
@@ -119,7 +119,7 @@ const getSchedule = unstable_cache(
     const scheduleRows = (rows as ScheduleRow[] | null) ?? []
     const panels = (panelRows as PanelRow[] | null) ?? []
 
-    // Days come from the data, not a hardcoded list — a schedule that gains a
+    // Days come from the data, not a hardcoded list - a schedule that gains a
     // Thursday should not need a code change to show it.
     const dayOrder = [...new Set(scheduleRows.map(r => r.day_date))].sort()
 
@@ -142,7 +142,7 @@ const getSchedule = unstable_cache(
         }))
 
       // A REAL EQUALITY ON A REAL DATE (migration 046). This used to compare
-      // panels.panel_date — free text — against the generated `label`, so a
+      // panels.panel_date - free text - against the generated `label`, so a
       // seminar whose string did not match exactly was silently absent from the
       // programme with nothing reporting it. That is the entire reason
       // verify_044.sql query D existed.

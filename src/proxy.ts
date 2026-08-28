@@ -47,9 +47,9 @@ export async function proxy(req: NextRequest) {
 
     // Per-path, not binary. A content_editor reaching /admin/invoices is sent
     // to the first page their role can see rather than bounced off /admin
-    // entirely. NOTE: navigation-level only — see src/lib/roles.ts.
+    // entirely. NOTE: navigation-level only - see src/lib/roles.ts.
     // A signed-in non-admin who reaches /admin belongs in the portal, not on
-    // the public apply hub — they already have an account.
+    // the public apply hub - they already have an account.
     if (!isAdminRole(profile?.role)) {
       return NextResponse.redirect(new URL('/portal', req.url))
     }

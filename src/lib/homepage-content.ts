@@ -2,17 +2,17 @@
  * Homepage list content that has no table of its own yet.
  *
  * HOME_EVENTS is deliberately NOT read from `schedule_items`. The schedule is
- * the programme — 25 timed rows, several of them repeats ("Tattoo Contest
+ * the programme - 25 timed rows, several of them repeats ("Tattoo Contest
  * Continues") that mean nothing to someone deciding whether to buy a ticket.
  * These cards are editorial: a curated handful with marketing copy and a link
  * to a detail page, neither of which lives on a schedule row. They must stay
  * CONSISTENT with the schedule, which is why the day/time claims below are
- * annotated with their source rows — but they are not generated from it.
+ * annotated with their source rows - but they are not generated from it.
  *
  * Source of truth for anything timed: docs/aatc-2027-schedule-spec.md, seeded
  * by supabase/seeds/schedule_2027.sql.
  *
- * Panels/seminars are NOT here — they come from the `panels` table so the
+ * Panels/seminars are NOT here - they come from the `panels` table so the
  * homepage auto-populates from admin.
  */
 
@@ -59,7 +59,7 @@ export const HOME_EVENTS: HomeEvent[] = [
   {
     name: 'Strongest at the Sideshow',
     day: 'Saturday',
-    // 2027 CHANGE: team strongman only. Dead-lift and bench press are dropped —
+    // 2027 CHANGE: team strongman only. Dead-lift and bench press are dropped -
     // do not reinstate them here without checking the schedule spec.
     description:
       'Team strongman competition in the Crown Ballroom, Saturday at 1:00 PM.',
@@ -68,7 +68,7 @@ export const HOME_EVENTS: HomeEvent[] = [
   {
     name: 'Best of Show',
     day: 'Sunday',
-    // Sun 7:00 PM — "Tattoo of the Day & Best of Show", Main Stage.
+    // Sun 7:00 PM - "Tattoo of the Day & Best of Show", Main Stage.
     description:
       'The weekend’s top work judged on the main stage Sunday at 7:00 PM, alongside the final Tattoo of the Day.',
     href: '/events/tattoo-contests',
@@ -76,7 +76,7 @@ export const HOME_EVENTS: HomeEvent[] = [
   {
     name: 'Gold Star VIP Meet & Greet',
     day: 'Saturday',
-    // Sat 10:00 AM, Front Room — before doors. Gold Star = families of fallen
+    // Sat 10:00 AM, Front Room - before doors. Gold Star = families of fallen
     // service members. Keep this wording; it is not a ticket tier.
     description:
       'Before doors open Saturday, we host Gold Star families for a private meet & greet with our featured artists.',
@@ -99,10 +99,10 @@ export interface AfterParty {
 
 /**
  * Three nights, always all three rendered. A "Venue TBA" card communicates that
- * something happens every night — dropping the card loses that.
+ * something happens every night - dropping the card loses that.
  *
  * NO TIME FIELD, DELIBERATELY. The venues are already open when the show lets
- * out, so any stated start time would be inaccurate — people arrive when they
+ * out, so any stated start time would be inaccurate - people arrive when they
  * arrive. Venue, address and a map link are the whole card. Do not add a time
  * back without checking, and do not render an empty slot in its place.
  */

@@ -19,7 +19,7 @@ export const IS_PRODUCTION_HOST = SITE_URL.includes(PRODUCTION_HOST)
 
 /**
  * Canonical URL for a path, or undefined off-production.
- * Undefined means "emit no canonical", which is correct for a preview host —
+ * Undefined means "emit no canonical", which is correct for a preview host -
  * better than pointing at a URL that does not exist yet.
  */
 export function canonical(path = '/'): string | undefined {
@@ -27,7 +27,7 @@ export function canonical(path = '/'): string | undefined {
   return path === '/' ? SITE_URL : `${SITE_URL.replace(/\/$/, '')}${path}`
 }
 
-/** Metadata.robots value — noindex everywhere except the production host. */
+/** Metadata.robots value - noindex everywhere except the production host. */
 export const ROBOTS_META = IS_PRODUCTION_HOST
   ? undefined
   : { index: false, follow: false, nocache: true }

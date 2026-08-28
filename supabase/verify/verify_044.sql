@@ -1,5 +1,5 @@
 -- ============================================================
--- ⚠  RUN ONE LETTERED BLOCK AT A TIME — DO NOT RUN THIS FILE WHOLE.
+-- ⚠  RUN ONE LETTERED BLOCK AT A TIME - DO NOT RUN THIS FILE WHOLE.
 --
 -- The Supabase SQL Editor displays only the LAST statement's result. Running
 -- the whole file returns the final query and silently discards every check
@@ -11,22 +11,22 @@
 -- each block, usually as a `want:` comment or an `expected` column.
 --
 -- A few blocks are marked `(2 queries)` and contain a second statement labelled
--- `X2 of 2`. Run those separately too — the same last-statement-wins rule
+-- `X2 of 2`. Run those separately too - the same last-statement-wins rule
 -- applies inside a block.
 -- ============================================================
 
 -- ============================================================
--- VERIFY 044 — run after the migration AND both seeds. Nothing mutates.
+-- VERIFY 044 - run after the migration AND both seeds. Nothing mutates.
 --
 -- Order: 044 → seeds/schedule_2027.sql → seeds/panels_2027.sql → this file.
 --
 -- Query A: schedule_items exists with the credit columns.
 -- Query B: both public views are SECURITY DEFINER.
 -- Query C: anon cannot reach the base table.
--- Query D: THE JOIN KEY — panels appear in the programme.     ← silent failure
--- Query E: the announce gate — no unconfirmed sponsor is published.
+-- Query D: THE JOIN KEY - panels appear in the programme.     ← silent failure
+-- Query E: the announce gate - no unconfirmed sponsor is published.
 -- Query F: credits still carried as plain text.                ← the to-do list
--- Query G: programme sanity — 25 items, three days.
+-- Query G: programme sanity - 25 items, three days.
 -- ============================================================
 
 
@@ -46,7 +46,7 @@ select table_name, column_name, data_type, is_nullable
 
 -- ── B. Views are definer, not invoker ───────────────────────
 -- security_invoker = true would make the sponsor join run as the CALLER, and
--- anon has no read on sponsorships — every credit would silently resolve to
+-- anon has no read on sponsorships - every credit would silently resolve to
 -- the fallback even where a real sponsorship is linked.
 -- want: 2 rows, security_invoker = false on both.
 select c.relname as view_name,
@@ -72,11 +72,11 @@ select grantee, privilege_type
    and grantee      = 'anon';
 
 
--- ── D. THE JOIN KEY — the silent failure ──────────── (2 queries) ─
+-- ── D. THE JOIN KEY - the silent failure ──────────── (2 queries) ─
 -- The schedule page groups panels by matching `panels.panel_date` (free text)
 -- against a day label it GENERATES from schedule_items.day_date, formatted as
 -- 'Friday, April 16'. A panel whose panel_date does not match one of those
--- strings exactly does not error and does not appear — it is simply absent
+-- strings exactly does not error and does not appear - it is simply absent
 -- from the programme, and nothing anywhere reports it.
 --
 -- want: every row matches = true. A false means that seminar is invisible on
@@ -93,7 +93,7 @@ select p.title, p.panel_date, p.panel_time,
  where p.event_id = (select id from events where is_active)
  order by p.panel_time;
 
--- D2 of 2 — run separately. The labels themselves, for eyeballing against
+-- D2 of 2 - run separately. The labels themselves, for eyeballing against
 -- panel_date above.
 select distinct to_char(day_date, 'FMDay, FMMonth FMDD') as day_label
   from schedule_items
@@ -107,7 +107,7 @@ select distinct to_char(day_date, 'FMDay, FMMonth FMDD') as day_label
 -- a second back door that announces a sponsor early.
 --
 -- want: 0 rows. A row here is a schedule item or panel whose FK points at a
--- sponsorship that is NOT confirmed — the credit correctly falls back to plain
+-- sponsorship that is NOT confirmed - the credit correctly falls back to plain
 -- text, but it means someone linked a sponsor who is not announceable yet.
 select 'schedule_items' as source, s.title, sp.sponsor_name, sp.status
   from schedule_items s
@@ -120,7 +120,7 @@ select 'panels', p.title, sp.sponsor_name, sp.status
  where sp.status <> 'confirmed';
 
 
--- ── F. Credits still carried as plain text — the to-do list ─
+-- ── F. Credits still carried as plain text - the to-do list ─
 -- Expected today: 'Whole Life Aftercare' (Tattoo Battle, schedule_items) and
 -- 'Nomadica' (Bookkeeping seminar, panels). Both render as unlinked text until
 -- a confirmed sponsorship row exists and is linked.
@@ -140,7 +140,7 @@ select 'panels', p.title, p.presented_by_fallback
 
 
 -- ── G. Programme sanity ─────────────────────────────────────
--- want: 3 rows — 2027-04-16 (10), 2027-04-17 (9), 2027-04-18 (6). Total 25.
+-- want: 3 rows - 2027-04-16 (10), 2027-04-17 (9), 2027-04-18 (6). Total 25.
 -- The two seminars are NOT counted here; they are panels rows by design.
 select day_date, count(*) as items,
        min(start_time) as first_item, max(start_time) as last_item
@@ -154,7 +154,7 @@ select day_date, count(*) as items,
 -- STILL UNVERIFIED AFTER THIS FILE.
 --
 -- 1. NO ADMIN WRITE PATH EXISTS YET. schedule_items is seeded by SQL and has
---    only an `is_admin()` policy — there is no /admin/schedule. Until that
+--    only an `is_admin()` policy - there is no /admin/schedule. Until that
 --    lands, a schedule change means editing the seed and re-running it. That
 --    was the accepted tradeoff for shipping the pages now; it is not a
 --    permanent state, and it means the RLS policy on schedule_items has never
@@ -163,6 +163,6 @@ select day_date, count(*) as items,
 -- 2. THE PANELS WRITE PATHS ARE NEWLY GUARDED BUT UNTESTED. /admin/panels had
 --    three unguarded writes (update, delete, image_url update) that reported
 --    success on zero rows; all now use guardedWrite(). Confirm by editing a
---    panel as a NON-admin role — a content_editor hits `is_admin()` and must
+--    panel as a NON-admin role - a content_editor hits `is_admin()` and must
 --    now see a real error rather than a success toast. Nobody has run that.
 -- ============================================================

@@ -432,14 +432,14 @@ export async function POST(req: Request) {
 
     // EVERY data read below uses the service role, never `supabase` above.
     //
-    // `supabase` is request-scoped, and a cron caller has no session — so it
+    // `supabase` is request-scoped, and a cron caller has no session - so it
     // reads as anon. Once invoice reads were restricted to owners (029) and anon
     // lost SELECT on sponsorships (038), any lookup through it returned nothing,
     // and deposit_reminder, final_reminder and sponsor_approved all failed. The
     // lifecycle sweep does not check the response, so booths would have been
     // released having sent no warning at all.
     //
-    // `supabase` is for AUTH ONLY — it establishes who is calling. Authorisation
+    // `supabase` is for AUTH ONLY - it establishes who is calling. Authorisation
     // is enforced above; these reads are deliberately privileged so we can email
     // people whose rows are hidden from public reads (needs_roster, expired,
     // canceled, pending sponsors).
@@ -458,7 +458,7 @@ export async function POST(req: Request) {
     }
 
     if (sponsorshipId) {
-      // SERVICE ROLE, DELIBERATELY — do not "tidy" this back to `supabase`.
+      // SERVICE ROLE, DELIBERATELY - do not "tidy" this back to `supabase`.
       // The caller is already authenticated at the top of this route (admin
       // session or valid x-cron-secret), so RLS here is redundant. Worse, a
       // cron caller has no session, so the request-scoped client reads as anon
@@ -498,7 +498,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing applicationId or kind/status' }, { status: 400 })
     }
 
-    // SERVICE ROLE, DELIBERATELY — do not "tidy" this back to `supabase`.
+    // SERVICE ROLE, DELIBERATELY - do not "tidy" this back to `supabase`.
     // The caller is already authenticated at the top of this route (admin
     // session or valid x-cron-secret), so RLS here is redundant. Worse, a
     // cron caller has no session, so the request-scoped client reads as anon
@@ -527,11 +527,11 @@ export async function POST(req: Request) {
       subject = `You're on the AATC 2027 waitlist - ${app.business_name}`
       html = waitlistedEmail(app.business_name, app.exhibitor_type)
     } else if (resolvedKind === 'deposit_reminder') {
-        // SERVICE ROLE, DELIBERATELY — do not "tidy" this back to `supabase`.
+        // SERVICE ROLE, DELIBERATELY - do not "tidy" this back to `supabase`.
         // The caller is authenticated at the top of this route (admin session
         // or valid x-cron-secret), so RLS here is redundant. Worse, a cron
         // caller has no session, so the request-scoped client reads as anon and
-        // this returns nothing — which is how deposit_reminder and
+        // this returns nothing - which is how deposit_reminder and
         // final_reminder silently failed.
       const { data: inv } = await adminFetchClient
         .from('invoices')
@@ -548,11 +548,11 @@ export async function POST(req: Request) {
       html = depositReminderEmail(app.business_name, app.deposit_due_at, minDeposit, balance, payUrl)
     } else if (resolvedKind === 'final_reminder') {
       const days = daysRemaining ?? 0
-        // SERVICE ROLE, DELIBERATELY — do not "tidy" this back to `supabase`.
+        // SERVICE ROLE, DELIBERATELY - do not "tidy" this back to `supabase`.
         // The caller is authenticated at the top of this route (admin session
         // or valid x-cron-secret), so RLS here is redundant. Worse, a cron
         // caller has no session, so the request-scoped client reads as anon and
-        // this returns nothing — which is how deposit_reminder and
+        // this returns nothing - which is how deposit_reminder and
         // final_reminder silently failed.
       const { data: inv } = await adminFetchClient
         .from('invoices')

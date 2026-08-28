@@ -2,31 +2,31 @@
 -- SEED: the two 2027 seminars, as `panels` rows. Run AFTER migration 044.
 --
 -- These are the first real production rows this platform has held. Read the
--- three notes below before running — two of them are decisions, not defaults.
+-- three notes below before running - two of them are decisions, not defaults.
 --
 -- WHY panels AND NOT schedule_items: panels owns registration, capacity and
 -- payment (panel_registrations, signup_type, cost). The schedule page merges
 -- panels in at render, so these appear in the programme without a second copy.
 --
--- ALREADY RUN — 2026-08-13. Kept as the record of what was inserted. Both
+-- ALREADY RUN - 2026-08-13. Kept as the record of what was inserted. Both
 -- notes below have since been superseded; read them for history, not for
 -- instruction.
 --
--- NOTE 1 — SUPERSEDED BY MIGRATION 046. panel_date/panel_time were free text,
+-- NOTE 1 - SUPERSEDED BY MIGRATION 046. panel_date/panel_time were free text,
 --   and the schedule matched panel_date against a generated day label, so a
 --   mismatch silently dropped the seminar from the programme. They are now real
 --   `panel_day date` / `panel_start time` columns and the join is a date
 --   equality. 047 drops the text pair. Do not re-run this seed as written after
---   047 — the columns it inserts into will not exist.
+--   047 - the columns it inserts into will not exist.
 --
--- NOTE 2 — SUPERSEDED. signup_type was set to 'none' here, and both seminars
+-- NOTE 2 - SUPERSEDED. signup_type was set to 'none' here, and both seminars
 --   move to 'free_registration' via panels_2027_signup_type.sql. Note that the
 --   original wording below called free_registration "capped by max_capacity",
 --   which was wrong in two ways: nothing enforced max_capacity then, and
 --   nothing enforces it now BY DESIGN. Seminars are open, walk-ins welcome, and
 --   max_capacity is a planning target only. See CUTOVER §E2.
 --
--- NOTE 3 — description AND panelists ARE DELIBERATELY EMPTY.
+-- NOTE 3 - description AND panelists ARE DELIBERATELY EMPTY.
 --   No speaker names or session blurbs were given, and inventing them puts
 --   fabricated names on a live page in front of the artist community. Fill
 --   them in /admin/panels when the real details land; both render as
@@ -54,7 +54,7 @@ select e.id, v.title, v.description, v.panel_date, v.panel_time, v.location,
   from events e
  cross join (values
 
-  -- Sunday 1:30 PM — presented by Nomadica. The FK stays NULL until a
+  -- Sunday 1:30 PM - presented by Nomadica. The FK stays NULL until a
   -- Nomadica sponsorship row exists; the fallback carries the credit as plain
   -- text until then, and the FK takes over automatically once linked.
   ('Bookkeeping for Tattoo Industry Professionals',
@@ -62,7 +62,7 @@ select e.id, v.title, v.description, v.panel_date, v.panel_time, v.location,
    true, 0, 'none', null::text, null::int, true,
    null::uuid, 'Nomadica'),
 
-  -- Sunday 3:00 PM — no presentation credit sold.
+  -- Sunday 3:00 PM - no presentation credit sold.
   ('Tooth Gem Seminar',
    '', 'Sunday, April 18', '3:00 PM', 'Seminar Room', '',
    true, 0, 'none', null::text, null::int, true,
@@ -83,7 +83,7 @@ commit;
 
 
 -- ============================================================
--- TEARDOWN — uncomment to remove. Deletes registrations first: the FK on
+-- TEARDOWN - uncomment to remove. Deletes registrations first: the FK on
 -- panel_registrations is ON DELETE CASCADE, so this is belt and braces, but
 -- it makes the row count visible before anything is destroyed.
 -- ============================================================

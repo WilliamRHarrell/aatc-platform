@@ -1,5 +1,5 @@
 # AATC Platform
-All American Tattoo Convention — Web Platform
+All American Tattoo Convention - Web Platform
 
 ## Stack
 - Next.js 14 (App Router)
@@ -17,5 +17,5 @@ All American Tattoo Convention — Web Platform
 5. Open http://localhost:3000
 
 ## Branches
-- `main` — production
-- `develop` — active development
+- `main` - production
+- `develop` - active development

@@ -6,7 +6,7 @@
  *
  * 1. QUOTING. Names and social handles contain commas, quotes and occasionally
  *    newlines. An unquoted field with a comma silently shifts every later
- *    column on that row — the list still opens, still looks like a list, and is
+ *    column on that row - the list still opens, still looks like a list, and is
  *    wrong for exactly the rows with the messiest data.
  *
  * 2. FORMULA INJECTION. Excel and Google Sheets execute a cell beginning with

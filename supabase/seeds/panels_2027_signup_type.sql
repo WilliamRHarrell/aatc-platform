@@ -15,12 +15,12 @@
 -- attendee and the forecast.
 --
 -- ── The four signup_type values ─────────────────────────────
---   'none'              Listed, but NOT registerable — /api/panel-register
+--   'none'              Listed, but NOT registerable - /api/panel-register
 --                       rejects it with a 400. No roster, no contact details.
 --   'free_registration' Free, and registrations are collected into
 --                       panel_registrations. ← what this sets.
 --   'aatc_invoice'      Paid. Creates a Stripe checkout for `cost` (CENTS).
---                       Not applicable — both seminars are is_free, cost 0.
+--                       Not applicable - both seminars are is_free, cost 0.
 --   'email_host'        Sends people to the host. WARNING: host_email becomes
 --                       PUBLIC through panels_public for this value only.
 --
@@ -33,12 +33,12 @@
 -- Nothing on the public page mentions capacity, remaining spots or fullness.
 --
 -- ── ROOMS, CONFIRMED 2026-08-13 ─────────────────────────────
--- Both seminars are on SUNDAY, and Sunday's sessions are in the BALLROOM —
+-- Both seminars are on SUNDAY, and Sunday's sessions are in the BALLROOM -
 -- 150 seats. That is what this sets.
 --
 -- The 50-seat SEMINAR ROOM is Friday and Saturday only, and nothing is
 -- scheduled in it. **If a Friday or Saturday seminar is ever added, its
--- max_capacity is 50** — and that is the room where a turnout like last year's
+-- max_capacity is 50** - and that is the room where a turnout like last year's
 -- Bookkeeping seminar (~50 people) would actually be tight.
 --
 -- At 150 the amber flag does not fire until 120 registrations, which is the
@@ -66,7 +66,7 @@ commit;
 
 
 -- ============================================================
--- REVERT — closes registration entirely. The seminars stay listed.
+-- REVERT - closes registration entirely. The seminars stay listed.
 -- ============================================================
 -- update panels
 --    set signup_type = 'none'::panel_signup_type

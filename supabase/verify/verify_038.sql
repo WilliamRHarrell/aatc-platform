@@ -1,5 +1,5 @@
 -- ============================================================
--- ⚠  RUN ONE LETTERED BLOCK AT A TIME — DO NOT RUN THIS FILE WHOLE.
+-- ⚠  RUN ONE LETTERED BLOCK AT A TIME - DO NOT RUN THIS FILE WHOLE.
 --
 -- The Supabase SQL Editor displays only the LAST statement's result. Running
 -- the whole file returns the final query and silently discards every check
@@ -11,19 +11,19 @@
 -- each block, usually as a `want:` comment or an `expected` column.
 --
 -- A few blocks are marked `(2 queries)` and contain a second statement labelled
--- `X2 of 2`. Run those separately too — the same last-statement-wins rule
+-- `X2 of 2`. Run those separately too - the same last-statement-wins rule
 -- applies inside a block.
 -- ============================================================
 
 -- ============================================================
--- VERIFY 038 — run after the migration. Read the results; nothing mutates.
+-- VERIFY 038 - run after the migration. Read the results; nothing mutates.
 --
 -- Query A: the views exist and are SECURITY DEFINER (security_invoker off).
 -- Query B: no anon-readable policy remains on the four base tables.
 -- Query C: anon has no direct SELECT grant on the base tables.
 --
--- The bypass question — "can anon just query the base table once the policy is
--- dropped?" — is answered by B and C together. B removes the only permissive
+-- The bypass question - "can anon just query the base table once the policy is
+-- dropped?" - is answered by B and C together. B removes the only permissive
 -- policy, so RLS returns zero rows. C removes the table-level SELECT privilege,
 -- so the request is rejected before RLS is even consulted. Either alone would
 -- do; both is the point.

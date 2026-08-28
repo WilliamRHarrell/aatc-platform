@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     const { invoiceId, amount: requestedAmount } = await req.json() as { invoiceId: string; amount?: number }
     if (!invoiceId) return NextResponse.json({ error: 'Missing invoiceId' }, { status: 400 })
 
-    // Fetch the invoice — RLS ensures this user owns it
+    // Fetch the invoice - RLS ensures this user owns it
     const { data: inv } = await supabase
       .from('invoices')
       .select('id, amount, amount_paid, status, application_id, sponsorship_id, food_truck_id, deposit_paid_at')

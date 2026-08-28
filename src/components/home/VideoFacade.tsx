@@ -11,8 +11,8 @@ import { useState } from 'react'
  * The aspect box is driven by `orientation`, not assumed to be 16:9.
  *
  * Poster selection matters more than it looks. Every YouTube thumbnail
- * endpoint is 16:9 — maxresdefault (1280x720), hqdefault, sddefault,
- * mqdefault — so using any of them for a vertical video pillarboxes the poster
+ * endpoint is 16:9 - maxresdefault (1280x720), hqdefault, sddefault,
+ * mqdefault - so using any of them for a vertical video pillarboxes the poster
  * with black bars, even though the player itself renders correctly. The only
  * native-portrait endpoint is frame0.jpg (270x480), and `oardefault.jpg`
  * (which does return original aspect) is Shorts-only and 404s for a standard

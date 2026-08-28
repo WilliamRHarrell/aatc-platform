@@ -104,8 +104,8 @@ Public page (no auth required). Uses the same dark theme and input styling as th
 - Website (optional)
 - Instagram (optional)
 - Facebook (optional)
-- Preferred sponsorship tier — visual tier picker using TIER_INFO from the admin page with all 10 tiers split into Main Tiers and Individual Items
-- Logo upload (optional) — upload to `exhibitor-media/sponsors/` bucket
+- Preferred sponsorship tier - visual tier picker using TIER_INFO from the admin page with all 10 tiers split into Main Tiers and Individual Items
+- Logo upload (optional) - upload to `exhibitor-media/sponsors/` bucket
 - Notes/message textarea (optional)
 
 On submit:
@@ -282,7 +282,7 @@ if (sponsorshipId) {
     return NextResponse.json({ error: 'Sponsorship not found or no email' }, { status: 404 })
   }
 
-  const subject = `🎉 Your AATC 2027 sponsorship is confirmed — ${spon.sponsor_name}`
+  const subject = `🎉 Your AATC 2027 sponsorship is confirmed - ${spon.sponsor_name}`
   const html = sponsorApprovedEmail(spon.sponsor_name, spon.tier, spon.amount)
 
   const { error } = await resend.emails.send({
@@ -386,11 +386,11 @@ if (!app && !sponData) {
 
 After the `{application && (...)}` block, add a `{sponsorship && (...)}` block that shows:
 
-1. **Header** — "My Sponsorship" heading with sponsor name, tier badge
-2. **Status card** — "Sponsorship Confirmed" (green) or "Pending Review" (yellow)
-3. **Invoice & Payment** — Reuse the exact same invoice/payment card from the exhibitor section. The `invoice` and `handlePay` logic already works since invoice was loaded above.
-4. **Sponsor Profile card** — Editable fields: website, instagram, facebook. Logo upload button. Save button that updates sponsorships table.
-5. **Sponsorship Details card** — Read-only: tier, amount, contact name, email
+1. **Header** - "My Sponsorship" heading with sponsor name, tier badge
+2. **Status card** - "Sponsorship Confirmed" (green) or "Pending Review" (yellow)
+3. **Invoice & Payment** - Reuse the exact same invoice/payment card from the exhibitor section. The `invoice` and `handlePay` logic already works since invoice was loaded above.
+4. **Sponsor Profile card** - Editable fields: website, instagram, facebook. Logo upload button. Save button that updates sponsorships table.
+5. **Sponsorship Details card** - Read-only: tier, amount, contact name, email
 
 Use the same `Card` and `SectionLabel` components already defined in the file.
 
@@ -426,7 +426,7 @@ Update the admin add/edit form to include the new contact fields (contact_name, 
 
 ### Verification Checklist
 
-1. Go to `/sponsors` — see confirmed sponsors with social links, "Apply for Sponsorship" button
+1. Go to `/sponsors` - see confirmed sponsors with social links, "Apply for Sponsorship" button
 2. Click "Apply for Sponsorship" → `/apply/sponsor` form loads
 3. Fill out form, submit → success message, row appears in `sponsorships` table with status `pending`
 4. Go to `/admin/sponsorships` → see new pending sponsor with contact info

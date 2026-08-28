@@ -3,7 +3,7 @@
  * Post-migration check for migrations 027-030.
  *
  * Replays the EXACT query each public surface issues, using the ANON key. A
- * service-role run proves nothing here — service role bypasses RLS entirely,
+ * service-role run proves nothing here - service role bypasses RLS entirely,
  * which is the thing under test.
  *
  * The failure mode being guarded against is silent disappearance: a tightened
@@ -37,7 +37,7 @@ const svc = svcKey ? createClient(url, svcKey) : null
 
 const { data: event } = await anon.from('events').select('id').eq('is_active', true).single()
 if (!event) {
-  console.error('No active event readable as anon — cannot verify.')
+  console.error('No active event readable as anon - cannot verify.')
   process.exit(1)
 }
 
@@ -52,7 +52,7 @@ async function surface(name, expectation, run) {
     return
   }
   const n = Array.isArray(data) ? data.length : data ? 1 : 0
-  results.push({ name, status: n > 0 ? 'OK' : 'EMPTY', detail: `${n} row(s) — ${expectation}` })
+  results.push({ name, status: n > 0 ? 'OK' : 'EMPTY', detail: `${n} row(s) - ${expectation}` })
 }
 
 // ── Every non-admin read path, exactly as the app issues it ──
@@ -81,7 +81,7 @@ await surface('/sponsors/packages sold-out', 'tier counts via RPC', () =>
     results.push({ name: 'Pending rows hidden', status: 'OK', detail: `blocked (${error.code})` })
   } else if ((data ?? []).length > 0) {
     failed++
-    results.push({ name: 'Pending rows hidden', status: 'FAIL', detail: `${data.length} pending row(s) readable by anon — baseline policy still present` })
+    results.push({ name: 'Pending rows hidden', status: 'FAIL', detail: `${data.length} pending row(s) readable by anon - baseline policy still present` })
   } else {
     results.push({ name: 'Pending rows hidden', status: 'OK', detail: '0 pending rows visible to anon' })
   }
@@ -100,8 +100,8 @@ await surface('/sponsors/packages sold-out', 'tier counts via RPC', () =>
 }
 
 // ════════════════════════════════════════════════════════════
-// REQUIRED PRE-PUSH ASSERTIONS (migrations 027–030)
-// All three must pass. Each is asserted with the ANON key — a service-role
+// REQUIRED PRE-PUSH ASSERTIONS (migrations 027-030)
+// All three must pass. Each is asserted with the ANON key - a service-role
 // run bypasses RLS entirely and would prove nothing about these.
 // ════════════════════════════════════════════════════════════
 const assertions = []
@@ -128,7 +128,7 @@ function assert(name, ok, detail) {
         ? `${rows} pending row(s) LEAKED to anon`
         : seeded
           ? '0 rows (a pending row exists, correctly hidden)'
-          : '0 rows — NOTE: no pending row exists to hide, assertion is vacuous',
+          : '0 rows - NOTE: no pending row exists to hide, assertion is vacuous',
   )
 }
 
@@ -158,7 +158,7 @@ function assert(name, ok, detail) {
 
 // (3) A sponsor must be able to read their own invoice.
 //
-// Needs a real user-scoped session — anon cannot stand in, and service role
+// Needs a real user-scoped session - anon cannot stand in, and service role
 // bypasses the policy under test. The session is MINTED via the admin API
 // (generateLink -> verifyOtp) rather than a password login, so no credential
 // for the harness account is ever stored in an env file or the repo. Set
@@ -166,9 +166,9 @@ function assert(name, ok, detail) {
 {
   const email = process.env.VERIFY_SPONSOR_EMAIL
   if (!email) {
-    assert('sponsor reads own invoice', false, 'NOT RUN — set VERIFY_SPONSOR_EMAIL to the harness account')
+    assert('sponsor reads own invoice', false, 'NOT RUN - set VERIFY_SPONSOR_EMAIL to the harness account')
   } else if (!svc) {
-    assert('sponsor reads own invoice', false, 'NOT RUN — SUPABASE_SERVICE_ROLE_KEY needed to mint a session')
+    assert('sponsor reads own invoice', false, 'NOT RUN - SUPABASE_SERVICE_ROLE_KEY needed to mint a session')
   } else {
     // Mint a one-time login token as the harness user. No password involved.
     const { data: link, error: linkErr } = await svc.auth.admin.generateLink({

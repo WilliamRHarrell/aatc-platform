@@ -1,5 +1,5 @@
 -- ============================================================
--- ⚠  RUN ONE LETTERED BLOCK AT A TIME — DO NOT RUN THIS FILE WHOLE.
+-- ⚠  RUN ONE LETTERED BLOCK AT A TIME - DO NOT RUN THIS FILE WHOLE.
 --
 -- The Supabase SQL Editor displays only the LAST statement's result. Running
 -- the whole file returns the final query and silently discards every check
@@ -11,12 +11,12 @@
 -- each block, usually as a `want:` comment or an `expected` column.
 --
 -- A few blocks are marked `(2 queries)` and contain a second statement labelled
--- `X2 of 2`. Run those separately too — the same last-statement-wins rule
+-- `X2 of 2`. Run those separately too - the same last-statement-wins rule
 -- applies inside a block.
 -- ============================================================
 
 -- ============================================================
--- VERIFY 034 — run separately, after the migration.
+-- VERIFY 034 - run separately, after the migration.
 --
 -- Returns one row per checked object with a pass/fail column. Read the results;
 -- nothing here raises or mutates. Kept out of the migration because the SQL
@@ -69,7 +69,7 @@ select 'events_one_active_idx', coalesce(max(indexname), 'missing'), 'present',
 --
 -- 1. invoices.food_truck_id   SET NULL  -> CASCADE
 --    An invoice with no parent is meaningless. 033's exactly-one-parent check
---    turned the old SET NULL into a hard error on truck deletion — safer than
+--    turned the old SET NULL into a hard error on truck deletion - safer than
 --    orphaning, still wrong. The invoice should go with the truck it bills.
 --
 -- 2. invoices.sponsorship_id  NO ACTION -> CASCADE
@@ -78,7 +78,7 @@ select 'events_one_active_idx', coalesce(max(indexname), 'missing'), 'present',
 --
 -- 3. exhibitors.booth_id      SET NULL  -> CASCADE
 --    An exhibitor row is derived from an application and scoped to one event,
---    so it means nothing once its booth is gone — and SET NULL leaves a record
+--    so it means nothing once its booth is gone - and SET NULL leaves a record
 --    that looks complete while having lost which booth it occupied. RESTRICT
 --    was the alternative but would block routine event teardown.
 --

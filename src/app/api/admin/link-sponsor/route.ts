@@ -8,7 +8,7 @@ import type { Database } from '@/types/database'
  * Link (or unlink) a sponsorship to a user account.
  *
  * REPLACES THE REMOVED SELF-CLAIM. The old flow matched a sponsorship to a
- * signed-in user by EMAIL ALONE, with no verification — anyone who knew a
+ * signed-in user by EMAIL ALONE, with no verification - anyone who knew a
  * sponsor's address could claim their row and read a negotiated amount and
  * contact details. It also never worked, because `sponsorships` has no owner
  * UPDATE policy, so RLS filtered the write to zero rows silently.
@@ -18,7 +18,7 @@ import type { Database } from '@/types/database'
  * is bounded by a human doing it on purpose rather than an unverified match.
  *
  * Migration 049 adds the owner UPDATE policy this link makes meaningful, and
- * clamps it to contact details, website, socials and logo — a linked sponsor
+ * clamps it to contact details, website, socials and logo - a linked sponsor
  * can never change their own tier, amount, status or placement.
  */
 export async function POST(req: Request) {
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
   // ── Find the account ──────────────────────────────────────
   // No user is created here, deliberately. Linking a sponsorship to an account
   // that does not exist would mean minting a login the sponsor never asked for
-  // and cannot access — the account has to exist first, which means they have
+  // and cannot access - the account has to exist first, which means they have
   // signed up and the address is theirs.
   const { data: list, error: listErr } = await admin.auth.admin.listUsers({ perPage: 1000 })
   if (listErr) {
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
 
   // ── Refuse to steal a link ────────────────────────────────
   // One account holding two sponsorships is legitimate (an agency, a parent
-  // company). Silently moving a link off another sponsorship is not — so the
+  // company). Silently moving a link off another sponsorship is not - so the
   // check is on THIS row already being linked elsewhere, not on the account.
   const { data: existing } = await admin
     .from('sponsorships')

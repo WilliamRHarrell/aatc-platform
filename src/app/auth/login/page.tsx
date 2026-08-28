@@ -13,7 +13,7 @@ function LoginContent() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
-  // No `?? '/apply'` default here — the destination is decided by role below.
+  // No `?? '/apply'` default here - the destination is decided by role below.
   // An explicit ?redirect= still wins: it is how the proxy returns someone to
   // the page they were trying to reach before being asked to sign in.
   const requestedRedirect = searchParams.get('redirect')
@@ -32,7 +32,7 @@ function LoginContent() {
     }
 
     // Role decides the landing page. Previously everyone went to /apply,
-    // including admins — so an admin signing in landed on the public apply hub
+    // including admins - so an admin signing in landed on the public apply hub
     // and had to navigate to /admin by hand.
     let destination = requestedRedirect
     if (!destination) {
@@ -170,7 +170,7 @@ function LoginContent() {
   )
 }
 
-// Suspense wrapper — required because useSearchParams() is used above
+// Suspense wrapper - required because useSearchParams() is used above
 export default function LoginPage() {
   return (
     <Suspense fallback={

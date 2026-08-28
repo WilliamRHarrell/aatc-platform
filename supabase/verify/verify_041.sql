@@ -1,5 +1,5 @@
 -- ============================================================
--- ⚠  RUN ONE LETTERED BLOCK AT A TIME — DO NOT RUN THIS FILE WHOLE.
+-- ⚠  RUN ONE LETTERED BLOCK AT A TIME - DO NOT RUN THIS FILE WHOLE.
 --
 -- The Supabase SQL Editor displays only the LAST statement's result. Running
 -- the whole file returns the final query and silently discards every check
@@ -11,12 +11,12 @@
 -- each block, usually as a `want:` comment or an `expected` column.
 --
 -- A few blocks are marked `(2 queries)` and contain a second statement labelled
--- `X2 of 2`. Run those separately too — the same last-statement-wins rule
+-- `X2 of 2`. Run those separately too - the same last-statement-wins rule
 -- applies inside a block.
 -- ============================================================
 
 -- ============================================================
--- VERIFY 041 — run after the migration. Read the results; nothing mutates.
+-- VERIFY 041 - run after the migration. Read the results; nothing mutates.
 --
 -- 041 gave application owners an UPDATE path (roster completion needs it) and
 -- added a BEFORE UPDATE trigger clamping every staff-controlled column, because
@@ -24,7 +24,7 @@
 --
 -- NOTE ON OVERLAP WITH 043: the clamp function verified in C below was later
 -- rewritten by migration 043 to exempt service_role. If you are running this
--- file after 043, C will show the exemption present — that is correct and
+-- file after 043, C will show the exemption present - that is correct and
 -- expected. verify_043.sql checks the exemption specifically.
 --
 -- Query A: the owner UPDATE policy exists and is scoped to the caller.
@@ -38,7 +38,7 @@
 -- ── A. The owner UPDATE policy ──────────────────────────────
 -- want: 1 row. Both qual and with_check must be present and must both scope to
 -- user_id = auth.uid(). A with_check of NULL on an UPDATE policy means a row
--- can be updated INTO a state that no longer matches the policy — here, an
+-- can be updated INTO a state that no longer matches the policy - here, an
 -- owner reassigning user_id to someone else. (The trigger also clamps user_id,
 -- so this is belt and braces, but the policy should not rely on that.)
 select policyname, cmd, roles::text,
@@ -51,7 +51,7 @@ select policyname, cmd, roles::text,
    and policyname = 'applications: own update';
 
 
--- ── B. THE REAL RISK — every other UPDATE path on applications ─
+-- ── B. THE REAL RISK - every other UPDATE path on applications ─
 -- Permissive policies OR together. A surviving `using (true)` UPDATE policy
 -- would make the owner policy in A decorative AND would hand every
 -- authenticated user an update path to every application. This is the defect
@@ -101,10 +101,10 @@ select t.tgname, t.tgenabled, t.tgenabled = 'O' as is_enabled,
 -- ── E. needs_roster is ENFORCED, not clamped ────────────────
 -- Deliberately different from every other column: roster completion is an owner
 -- action and is half the directory gate, so the owner MUST be able to flip it
--- false — but only when the roster is genuinely complete. Confirm both halves
+-- false - but only when the roster is genuinely complete. Confirm both halves
 -- of the rule survived: the completeness test, and the no-reopening rule.
 -- want: both true, and clamps_needs_roster FALSE (clamping it would silently
--- break roster completion — the exact regression 041 was written to avoid).
+-- break roster completion - the exact regression 041 was written to avoid).
 select regexp_replace(p.prosrc, '\s+', ' ', 'g') like '%roster_ok%'
          as has_completeness_test,
        regexp_replace(p.prosrc, '\s+', ' ', 'g') like '%new.needs_roster := old.needs_roster;  -- owners cannot re-open it%'
@@ -122,15 +122,15 @@ select regexp_replace(p.prosrc, '\s+', ' ', 'g') like '%roster_ok%'
 -- ============================================================
 -- STILL UNVERIFIED AFTER THIS FILE.
 --
--- Everything above is catalog state. The behavioural question — can an owner
+-- Everything above is catalog state. The behavioural question - can an owner
 -- actually complete their roster, and is an owner actually stopped from
--- self-approving — is not answered here and has never been measured against a
+-- self-approving - is not answered here and has never been measured against a
 -- real application row. Both need a non-admin session against a real row:
 --   1. owner sets needs_roster=false with a COMPLETE roster   → must succeed
 --   2. owner sets needs_roster=false with an INCOMPLETE roster → must be refused
 --   3. owner sets status='approved'                            → must stay unchanged
 --
--- (3) will return success with the row unchanged, not an error — a BEFORE
+-- (3) will return success with the row unchanged, not an error - a BEFORE
 -- trigger rewrites the row silently. Check the resulting VALUE, not the
 -- absence of an error. This is the same shape as the `data:[] error:null`
 -- problem: the write appears to work and did nothing.

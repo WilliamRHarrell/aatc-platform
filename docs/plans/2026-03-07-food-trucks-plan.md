@@ -373,7 +373,7 @@ In the checkout route, after the `sponsorship_id` block (~line 70), add:
 
   if (truck) {
     productName = truck.business_name
-    description = `AATC 2027 — Food truck vendor fee${isFullPayment ? '' : ' — partial payment'}`
+    description = `AATC 2027 - Food truck vendor fee${isFullPayment ? '' : ' - partial payment'}`
   }
 }
 ```
@@ -392,7 +392,7 @@ And add to metadata:
 
 **Step 2: No webhook changes needed**
 
-The webhook already handles any invoice by `invoice_id` metadata. The `food_truck_id` is just an FK on the invoice row — the webhook updates `amount_paid` and `status` based on `invoice_id` alone. No changes required.
+The webhook already handles any invoice by `invoice_id` metadata. The `food_truck_id` is just an FK on the invoice row - the webhook updates `amount_paid` and `status` based on `invoice_id` alone. No changes required.
 
 **Step 3: Commit**
 
@@ -609,15 +609,15 @@ git commit -m "feat: rewrite food truck page to fetch from database"
 **Step 1: End-to-end test**
 
 1. Run migration in Supabase SQL Editor
-2. Navigate to `/admin/food-trucks` — see empty state
+2. Navigate to `/admin/food-trucks` - see empty state
 3. Add a food truck with logo, 2 days (Fri/Sat), no Thursday
 4. Verify invoice created with amount = 12000 ($120)
 5. Toggle published on
-6. Navigate to `/events/food-truck-rodeo` — see the truck card
-7. Add a second truck with Thursday — verify checkbox works
-8. Add a third truck — verify Thursday checkbox disabled (max 2 reached)
-9. Edit a truck — change days, verify invoice amount updates if pending
-10. Delete a truck — verify gone from table and public page
+6. Navigate to `/events/food-truck-rodeo` - see the truck card
+7. Add a second truck with Thursday - verify checkbox works
+8. Add a third truck - verify Thursday checkbox disabled (max 2 reached)
+9. Edit a truck - change days, verify invoice amount updates if pending
+10. Delete a truck - verify gone from table and public page
 
 **Step 2: Portal test**
 

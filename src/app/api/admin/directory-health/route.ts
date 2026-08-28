@@ -8,7 +8,7 @@ import { createServerClient } from '@/lib/supabase-server'
  *
  * The last number is the point of this endpoint: `visible` is measured with a
  * genuine ANONYMOUS client, not by re-implementing the policy predicate. That
- * distinction is what makes it a real check — the 42P17 recursion went
+ * distinction is what makes it a real check - the 42P17 recursion went
  * unnoticed for twelve weeks precisely because nobody could see that "0 listed
  * publicly" disagreed with "12 approved", and any count derived from an
  * admin-authenticated query would have happily reported 12.
@@ -38,7 +38,7 @@ export async function GET() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
-  // Deliberately NOT the caller's session — an anonymous, cookieless client is
+  // Deliberately NOT the caller's session - an anonymous, cookieless client is
   // the only thing that measures what the public actually sees.
   const anon = createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

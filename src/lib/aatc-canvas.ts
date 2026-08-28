@@ -118,7 +118,7 @@ export async function renderAnnouncement(
   return canvas;
 }
 
-// Vertical 9:16 card (TikTok). One template for every slide — slide 1 gets the
+// Vertical 9:16 card (TikTok). One template for every slide - slide 1 gets the
 // artist photo, slides 2-4 get each tattoo. Pass whichever photo into `photo`.
 export async function renderVerticalCard(
   photo: HTMLImageElement,
@@ -137,14 +137,14 @@ export async function renderVerticalCard(
 
   ctx.textBaseline = "middle";
 
-  // Name — right-aligned, white, tracked
+  // Name - right-aligned, white, tracked
   const nm = name.toUpperCase();
   const nameSize = fitFontSize(ctx, nm, VERT_NAME.maxW, VERT_NAME.startSize, VERT_NAME.minSize, VERT_NAME.tracking);
   ctx.font = `${nameSize}px Barbaro`;
   ctx.fillStyle = COLORS.white;
   drawTrackedRight(ctx, nm, VERT_NAME.rightX, VERT_NAME.centerY, VERT_NAME.tracking);
 
-  // IG handle — right-aligned, white, tracked
+  // IG handle - right-aligned, white, tracked
   const handle = ("@" + ig.replace(/^@/, "")).toUpperCase();
   const igSize = fitFontSize(ctx, handle, VERT_IG.maxW, VERT_IG.startSize, VERT_IG.minSize, VERT_IG.tracking);
   ctx.font = `${igSize}px Barbaro`;
@@ -170,14 +170,14 @@ export async function renderTattooCard(
 
   ctx.textBaseline = "middle";
 
-  // Name — right-aligned, white, tracked
+  // Name - right-aligned, white, tracked
   const nm = name.toUpperCase();
   const nameSize = fitFontSize(ctx, nm, NAME.maxW, NAME.startSize, NAME.minSize, NAME.tracking);
   ctx.font = `${nameSize}px Barbaro`;
   ctx.fillStyle = COLORS.white;
   drawTrackedRight(ctx, nm, NAME.rightX, NAME.centerY, NAME.tracking);
 
-  // IG handle — right-aligned, white, tracked
+  // IG handle - right-aligned, white, tracked
   const handle = ("@" + ig.replace(/^@/, "")).toUpperCase();
   const igSize = fitFontSize(ctx, handle, IG.maxW, IG.startSize, IG.minSize, IG.tracking);
   ctx.font = `${igSize}px Barbaro`;

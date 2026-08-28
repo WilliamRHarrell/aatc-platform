@@ -5,7 +5,7 @@ import { createServerClient } from '@/lib/supabase-server'
 import { ADMIN_ROLES } from '@/lib/roles'
 
 /**
- * Assign a role. FULL ADMINS ONLY — deliberately not delegated to the granular
+ * Assign a role. FULL ADMINS ONLY - deliberately not delegated to the granular
  * roles, or a content_editor could promote themselves to admin and the split
  * would mean nothing.
  *

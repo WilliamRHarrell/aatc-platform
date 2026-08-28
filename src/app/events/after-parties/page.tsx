@@ -4,7 +4,7 @@ import PublicNav from '@/components/PublicNav'
 
 // REMOVED 2026-08-27: this held three invented venues (one of which names a
 // real Fayetteville business that has not agreed to host), invented DJ and band
-// names, and door prices — "$10 at the door / Free with VIP Pass" is a pricing
+// names, and door prices - "$10 at the door / Free with VIP Pass" is a pricing
 // promise the show would have had to honor, the same class of error as the
 // fabricated hotel rates.
 //

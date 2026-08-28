@@ -3,12 +3,12 @@ import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 
 /**
- * Footer sponsor logos — SERVER rendered.
+ * Footer sponsor logos - SERVER rendered.
  *
  * This was a client-side fetch in SiteFooter, which meant sponsor logos and
  * their outbound links were injected after hydration on all 63 pages. Every
  * sponsorship tier in the packet includes site logo placement, and a
- * client-injected link carries little to no SEO value — so sponsors were
+ * client-injected link carries little to no SEO value - so sponsors were
  * receiving materially less than was sold to them. Same fix class as /contests
  * and /directory, applied to the one component that appears on every page.
  *
@@ -29,7 +29,7 @@ const getFooterSponsors = unstable_cache(
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
-    // No join into `invoices` — that subquery is the 42P17 cycle (migration 028).
+    // No join into `invoices` - that subquery is the 42P17 cycle (migration 028).
     const { data, error } = await supabase
       .from('sponsors_public')
       .select('id, sponsor_name, logo_url, website')
@@ -79,7 +79,7 @@ export default async function FooterSponsors() {
                 key={s.id}
                 href={s.website.startsWith('http') ? s.website : `https://${s.website}`}
                 target="_blank"
-                /* paid placement — Google's guidelines for sponsored links */
+                /* paid placement - Google's guidelines for sponsored links */
                 rel="noopener sponsored"
               >
                 {img}

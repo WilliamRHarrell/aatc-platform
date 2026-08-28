@@ -168,7 +168,7 @@ export default function PublicNav() {
     supabase.auth.getUser().then(({ data: { user } }) => setAuthed(!!user))
   }, [])
 
-  // '/' must be an exact match — the startsWith branch would otherwise mark it
+  // '/' must be an exact match - the startsWith branch would otherwise mark it
   // active on every page. Same reason the old '/apply' entry was special-cased.
   const isActive = (href: string) =>
     href === '/'

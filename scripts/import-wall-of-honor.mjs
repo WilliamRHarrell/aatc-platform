@@ -13,16 +13,16 @@
  *     [--dry-run]
  *
  * Design notes:
- *  - RESUMABLE. Already-downloaded files are skipped, so it can be re-run after
+ * - RESUMABLE. Already-downloaded files are skipped, so it can be re-run after
  *    a partial failure or a network drop without refetching everything.
- *  - NEVER FATAL on a single row. A bad URL is recorded as a failure in the
+ * - NEVER FATAL on a single row. A bad URL is recorded as a failure in the
  *    manifest and the run continues. These are memorial records; losing the
  *    other 12 because one 404s is not acceptable.
- *  - MIRROR FALLBACK. If --mirror is given (the wholesale /wp-content/uploads
+ * - MIRROR FALLBACK. If --mirror is given (the wholesale /wp-content/uploads
  *    copy), a URL that fails is retried by basename against the mirror. The
  *    hashed URLs are unguessable but the underlying files are ordinary uploads,
  *    so the mirror should satisfy nearly everything.
- *  - Records pixel dimensions and byte size per file so source quality can be
+ * - Records pixel dimensions and byte size per file so source quality can be
  *    judged per-image before deciding whether to re-request originals from
  *    families.
  */
@@ -53,7 +53,7 @@ if (!CSV) {
  * Gravity Forms exports use the FIELD LABEL as the header, so these cannot be
  * predicted from outside the install. Each entry is a list of candidate header
  * names, matched case-insensitively on a normalised (alphanumeric-only) basis;
- * the first hit wins. Add the real labels here once you have the CSV — the
+ * the first hit wins. Add the real labels here once you have the CSV - the
  * script prints every unmatched header on startup so you can see what to add.
  */
 const COLUMN_CANDIDATES = {
@@ -72,7 +72,7 @@ const COLUMN_CANDIDATES = {
 
 /**
  * Photo columns. field-id=12 is the ONE we have evidence for, from your sample
- * URL — I cannot see form 81, so I cannot confirm it is the only photo field.
+ * URL - I cannot see form 81, so I cannot confirm it is the only photo field.
  * This matcher therefore treats ANY column whose value contains a gf-download
  * link or an uploads path as a photo column, whatever its label. Check the
  * startup report: if more than one photo column is discovered, form 81 has
@@ -137,8 +137,8 @@ function verdict(dim, bytes) {
   const min = Math.min(dim.w, dim.h)
   if (min >= 1200) return 'good'
   if (min >= 700)  return 'usable'
-  if (min >= 400)  return 'low — consider re-requesting original'
-  return 'poor — re-request original'
+  if (min >= 400)  return 'low - consider re-requesting original'
+  return 'poor - re-request original'
 }
 
 // ── mirror lookup ───────────────────────────────────────────
@@ -189,7 +189,7 @@ async function fetchWithRetry(url, attempts = 3) {
       const res = await fetch(url, { redirect: 'follow' })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const buf = Buffer.from(await res.arrayBuffer())
-      if (buf.length < 100) throw new Error(`suspiciously small (${buf.length}b) — likely an error page`)
+      if (buf.length < 100) throw new Error(`suspiciously small (${buf.length}b) - likely an error page`)
       return { buf, contentType: res.headers.get('content-type') ?? '' }
     } catch (e) {
       lastErr = e
@@ -235,7 +235,7 @@ photoCols.forEach(p => console.log(`      col ${p.index}: "${p.header}"`))
 if (photoCols.length > 1) {
   console.log('      ^ MORE THAN ONE photo field on this form. All are being harvested.')
 } else if (photoCols.length === 1) {
-  console.log('      ^ single photo field — consistent with field-id=12 being the only one.')
+  console.log('      ^ single photo field - consistent with field-id=12 being the only one.')
 }
 if (unmatched.length) console.log(`  unmatched, non-empty: ${unmatched.map(h => `"${h}"`).join(', ')}`)
 console.log('')
@@ -246,7 +246,7 @@ if (MIRROR) {
   console.log(`  mirror indexed    : ${mirrorIndex.size} files from ${MIRROR}\n`)
 }
 
-if (DRY) { console.log('Dry run — stopping before download.'); process.exit(0) }
+if (DRY) { console.log('Dry run - stopping before download.'); process.exit(0) }
 
 const FILES_DIR = join(OUT, 'files')
 mkdirSync(FILES_DIR, { recursive: true })
@@ -291,7 +291,7 @@ for (const [n, r] of dataRows.entries()) {
     if (!buf) {
       failed++
       manifest.failures.push({ entryId, honoree, url, originalName: orig, error: err })
-      console.log(`  FAIL  ${honoree} :: ${orig} — ${err}`)
+      console.log(`  FAIL  ${honoree} :: ${orig} - ${err}`)
       continue
     }
 
@@ -336,4 +336,4 @@ console.log(`  low/poor quality  : ${lowQuality.length}${lowQuality.length ? '  
 console.log(`  tributes w/o text : ${noText.length}`)
 console.log(`  tributes w/o photo: ${noPhoto.length}`)
 console.log(`  manifest          : ${join(OUT, 'manifest.json')}`)
-if (failed) console.log(`\n  ${failed} failure(s) recorded in the manifest — re-run to retry, cached files are skipped.`)
+if (failed) console.log(`\n  ${failed} failure(s) recorded in the manifest - re-run to retry, cached files are skipped.`)

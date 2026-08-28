@@ -1,7 +1,7 @@
 /**
  * Single source of truth for the current show's dates, venue and headline assets.
  *
- * Anything on the site that needs the show date imports from here — do not
+ * Anything on the site that needs the show date imports from here - do not
  * re-declare dates in components. The `events` row in Supabase carries the same
  * start/end dates for application/booth logic; if you change the show dates,
  * change them in BOTH places or the countdown and the booth flow will disagree.
@@ -15,7 +15,7 @@ export const EVENT_YEAR = 2027
 export const DOORS_OPEN_ISO = '2027-04-16T16:00:00Z' // Fri Apr 16, 12:00 PM ET
 export const SHOW_CLOSE_ISO = '2027-04-19T00:00:00Z' // Sun Apr 18,  8:00 PM ET
 
-/** Human-readable strings — server-rendered so crawlers and no-JS users get
+/** Human-readable strings - server-rendered so crawlers and no-JS users get
  *  something meaningful even before the countdown hydrates. */
 export const EVENT_DATES_LABEL = 'April 16-18, 2027'
 export const EVENT_DATES_SHORT = 'Apr 16-18, 2027'
@@ -24,7 +24,7 @@ export const VENUE_NAME = 'Crown Complex Event Center'
 // Confirmed 2026-08-27 against what the Crown Complex publishes. 1960 Coliseum
 // Drive is the official address for the complex and specifically for the Expo
 // Center, and it is what navigation apps resolve. East Mountain Drive is an
-// ENTRANCE, not an address — the old value ("131 E. Mountain Dr.") appears to
+// ENTRANCE, not an address - the old value ("131 E. Mountain Dr.") appears to
 // have been a recorded entrance, and 131 is a digit off a catering contractor's
 // office at 121. Never reintroduce it as the address.
 export const VENUE_STREET = '1960 Coliseum Drive'
@@ -50,13 +50,13 @@ export const ASSETS = {
   logoHorizontal: `${STORAGE}/aatc-secondary-main-horizontal%202.png`,
   heroFlag: `${STORAGE}/AATC-large-bg-flag.png`,
   /** OG share image. Falls back to the horizontal logo until a purpose-built
-   *  1200×630 card exists — a fallback beats a broken share preview. */
+   *  1200×630 card exists - a fallback beats a broken share preview. */
   ogImage: `${STORAGE}/aatc-secondary-main-horizontal%202.png`,
 } as const
 
 /**
  * Promo video. Set `youTubeId` when the video ID arrives and the homepage video
- * section appears automatically. Left null the section renders nothing at all —
+ * section appears automatically. Left null the section renders nothing at all -
  * an empty video frame reads as a bug, not a promise.
  */
 export const PROMO_VIDEO: {
@@ -69,7 +69,7 @@ export const PROMO_VIDEO: {
    *
    * Strongly preferred for vertical video. YouTube's thumbnail endpoints are
    * all 16:9 (maxresdefault/hqdefault/sddefault/mqdefault), so they pillarbox a
-   * vertical frame — the player is fine but the poster looks broken. The only
+   * vertical frame - the player is fine but the poster looks broken. The only
    * native-portrait endpoint is frame0.jpg at 270x480, which is both low-res
    * for a ~400px container at 2x DPR and is literally frame zero, so it may be
    * a black frame or a title card.
@@ -97,7 +97,7 @@ export interface ShowWinner {
  * Best in Show winners, keyed by year so next April we swap the data rather
  * than rebuilding the section. Empty array = section renders nothing.
  *
- * Images must live in Supabase Storage — anything served from the WordPress
+ * Images must live in Supabase Storage - anything served from the WordPress
  * install breaks at DNS cutover.
  */
 export const BEST_IN_SHOW: Record<number, ShowWinner[]> = {
@@ -109,7 +109,7 @@ export const BEST_IN_SHOW_YEAR = 2026
 
 /**
  * Final balance due date. Was hardcoded identically in
- * admin/applications/page.tsx and api/admin/import-returning — the same class
+ * admin/applications/page.tsx and api/admin/import-returning - the same class
  * of bug as migration 020's end-date typo: a date duplicated with nothing
  * asserting the copies agree.
  */
@@ -118,7 +118,7 @@ export const FINAL_DUE_AT = '2027-01-01T05:00:00Z' // 2027-01-01 00:00 America/N
 /**
  * Display form of FINAL_DUE_AT, e.g. "January 1, 2027".
  *
- * Use this everywhere the deadline is shown to a person — never restate the
+ * Use this everywhere the deadline is shown to a person - never restate the
  * date as a literal. Five places did (portal/pay plus four email templates),
  * which meant an email about money owed could disagree with the value the
  * lifecycle sweep actually enforces. Rendered in Eastern time, which is what

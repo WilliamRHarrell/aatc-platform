@@ -158,7 +158,7 @@ export default function AdminInvoicesPage() {
 
     // Milestone tracking, mirroring the Stripe webhook. Without this a payment
     // taken in cash/check/transfer marks the invoice paid but never sets
-    // deposit_paid_at — and the public directory policy gates on that column,
+    // deposit_paid_at - and the public directory policy gates on that column,
     // so the exhibitor stays invisible forever. Both fire at most once.
     const nowIso = new Date().toISOString()
     const minDeposit = minDepositCents(paymentModal.amount)

@@ -18,7 +18,7 @@ export const createServerClient = async () => {
               cookieStore.set(name, value, options)
             )
           } catch {
-            // Called from a Server Component — reads only, ignore
+            // Called from a Server Component - reads only, ignore
           }
         },
       },

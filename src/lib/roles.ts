@@ -1,10 +1,10 @@
 /**
- * Admin role model — the single source for who may reach which /admin path.
+ * Admin role model - the single source for who may reach which /admin path.
  *
  * IMPORTANT, and stated plainly: this is a NAVIGATION-LEVEL split only. RLS
  * still says `is_admin()` on every admin write policy, so a content_editor or
  * sponsorship_manager who knows the API can still read data their sidebar does
- * not show them — including artist government photo IDs, the most sensitive
+ * not show them - including artist government photo IDs, the most sensitive
  * data in the system. Part 2 of the role split (column-level protection) is the
  * remedy. See docs/CUTOVER.md.
  *
@@ -40,7 +40,7 @@ const PATHS: Record<AdminRole, string[] | '*'> = {
     // only `schedule_items: admin all` (is_admin()), so a content_editor would
     // reach the page, see an EMPTY schedule, and have every write refused.
     // Shipping that entry would be shipping a broken page. Add it in the same
-    // change that gives the role a real policy — see HANDOFF §5.
+    // change that gives the role a real policy - see HANDOFF §5.
     '/admin/panels',
     '/admin/contests',
     '/admin/food-trucks',
@@ -51,7 +51,7 @@ const PATHS: Record<AdminRole, string[] | '*'> = {
   ],
   sponsorship_manager: [
     '/admin/sponsorships',
-    // Needed to record a sponsor payment — payment recording lives only here.
+    // Needed to record a sponsor payment - payment recording lives only here.
     // Caveat: this page also lists application invoices. Under a UI-only split
     // that cannot be filtered server-side, so a sponsorship_manager sees
     // exhibitor invoice totals too. Accepted; noted in CUTOVER.md.
@@ -73,7 +73,7 @@ export function canAccess(role: string | null | undefined, pathname: string): bo
 }
 
 /**
- * First path a role is allowed to see — where to send them after login.
+ * First path a role is allowed to see - where to send them after login.
  *
  * Non-admins go to `/portal`, not `/apply`. `/apply` is the public hub that
  * explains what you can apply for; `/portal` is the signed-in home, and it

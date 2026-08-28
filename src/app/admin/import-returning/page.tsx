@@ -8,8 +8,8 @@ import {
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 
-// Labels derived from lib/pricing.ts. These were formatted strings —
-// 'Artist Single ($800 / 2026: $700)' — which is the same defect class as the
+// Labels derived from lib/pricing.ts. These were formatted strings -
+// 'Artist Single ($800 / 2026: $700)' - which is the same defect class as the
 // sponsor tiers: a price written out where nothing checks it against the source.
 const ARTIST_SIZES = [
   { kind: 'single' as const, label: `Artist Single (${usd(ARTIST_SINGLE_PRICE)} / ${PRIOR_YEAR}: ${usd(PRIOR_YEAR_PRICES.artistSingle)})` },

@@ -1,31 +1,31 @@
 -- ============================================================
--- TEST DATA TEARDOWN — applications and everything hanging off them
+-- TEST DATA TEARDOWN - applications and everything hanging off them
 --
--- Removes the 14 test applications created March–May 2026, their invoices and
+-- Removes the 14 test applications created March - May 2026, their invoices and
 -- exhibitor rows, and releases their booth assignments back to available.
 --
 -- ── PRESERVED, DELIBERATELY ─────────────────────────────────
 -- The RLS harness records are excluded by name and by user. The verify script
 -- needs them:
 --     auth user     rls-harness@allamericantattooconvention.com
---     sponsorship   'ZZ TEST — RLS Harness Pending (DELETE ME)'  (pending)
---     sponsorship   'ZZ TEST — RLS Harness (DELETE ME)'          (confirmed)
+--     sponsorship   'ZZ TEST - RLS Harness Pending (DELETE ME)'  (pending)
+--     sponsorship   'ZZ TEST - RLS Harness (DELETE ME)'          (confirmed)
 --     invoice       the one attached to the pending harness sponsorship
 -- The script ABORTS if those are not all present, so it cannot run against the
 -- wrong database or after a partial cleanup.
 --
 -- ── ALSO NOT TOUCHED (flagged, not assumed) ─────────────────
---   * sponsorship 'Tattoo Goo' (confirmed) — not a harness record and not an
+--   * sponsorship 'Tattoo Goo' (confirmed) - not a harness record and not an
 --     application. Outside this teardown's scope; decide separately.
 --   * 2 invoices linked to NEITHER an application nor a sponsorship. They are
 --     not reachable from applications, so nothing here removes them.
---   * aatc_submissions (1 row) and contest_entries (6 rows) — no FK to
+--   * aatc_submissions (1 row) and contest_entries (6 rows) - no FK to
 --     applications.
 --   * auth.users rows for the test applicants. Left alone so the harness user
 --     is never at risk. Delete them separately if you want them gone.
 --   * Supabase STORAGE objects. id_doc_url, veteran_id_url, logo_url,
 --     portfolio_image_urls and artists[].id_url point at files in the
---     application-docs / exhibitor-media buckets. SQL cannot remove those —
+--     application-docs / exhibitor-media buckets. SQL cannot remove those -
 --     they will be orphaned. Clear the buckets from the dashboard.
 --
 -- ── FK BEHAVIOUR (why the order below) ──────────────────────
@@ -33,12 +33,12 @@
 --   exhibitors.application_id  -> ON DELETE CASCADE
 --   booths.application_id      -> ON DELETE SET NULL
 -- Deleting an application therefore removes its invoices and exhibitor rows on
--- its own, and NULLs the booth link — but it does NOT reset booths.status,
+-- its own, and NULLs the booth link - but it does NOT reset booths.status,
 -- which would leave 23 booths flagged reserved/sold with no occupant. The
 -- explicit statements below do the deletes anyway, so the counts are honest
 -- rather than inferred from cascade behaviour.
 --
--- There is no roster or artist TABLE — applications.artists is a jsonb column,
+-- There is no roster or artist TABLE - applications.artists is a jsonb column,
 -- so roster data goes with the application row.
 -- ============================================================
 
@@ -66,11 +66,11 @@ begin
   select count(*) into n_booth_asgn from booths where application_id is not null;
   select count(*) into n_spon       from sponsorships;
 
-  select count(*) into n_harness_sp  from sponsorships where sponsor_name like 'ZZ TEST — RLS Harness%';
+  select count(*) into n_harness_sp  from sponsorships where sponsor_name like 'ZZ TEST - RLS Harness%';
   select count(*) into n_harness_usr from auth.users   where email = 'rls-harness@allamericantattooconvention.com';
   select count(*) into n_harness_inv from invoices i
     join sponsorships s on s.id = i.sponsorship_id
-   where s.sponsor_name like 'ZZ TEST — RLS Harness%';
+   where s.sponsor_name like 'ZZ TEST - RLS Harness%';
 
   raise notice '';
   raise notice '════ BEFORE ════';
@@ -89,7 +89,7 @@ begin
   -- ══ SAFETY GUARD ══════════════════════════════════════════
   if n_harness_usr <> 1 or n_harness_sp <> 2 or n_harness_inv <> 1 then
     raise exception
-      'ABORT — harness records not as expected (user=%, sponsorships=%, invoices=%; wanted 1/2/1). Refusing to run: either this is the wrong database or the harness has already been partly removed.',
+      'ABORT - harness records not as expected (user=%, sponsorships=%, invoices=%; wanted 1/2/1). Refusing to run: either this is the wrong database or the harness has already been partly removed.',
       n_harness_usr, n_harness_sp, n_harness_inv;
   end if;
 end $$;
@@ -100,7 +100,7 @@ end $$;
 -- sponsorship, so the harness records are structurally out of range.
 
 -- 1. Invoices belonging to applications. (Sponsorship and orphan invoices are
---    excluded by the NOT NULL predicate — the harness invoice is a sponsorship
+--    excluded by the NOT NULL predicate - the harness invoice is a sponsorship
 --    invoice and cannot match.)
 delete from invoices
  where application_id is not null;
@@ -141,11 +141,11 @@ begin
   select count(*) into n_booth_asgn  from booths where application_id is not null;
   select count(*) into n_booth_avail from booths where status = 'available';
 
-  select count(*) into n_harness_sp  from sponsorships where sponsor_name like 'ZZ TEST — RLS Harness%';
+  select count(*) into n_harness_sp  from sponsorships where sponsor_name like 'ZZ TEST - RLS Harness%';
   select count(*) into n_harness_usr from auth.users   where email = 'rls-harness@allamericantattooconvention.com';
   select count(*) into n_harness_inv from invoices i
     join sponsorships s on s.id = i.sponsorship_id
-   where s.sponsor_name like 'ZZ TEST — RLS Harness%';
+   where s.sponsor_name like 'ZZ TEST - RLS Harness%';
 
   raise notice '';
   raise notice '════ AFTER ════';
@@ -160,7 +160,7 @@ begin
   raise notice '  harness sponsorships        : %  (want 2)', n_harness_sp;
   raise notice '  harness invoices            : %  (want 1)', n_harness_inv;
 
-  -- ══ ASSERTIONS — roll back rather than half-finish ═════════
+  -- ══ ASSERTIONS - roll back rather than half-finish ═════════
   if n_apps      <> 0 then problems := problems || ' applications not empty;'; end if;
   if n_inv_app   <> 0 then problems := problems || ' application invoices remain;'; end if;
   if n_exh       <> 0 then problems := problems || ' exhibitors remain;'; end if;
@@ -170,11 +170,11 @@ begin
   if n_harness_inv <> 1 then problems := problems || ' HARNESS INVOICE LOST;'; end if;
 
   if problems <> '' then
-    raise exception 'TEARDOWN FAILED —%  Transaction rolled back, nothing removed.', problems;
+    raise exception 'TEARDOWN FAILED - %  Transaction rolled back, nothing removed.', problems;
   end if;
 
   raise notice '';
-  raise notice '  OK — applications cleared, booths released, harness intact.';
+  raise notice '  OK - applications cleared, booths released, harness intact.';
   raise notice '  Remaining invoices are sponsorship-linked or orphaned; see the header.';
   raise notice '';
 end $$;

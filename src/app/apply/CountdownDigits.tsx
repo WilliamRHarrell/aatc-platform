@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 /**
  * Client island: the ticking digits only.
  *
- * Deliberately scoped as tight as possible — the countdown heading, sub-line and
+ * Deliberately scoped as tight as possible - the countdown heading, sub-line and
  * calendar CTA are CMS copy and stay in the server component around this. The
  * digits are not indexable content, so they are the only thing that needs JS.
  */

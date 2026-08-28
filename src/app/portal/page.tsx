@@ -156,7 +156,7 @@ function PortalContent() {
   const [editingArtistIdx, setEditingArtistIdx] = useState<number | null>(null)
   const [artistDraft, setArtistDraft] = useState<ArtistDraft | null>(null)
   const [savingArtist, setSavingArtist] = useState(false)
-  // Exhibitor profile self-edit. Directory-facing fields only — everything
+  // Exhibitor profile self-edit. Directory-facing fields only - everything
   // staff-controlled is clamped by the BEFORE UPDATE trigger from 041/043, so
   // a field that does not appear here cannot be changed from the portal even
   // if the request is hand-crafted.
@@ -263,7 +263,7 @@ function PortalContent() {
 
       // Sponsor self-claim removed. It matched on email alone with no
       // verification, which is the wrong mechanism for something granting
-      // access to negotiated amounts and contact details — and it never worked
+      // access to negotiated amounts and contact details - and it never worked
       // anyway, because sponsorships has no owner UPDATE policy, so RLS
       // filtered it to zero rows silently. With ~15 sponsors it does not need
       // to scale: an admin links the account from /admin/sponsorships.
@@ -404,7 +404,7 @@ function PortalContent() {
   }
 
   /**
-   * Save the directory-facing profile. Publishes immediately — no queue.
+   * Save the directory-facing profile. Publishes immediately - no queue.
    *
    * guardedWrite is essential here rather than nice to have: this is an
    * RLS-filtered write by a non-admin, and PostgREST returns data: [] with
@@ -443,7 +443,7 @@ function PortalContent() {
   }
 
   /**
-   * Logo upload. The path MUST start `profiles/<user id>/` — migration 048's
+   * Logo upload. The path MUST start `profiles/<user id>/` - migration 048's
    * storage policy scopes owner writes to exactly that prefix, so anything
    * else is rejected, and it keeps exhibitors out of `sponsors/` and
    * `aatc-graphics` (both retained at cutover).
@@ -1512,7 +1512,7 @@ function PortalContent() {
   )
 }
 
-// ── Suspense wrapper — required because useSearchParams() is used above ────────
+// ── Suspense wrapper - required because useSearchParams() is used above ────────
 
 export default function PortalPage() {
   return (

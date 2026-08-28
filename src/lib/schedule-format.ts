@@ -15,7 +15,7 @@
  * 'YYYY-MM-DD' → 'Friday, April 16'.
  *
  * Rebuilt from parts on purpose. `new Date('2027-04-16')` is parsed as UTC
- * midnight and renders as the PREVIOUS DAY anywhere west of Greenwich — a
+ * midnight and renders as the PREVIOUS DAY anywhere west of Greenwich - a
  * schedule showing Thursday for Friday's programme, which nobody reports
  * because it looks deliberate.
  */

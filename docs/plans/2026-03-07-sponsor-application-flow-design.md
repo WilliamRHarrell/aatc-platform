@@ -2,7 +2,7 @@
 
 ## Overview
 
-Add a public sponsor application form, admin approval workflow, and sponsor portal — mirroring the exhibitor flow.
+Add a public sponsor application form, admin approval workflow, and sponsor portal - mirroring the exhibitor flow.
 
 ## Database Changes
 
@@ -11,7 +11,7 @@ Add columns to `sponsorships` table (migration 013):
 | Column | Type | Notes |
 |---|---|---|
 | `contact_name` | text | Required on application |
-| `email` | text | Required — used for approval email + account linking |
+| `email` | text | Required - used for approval email + account linking |
 | `phone` | text | Optional |
 | `instagram` | text | Optional |
 | `facebook` | text | Optional |
@@ -24,11 +24,11 @@ Add `'sponsor'` to the `profiles.role` enum so portal can detect sponsor users.
 
 ## Pages
 
-### 1. Public Sponsors Page (`/sponsors`) — UPDATE
+### 1. Public Sponsors Page (`/sponsors`) - UPDATE
 
 Enhanced display of confirmed sponsors grouped by tier: logo, name, website, instagram, facebook. Below, the existing sponsorship packages section with a "Become a Sponsor" CTA button linking to `/apply/sponsor`.
 
-### 2. Sponsor Application Form (`/apply/sponsor`) — NEW
+### 2. Sponsor Application Form (`/apply/sponsor`) - NEW
 
 No auth required. Multi-field form collecting:
 - Company/sponsor name, contact name, email, phone
@@ -39,13 +39,13 @@ No auth required. Multi-field form collecting:
 
 Submits to `sponsorships` table with `status: 'pending'`. Shows success confirmation.
 
-### 3. Admin Sponsorships Page (`/admin/sponsorships`) — UPDATE
+### 3. Admin Sponsorships Page (`/admin/sponsorships`) - UPDATE
 
 - Show contact fields (email, phone, social) in the sponsor list rows
 - Add "Approve" button for pending sponsors (changes status to `confirmed`, creates invoice, sends approval email via `/api/send-email`)
 - Approval email includes link to create an account at `/auth/login`
 
-### 4. Portal Page (`/portal`) — UPDATE
+### 4. Portal Page (`/portal`) - UPDATE
 
 Detect if logged-in user has a sponsorship (via `user_id` on `sponsorships` table). If sponsor:
 - Show sponsorship details: tier, perks, amount
@@ -67,10 +67,10 @@ If exhibitor: show existing exhibitor portal (no changes).
 
 ## Files to Change
 
-- `supabase/migrations/013_sponsor_application_fields.sql` — new columns + role enum
-- `src/types/database.ts` — update sponsorships + profiles types
-- `src/app/sponsors/page.tsx` — enhanced sponsor display + CTA
-- `src/app/apply/sponsor/page.tsx` — new application form
-- `src/app/admin/sponsorships/page.tsx` — approve button, contact display
-- `src/app/portal/page.tsx` — sponsor portal section
-- `src/app/api/send-email/route.ts` — sponsor approval email template
+- `supabase/migrations/013_sponsor_application_fields.sql` - new columns + role enum
+- `src/types/database.ts` - update sponsorships + profiles types
+- `src/app/sponsors/page.tsx` - enhanced sponsor display + CTA
+- `src/app/apply/sponsor/page.tsx` - new application form
+- `src/app/admin/sponsorships/page.tsx` - approve button, contact display
+- `src/app/portal/page.tsx` - sponsor portal section
+- `src/app/api/send-email/route.ts` - sponsor approval email template

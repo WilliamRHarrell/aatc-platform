@@ -75,7 +75,7 @@ export function RosterCompletionPanel({ application, onComplete }: { application
       }
     }
 
-    // 3. Update the application — flip needs_roster=false, set artists, set id_doc_url
+    // 3. Update the application - flip needs_roster=false, set artists, set id_doc_url
     // .select() is required: without a returned row this cannot tell a
     // successful save from an RLS-filtered no-op, and needs_roster is half the
     // public directory gate. See src/lib/db-write.ts.

@@ -1,14 +1,14 @@
 /**
  * Guarded self-service writes.
  *
- * PostgREST does not error when RLS filters a write to nothing — it returns
+ * PostgREST does not error when RLS filters a write to nothing - it returns
  * `data: []` with `error: null`. Three separate features shipped broken because
  * of this and looked like they were working:
  *
  *   sponsor self-claim   updated 0 rows, silently, since sponsorships has no
  *                        owner UPDATE policy
  *   roster completion    updated 0 rows, silently, since applications had no
- *                        owner UPDATE policy (migration 041) — and needs_roster
+ *                        owner UPDATE policy (migration 041) - and needs_roster
  *                        is half the directory gate, so nobody would ever have
  *                        become directory-eligible
  *   contest voting       inserts a vote and never checks it landed
@@ -16,7 +16,7 @@
  * The shape that hides it is a write with no `.select()`: without one there is
  * no returned row to count, so zero-affected is indistinguishable from success.
  *
- * Usage — always chain `.select()` on the query you pass in:
+ * Usage - always chain `.select()` on the query you pass in:
  *
  *   await guardedWrite(
  *     supabase.from('applications').update({ … }).eq('id', id).select('id'),

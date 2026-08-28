@@ -30,7 +30,7 @@ function docStatus(app: ApprovedApp): 'complete' | 'pending' | 'missing' | 'na' 
   const list = app.artists ?? []
   if (list.length === 0) return 'missing'
   if (list.every(a => a.id_url)) return 'complete'
-  // Some artists are missing IDs — "pending" only if every missing one has id_later
+  // Some artists are missing IDs - "pending" only if every missing one has id_later
   const missing = list.filter(a => !a.id_url)
   if (missing.every(a => a.id_later)) return 'pending'
   return 'missing'
@@ -196,7 +196,7 @@ export default function AdminBoothsPage() {
       appIds.push(appRow.id)
     }
 
-    // Create invoices — split deposit proportionally across booth entries
+    // Create invoices - split deposit proportionally across booth entries
     for (let i = 0; i < appIds.length; i++) {
       const pricing = boothPricings[i]
       const proportion = totalAllBooths > 0 ? pricing.total / totalAllBooths : 0

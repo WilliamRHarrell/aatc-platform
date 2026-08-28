@@ -8,7 +8,7 @@ import PublicNav from '@/components/PublicNav'
 
 /**
  * Only the marketing perk copy lives here. name, price, colour, group and the
- * sell limit are derived from lib/sponsor-tiers.ts — this page previously kept
+ * sell limit are derived from lib/sponsor-tiers.ts - this page previously kept
  * its own `price: '$20,000'` strings, which is how it came to advertise Gold at
  * $3,000 against a $5,000 packet.
  */
@@ -160,7 +160,7 @@ export default function SponsorPackagesPage() {
       // selecting sponsorships directly: pending rows are no longer publicly
       // readable (migration 027), and this needs pending + confirmed counts to
       // avoid re-listing a tier that is already spoken for. The function
-      // returns aggregates only — no names, emails or amounts.
+      // returns aggregates only - no names, emails or amounts.
       const { data: counts, error: countErr } = await supabase
         .rpc('sponsor_tier_counts', { p_event_id: event.id })
 

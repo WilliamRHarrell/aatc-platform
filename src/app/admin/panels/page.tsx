@@ -271,7 +271,7 @@ export default function AdminPanelsPage() {
           if (!uploadError) {
             // Guarded separately: the row exists (the insert above succeeded),
             // so a zero-row result here means the image landed in storage and
-            // the panel still points at nothing — worth a real error, not a
+            // the panel still points at nothing - worth a real error, not a
             // silent mismatch between bucket and table.
             const imgRes = await guardedWrite(
               supabase.from('panels').update({ image_url: path }).eq('id', newPanel.id).select('id'),
@@ -302,7 +302,7 @@ export default function AdminPanelsPage() {
     setDeleting(id)
 
     // A filtered DELETE is the worst of the three: it returns error: null,
-    // toasts "Panel deleted", removes the row from local state — and the panel
+    // toasts "Panel deleted", removes the row from local state - and the panel
     // is still live on the public schedule after a refresh.
     const res = await guardedWrite(
       supabase.from('panels').delete().eq('id', id).select('id'),
@@ -336,7 +336,7 @@ export default function AdminPanelsPage() {
   }
 
   /**
-   * Attendance list as CSV. Built for a printed/offline workflow at the desk —
+   * Attendance list as CSV. Built for a printed/offline workflow at the desk -
    * the roster is only useful if it leaves the browser.
    *
    * Ordered by registration time (as loaded) rather than by name: the desk

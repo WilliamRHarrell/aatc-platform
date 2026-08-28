@@ -2,25 +2,25 @@
 -- TEARDOWN for an /api/admin/import-returning test.
 --
 -- ⚠  PASTE AND RUN THIS WHOLE FILE. It is one DO block plus one SELECT, and
--- they must run together — the block writes its report to a temp table that
+-- they must run together - the block writes its report to a temp table that
 -- the SELECT reads. Unlike the verify files, this one is designed for a single
 -- run, so the editor's last-statement-wins behaviour works in our favour: the
 -- SELECT you see IS the report.
 --
 -- ⚠  NO psql META-COMMANDS. The previous version opened with
--- `\set test_email '…'`, which is a psql CLIENT command — the Supabase web
+-- `\set test_email '…'`, which is a psql CLIENT command - the Supabase web
 -- editor is not psql and rejected it with `42601: syntax error at or near "\"`.
 -- The email is now a plpgsql variable, declared once, on the marked line below.
 --
 -- ⚠  IT STARTS IN DRY-RUN MODE. Nothing is deleted until you set
 -- v_dry_run := false. The dry run does the counting through the SAME code path
 -- as the real thing, then aborts, so what it reports is what the live run will
--- actually remove — not a separate query that might disagree with it.
+-- actually remove - not a separate query that might disagree with it.
 --
 -- WHY THE ASSERTIONS EXIST. The previous version shipped with the placeholder
 -- address still in it. Had the syntax error not stopped it, every statement
 -- would have matched zero rows and the file would have reported a clean,
--- successful teardown having deleted nothing — the same silent-success shape
+-- successful teardown having deleted nothing - the same silent-success shape
 -- as the RLS writes that returned `data: []` with `error: null`. A teardown
 -- that cannot tell "removed it" from "never found it" is worse than no
 -- teardown, because you stop looking. So this one REFUSES to run against the
@@ -54,12 +54,12 @@ begin
 
   -- ── Guard 2: the account must exist ───────────────────────
   -- This is the assertion that would have caught the silent no-op. Zero
-  -- matches is not "already clean" — it is "you are pointed at the wrong
+  -- matches is not "already clean" - it is "you are pointed at the wrong
   -- address", and the two are indistinguishable without saying so.
   select id into v_user_id from auth.users where lower(email) = lower(v_email);
   if v_user_id is null then
     raise exception
-      'REFUSING TO RUN: no auth user exists for %. Nothing was deleted. Check the address — an import that succeeded always leaves one.', v_email;
+      'REFUSING TO RUN: no auth user exists for %. Nothing was deleted. Check the address - an import that succeeded always leaves one.', v_email;
   end if;
 
   -- ── Count what is about to go ─────────────────────────────
@@ -77,11 +77,11 @@ begin
 
   -- ── Dry run stops here ────────────────────────────────────
   -- Raising rolls the whole block back, so nothing is removed AND the summary
-  -- is guaranteed to be displayed — an exception message always surfaces,
+  -- is guaranteed to be displayed - an exception message always surfaces,
   -- where a NOTICE may not.
   if v_dry_run then
     raise exception
-      'DRY RUN — NOTHING DELETED. Would remove: %. If that is right, set v_dry_run := false and run again.', v_summary;
+      'DRY RUN - NOTHING DELETED. Would remove: %. If that is right, set v_dry_run := false and run again.', v_summary;
   end if;
 
   -- ── Delete, children first ────────────────────────────────
@@ -100,7 +100,7 @@ begin
   delete from applications where user_id = v_user_id;
 
   -- profiles.id references auth.users. If that FK is not ON DELETE CASCADE the
-  -- auth delete below fails, so clear it first — harmless either way.
+  -- auth delete below fails, so clear it first - harmless either way.
   delete from profiles where id = v_user_id;
 
   delete from auth.users where id = v_user_id;
@@ -112,7 +112,7 @@ begin
 
   if v_left_users <> 0 or v_left_apps <> 0 or v_left_profile <> 0 then
     raise exception
-      'TEARDOWN INCOMPLETE — ROLLED BACK. Remaining: auth.users %, applications %, profiles %. Nothing has been changed.',
+      'TEARDOWN INCOMPLETE - ROLLED BACK. Remaining: auth.users %, applications %, profiles %. Nothing has been changed.',
       v_left_users, v_left_apps, v_left_profile;
   end if;
 
@@ -121,7 +121,7 @@ begin
   create temp table _teardown_report (result text, detail text);
   insert into _teardown_report values
     ('DELETED', v_summary),
-    ('VERIFIED', 'auth.users 0 · applications 0 · profiles 0 — confirmed after deletion');
+    ('VERIFIED', 'auth.users 0 · applications 0 · profiles 0 - confirmed after deletion');
 end $$;
 
 -- The report. Only reachable if the block above completed without raising, so

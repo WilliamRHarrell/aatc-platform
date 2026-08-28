@@ -46,7 +46,7 @@ export default function AATCGenerator() {
       await renderTattooCard(t2, name, ig),
       await renderTattooCard(t3, name, ig),
     ];
-    // Vertical set (TikTok) — one template, artist photo then 3 tattoos
+    // Vertical set (TikTok) - one template, artist photo then 3 tattoos
     const vt = [
       await renderVerticalCard(artist, name, ig),
       await renderVerticalCard(t1, name, ig),

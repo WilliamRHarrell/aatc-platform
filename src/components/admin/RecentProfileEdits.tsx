@@ -3,13 +3,13 @@
 /**
  * Recent self-edits to directory-facing profile fields.
  *
- * Portal profile editing publishes immediately with no approval queue — the
+ * Portal profile editing publishes immediately with no approval queue - the
  * right call, because a queue makes an exhibitor wait on staff to fix their own
  * Instagram handle. This feed is the counterweight: nothing is blocked, but
  * nothing changes unseen either.
  *
  * `business_name` is the one worth watching. It is not only the directory
- * listing — it is how staff find an exhibitor in /admin/applications, on an
+ * listing - it is how staff find an exhibitor in /admin/applications, on an
  * invoice, and on a booth assignment. An exhibitor renaming themselves is
  * legitimate and expected; it is also the change most likely to make someone
  * say "that booth isn't in the system".
@@ -44,7 +44,7 @@ interface ProfileEdit {
  *
  * Once applications open this feed is dozens of rows a day, and a flat
  * chronological list buries renames among routine edits. So renames are the
- * DEFAULT view, always visually distinct, and always counted — a rename cannot
+ * DEFAULT view, always visually distinct, and always counted - a rename cannot
  * scroll off, because the filter and the badge both key on it.
  */
 const RENAME_FIELD = 'business_name'
@@ -80,7 +80,7 @@ export default function RecentProfileEdits() {
   const [loading, setLoading] = useState(true)
   const [showStaff, setShowStaff] = useState(false)
   // Default to renames. On a busy day this feed is dozens of rows and a
-  // chronological mix buries the one change that matters — see the comment on
+  // chronological mix buries the one change that matters - see the comment on
   // RENAME_FIELD below.
   const [renamesOnly, setRenamesOnly] = useState(true)
   const [renameCount, setRenameCount] = useState(0)
@@ -98,7 +98,7 @@ export default function RecentProfileEdits() {
       if (renamesOnly) q = q.eq('field', RENAME_FIELD)
 
       // Rename count is fetched independently of the filter so the badge is
-      // right whichever view is showing — otherwise "All fields" would report
+      // right whichever view is showing - otherwise "All fields" would report
       // the number of renames currently on screen, not the number there are.
       let countQ = supabase
         .from('profile_edits')

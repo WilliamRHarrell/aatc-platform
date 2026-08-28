@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 /**
  * Server-side contest fetch. The entry grid and the surrounding prose have to be
- * in the server HTML — this page carries the Collector's Choice sponsor placement,
+ * in the server HTML - this page carries the Collector's Choice sponsor placement,
  * so it must be crawlable rather than rendered after hydration.
  */
 const getContests = unstable_cache(

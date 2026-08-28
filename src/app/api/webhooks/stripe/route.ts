@@ -8,7 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-02-25.clover' as never,
 })
 
-// Service role client — bypasses RLS for webhook updates
+// Service role client - bypasses RLS for webhook updates
 function adminSupabase() {
   return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,13 +21,13 @@ function adminSupabase() {
  * Page a human. A payment succeeding in Stripe with no matching invoice row is
  * the one failure here that silently loses money, so it must not end its life
  * as a log line nobody reads. Uses the existing Resend setup rather than adding
- * a dependency, and never throws — an alert failure must not mask the original.
+ * a dependency, and never throws - an alert failure must not mask the original.
  */
 async function alertPaymentNotRecorded(d: {
   invoiceId: string; sessionId: string; amountCents: number
 }) {
   // No fallback to RESEND_FROM_EMAIL. That resolved to the full
-  // `AATC 2027 <noreply@…>` string — display name and all — used as a
+  // `AATC 2027 <noreply@…>` string - display name and all - used as a
   // recipient. It parses, so it sent, and a payment alert quietly delivered
   // somewhere nobody reads is worse than one that fails loudly.
   const to = process.env.PAYMENT_ALERT_EMAIL
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
       const newAmountPaid = (inv.amount_paid ?? 0) + payAmount
       const fullyPaid = newAmountPaid >= inv.amount
 
-      // Milestone tracking — both fire at most once (idempotent on Stripe retries)
+      // Milestone tracking - both fire at most once (idempotent on Stripe retries)
       const minDeposit = minDepositCents(inv.amount)
       const justCrossedDeposit = !inv.deposit_paid_at && newAmountPaid >= minDeposit
       const justCrossedFinal = !inv.final_paid_at && newAmountPaid >= inv.amount
@@ -137,8 +137,8 @@ export async function POST(req: Request) {
       }
 
       // .select() is mandatory here. Service role means RLS cannot filter this,
-      // but a predicate that simply does not match — invoice deleted, wrong id
-      // in metadata — still returns zero rows with NO error. That is money taken
+      // but a predicate that simply does not match - invoice deleted, wrong id
+      // in metadata - still returns zero rows with NO error. That is money taken
       // in Stripe and nothing recorded against it, and Stripe would see a 200
       // and never retry.
       const { data: updated, error } = await supabase

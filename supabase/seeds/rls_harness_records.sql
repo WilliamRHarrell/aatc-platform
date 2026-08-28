@@ -3,20 +3,20 @@
 -- For scripts/verify-sponsor-visibility.mjs assertions 1 and 3.
 -- Written against the schema as of migration 030.
 --
--- PREREQUISITE — the auth user must exist first. Creating auth.users rows by
+-- PREREQUISITE - the auth user must exist first. Creating auth.users rows by
 -- hand is fragile (instance_id, encrypted_password, confirmation columns), so
 -- create it in the Dashboard instead:
 --     Authentication -> Users -> Add user
 --     email: rls-harness@allamericantattooconvention.com
 --     Auto Confirm User: ON
--- Any password is fine and can be discarded — the harness mints its session via
+-- Any password is fine and can be discarded - the harness mints its session via
 -- the admin API (generateLink -> verifyOtp) and never uses one.
 --
 -- Then set VERIFY_SPONSOR_EMAIL=rls-harness@allamericantattooconvention.com
 --
 -- NOTE: the confirmed sponsorship below is deliberately PUBLICLY VISIBLE (it
 -- has to be, to make the surface checks non-vacuous). It will appear on the
--- homepage grid, the footer and /sponsors under the name "ZZ TEST — RLS
+-- homepage grid, the footer and /sponsors under the name "ZZ TEST - RLS
 -- Harness (DELETE ME)". Run the teardown before launch.
 -- ============================================================
 
@@ -61,11 +61,11 @@ begin
     additional_items, featured_footer, show_on_homepage, is_in_kind
   ) values (
     v_event_id, v_user_id,
-    'ZZ TEST — RLS Harness Pending (DELETE ME)',
+    'ZZ TEST - RLS Harness Pending (DELETE ME)',
     'brass', 50000, 'pending',
     'RLS Harness', 'rls-harness@allamericantattooconvention.com',
     '910-555-0100', 'rlsharness', 'rlsharness',
-    'TEST RECORD — RLS verification harness. Safe to delete.',
+    'TEST RECORD - RLS verification harness. Safe to delete.',
     '{}', false, false, false
   )
   returning id into v_pending;
@@ -73,7 +73,7 @@ begin
   -- ── Record 2: invoice on that sponsorship ──
   -- application_id is NULL and sponsorship_id is set: exactly the shape
   -- migration 001's "invoices: own read" qual could never match, which is why
-  -- sponsors could not see their own invoices. Left unpaid on purpose — the
+  -- sponsors could not see their own invoices. Left unpaid on purpose - the
   -- owner must be able to read an UNPAID invoice.
   insert into invoices (
     application_id, sponsorship_id, amount, amount_paid, status, due_date
@@ -90,10 +90,10 @@ begin
     additional_items, featured_footer, show_on_homepage, homepage_order, is_in_kind
   ) values (
     v_event_id, null,
-    'ZZ TEST — RLS Harness (DELETE ME)',
+    'ZZ TEST - RLS Harness (DELETE ME)',
     'gold', 300000, 'confirmed',
     'RLS Harness', 'rls-harness@allamericantattooconvention.com',
-    'TEST RECORD — RLS verification harness. Publicly visible. Safe to delete.',
+    'TEST RECORD - RLS verification harness. Publicly visible. Safe to delete.',
     '{}', true, true, 999, true
   );
 
@@ -103,18 +103,18 @@ end $$;
 
 
 -- ═══════════════════════════════════════════════════════════
--- TEARDOWN — paste this block to remove everything above.
+-- TEARDOWN - paste this block to remove everything above.
 -- Order matters: invoices reference sponsorships, and sponsorships.user_id
 -- references auth.users with no ON DELETE action, so the user must go last.
 -- ═══════════════════════════════════════════════════════════
 /*
 delete from invoices
  where sponsorship_id in (
-   select id from sponsorships where sponsor_name like 'ZZ TEST — RLS Harness%'
+   select id from sponsorships where sponsor_name like 'ZZ TEST - RLS Harness%'
  );
 
 delete from sponsorships
- where sponsor_name like 'ZZ TEST — RLS Harness%';
+ where sponsor_name like 'ZZ TEST - RLS Harness%';
 
 -- Optional: remove the harness account entirely (cascades to profiles).
 -- Leave it if you intend to re-run the harness later.

@@ -1,4 +1,4 @@
-# AATC Platform — Deployment Runbook
+# AATC Platform - Deployment Runbook
 
 ## Production
 
@@ -7,7 +7,7 @@
 - **Vercel project ID:** `prj_81mDTPBr6hLRY3VhXO50r91K88OZ`
 - **Supabase project:** `srlgjovefsmtkxthtjkz.supabase.co`
 - **Stripe mode:** live
-- **Resend from-domain:** `onboarding@resend.dev` (default — verify a custom domain at domain-cutover time)
+- **Resend from-domain:** `onboarding@resend.dev` (default - verify a custom domain at domain-cutover time)
 
 ## Env vars in Vercel production
 
@@ -92,8 +92,8 @@ curl -s -X PUT "$SUPABASE_URL/auth/v1/admin/users/<USER_ID>" \
 
 ## Known follow-ups
 
-- **Sponsor RLS baseline policy is permissive.** Migration 001 created `sponsorships: public read using (true)` which lets the anon role read every row. Migration 025 adds a stricter policy but RLS uses OR — the baseline still permits all reads. Application-level queries in [SiteFooter.tsx](src/components/SiteFooter.tsx) and [sponsors/page.tsx](src/app/sponsors/page.tsx) explicitly filter on `final_paid_at`, but a future migration should drop the migration-001 baseline policy for proper defense-in-depth at the DB layer.
-- **Supabase Site URL** still pointing to `http://localhost:3000` — fix in Authentication → URL Configuration → Site URL → set to `https://aatc-platform.vercel.app` and add to Redirect URLs allow-list. Without this, recovery emails (including the returner-invite link) point to localhost.
+- **Sponsor RLS baseline policy is permissive.** Migration 001 created `sponsorships: public read using (true)` which lets the anon role read every row. Migration 025 adds a stricter policy but RLS uses OR - the baseline still permits all reads. Application-level queries in [SiteFooter.tsx](src/components/SiteFooter.tsx) and [sponsors/page.tsx](src/app/sponsors/page.tsx) explicitly filter on `final_paid_at`, but a future migration should drop the migration-001 baseline policy for proper defense-in-depth at the DB layer.
+- **Supabase Site URL** still pointing to `http://localhost:3000` - fix in Authentication → URL Configuration → Site URL → set to `https://aatc-platform.vercel.app` and add to Redirect URLs allow-list. Without this, recovery emails (including the returner-invite link) point to localhost.
 - **Resend custom from-domain** still using `onboarding@resend.dev`. Verify a custom domain at `https://resend.com/domains` and update `RESEND_FROM_EMAIL` env var when domain is cut over.
 - **Lint:** 17 pre-existing eslint errors (React 19 strict-mode rules, unescaped quotes, conditional useEffect in SiteFooter). Don't block deploys but worth a sweep when convenient.
 - **Email rate limit:** Supabase free tier caps confirmation/recovery emails at ~4/hour. For higher volumes, configure custom SMTP in Supabase Auth settings using Resend.
@@ -126,10 +126,10 @@ Created via Auth Admin API with `email_confirm:true` (no email needed). Profile 
 
 ## Plans status
 
-- **Plan 1 — Vercel deployment:** ✅ complete (2026-05-03)
-- **Plan 2 — 2027 pivot + new pricing + form updates:** ✅ complete (2026-05-04)
-- **Plan 3 — payment lifecycle (deposit/partial/timeouts):** ✅ complete (2026-05-05)
-- **Plan 4 — pre-load returners + sponsors + polish:** ✅ complete (2026-05-05)
+- **Plan 1 - Vercel deployment:** ✅ complete (2026-05-03)
+- **Plan 2-2027 pivot + new pricing + form updates:** ✅ complete (2026-05-04)
+- **Plan 3 - payment lifecycle (deposit/partial/timeouts):** ✅ complete (2026-05-05)
+- **Plan 4 - pre-load returners + sponsors + polish:** ✅ complete (2026-05-05)
 
 Spec: `docs/superpowers/specs/2026-05-02-aatc-2027-pivot-design.md`.
 Plan 1: `docs/superpowers/plans/2026-05-02-aatc-vercel-deployment.md`.

@@ -697,7 +697,7 @@ export type Database = {
           },
         ]
       }
-      /** Migration 048 — audit trail for portal profile self-edits. */
+      /** Migration 048 - audit trail for portal profile self-edits. */
       profile_edits: {
         Row: {
           id: string
@@ -724,7 +724,7 @@ export type Database = {
         Update: never
         Relationships: []
       }
-      /** Migration 044 — the 2027 programme. Seminars live in `panels`. */
+      /** Migration 044 - the 2027 programme. Seminars live in `panels`. */
       schedule_items: {
         Row: {
           id: string
@@ -1069,7 +1069,7 @@ export type Database = {
           max_capacity: number | null
           image_url: string | null
           host_email: string | null
-          /** Migration 044 — confirmed sponsor name, else the plain-text fallback. */
+          /** Migration 044 - confirmed sponsor name, else the plain-text fallback. */
           presented_by: string | null
           presented_by_website: string | null
           presented_by_logo_url: string | null
@@ -1077,7 +1077,7 @@ export type Database = {
         }
         Relationships: []
       }
-      /** Migration 044 — the 2027 programme. Seminars come from panels_public. */
+      /** Migration 044 - the 2027 programme. Seminars come from panels_public. */
       schedule_items_public: {
         Row: {
           id: string
@@ -1099,7 +1099,7 @@ export type Database = {
     }
     Functions: {
       is_admin: { Args: never; Returns: boolean }
-      /** Migration 047 — atomic capacity check + insert. Locks the panels row. */
+      /** Migration 047 - atomic capacity check + insert. Locks the panels row. */
       register_for_panel: {
         Args: {
           p_panel_id: string
@@ -1112,12 +1112,12 @@ export type Database = {
         }
         Returns: { registration_id: string; seats_taken: number; capacity: number | null }[]
       }
-      /** Migration 039 — true when the caller holds any of the given roles. */
+      /** Migration 039 - true when the caller holds any of the given roles. */
       has_role: { Args: { p_roles: string[] }; Returns: boolean }
-      /** Migration 035 — atomic lifecycle transitions (service_role only). */
+      /** Migration 035 - atomic lifecycle transitions (service_role only). */
       expire_application: { Args: { p_application_id: string }; Returns: undefined }
       cancel_application: { Args: { p_application_id: string }; Returns: undefined }
-      /** Migration 030 — aggregate tier counts without exposing pending rows. */
+      /** Migration 030 - aggregate tier counts without exposing pending rows. */
       sponsor_tier_counts: {
         Args: { p_event_id: string }
         Returns: { tier: string; taken: number }[]

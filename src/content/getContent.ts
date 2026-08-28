@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import { defaultsFor } from './registry'
 
-/** Cookieless anon client — safe for public reads and cacheable. */
+/** Cookieless anon client - safe for public reads and cacheable. */
 function readClient() {
   return createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

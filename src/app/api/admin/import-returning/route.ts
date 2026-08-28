@@ -22,7 +22,7 @@ interface ImportPayload {
 }
 
 export async function POST(req: Request) {
-  // Auth check — caller must be an admin
+  // Auth check - caller must be an admin
   const cookieStore = await cookies()
   const userClient = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -75,14 +75,14 @@ export async function POST(req: Request) {
   // ── Rollback ────────────────────────────────────────────────
   // The auth user is created FIRST because applications.user_id references it,
   // so the order cannot be reversed. That makes every failure below capable of
-  // stranding a real, logged-in-able account with no application behind it —
+  // stranding a real, logged-in-able account with no application behind it -
   // and worse, making the import UNREPEATABLE for that address, because the
   // operator's retry hits "email already registered" and needs manual cleanup
   // in the Supabase dashboard to get past it.
   //
   // There is no transaction spanning auth.users and the public schema, so this
   // is a compensating delete rather than a real rollback. If the compensation
-  // itself fails there is nothing further to try — log loudly enough that the
+  // itself fails there is nothing further to try - log loudly enough that the
   // orphan is findable, because nothing else will report it.
   const rollback = async (stage: string) => {
     const { error } = await adminClient.auth.admin.deleteUser(userId)
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'No active event' }, { status: 500 })
   }
 
-  // 3. Insert application — needs_roster=true
+  // 3. Insert application - needs_roster=true
   const now = new Date()
   const depositDueAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
   const { data: app, error: appErr } = await adminClient
@@ -148,12 +148,12 @@ export async function POST(req: Request) {
 
   // 4. Insert paid-in-full invoice
   //
-  // deposit_paid_at AND final_paid_at ARE LOAD-BEARING — do not drop them to
+  // deposit_paid_at AND final_paid_at ARE LOAD-BEARING - do not drop them to
   // "just" amount_paid/status. The lifecycle sweep's four branches all key on
   // `invoices.deposit_paid_at is null` / `invoices.final_paid_at is null`, NOT
   // on status or amount_paid. An imported returner with these unset would be
-  // approved with a deposit_due_at 30 days out and no deposit milestone — i.e.
-  // a sweep target — and the destructive branch releases their booth
+  // approved with a deposit_due_at 30 days out and no deposit milestone - i.e.
+  // a sweep target - and the destructive branch releases their booth
   // irreversibly. Setting the milestone columns directly is what keeps every
   // imported exhibitor out of all four branches.
   //

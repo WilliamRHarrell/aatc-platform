@@ -56,7 +56,7 @@ body {
   opacity: 0.5;
 }
 
-/* Embossing tape — semi-opaque backdrop behind text for readability over bg images */
+/* Embossing tape - semi-opaque backdrop behind text for readability over bg images */
 .text-emboss {
   background-color: rgba(10, 10, 10, 0.65);
   padding: 0.25em 0.5em;

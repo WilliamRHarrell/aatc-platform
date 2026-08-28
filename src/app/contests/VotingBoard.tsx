@@ -103,7 +103,7 @@ function Lightbox({ entry, onClose }: { entry: Entry; onClose: () => void }) {
  *
  * Contest data arrives already fetched from the server component, and CMS prose
  * arrives as pre-rendered ReactNodes (`voteHint`, `thankYou`) so the markdown is
- * still rendered on the server — this island never renders CMS copy itself.
+ * still rendered on the server - this island never renders CMS copy itself.
  */
 export default function VotingBoard({
   contests,

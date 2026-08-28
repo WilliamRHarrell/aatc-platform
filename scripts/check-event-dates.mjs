@@ -3,7 +3,7 @@
  * Build-time assertion: src/lib/event-config.ts must agree with the active
  * `events` row in Supabase.
  *
- * The show dates necessarily live in two places — event-config drives the
+ * The show dates necessarily live in two places - event-config drives the
  * public countdown and copy, the events row drives booth/application logic. A
  * comment asking people to keep them in sync does not survive a date change;
  * this does. Runs as `prebuild`, so a disagreement fails the deploy.
@@ -28,7 +28,7 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 if (!url || !key) {
-  console.warn('[check-event-dates] Supabase env vars missing — skipping date check.')
+  console.warn('[check-event-dates] Supabase env vars missing - skipping date check.')
   process.exit(0)
 }
 
@@ -64,7 +64,7 @@ const { data, error } = await supabase
   .single()
 
 if (error || !data) {
-  console.warn(`[check-event-dates] Could not read active event (${error?.message ?? 'no row'}) — skipping.`)
+  console.warn(`[check-event-dates] Could not read active event (${error?.message ?? 'no row'}) - skipping.`)
   process.exit(0)
 }
 
@@ -78,7 +78,7 @@ if (data.end_date !== configEnd) {
 
 if (problems.length > 0) {
   console.error(
-    `\n[check-event-dates] FAIL — src/lib/event-config.ts disagrees with the active\n` +
+    `\n[check-event-dates] FAIL - src/lib/event-config.ts disagrees with the active\n` +
     `events row ("${data.name}"):\n\n${problems.join('\n')}\n\n` +
     `Fix whichever is wrong: update the constants in src/lib/event-config.ts, or\n` +
     `correct the events row in Supabase. The countdown and the booth/application\n` +
@@ -87,4 +87,4 @@ if (problems.length > 0) {
   process.exit(1)
 }
 
-console.log(`[check-event-dates] OK — ${configStart} to ${configEnd} matches the active event row.`)
+console.log(`[check-event-dates] OK - ${configStart} to ${configEnd} matches the active event row.`)

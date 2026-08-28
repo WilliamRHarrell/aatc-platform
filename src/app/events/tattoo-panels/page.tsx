@@ -20,7 +20,7 @@ interface Panel {
   signup_type: 'none' | 'aatc_invoice' | 'email_host' | 'free_registration'
   host_email: string | null
   // max_capacity is deliberately NOT read here. It is a planning target for
-  // /admin/panels, not a limit — nothing public should imply limited
+  // /admin/panels, not a limit - nothing public should imply limited
   // availability, remaining spots or fullness. Registration never closes.
   image_url: string | null
 }
@@ -495,7 +495,7 @@ function TattooPanelsContent() {
   )
 }
 
-// Suspense wrapper — required because useSearchParams() is used above
+// Suspense wrapper - required because useSearchParams() is used above
 export default function TattooPanelsPage() {
   return (
     <Suspense fallback={

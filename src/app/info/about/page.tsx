@@ -6,13 +6,13 @@ import PublicNav from '@/components/PublicNav'
  * THREE OF THE FOUR PEOPLE HERE DID NOT EXIST.
  *
  * Sarah Mitchell, Marcus Thompson and Jessica Rivera were placeholder copy
- * shipped to a live page as named staff with invented biographies — including
+ * shipped to a live page as named staff with invented biographies - including
  * "Veteran advocate" and "Tattoo industry veteran". Removed rather than
  * reworded. This codebase already refuses to fabricate panel speakers for
  * exactly this reason; a fake head of Veterans Outreach on a page aimed at
  * Gold Star families is the same problem with more at stake.
  *
- * Ryan's bio also claimed he is an Army veteran. He is not. Corrected — see
+ * Ryan's bio also claimed he is an Army veteran. He is not. Corrected - see
  * spec §3.1/§3.3.
  *
  * Real team, per the spec. Two further members are coming and will be
@@ -38,7 +38,7 @@ const DIFFERENTIATORS = [
     description: 'Every aspect of AATC is designed with service members and veterans in mind, from discounted admission for active duty and veterans to dedicated programming that honors military culture.',
   },
   {
-    // FACTUAL CORRECTION (spec §3.1). AATC is not veteran-owned — Ryan Harrell
+    // FACTUAL CORRECTION (spec §3.1). AATC is not veteran-owned - Ryan Harrell
     // is not a veteran. What is true is that the show platforms veteran-owned
     // businesses. Do not reword this back toward the original claim.
     title: 'Highlighting Veteran-Owned & Operated Businesses',

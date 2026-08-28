@@ -24,7 +24,7 @@ const STEPS: { key: keyof Health; label: string; hint: string }[] = [
  * Directory funnel, admin dashboard.
  *
  * The four counts sit side by side so a drop between any two stages is obvious
- * at a glance. The last one is measured with a real anonymous read — the RLS
+ * at a glance. The last one is measured with a real anonymous read - the RLS
  * recursion went unseen for twelve weeks because "0 listed" and "12 approved"
  * were never shown next to each other.
  */

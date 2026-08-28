@@ -45,7 +45,7 @@ const SOCIALS = [
 ]
 
 /**
- * Client shell only — it exists as a client component solely for the
+ * Client shell only - it exists as a client component solely for the
  * usePathname admin check. All content, including the sponsor logos, is
  * server-rendered and passed in via `sponsors`. Do not reintroduce a data
  * fetch here: these logos are paid placements and must be in the server HTML.
