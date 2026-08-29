@@ -1,3 +1,5 @@
+import { COLLECTORS_CHOICE_PRIZE } from '@/lib/event-config'
+
 export type ContentType = 'text' | 'markdown' | 'boolean' | 'url'
 
 /** Booleans are stored as the strings 'true'/'false' in page_content.content. */
@@ -329,7 +331,8 @@ export const REGISTRY: PageDef[] = [
         label: 'Header intro',
         type: 'markdown',
         default:
-          'Every tattoo done at the show is cataloged and posted here for **30 days of public voting** after the weekend ends. The winning collector takes home **$500** - and the winning artist earns a **free booth for next year**.',
+          'Every tattoo done at the show is cataloged and posted here for **30 days of public voting** after the weekend ends. ' +
+          COLLECTORS_CHOICE_PRIZE,
       },
       vote_hint: { label: 'Per-category vote hint', type: 'text', default: 'Tap a photo to enlarge · Select your favorite to vote' },
       empty_title: { label: 'Empty-state title', type: 'text', default: 'Voting opens soon' },

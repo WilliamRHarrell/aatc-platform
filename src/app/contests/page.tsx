@@ -6,11 +6,13 @@ import { getContent } from '@/content/getContent'
 import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
 import VotingBoard, { type Contest, type Entry } from './VotingBoard'
+import { COLLECTORS_CHOICE_PRIZE } from '@/lib/event-config'
 
 export const metadata: Metadata = {
   title: 'AATC Collector’s Choice | Vote for Your Favorite Tattoo | AATC 2027',
   description:
-    'Every tattoo done at the All American Tattoo Convention is cataloged here for 30 days of public voting. The winning collector takes home $500 and the winning artist earns a free booth.',
+    'Every tattoo done at the All American Tattoo Convention is cataloged here for 30 days of public voting. ' +
+    COLLECTORS_CHOICE_PRIZE,
 }
 
 /**

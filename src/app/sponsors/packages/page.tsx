@@ -5,6 +5,7 @@ import { SPONSOR_TIERS, tierPrice, tierDeadline, type SponsorTier } from '@/lib/
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import PublicNav from '@/components/PublicNav'
+import { COLLECTORS_CHOICE_PRIZE } from '@/lib/event-config'
 
 /**
  * Only the marketing perk copy lives here. name, price, colour, group and the
@@ -116,7 +117,7 @@ const PACKAGE_PERKS: TierPackage[] = [
     perks: [
       'Your logo on every vote page of our website',
       'Award named after your company',
-      '$500 prize to the winning collector, FREE booth for the winning artist next year',
+      COLLECTORS_CHOICE_PRIZE,
       '30 days of online voting after the show',
       'Option to add your own prize package for the winners',
     ],

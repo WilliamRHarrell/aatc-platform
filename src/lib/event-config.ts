@@ -216,3 +216,29 @@ export const PINUP_PRIZES: { place: string; prize: string; note?: string }[] = [
  */
 export const PINUP_ADDITIONAL_PRIZES_NOTE =
   'Additional prizes will be announced as more sponsors are confirmed.'
+
+/**
+ * Collector's Choice prize. Revised by Ryan, 2026-08-28.
+ *
+ * ONE definition. There were FOUR copies of the old wording and they had
+ * already drifted into three different claims - two perk lists said "FREE booth
+ * for the winning artist next year", the /contests metadata said only "a free
+ * booth" with no timeframe at all, and the CMS default said "a free booth for
+ * next year". That is the same drift that produced Gold at $3,000 in one place
+ * and $5,000 in another, caught in the same sweep.
+ *
+ * The $500 is gone deliberately. It also resolved an open ambiguity: the old
+ * copy awarded it to the COLLECTOR while Ryan's description of the feature
+ * awards it to the ARTIST. With no amount there is nobody to attribute it to,
+ * so the question does not need answering before this can go live.
+ *
+ * NO SPONSOR IS NAMED. After Inked is likely but unconfirmed, and naming an
+ * unconfirmed business is what put a real Fayetteville venue on the
+ * after-parties page without an agreement. The name goes up when Ryan confirms.
+ *
+ * Booth wording checked before generalising: no surface specified a size or a
+ * tier, so "a free booth at next year's convention" loses no precision. It adds
+ * back the timeframe that the /contests metadata had dropped.
+ */
+export const COLLECTORS_CHOICE_PRIZE =
+  "Prize package from our sponsor, plus a free booth at next year's convention."

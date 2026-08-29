@@ -6,6 +6,7 @@ import PublicNav from '@/components/PublicNav'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { COLLECTORS_CHOICE_PRIZE } from '@/lib/event-config'
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -73,7 +74,7 @@ const TIER_PERKS: Record<SponsorTier, string[]> = {
   collectors_choice: [
     'Your logo on every vote page of our website',
     'Award named after your company',
-    '$500 prize to the winning collector, FREE booth for the winning artist next year',
+    COLLECTORS_CHOICE_PRIZE,
     '30 days of online voting after the show',
     'Option to add your own prize package for the winners',
   ],
