@@ -180,16 +180,24 @@ export const PINUP_CAPACITY = 25
  * The amounts are gift certificate VALUES, not cash. Do not shorten to "$200"
  * on any surface - the wording is the substance of the prize here.
  *
- * 'Convention Feature' is carried through from the previous copy. Ryan has
- * confirmed it is real; it is a bare phrase with no definition anywhere in this
- * repo, and a definition is being sourced separately. Do not invent one.
+ * 'Convention Feature' is a photo shoot at the show, with the images used in
+ * AATC promotional material. Confirmed by Ryan, 2026-08-28. It is carried as a
+ * note on the placement rather than expanded inline, so the prize line stays
+ * scannable and the definition still sits with the prize it belongs to.
+ *
+ * OPEN, and Ryan's call, not a code decision: that prize uses a contestant's
+ * likeness in promotional material. If a consent checkbox is ever wanted it
+ * belongs in this same entry form, next to age_confirmed - not bolted on
+ * afterwards, by which point entries exist that never saw it. See
+ * docs/HANDOFF.md.
  */
 export const PINUP_PRIZE_SPONSOR = 'Skin Specialists'
 
-export const PINUP_PRIZES = [
+export const PINUP_PRIZES: { place: string; prize: string; note?: string }[] = [
   {
     place: '1st - Miss AATC',
     prize: `Custom Crown, Sash, Trophy + $200 Gift Certificate to ${PINUP_PRIZE_SPONSOR} + Convention Feature`,
+    note: 'Convention Feature - a photo shoot at the show, with images used in AATC promotional material.',
   },
   {
     place: '2nd - 1st Runner-Up',
@@ -199,7 +207,7 @@ export const PINUP_PRIZES = [
     place: '3rd - 2nd Runner-Up',
     prize: `Trophy + $100 Gift Certificate to ${PINUP_PRIZE_SPONSOR}`,
   },
-] as const
+]
 
 /**
  * Deliberately vague. No count and no hint at what the additional prizes might

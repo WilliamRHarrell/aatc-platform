@@ -154,11 +154,18 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
                 {PINUP_PRIZES.map(item => (
                   <div
                     key={item.place}
-                    className="flex flex-col gap-1 rounded-2xl p-4 sm:flex-row sm:items-center sm:justify-between"
+                    className="rounded-2xl p-4"
                     style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
                   >
-                    <span className="text-sm font-bold text-white">{item.place}</span>
-                    <span className="text-xs" style={{ color: '#C4A882' }}>{item.prize}</span>
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <span className="text-sm font-bold text-white">{item.place}</span>
+                      <span className="text-xs" style={{ color: '#C4A882' }}>{item.prize}</span>
+                    </div>
+                    {item.note && (
+                      <p className="mt-2 text-xs leading-relaxed" style={{ color: '#999' }}>
+                        {item.note}
+                      </p>
+                    )}
                   </div>
                 ))}
 

@@ -594,9 +594,20 @@ walk-ins do not register. That caveat is rendered above the registration list in
   prize - do not shorten '$200 Gift Certificate to Skin Specialists' to '$200'
   on any surface.
 
-  'Convention Feature' is part of the first place prize, confirmed real by
-  Ryan, and is a bare phrase with no definition anywhere in this repo. A
-  definition is being sourced. Do not invent one.
+  'Convention Feature' is a photo shoot at the show, with the images used in
+  AATC promotional material. Confirmed by Ryan, 2026-08-28, and rendered as a
+  note on the first place row.
+
+- **OPEN, for Ryan: does the pinup entry flow need a likeness release?** The
+  first place Convention Feature prize uses a contestant's image in AATC
+  promotional material. Whether that needs explicit consent captured at entry
+  is a decision for Ryan, not a code question, and nothing has been built.
+
+  Recorded here because of WHEN it has to be decided rather than whether. If a
+  consent checkbox is wanted, it belongs in the same form as `age_confirmed`,
+  captured at entry and stored on the row. Added later, it splits the entry list
+  into people who agreed and people who were never asked - and the ones never
+  asked are the early registrants, who are also the most likely to place.
 
 - **Rate limiting is a Vercel WAF rule and is NOT in this repository.** Read
   the code alone and both anonymous public write paths look unprotected,
