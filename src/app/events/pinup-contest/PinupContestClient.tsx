@@ -41,6 +41,7 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
     phone: '',
     address: '',
     ageConfirmed: '',
+    marketingOptIn: '',
   })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -67,6 +68,7 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
         body: JSON.stringify({
           ...form,
           ageConfirmed: form.ageConfirmed === 'yes',
+          marketingOptIn: form.marketingOptIn === 'yes',
           website: honeypot,
           elapsedMs: Date.now() - mountedAt,
         }),
@@ -321,6 +323,28 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
                     {fieldErrors.ageConfirmed && (
                       <p className="mt-1 text-xs" style={{ color: '#fca5a5' }}>{fieldErrors.ageConfirmed}</p>
                     )}
+                  </div>
+
+                  {/* SEPARATE from the age confirmation and NOT required.
+                      Unticked by default and never a condition of entry - an
+                      entrant can register without it. Bundling consent into the
+                      thing somebody came to do is exactly what CAN-SPAM style
+                      opt-in is meant to prevent, and a pre-ticked box is not
+                      consent at all. */}
+                  <div className="rounded-lg p-3" style={{ backgroundColor: '#1f1f1f', border: '1px solid #2a2a2a' }}>
+                    <label className="flex items-start gap-2 text-xs" style={{ color: '#999' }}>
+                      <input
+                        type="checkbox"
+                        checked={form.marketingOptIn === 'yes'}
+                        onChange={e => setForm({ ...form, marketingOptIn: e.target.checked ? 'yes' : '' })}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        Email me about future AATC events and ticket presales. We don&apos;t share
+                        your information with anyone - it&apos;s used only by AATC. You can
+                        unsubscribe at any time.
+                      </span>
+                    </label>
                   </div>
 
                   <button

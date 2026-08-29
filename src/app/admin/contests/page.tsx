@@ -368,7 +368,25 @@ export default function AdminContestsPage() {
 
                   {/* Content */}
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-white">{c.name}</p>
+                    <p className="font-semibold text-white">
+                      {c.name}
+                      {/* The day is part of the identity here, not decoration.
+                          Category names repeat across days by design - three
+                          separate "Large Color" contests run on Friday,
+                          Saturday and Sunday. Without the day this list shows
+                          three identical rows and there is no way to tell which
+                          one you are editing. Derived from scheduled_time
+                          rather than a stored day column, so it cannot disagree
+                          with the schedule. */}
+                      {c.scheduled_time && (
+                        <span className="ml-2 text-xs font-normal" style={{ color: '#C4A882' }}>
+                          {new Date(c.scheduled_time).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            timeZone: 'America/New_York',
+                          })}
+                        </span>
+                      )}
+                    </p>
                     {c.description && (
                       <p className="mt-0.5 text-sm" style={{ color: '#999' }}>{c.description}</p>
                     )}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { guardedWrite } from '@/lib/db-write'
-import { PINUP_REGISTRATION_OPEN } from '@/lib/event-config'
+import { PINUP_REGISTRATION_OPEN, AATC_MAILING_ADDRESS } from '@/lib/event-config'
 import { botTrapRejection } from '@/lib/bot-trap'
 
 // POST /api/pinup-entry - Miss AATC Pinup Contest intake.
@@ -43,7 +43,7 @@ const FROM = process.env.RESEND_FROM_EMAIL ?? 'AATC 2027 <onboarding@resend.dev>
 // receive a mail saying they are registered; that is the same false promise
 // the removed stub made, only harder to retract once it is in an inbox.
 // No prize amounts in either: they are unconfirmed and held.
-async function sendConfirmation(to: string, name: string, status: 'confirmed' | 'waitlist') {
+async function sendConfirmation(to: string, name: string, status: 'confirmed' | 'waitlist', optedIn: boolean) {
   const registered = status === 'confirmed'
   const subject = registered
     ? 'You are registered - Miss AATC Pinup Contest'
@@ -64,11 +64,33 @@ async function sendConfirmation(to: string, name: string, status: 'confirmed' | 
           contest table on the day - if fewer contestants check in than registered,
           places are filled from the waitlist first.</p>`
 
+  // This message is TRANSACTIONAL: it is the receipt for an action the person
+  // just took. CAN-SPAM's unsubscribe and physical-address requirements apply to
+  // COMMERCIAL mail, not to this. That distinction is load-bearing rather than
+  // pedantic - putting a prominent unsubscribe on a contest confirmation invites
+  // someone to switch off the channel that carries their check-in time and any
+  // schedule change, and they would not know that is what they had done.
+  //
+  // So the unsubscribe here governs MARKETING only, is shown only to people who
+  // actually opted in, and says which of the two it turns off. Contest mail keeps
+  // coming either way.
+  const footer: string[] = ['All American Tattoo Convention']
+  // Omitted rather than guessed. See AATC_MAILING_ADDRESS - the venue address is
+  // not the business address and must not stand in for it.
+  if (AATC_MAILING_ADDRESS) footer.push(AATC_MAILING_ADDRESS)
+  if (optedIn) {
+    footer.push(
+      'You asked us to email you about future AATC events. That is separate from ' +
+      'this contest: reply with UNSUBSCRIBE to stop event email. You will still ' +
+      'receive messages about the contest you entered.'
+    )
+  }
+
   const { error } = await resend.emails.send({
     from: FROM,
     to,
     subject,
-    html: `${body}<p style="color:#888;font-size:12px">All American Tattoo Convention, Crown Complex, Fayetteville NC</p>`,
+    html: `${body}<p style="color:#888;font-size:12px">${footer.join('<br>')}</p>`,
   })
   if (error) throw new Error(String(error.message ?? error))
 }
@@ -122,6 +144,10 @@ export async function POST(req: NextRequest) {
   const address = str(body.address)
   const notes = str(body.notes)
   const ageConfirmed = body.ageConfirmed === true
+  // Consent is read as a boolean and nothing else. The client does NOT supply
+  // the timestamp - a self-reported consent time is not evidence of anything,
+  // and it is the field that would matter if the consent were ever questioned.
+  const marketingOptIn = body.marketingOptIn === true
 
   // Server-side, not browser-side. `required` attributes are a convenience for
   // the person filling the form in, not a check - anything can POST here.
@@ -165,6 +191,7 @@ export async function POST(req: NextRequest) {
       p_stage_name: stageName || null,
       p_address: address || null,
       p_notes: notes || null,
+      p_marketing_opt_in: marketingOptIn,
     }),
     'Your entry did not save',
     `pinup-entry event=${event.id}`,
@@ -204,7 +231,7 @@ export async function POST(req: NextRequest) {
   // error. Logged loudly instead - the row is the source of truth, and the
   // admin list is where a missing mail gets noticed.
   try {
-    await sendConfirmation(email, fullName, status)
+    await sendConfirmation(email, fullName, status, marketingOptIn)
   } catch (e) {
     console.error(`[pinup-entry] entry ${String((row as { id?: string } | undefined)?.id)} saved but confirmation email failed: ${String(e)}`)
   }

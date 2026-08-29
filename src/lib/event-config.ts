@@ -242,3 +242,39 @@ export const PINUP_ADDITIONAL_PRIZES_NOTE =
  */
 export const COLLECTORS_CHOICE_PRIZE =
   "Prize package from our sponsor, plus a free booth at next year's convention."
+
+/**
+ * Tattoo contest entry fee. Confirmed by Ryan, 2026-08-28.
+ *
+ * $10 per category, every category, no exceptions - Tattoo of the Day and Best
+ * in Show are paid the same as any other. A constant rather than inline copy
+ * for the same reason as the prize amounts: it appears next to a decision
+ * somebody makes with money.
+ *
+ * Entrants may enter as many categories as they like. The old rule limiting
+ * entries was removed as false. Saturday alone has 20 categories, so the fee is
+ * stated per entry and the arithmetic is left to the entrant - do NOT compute
+ * or display a maximum. A "$200 to enter everything" figure would read as a
+ * price for something nobody sells, and would be wrong the moment a category is
+ * added or dropped.
+ *
+ * Not to be confused with the Miss AATC Pinup Contest, which is FREE to enter.
+ * Different contest, different rule; leave that one alone.
+ */
+export const CONTEST_ENTRY_FEE = '$10'
+export const CONTEST_ENTRY_FEE_NOTE =
+  `Entry is ${'$10'} per category. You may enter as many categories as you like.`
+
+/**
+ * Physical mailing address for email footers.
+ *
+ * NULL until Ryan supplies it. Deliberately not invented, and deliberately NOT
+ * the Crown Complex address - that is the venue, not the business, and putting
+ * it in a footer would tell recipients that mail sent there reaches AATC.
+ *
+ * CAN-SPAM requires a valid physical postal address on COMMERCIAL email. It
+ * does not require one on transactional email, which is why the pinup
+ * confirmation can ship before this is filled in. Nothing marketing may be sent
+ * until it is.
+ */
+export const AATC_MAILING_ADDRESS: string | null = null

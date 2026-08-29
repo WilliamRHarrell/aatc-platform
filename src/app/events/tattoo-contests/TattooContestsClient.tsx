@@ -4,6 +4,7 @@ import type React from 'react'
 
 import Link from 'next/link'
 import PublicNav from '@/components/PublicNav'
+import { CONTEST_ENTRY_FEE_NOTE } from '@/lib/event-config'
 
 /**
  * The real 2027 category list - 49 categories, from the source graphic
@@ -207,7 +208,7 @@ export default function TattooContestsClient({ prizesSlot }: { prizesSlot: React
           <div className="space-y-4">
             {[
               { step: '1', title: 'Register at the Contest Booth', desc: 'Visit the contest registration booth located near the main stage. Registration opens at 1:00 PM each day; judging begins at 4:00 PM.' },
-              { step: '2', title: 'Pay the Entry Fee', desc: 'Entry is $10 per category. You may enter multiple categories if your tattoo qualifies. Cash and card accepted at the booth.' },
+              { step: '2', title: 'Pay the Entry Fee', desc: `${CONTEST_ENTRY_FEE_NOTE} Cash and card accepted at the booth.` },
               { step: '3', title: 'Get Judged', desc: 'Report to the judging area at the scheduled time. Our panel of professional artists will evaluate each entry based on technical execution, creativity, and overall impact.' },
               { step: '4', title: 'Attend the Awards', desc: 'Winners are announced on stage following each judging session. You must be present to accept your award.' },
             ].map(item => (
