@@ -268,13 +268,16 @@ export const CONTEST_ENTRY_FEE_NOTE =
 /**
  * Physical mailing address for email footers.
  *
- * NULL until Ryan supplies it. Deliberately not invented, and deliberately NOT
+ * Confirmed by Ryan, 2026-08-28. This is the BUSINESS address, deliberately NOT
  * the Crown Complex address - that is the venue, not the business, and putting
  * it in a footer would tell recipients that mail sent there reaches AATC.
+ *
+ * Used in MARKETING footers only. The transactional confirmation does not carry
+ * it, per the commercial/transactional split documented in the pinup route.
  *
  * CAN-SPAM requires a valid physical postal address on COMMERCIAL email. It
  * does not require one on transactional email, which is why the pinup
  * confirmation can ship before this is filled in. Nothing marketing may be sent
  * until it is.
  */
-export const AATC_MAILING_ADDRESS: string | null = null
+export const AATC_MAILING_ADDRESS: string | null = '5439 Yadkin Rd STE 112, Fayetteville, NC 28303'

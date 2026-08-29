@@ -1,37 +1,20 @@
 -- ============================================================
 -- SEED: 2027 tattoo contest categories (49 rows)
 --
--- ⚠  VERIFY THE NAMES BEFORE RUNNING. See "PROVENANCE" below.
---
 -- Paste into the Supabase SQL editor. Not applied by anyone but Ryan.
--- Requires migration 052 (is_kids_category, active).
+-- Requires migration 052 (is_kids_category, active) and 053 (vote auth).
 --
--- ── PROVENANCE, and what is and is not confirmed ─────────────
+-- ── PROVENANCE ──────────────────────────────────────────────
+-- Names are taken VERBATIM from batch-01 section 6.4, transcribed from the 2026
+-- AATC East graphic that Ryan confirmed is the 2027 lineup. 49 categories,
+-- Friday 13 / Saturday 20 / Sunday 16. Best Ear Curation is excluded: it
+-- appears only in the 2025 program.
 --
--- Ryan confirmed: the 2026 AATC East graphic IS the 2027 lineup, 49 categories,
--- Friday 13 / Saturday 20 / Sunday 16, Best Ear Curation excluded, and
--- "Best Temporary Tattoo (Kids)" on Sunday is the kids category.
---
--- The category NAMES below are NOT taken from that graphic. The full list was
--- said to be in batch-01 section 6.4, which never reached this repo or the
--- working session. The names here are derived from docs/site-copy-v1.md, which
--- is annotated as the 2025 program - the same document that introduced Best Ear
--- Curation in the first place.
---
--- Three things reconcile exactly against what Ryan confirmed independently:
---   per-day counts   13 / 20 / 16 after removing ear curation, = 49
---   the removal      ear curation is the single Saturday deletion, 21 -> 20
---   the kids row     "Best Temporary Tattoo (kids)" is on Sunday
---
--- That is much stronger than a count match alone, because Ryan named the kids
--- category and its day without reference to this document. It is still not
--- name-level verification of the other 48. Two lists can share counts and
--- differ in wording, and the wording is what appears on a contest board and on
--- a trophy.
---
--- SO: diff the names below against the graphic before running. If they match,
--- delete this header and run it. If any differ, correct them here rather than
--- in the database afterwards, so this file stays the source.
+-- An earlier draft of this file derived the names from docs/site-copy-v1.md,
+-- the 2025 program. The per-day counts matched exactly and it was still wrong
+-- in 31 of 49 names - that document abbreviates ('Large Color' for 'Large Color
+-- Tattoo') and, in two places, ORDERS THE PAIRS THE OTHER WAY ROUND. Counts
+-- reconciling is not names reconciling.
 --
 -- ── event id ────────────────────────────────────────────────
 -- Asserted, not assumed. b3630abd is an INACTIVE decoy kept as a rollback
@@ -66,55 +49,55 @@ begin
   insert into public.contests (event_id, name, scheduled_time, "order", is_kids_category)
   select v_event, c.name, c.scheduled_time, c.ord, c.kids
   from (values
-  ('Large Color', timestamptz '2027-04-16 16:00:00-04:00', 1, false),
-  ('Small Color', timestamptz '2027-04-16 16:00:00-04:00', 2, false),
-  ('Large Black & Gray', timestamptz '2027-04-16 16:00:00-04:00', 3, false),
-  ('Small Black & Gray', timestamptz '2027-04-16 16:00:00-04:00', 4, false),
+  ('Large Color Tattoo', timestamptz '2027-04-16 16:00:00-04:00', 1, false),
+  ('Small Color Tattoo', timestamptz '2027-04-16 16:00:00-04:00', 2, false),
+  ('Large Black & Gray Tattoo', timestamptz '2027-04-16 16:00:00-04:00', 3, false),
+  ('Small Black & Gray Tattoo', timestamptz '2027-04-16 16:00:00-04:00', 4, false),
   ('Best Military Tattoo', timestamptz '2027-04-16 16:00:00-04:00', 5, false),
   ('American Pride Tattoo', timestamptz '2027-04-16 16:00:00-04:00', 6, false),
-  ('Best Geometric/Dotwork', timestamptz '2027-04-16 16:00:00-04:00', 7, false),
-  ('Best Asian Inspired', timestamptz '2027-04-16 16:00:00-04:00', 8, false),
+  ('Best Geometric / Dotwork', timestamptz '2027-04-16 16:00:00-04:00', 7, false),
+  ('Best Asian Inspired Tattoo', timestamptz '2027-04-16 16:00:00-04:00', 8, false),
   ('Best Hand Tattoo', timestamptz '2027-04-16 16:00:00-04:00', 9, false),
-  ('Best Neck/Face Tattoo', timestamptz '2027-04-16 16:00:00-04:00', 10, false),
-  ('Best Cover Up', timestamptz '2027-04-16 16:00:00-04:00', 11, false),
-  ('Tattoo of the Day (Color)', timestamptz '2027-04-16 16:00:00-04:00', 12, false),
-  ('Tattoo of the Day (B&G)', timestamptz '2027-04-16 16:00:00-04:00', 13, false),
-  ('Large Color', timestamptz '2027-04-17 16:00:00-04:00', 1, false),
-  ('Small Color', timestamptz '2027-04-17 16:00:00-04:00', 2, false),
-  ('Large Black & Gray', timestamptz '2027-04-17 16:00:00-04:00', 3, false),
-  ('Small Black & Gray', timestamptz '2027-04-17 16:00:00-04:00', 4, false),
-  ('Best Lettering', timestamptz '2027-04-17 16:00:00-04:00', 5, false),
+  ('Best Neck / Face Tattoo', timestamptz '2027-04-16 16:00:00-04:00', 10, false),
+  ('Best Cover Up Tattoo', timestamptz '2027-04-16 16:00:00-04:00', 11, false),
+  ('Tattoo of the Day B & G', timestamptz '2027-04-16 16:00:00-04:00', 12, false),
+  ('Tattoo of the Day Color', timestamptz '2027-04-16 16:00:00-04:00', 13, false),
+  ('Large Color Tattoo', timestamptz '2027-04-17 16:00:00-04:00', 1, false),
+  ('Small Color Tattoo', timestamptz '2027-04-17 16:00:00-04:00', 2, false),
+  ('Large Black & Gray Tattoo', timestamptz '2027-04-17 16:00:00-04:00', 3, false),
+  ('Small Black & Gray Tattoo', timestamptz '2027-04-17 16:00:00-04:00', 4, false),
+  ('Best Lettering Tattoo', timestamptz '2027-04-17 16:00:00-04:00', 5, false),
   ('Best American Traditional', timestamptz '2027-04-17 16:00:00-04:00', 6, false),
-  ('Best Neotraditional', timestamptz '2027-04-17 16:00:00-04:00', 7, false),
-  ('Best Watercolor', timestamptz '2027-04-17 16:00:00-04:00', 8, false),
+  ('Best Neotraditional Tattoo', timestamptz '2027-04-17 16:00:00-04:00', 7, false),
+  ('Best Watercolor Tattoo', timestamptz '2027-04-17 16:00:00-04:00', 8, false),
   ('Best Small Color Portrait', timestamptz '2027-04-17 16:00:00-04:00', 9, false),
   ('Best Large Color Portrait', timestamptz '2027-04-17 16:00:00-04:00', 10, false),
-  ('Small B&G Portrait', timestamptz '2027-04-17 16:00:00-04:00', 11, false),
-  ('Large B&G Portrait', timestamptz '2027-04-17 16:00:00-04:00', 12, false),
+  ('Small Black & Gray Portrait', timestamptz '2027-04-17 16:00:00-04:00', 11, false),
+  ('Large Black & Gray Portrait', timestamptz '2027-04-17 16:00:00-04:00', 12, false),
   ('Best Back Piece', timestamptz '2027-04-17 16:00:00-04:00', 13, false),
   ('Best Arm Sleeve', timestamptz '2027-04-17 16:00:00-04:00', 14, false),
   ('Best Leg Sleeve', timestamptz '2027-04-17 16:00:00-04:00', 15, false),
   ('Best Chest Piece', timestamptz '2027-04-17 16:00:00-04:00', 16, false),
   ('Best Overall Male', timestamptz '2027-04-17 16:00:00-04:00', 17, false),
   ('Best Overall Female', timestamptz '2027-04-17 16:00:00-04:00', 18, false),
-  ('Tattoo of the Day (Color)', timestamptz '2027-04-17 16:00:00-04:00', 19, false),
-  ('Tattoo of the Day (B&G)', timestamptz '2027-04-17 16:00:00-04:00', 20, false),
-  ('Large Color', timestamptz '2027-04-18 16:00:00-04:00', 1, false),
-  ('Small Color', timestamptz '2027-04-18 16:00:00-04:00', 2, false),
-  ('Large Black & Gray', timestamptz '2027-04-18 16:00:00-04:00', 3, false),
-  ('Small Black & Gray', timestamptz '2027-04-18 16:00:00-04:00', 4, false),
+  ('Tattoo of the Day B & G', timestamptz '2027-04-17 16:00:00-04:00', 19, false),
+  ('Tattoo of the Day Color', timestamptz '2027-04-17 16:00:00-04:00', 20, false),
+  ('Large Color Tattoo', timestamptz '2027-04-18 16:00:00-04:00', 1, false),
+  ('Small Color Tattoo', timestamptz '2027-04-18 16:00:00-04:00', 2, false),
+  ('Large Black & Gray Tattoo', timestamptz '2027-04-18 16:00:00-04:00', 3, false),
+  ('Small Black & Gray Tattoo', timestamptz '2027-04-18 16:00:00-04:00', 4, false),
   ('Best Tattoo by a Veteran', timestamptz '2027-04-18 16:00:00-04:00', 5, false),
   ('Best Comic/Superhero', timestamptz '2027-04-18 16:00:00-04:00', 6, false),
   ('Best Anime Tattoo', timestamptz '2027-04-18 16:00:00-04:00', 7, false),
-  ('Best Disney Themed', timestamptz '2027-04-18 16:00:00-04:00', 8, false),
+  ('Best Disney Themed Tattoo', timestamptz '2027-04-18 16:00:00-04:00', 8, false),
   ('Most Unusual Tattoo', timestamptz '2027-04-18 16:00:00-04:00', 9, false),
-  ('Best Tattooed Flesh (fake skin)', timestamptz '2027-04-18 16:00:00-04:00', 10, false),
+  ('Best Tattooed Flesh (Fake Skin)', timestamptz '2027-04-18 16:00:00-04:00', 10, false),
   ('Best Original Flash', timestamptz '2027-04-18 16:00:00-04:00', 11, false),
   ('Best Temporary Tattoo (Kids)', timestamptz '2027-04-18 16:00:00-04:00', 12, true),
-  ('Tattoo of the Day (Color)', timestamptz '2027-04-18 16:00:00-04:00', 13, false),
-  ('Tattoo of the Day (B&G)', timestamptz '2027-04-18 16:00:00-04:00', 14, false),
-  ('Best in Show (Color)', timestamptz '2027-04-18 16:00:00-04:00', 15, false),
-  ('Best in Show (B&G)', timestamptz '2027-04-18 16:00:00-04:00', 16, false)
+  ('Tattoo of the Day B & G', timestamptz '2027-04-18 16:00:00-04:00', 13, false),
+  ('Tattoo of the Day Color', timestamptz '2027-04-18 16:00:00-04:00', 14, false),
+  ('Best in Show B & G', timestamptz '2027-04-18 16:00:00-04:00', 15, false),
+  ('Best in Show Color', timestamptz '2027-04-18 16:00:00-04:00', 16, false)
   ) as c(name, scheduled_time, ord, kids);
 
   raise notice 'Done. % rows inserted.', (select count(*) from public.contests where event_id = v_event);

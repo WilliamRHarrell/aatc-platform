@@ -1,0 +1,170 @@
+-- ============================================================
+-- ⚠  RUN ONE LETTERED BLOCK AT A TIME - DO NOT RUN THIS FILE WHOLE.
+--    The SQL Editor shows only the LAST statement's result.
+--
+-- ⚠  BLOCKS C THROUGH G REPORT VIA `RAISE NOTICE`. Read the Messages pane.
+--    PASS is a notice; FAIL is a raised exception and shows red.
+--
+-- Every negative assertion is paired with a control proving the query could
+-- have found something. See the rule in docs/HANDOFF.md.
+--
+-- ⚠  WRITES TEST DATA (two auth users, a contest, an entry, votes) and removes
+--    it. Block Z re-checks. Everything is prefixed zz-.
+-- ============================================================
+
+-- ── A. shape
+--    want: voter_id uuid NOT NULL, vote_date date NOT NULL, and NO voter_token.
+select column_name, data_type, is_nullable
+  from information_schema.columns
+ where table_schema='public' and table_name='contest_votes'
+ order by ordinal_position;
+
+-- ── B. constraints and policies
+--    want: contest_votes_one_per_day UNIQUE (contest_id, voter_id, vote_date),
+--          and exactly two policies - own insert (INSERT), own read (SELECT).
+select conname, pg_get_constraintdef(oid)
+  from pg_constraint where conrelid='public.contest_votes'::regclass order by conname;
+
+select policyname, cmd, roles::text, qual, with_check
+  from pg_policies where schemaname='public' and tablename='contest_votes' order by policyname;
+
+-- ── C. an authenticated user can vote once  (NOTICE pane)
+--    This is the CONTROL for every negative below. If a signed-in user cannot
+--    vote at all, the rejections in D, E and F would pass while proving nothing.
+do $$
+declare v_event uuid; v_contest uuid; v_entry uuid; v_user uuid; n int;
+begin
+  select id into v_event from public.events where is_active order by start_date limit 1;
+
+  insert into auth.users (id, email, instance_id, aud, role)
+  values (gen_random_uuid(), 'zz-voter-a@example.com', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated')
+  returning id into v_user;
+
+  insert into public.contests (event_id, name, scheduled_time, "order")
+  values (v_event, 'ZZ Verify Contest', now(), 999) returning id into v_contest;
+
+  insert into public.contest_entries (contest_id, collector_name)
+  values (v_contest, 'ZZ Verify Collector') returning id into v_entry;
+
+  insert into public.contest_votes (entry_id, contest_id, voter_id)
+  values (v_entry, v_contest, v_user);
+
+  select count(*) into n from public.contest_votes where voter_id = v_user;
+  if n <> 1 then raise exception 'FAIL: expected 1 vote, found %', n; end if;
+  raise notice 'PASS: an authenticated user can vote (control)';
+
+  -- vote_date must have been set by the trigger, not left null or defaulted
+  perform 1 from public.contest_votes
+   where voter_id = v_user
+     and vote_date = (now() at time zone 'America/New_York')::date;
+  if not found then raise exception 'FAIL: vote_date was not set to the New York date'; end if;
+  raise notice 'PASS: vote_date stamped by the trigger, America/New_York';
+end $$;
+
+-- ── D. a SECOND vote the same day is rejected  (NOTICE pane)
+do $$
+declare v_contest uuid; v_entry uuid; v_user uuid;
+begin
+  select id into v_contest from public.contests where name='ZZ Verify Contest';
+  select id into v_entry   from public.contest_entries where contest_id=v_contest limit 1;
+  select id into v_user    from auth.users where email='zz-voter-a@example.com';
+
+  begin
+    insert into public.contest_votes (entry_id, contest_id, voter_id)
+    values (v_entry, v_contest, v_user);
+    raise exception 'FAIL: the same user voted twice in one category on one day';
+  exception
+    when unique_violation then raise notice 'PASS: second vote same day rejected';
+  end;
+end $$;
+
+-- ── E. the NEXT day is allowed  (NOTICE pane)
+--    Inserted then back-dated, because the trigger always stamps today. This is
+--    the row the constraint must tolerate.
+do $$
+declare v_contest uuid; v_entry uuid; v_user uuid; v_id uuid; n int;
+begin
+  select id into v_contest from public.contests where name='ZZ Verify Contest';
+  select id into v_entry   from public.contest_entries where contest_id=v_contest limit 1;
+  select id into v_user    from auth.users where email='zz-voter-a@example.com';
+
+  update public.contest_votes set vote_date = vote_date - 1 where voter_id = v_user;
+
+  insert into public.contest_votes (entry_id, contest_id, voter_id)
+  values (v_entry, v_contest, v_user) returning id into v_id;
+
+  select count(*) into n from public.contest_votes where voter_id = v_user;
+  if n <> 2 then raise exception 'FAIL: expected 2 votes across 2 days, found %', n; end if;
+  raise notice 'PASS: the same user may vote again the following day';
+end $$;
+
+-- ── F. anon cannot vote at all  (NOTICE pane)
+--    Control first: postgres can still see the rows, so a zero result below is
+--    the policy and not an empty table.
+do $$
+declare v_contest uuid; v_entry uuid; v_user uuid; n int;
+begin
+  select id into v_contest from public.contests where name='ZZ Verify Contest';
+  select id into v_entry   from public.contest_entries where contest_id=v_contest limit 1;
+  select id into v_user    from auth.users where email='zz-voter-a@example.com';
+
+  select count(*) into n from public.contest_votes where voter_id = v_user;
+  if n = 0 then raise exception 'FAIL: no rows to hide - the checks below would be vacuous'; end if;
+  raise notice 'PASS: % rows exist and are visible as postgres (control)', n;
+
+  begin
+    set local role anon;
+    insert into public.contest_votes (entry_id, contest_id, voter_id)
+    values (v_entry, v_contest, v_user);
+    reset role;
+    raise exception 'FAIL: anon inserted a vote';
+  exception
+    when insufficient_privilege then raise notice 'PASS: anon cannot vote';
+  end;
+  reset role;
+
+  set local role anon;
+  select count(*) into n from public.contest_votes;
+  reset role;
+  if n <> 0 then raise exception 'FAIL: anon read % vote row(s)', n; end if;
+  raise notice 'PASS: anon cannot read votes';
+end $$;
+
+-- ── G. a user cannot post ANOTHER user's voter_id  (NOTICE pane)
+--    The whole point of the policy. Without it voter_id is decorative.
+do $$
+declare v_contest uuid; v_entry uuid; v_a uuid; v_b uuid;
+begin
+  select id into v_contest from public.contests where name='ZZ Verify Contest';
+  select id into v_entry   from public.contest_entries where contest_id=v_contest limit 1;
+  select id into v_a from auth.users where email='zz-voter-a@example.com';
+
+  insert into auth.users (id, email, instance_id, aud, role)
+  values (gen_random_uuid(), 'zz-voter-b@example.com', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated')
+  returning id into v_b;
+
+  -- Impersonate user B, then try to cast a vote as user A.
+  perform set_config('request.jwt.claims', json_build_object('sub', v_b::text, 'role','authenticated')::text, true);
+  begin
+    set local role authenticated;
+    insert into public.contest_votes (entry_id, contest_id, voter_id)
+    values (v_entry, v_contest, v_a);
+    reset role;
+    raise exception 'FAIL: user B cast a vote under user A''s id';
+  exception
+    when insufficient_privilege then raise notice 'PASS: a user cannot vote as somebody else';
+  end;
+  reset role;
+end $$;
+
+-- ── Z. cleanup and residue check - run LAST
+--    want: 0 rows from the final select.
+delete from public.contest_votes
+ where voter_id in (select id from auth.users where email like 'zz-voter-%@example.com');
+delete from public.contest_entries where collector_name like 'ZZ %';
+delete from public.contests where name like 'ZZ %';
+delete from auth.users where email like 'zz-voter-%@example.com';
+
+select 'contests' as tbl, count(*) from public.contests where name like 'ZZ %'
+union all select 'entries', count(*) from public.contest_entries where collector_name like 'ZZ %'
+union all select 'users', count(*) from auth.users where email like 'zz-voter-%@example.com';

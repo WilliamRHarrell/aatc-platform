@@ -312,21 +312,24 @@ export type Database = {
           created_at: string
           entry_id: string
           id: string
-          voter_token: string
+          voter_id: string
+          vote_date: string
         }
         Insert: {
           contest_id: string
           created_at?: string
           entry_id: string
           id?: string
-          voter_token: string
+          voter_id: string
+          vote_date?: string
         }
         Update: {
           contest_id?: string
           created_at?: string
           entry_id?: string
           id?: string
-          voter_token?: string
+          voter_id?: string
+          vote_date?: string
         }
         Relationships: [
           {
@@ -345,6 +348,8 @@ export type Database = {
           event_id: string
           id: string
           name: string
+          is_kids_category: boolean
+          active: boolean
           order: number
           scheduled_time: string | null
           updated_at: string
@@ -365,6 +370,8 @@ export type Database = {
           event_id?: string
           id?: string
           name?: string
+          is_kids_category?: boolean
+          active?: boolean
           order?: number
           scheduled_time?: string | null
           updated_at?: string
@@ -898,6 +905,9 @@ export type Database = {
           event_id: string
           full_name: string
           id: string
+          marketing_opt_in: boolean
+          marketing_opt_in_at: string | null
+          marketing_opt_in_source: string | null
           notes: string | null
           phone: string
           stage_name: string | null
@@ -912,6 +922,9 @@ export type Database = {
           event_id: string
           full_name: string
           id?: string
+          marketing_opt_in?: boolean
+          marketing_opt_in_at?: string | null
+          marketing_opt_in_source?: string | null
           notes?: string | null
           phone: string
           stage_name?: string | null
@@ -926,6 +939,9 @@ export type Database = {
           event_id?: string
           full_name?: string
           id?: string
+          marketing_opt_in?: boolean
+          marketing_opt_in_at?: string | null
+          marketing_opt_in_source?: string | null
           notes?: string | null
           phone?: string
           stage_name?: string | null

@@ -20,29 +20,16 @@ export interface Contest {
   entries: Entry[]
 }
 
-// ── Voter token helpers ────────────────────────────────────
-function getVoterToken(): string {
-  let token = localStorage.getItem('aatc_voter_token')
-  if (!token) {
-    token = crypto.randomUUID()
-    localStorage.setItem('aatc_voter_token', token)
-  }
-  return token
-}
-
-function loadChoices(): Record<string, string> {
-  try {
-    return JSON.parse(localStorage.getItem('aatc_voter_choices') ?? '{}')
-  } catch {
-    return {}
-  }
-}
-
-function saveChoice(contestId: string, entryId: string) {
-  const choices = loadChoices()
-  choices[contestId] = entryId
-  localStorage.setItem('aatc_voter_choices', JSON.stringify(choices))
-}
+// Identity is the signed-in user. There is deliberately NO localStorage here.
+//
+// It used to be a crypto.randomUUID() in localStorage, with the past votes kept
+// alongside it. For a one-vote-per-day rule that is one vote per day per browser
+// profile: a private window resets it, and so does clearing site data. This
+// contest awards a free booth and artists are pushed to drive their own audience
+// to vote, so that is not a theoretical weakness.
+//
+// Past votes are now read back from the database, which is also the only way the
+// board can be correct on a second device.
 
 // ── Lightbox ───────────────────────────────────────────────
 function Lightbox({ entry, onClose }: { entry: Entry; onClose: () => void }) {
@@ -116,24 +103,47 @@ export default function VotingBoard({
 }) {
   const supabase = createClient()
   const [choices, setChoices] = useState<Record<string, string>>({})
+  const [userId, setUserId] = useState<string | null>(null)
+  const [authChecked, setAuthChecked] = useState(false)
   const [voting, setVoting] = useState<string | null>(null)
   const [lightboxEntry, setLightboxEntry] = useState<Entry | null>(null)
 
   useEffect(() => {
-    setChoices(loadChoices())
+    // Who is voting, and what have they already voted for today. Both come from
+    // the server; RLS restricts the select to the caller's own rows.
+    const load = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUserId(user?.id ?? null)
+      setAuthChecked(true)
+      if (!user) return
+
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })
+      const { data } = await supabase
+        .from('contest_votes')
+        .select('contest_id, entry_id')
+        .eq('voter_id', user.id)
+        .eq('vote_date', today)
+
+      if (data) {
+        setChoices(Object.fromEntries(data.map(v => [v.contest_id, v.entry_id])))
+      }
+    }
+    load()
   }, [])
 
   const castVote = async (contest: Contest, entry: Entry) => {
     if (choices[contest.id]) return
+    if (!userId) {
+      toast.error('Please sign in to vote.')
+      return
+    }
     setVoting(entry.id)
-
-    const token = getVoterToken()
     // .select() is required: this runs on the show floor with no developer
     // present, and a silently-dropped insert means uncounted votes and a
     // contest-integrity problem in front of the artists.
     const { data: inserted, error } = await supabase
       .from('contest_votes')
-      .insert({ entry_id: entry.id, contest_id: contest.id, voter_token: token })
+      .insert({ entry_id: entry.id, contest_id: contest.id, voter_id: userId })
       .select('id')
 
     if (!error && (!inserted || inserted.length === 0)) {
@@ -145,14 +155,15 @@ export default function VotingBoard({
 
     if (error) {
       if (error.code === '23505') {
+        // The one-per-day constraint. Reached when the same account votes twice
+        // in a category on the same day - a second tab, or a double submit.
         setChoices(prev => ({ ...prev, [contest.id]: entry.id }))
-        saveChoice(contest.id, entry.id)
+        toast('You have already voted in this category today.')
       } else {
         toast.error('Could not submit vote')
       }
     } else {
       setChoices(prev => ({ ...prev, [contest.id]: entry.id }))
-      saveChoice(contest.id, entry.id)
       toast.success(`Vote recorded for ${entry.collector_name}`)
     }
     setVoting(null)
@@ -163,6 +174,30 @@ export default function VotingBoard({
   return (
     <>
       {lightboxEntry && <Lightbox entry={lightboxEntry} onClose={() => setLightboxEntry(null)} />}
+
+      {/* Told up front, not on click. Voting now needs an account, and finding
+          that out only after picking a favourite is how someone leaves without
+          voting. Rendered after the auth check so it does not flash for a
+          signed-in voter. */}
+      {authChecked && !userId && (
+        <div
+          className="mb-6 rounded-2xl p-4 text-center"
+          style={{ backgroundColor: 'rgba(139,115,85,0.10)', border: '1px solid #3a3a3a' }}
+        >
+          <p className="text-sm font-semibold text-white">Sign in to vote</p>
+          <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed" style={{ color: '#999' }}>
+            Voting is free, but it needs an account so each person votes once per category
+            per day. You can browse every entry without signing in.
+          </p>
+          <a
+            href="/auth/login?redirect=/contests"
+            className="mt-3 inline-block rounded-lg px-5 py-2 text-xs font-bold text-white"
+            style={{ backgroundColor: '#8B7355' }}
+          >
+            Sign in or create an account
+          </a>
+        </div>
+      )}
 
       {/* Progress */}
       <p className="mb-1 text-center text-xs" style={{ color: '#555' }}>
