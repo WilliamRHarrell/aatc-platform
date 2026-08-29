@@ -164,3 +164,47 @@ export const PINUP_REGISTRATION_OPEN = false
 
 /** Places in the pinup contest. Past this, entries are waitlisted, not refused. */
 export const PINUP_CAPACITY = 25
+
+/**
+ * Miss AATC Pinup Contest prizes. Confirmed by Ryan, 2026-08-28.
+ *
+ * ONE definition, imported by the page. It sits directly above a registration
+ * form, so it is read closely and by people deciding whether to enter - the
+ * same reason Collector's Choice is being centralised.
+ *
+ * The previous inline copy was wrong in two ways at once and both were live:
+ * it overstated first place by $300, and it described all three awards as CASH
+ * when every one of them is a gift certificate. Either alone would be a
+ * material misstatement to someone deciding whether to take part.
+ *
+ * The amounts are gift certificate VALUES, not cash. Do not shorten to "$200"
+ * on any surface - the wording is the substance of the prize here.
+ *
+ * 'Convention Feature' is carried through from the previous copy. Ryan has
+ * confirmed it is real; it is a bare phrase with no definition anywhere in this
+ * repo, and a definition is being sourced separately. Do not invent one.
+ */
+export const PINUP_PRIZE_SPONSOR = 'Skin Specialists'
+
+export const PINUP_PRIZES = [
+  {
+    place: '1st - Miss AATC',
+    prize: `Custom Crown, Sash, Trophy + $200 Gift Certificate to ${PINUP_PRIZE_SPONSOR} + Convention Feature`,
+  },
+  {
+    place: '2nd - 1st Runner-Up',
+    prize: `Trophy + $150 Gift Certificate to ${PINUP_PRIZE_SPONSOR}`,
+  },
+  {
+    place: '3rd - 2nd Runner-Up',
+    prize: `Trophy + $100 Gift Certificate to ${PINUP_PRIZE_SPONSOR}`,
+  },
+] as const
+
+/**
+ * Deliberately vague. No count and no hint at what the additional prizes might
+ * be: naming either would be a commitment nobody has made, on the page where a
+ * contestant decides to enter.
+ */
+export const PINUP_ADDITIONAL_PRIZES_NOTE =
+  'Additional prizes will be announced as more sponsors are confirmed.'

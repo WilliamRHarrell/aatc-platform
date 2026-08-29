@@ -578,6 +578,26 @@ walk-ins do not register. That caveat is rendered above the registration list in
 
   Full removal is a cutover step and is FK-ordered; see docs/CUTOVER.md section B.
 
+- **Skin Specialists is the first real presentation credit.** They fund all
+  three Miss AATC Pinup Contest gift certificates ($200 / $150 / $100). Credited
+  in the prizes section of `/events/pinup-contest`, rendered from
+  `PINUP_PRIZE_SPONSOR` in `src/lib/event-config.ts`.
+
+  **Not** in `presentation_credits` - that table does not exist yet. When it is
+  built, this is its first genuine row, and the hardcoded credit on the pinup
+  page should be migrated to read from it rather than left as a second source.
+
+  Prize copy lives in exactly one place, `src/lib/event-config.ts`, and is
+  imported by the page. It was previously inline and wrong in two ways at once,
+  both live: first place overstated by $300, and all three described as CASH
+  when every award is a gift certificate. The wording is the substance of the
+  prize - do not shorten '$200 Gift Certificate to Skin Specialists' to '$200'
+  on any surface.
+
+  'Convention Feature' is part of the first place prize, confirmed real by
+  Ryan, and is a bare phrase with no definition anywhere in this repo. A
+  definition is being sourced. Do not invent one.
+
 - **Rate limiting is a Vercel WAF rule and is NOT in this repository.** Read
   the code alone and both anonymous public write paths look unprotected,
   because at the application level they are. That is by design, not an

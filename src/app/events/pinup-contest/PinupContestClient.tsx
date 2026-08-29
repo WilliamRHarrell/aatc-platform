@@ -1,7 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { PINUP_REGISTRATION_OPEN } from '@/lib/event-config'
+import {
+  PINUP_REGISTRATION_OPEN,
+  PINUP_PRIZES,
+  PINUP_PRIZE_SPONSOR,
+  PINUP_ADDITIONAL_PRIZES_NOTE,
+} from '@/lib/event-config'
 import HoneypotField from '@/components/HoneypotField'
 
 import PublicNav from '@/components/PublicNav'
@@ -18,12 +23,6 @@ const JUDGES = [
   { name: 'Judge TBA', title: 'Head Judge', initials: 'TBA' },
   { name: 'Judge TBA', title: 'Guest Judge', initials: 'TBA' },
   { name: 'Judge TBA', title: 'Guest Judge', initials: 'TBA' },
-]
-
-const PRIZES = [
-  { place: '1st Place - Miss AATC', prize: 'Custom Crown, Sash, Trophy + $500 Cash + Convention Feature' },
-  { place: '2nd Place - 1st Runner-Up', prize: 'Trophy + $250 Cash' },
-  { place: '3rd Place - 2nd Runner-Up', prize: 'Trophy + $100 Cash' },
 ]
 
 const FIELDS = [
@@ -112,7 +111,7 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
           <span className="text-emboss">Miss AATC Pinup Contest</span>
         </h1>
         <p className="mx-auto mt-0 max-w-xl text-sm" style={{ color: '#999' }}>
-          <span className="text-emboss">Celebrating beauty, confidence, and tattoo culture. The Miss AATC Pinup Contest is one of Saturday evening&apos;s marquee events, bringing vintage glamour and modern ink together on the main stage.</span>
+          <span className="text-emboss">Celebrating beauty, confidence, and tattoo culture. The Miss AATC Pinup Contest is one of Saturday&apos;s marquee events, bringing vintage glamour and modern ink together on the main stage.</span>
         </p>
       </div>
 
@@ -152,7 +151,7 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
                 <span className="text-emboss">Prizes</span>
               </h2>
               <div className="space-y-2">
-                {PRIZES.map(item => (
+                {PINUP_PRIZES.map(item => (
                   <div
                     key={item.place}
                     className="flex flex-col gap-1 rounded-2xl p-4 sm:flex-row sm:items-center sm:justify-between"
@@ -162,6 +161,25 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
                     <span className="text-xs" style={{ color: '#C4A882' }}>{item.prize}</span>
                   </div>
                 ))}
+
+                {/* A credit, not a footnote: a real sponsor funding all three
+                    gift certificates. Reads at the same weight as the prizes
+                    it pays for. */}
+                <div
+                  className="rounded-2xl p-4 text-center"
+                  style={{ backgroundColor: 'rgba(139,115,85,0.10)', border: '1px solid #3a3a3a' }}
+                >
+                  <p className="text-xs uppercase tracking-[0.2em]" style={{ color: '#999' }}>
+                    Gift certificates sponsored by
+                  </p>
+                  <p className="mt-1 text-sm font-bold" style={{ color: '#C4A882' }}>
+                    {PINUP_PRIZE_SPONSOR}
+                  </p>
+                </div>
+
+                <p className="pt-1 text-center text-xs" style={{ color: '#999' }}>
+                  {PINUP_ADDITIONAL_PRIZES_NOTE}
+                </p>
               </div>
             </div>
 
