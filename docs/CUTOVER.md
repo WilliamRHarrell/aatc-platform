@@ -388,9 +388,29 @@ sponsorship with `status = 'confirmed'`, and `/sponsors` lists every confirmed
 sponsorship for the event with no placement flag consulted (see the section
 below). So creating a confirmed sponsorship to make the credit render would
 **publicly list them as a full 2027 sponsor**, which overstates what was sold.
-And no `sponsor_tier` value means "presentation credit" - the enum is `title`,
-`platinum`, `gold`, `silver`, `brass`, `collectible_coin`, `vip_bag`. Picking
-the nearest tier misstates the amount and the package.
+And no `sponsor_tier` value means "presentation credit". Picking the nearest
+tier misstates the amount and the package.
+
+**STALE AS OF 2026-08-31, and the decision now rests on the other reason.** The
+enum list quoted here was already out of date and the argument built on it has
+been overtaken. The live enum is:
+
+    platinum, gold, silver, bronze, title, brass, collectible_coin,
+    vip_bag, collectors_choice, artist_lounge, rafter_banner
+
+Five item-specific values have been added SINCE this decision -
+`collectible_coin`, `vip_bag`, `collectors_choice`, `artist_lounge`,
+`rafter_banner` - each priced in `src/lib/sponsor-tiers.ts` with an amount, a
+deadline and in some cases a limit. So "a `sponsor_tier` value can never be
+dropped, which is the wrong kind of permanent for a guess" has in practice been
+overridden five times, and the enum IS being used as the sellable catalogue it
+was argued not to be.
+
+**The decision still stands, on the reason stated above it and verified today:**
+`sponsors_public` is `select ... from sponsorships where status = 'confirmed'`
+with no placement flag consulted, so any confirmed sponsorship row publishes its
+buyer on `/sponsors` as a full 2027 sponsor. That is the blocker, and it is
+still true.
 
 **Current state, and it is a deliberate holding position, not a bug:** both
 credits render as plain text from `presented_by_fallback`. The pages are
@@ -444,12 +464,34 @@ after `/admin/schedule` CRUD and portal profile self-edit** - see HANDOFF §5.
 | Whole Life Aftercare | All American Tattoo Battle (Fri 1:00 PM) | plain text |
 | Nomadica | Bookkeeping seminar (Sun 1:30 PM) | plain text |
 
-**This number goes up every time another one is sold before the table exists,
-and each one is revenue with no record of who bought it, at what price, against
-which item.** They render correctly on the public pages - nothing is visibly
-wrong - which is exactly why this is easy to keep deferring. `verify_044.sql`
-query F is the live count; it will stay non-zero until the table lands, so treat
-a growing result there as the signal that this has waited long enough.
+**CORRECTION, 2026-08-31. Query F counts ITEM ROWS carrying a text credit, NOT
+credits sold.** The sentence that used to sit here said the number goes up every
+time another one is sold. That is false, and it misleads in the direction of
+reading the counter as sponsorship growth.
+
+It went from 2 to 4 with nothing sold: the Whole Life Aftercare credit was
+correctly added to the two other Tattoo Battle schedule rows it had been missing
+from. Four rows, still two commitments:
+
+| rows | commitment |
+|---|---|
+| 3 x `schedule_items` (Battle Begins, Ends/Voting Opens, Champion Crowned) | Whole Life Aftercare |
+| 1 x `panels` (Bookkeeping seminar) | Nomadica |
+
+Read it as **a to-do list of unlinked credit rows**, which is what it is and
+what the query header says. Each row needs linking; the count is not a measure
+of what has been sold and must not be quoted as one.
+
+**And it exposed a flaw in the sketch below rather than merely arguing for it.**
+One sale spanning three item rows cannot be represented by a table with a single
+`schedule_item_id` column - it would take three credit rows, each with its own
+`amount` and `invoice_id`, and any report summing `amount` would triple-count.
+Migration 060 adds a join table for exactly this. The counter did not signal
+that the table was needed; it showed that the design was wrong.
+
+Each unlinked row is still revenue with no record of who bought it, at what
+price, against which item. They render correctly on the public pages - nothing
+is visibly wrong - which is why this was easy to keep deferring.
 
 The interim position is deliberate: the plain-text fallback is honest about what
 it is, and it beats fabricating a sponsorship row that would publish these two

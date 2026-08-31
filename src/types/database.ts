@@ -899,6 +899,75 @@ export type Database = {
         }
         Relationships: []
       }
+      presentation_credits: {
+        Row: {
+          amount: number
+          based_on_tier: string | null
+          buyer_name: string
+          created_at: string
+          event_id: string
+          id: string
+          invoice_id: string | null
+          is_in_kind: boolean
+          notes: string | null
+          sponsorship_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          based_on_tier?: string | null
+          buyer_name: string
+          created_at?: string
+          event_id: string
+          id?: string
+          invoice_id?: string | null
+          is_in_kind?: boolean
+          notes?: string | null
+          sponsorship_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          based_on_tier?: string | null
+          buyer_name?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          invoice_id?: string | null
+          is_in_kind?: boolean
+          notes?: string | null
+          sponsorship_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      presentation_credit_items: {
+        Row: {
+          created_at: string
+          credit_id: string
+          id: string
+          panel_id: string | null
+          schedule_item_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          credit_id: string
+          id?: string
+          panel_id?: string | null
+          schedule_item_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          credit_id?: string
+          id?: string
+          panel_id?: string | null
+          schedule_item_id?: string | null
+        }
+        Relationships: []
+      }
       page_galleries: {
         Row: {
           active: boolean
