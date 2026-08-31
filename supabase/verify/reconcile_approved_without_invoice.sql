@@ -109,6 +109,12 @@ select t.id, t.business_name, t.email, t.days, t.created_at
 --    ⚠  The mapping below duplicates PRICING in
 --    src/app/admin/food-trucks/page.tsx. If the prices change there, change
 --    them here. This is a known duplication, called out rather than hidden.
+--
+--    AND KNOW HOW IT FAILS: if PRICING changes and this does not, block G does
+--    not go quiet - it goes CONFIDENTLY WRONG. Every correctly-priced truck
+--    starts reporting as a mismatch, and the query that exists to find billing
+--    errors becomes the thing generating them. A reconciliation nobody trusts
+--    gets ignored, which is worse than not having one.
 select t.id,
        t.business_name,
        array_length(t.days, 1)          as day_count,

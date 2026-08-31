@@ -150,6 +150,31 @@ things worse, not better.
       contest that needs 25 sign-ups, and it fails silently from the visitor's
       side - they see a generic error, not a rate limit.
 
+## B3. On-site pre-registration - a known future workflow with no ledger
+
+- [ ] **Read this before building an on-site payment screen.** Ryan takes next
+      year's bookings at a table during the show on Sunday, normally 20-25% of
+      them as cash or card. It did not run in 2026 because an artist issue went
+      past close, so the platform has never carried it.
+
+      **There is no payments ledger.** `invoices.amount_paid` is a running total
+      mutated in place, so a payment is not an event that gets recorded - it is
+      an increment that gets applied. A payment that fails to record leaves no
+      trace it was attempted, and no query can find it afterwards. See
+      docs/HANDOFF.md and `reconcile_approved_without_invoice.sql` block I.
+
+      This was DEFERRED deliberately on 2026-08-31, not overlooked: 2027 is
+      Stripe-dominant and a ledger is real schema work on a live billing path.
+      On-site pre-registration is the condition that changes the answer.
+
+      If you are here because you are building that screen: the decision is due
+      for revisiting, and payment recording currently lives in exactly one place
+      (`/admin/invoices`, the Record Payment modal). It is guarded, and its
+      failure message deliberately refuses to show 'paid in full' - because the
+      natural next action after a payment error is to take the payment again,
+      and the money is already in the box. Whatever screen replaces it needs the
+      same property.
+
 ## C. Payments and reconciliation
 
 - [ ] **Reconcile the externally-collected Stripe deposits** into the platform.

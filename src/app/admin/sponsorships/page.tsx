@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { requestRevalidate } from '@/lib/revalidate'
+import { guardedWrite } from '@/lib/db-write'
 
 type SponsorStatus = 'pending' | 'confirmed' | 'cancelled'
 
@@ -242,12 +243,17 @@ export default function AdminSponsorshipsPage() {
       }
       if (logo_url) updateData.logo_url = logo_url
 
-      const { error } = await supabase
-        .from('sponsorships')
-        .update(updateData)
-        .eq('id', editing)
+      const res = await guardedWrite(
+        supabase
+          .from('sponsorships')
+          .update(updateData)
+          .eq('id', editing)
+          .select('id'),
+        'Sponsor not saved',
+        `admin/sponsorships edit id=${editing}`,
+      )
 
-      if (error) {
+      if (!res.ok) {
         toast.error('Failed to update sponsor')
       } else {
         setSponsorships(prev =>
@@ -342,9 +348,13 @@ export default function AdminSponsorshipsPage() {
 
   const handleDelete = async (id: string) => {
     setDeleting(id)
-    const { error } = await supabase.from('sponsorships').delete().eq('id', id)
-    if (error) {
-      toast.error('Failed to delete sponsor')
+    const res = await guardedWrite(
+      supabase.from('sponsorships').delete().eq('id', id).select('id'),
+      'Sponsor not removed',
+      `admin/sponsorships delete id=${id}`,
+    )
+    if (!res.ok) {
+      toast.error(res.error)
     } else {
       setSponsorships(prev => prev.filter(s => s.id !== id))
       toast.success('Sponsor removed')
@@ -439,11 +449,17 @@ export default function AdminSponsorshipsPage() {
       toast.error('Max 5 footer sponsors - remove one first')
       return
     }
-    const { error } = await supabase
-      .from('sponsorships')
-      .update({ featured_footer: newVal })
-      .eq('id', s.id)
-    if (error) { toast.error('Failed to update'); return }
+    // A SOLD PLACEMENT. Unguarded, a filtered or stale update returned zero
+    // rows with no error, the toggle showed on, and requestRevalidate below
+    // then purged the cache and re-served the page WITHOUT the sponsor - the
+    // purge actively confirming the wrong state. Same shape as the
+    // page_content save that reported success and re-served the old copy.
+    const res = await guardedWrite(
+      supabase.from('sponsorships').update({ featured_footer: newVal }).eq('id', s.id).select('id'),
+      'Footer placement not saved',
+      `admin/sponsorships toggleFooter id=${s.id}`,
+    )
+    if (!res.ok) { toast.error(res.error); return }
     setSponsorships(prev =>
       prev.map(sp => sp.id === s.id ? { ...sp, featured_footer: newVal } : sp)
     )
@@ -453,11 +469,17 @@ export default function AdminSponsorshipsPage() {
 
   const toggleHomepage = async (s: Sponsorship) => {
     const newVal = !s.show_on_homepage
-    const { error } = await supabase
-      .from('sponsorships')
-      .update({ show_on_homepage: newVal })
-      .eq('id', s.id)
-    if (error) { toast.error('Failed to update'); return }
+    // A SOLD PLACEMENT. Unguarded, a filtered or stale update returned zero
+    // rows with no error, the toggle showed on, and requestRevalidate below
+    // then purged the cache and re-served the page WITHOUT the sponsor - the
+    // purge actively confirming the wrong state. Same shape as the
+    // page_content save that reported success and re-served the old copy.
+    const res = await guardedWrite(
+      supabase.from('sponsorships').update({ show_on_homepage: newVal }).eq('id', s.id).select('id'),
+      'Homepage placement not saved',
+      `admin/sponsorships toggleHomepage id=${s.id}`,
+    )
+    if (!res.ok) { toast.error(res.error); return }
     setSponsorships(prev =>
       prev.map(sp => sp.id === s.id ? { ...sp, show_on_homepage: newVal } : sp)
     )
@@ -468,11 +490,12 @@ export default function AdminSponsorshipsPage() {
   const setHomepageOrder = async (s: Sponsorship, raw: string) => {
     const parsed = raw.trim() === '' ? null : Number(raw)
     if (parsed !== null && (!Number.isFinite(parsed) || parsed < 0)) return
-    const { error } = await supabase
-      .from('sponsorships')
-      .update({ homepage_order: parsed })
-      .eq('id', s.id)
-    if (error) { toast.error('Failed to update order'); return }
+    const res = await guardedWrite(
+      supabase.from('sponsorships').update({ homepage_order: parsed }).eq('id', s.id).select('id'),
+      'Order not saved',
+      `admin/sponsorships setHomepageOrder id=${s.id}`,
+    )
+    if (!res.ok) { toast.error(res.error); return }
     setSponsorships(prev =>
       prev.map(sp => sp.id === s.id ? { ...sp, homepage_order: parsed } : sp)
     )

@@ -170,7 +170,13 @@ export async function POST(req: Request) {
 
     // Handle panel registration payments
     if (panelRegId) {
-      const { error } = await supabase
+      // Same treatment as the invoice branch above, which this did not have.
+      // A panelRegId that no longer matches a row updates nothing and returns NO
+      // error - Stripe has taken the money and the registration stays unpaid,
+      // while the log below says 'marked as paid'. Returning 500 makes Stripe
+      // retry, so a transient cause self-heals and a permanent one keeps
+      // alerting instead of disappearing into one silent success.
+      const { data: updatedReg, error } = await supabase
         .from('panel_registrations')
         .update({
           payment_status: 'paid',
@@ -179,6 +185,15 @@ export async function POST(req: Request) {
             : null,
         })
         .eq('id', panelRegId)
+        .select('id')
+
+      if (!error && (!updatedReg || updatedReg.length === 0)) {
+        console.error(
+          `[stripe] panel registration ${panelRegId} matched NO ROWS - payment taken, registration NOT marked paid. ` +
+          'Returning 500 so Stripe retries.'
+        )
+        return NextResponse.json({ error: 'panel registration not found' }, { status: 500 })
+      }
 
       if (error) {
         console.error('Failed to update panel registration payment:', error)

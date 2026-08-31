@@ -737,6 +737,32 @@ walk-ins do not register. That caveat is rendered above the registration list in
   confirmed to match. Same discipline the VIP price and Collector's Choice
   consolidations used.
 
+- **DEFERRED DECISION: payments ledger. Not rejected - deferred, with a trigger
+  condition.**
+
+  `amount_paid` is a mutated running total, so a manual payment has no
+  representation as an EVENT and a mis-recorded one is undetectable after the
+  fact (see `reconcile_approved_without_invoice.sql` block H, and the entry
+  below).
+
+  Acceptable while payment is Stripe-dominant, which 2027 is. Block H plus the
+  Stripe reconciliation is proportionate; an append-only ledger is real schema
+  work on a live billing path for a small share of revenue.
+
+  **REVISIT BEFORE ON-SITE PRE-REGISTRATION for the following year.** Ryan takes
+  next year's bookings at a table during the show on Sunday, normally 20-25% of
+  them as cash and card. That did not happen in 2026 - an artist issue ran past
+  close - which is why the exposure has not been felt yet. Those are exactly the
+  conditions `recordPayment` fails worst under: cash in hand, a queue, one
+  operator, and no external record to reconcile against afterwards.
+
+  Shape if it is built: append-only payment ATTEMPTS - method, amount, operator,
+  timestamp, outcome - with `amount_paid` DERIVED rather than mutated. That is a
+  schema change to a live billing path and wants a plan before a migration.
+
+  Decision recorded 2026-08-31. Do not rebuild the reasoning from scratch; if
+  the answer changes, it should change because the cash share did.
+
 - **There is NO payments table, and a mis-recorded manual payment is therefore
   UNDETECTABLE after the fact.** `invoices.amount_paid` is a running total
   mutated in place by `/admin/invoices`. A payment is not an event that gets
@@ -913,16 +939,20 @@ walk-ins do not register. That caveat is rendered above the registration list in
 
   59 write calls at first scan, 61 including the two in `webhooks`:
 
-  | | count | status |
-  |---|---|---|
-  | guarded, or checks returned rows | 44 | done |
-  | editorial, unguarded | **0** | done |
-  | `applications`, unguarded | **0** | done |
-  | `invoices`, unguarded | **0** | done |
-  | money / identity, unguarded | **10** | OUTSTANDING |
+  **COMPLETE as of 2026-08-31. 76 write calls, 76 guarded, 0 outstanding.**
 
-  The remaining 10, by table: `sponsorships` 7, `booths` 2, `profiles` 1
-  (`api/admin/set-role`).
+  | | count |
+  |---|---|
+  | total admin write calls | 76 |
+  | guarded, or checking returned rows | **76** |
+  | unguarded | **0** |
+
+  ONE DELIBERATE EXCEPTION, and it is not a gap: the booth-clearing update in
+  `/admin/booths/[id]` is checked for an ERROR but not for zero rows, because
+  zero rows is the NORMAL case there - an exhibitor with no prior assignment has
+  nothing to clear. Guarding it on row count would fail every first assignment.
+  A row-count check is right almost everywhere and wrong here, so it is written
+  down rather than left looking like an oversight.
 
   `invoices` turned out to be 12 sites, not the 10 first counted - the original
   scan covered `src/app/admin` and `src/app/api/admin` and missed

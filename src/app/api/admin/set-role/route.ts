@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import { createServerClient } from '@/lib/supabase-server'
 import { ADMIN_ROLES } from '@/lib/roles'
+import { guardedWrite } from '@/lib/db-write'
 
 /**
  * Assign a role. FULL ADMINS ONLY - deliberately not delegated to the granular
@@ -61,11 +62,21 @@ export async function POST(request: Request) {
     }
   }
 
-  const { error } = await service
-    .from('profiles')
-    .update({ role: role as Database['public']['Enums']['user_role'] })
-    .eq('id', userId)
+  // Guarded on ROW COUNT. A user id that does not exist updates nothing and
+  // returns no error, and this route would then answer { ok: true } - so an
+  // admin granting or, worse, REVOKING a role would be told it worked while the
+  // role stayed exactly as it was. On the revoke side that is someone believing
+  // access has been removed when it has not.
+  const res = await guardedWrite(
+    service
+      .from('profiles')
+      .update({ role: role as Database['public']['Enums']['user_role'] })
+      .eq('id', userId)
+      .select('id'),
+    'Role not changed',
+    `api/admin/set-role user=${userId} -> ${role}`,
+  )
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!res.ok) return NextResponse.json({ error: res.error }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

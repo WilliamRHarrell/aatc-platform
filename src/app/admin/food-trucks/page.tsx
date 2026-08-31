@@ -8,6 +8,15 @@ import { guardedWrite } from '@/lib/db-write'
 
 const DAY_OPTIONS = ['friday', 'saturday', 'sunday'] as const
 const DAY_LABELS: Record<string, string> = { friday: 'Fri', saturday: 'Sat', sunday: 'Sun' }
+// ⚠  A RECONCILIATION QUERY DEPENDS ON THIS MAP.
+// supabase/verify/reconcile_approved_without_invoice.sql block G recompares
+// every food truck invoice against these prices to catch amounts that silently
+// failed to update when a truck changed its day count. SQL cannot import a
+// TypeScript constant, so the map is duplicated there.
+//
+// Change these numbers and block G does not stop working - it starts reporting
+// every correctly-priced truck as a billing error, and the query that exists to
+// find mistakes becomes the one making them. Update both.
 const PRICING: Record<number, number> = { 1: 6000, 2: 12000, 3: 16000 }
 
 const INVOICE_STATUS_STYLE: Record<string, { bg: string; color: string }> = {

@@ -211,7 +211,14 @@ export default function BoothDetailPage() {
     const nums = slotInputs.map(s => s.trim()).filter(Boolean)
     if (nums.length === 0) {
       // Clear all assignments
-      await supabase.from('booths').update({ application_id: null, status: 'available' }).eq('application_id', appId)
+      // Same as above: zero rows is normal when there was no prior assignment.
+      const { error: unassignErr } = await supabase
+        .from('booths').update({ application_id: null, status: 'available' }).eq('application_id', appId)
+      if (unassignErr) {
+        console.error(`[admin/booths] unassign failed for ${appId}: ${unassignErr.message}`)
+        toast.error('Could not release the previous booths.')
+        return
+      }
       setAssignedBooths([])
       toast.success('Booth assignment cleared')
       return
@@ -281,18 +288,36 @@ export default function BoothDetailPage() {
       }
     }
 
-    // Clear previous assignments for this app
-    await supabase.from('booths').update({ application_id: null, status: 'available' }).eq('application_id', appId)
+    // Clear previous assignments for this app.
+    //
+    // NOT guarded on row count, deliberately, and this is the one exception in
+    // the sweep: zero rows here is the NORMAL case - an exhibitor with no prior
+    // assignment has nothing to clear. Only a real error matters.
+    const { error: clearErr } = await supabase
+      .from('booths').update({ application_id: null, status: 'available' }).eq('application_id', appId)
+    if (clearErr) {
+      console.error(`[admin/booths] clearing previous assignment for ${appId}: ${clearErr.message}`)
+      toast.error('Could not clear the previous booth assignment. Nothing was changed.')
+      return
+    }
 
-    // Assign new booths
-    const updates = boothRows.map(row =>
-      supabase.from('booths').update({ application_id: appId, status: 'reserved' }).eq('id', row.id)
+    // Assign new booths. Each is checked for zero rows as well as for an error:
+    // a booth id that no longer exists updates nothing and returns no error, so
+    // the screen would show a booth assigned that nobody holds - and the booth
+    // itself would still read as available to the next person assigning.
+    const results = await Promise.all(
+      boothRows.map(row =>
+        supabase.from('booths')
+          .update({ application_id: appId, status: 'reserved' })
+          .eq('id', row.id)
+          .select('id')
+      )
     )
-    const results = await Promise.all(updates)
-    const failed = results.filter(r => r.error)
+    const failed = results.filter(r => r.error || !r.data || r.data.length === 0)
 
     if (failed.length > 0) {
-      toast.error('Some booths failed to assign')
+      console.error(`[admin/booths] ${failed.length} of ${boothRows.length} booth assignments affected no rows or errored (app=${appId})`)
+      toast.error(`${failed.length} of ${boothRows.length} booths were not assigned. Reload before trying again.`)
     } else {
       const freshBooths = boothRows.map(r => ({
         id: r.id,
