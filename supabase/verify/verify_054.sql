@@ -99,6 +99,17 @@ begin
   if n <> 1 then raise exception 'FAIL: the entry is gone despite a 0 row count'; end if;
   raise notice 'PASS: the entry genuinely survived';
 
+  -- Control FIRST. This assertion targets the ZZ TEST harness sponsorships, and
+  -- if they are absent the update affects zero rows and prints PASS while
+  -- proving nothing - the same shape recorded four times in HANDOFF. The
+  -- harness is also scheduled for removal at cutover, so this would have gone
+  -- vacuous on its own, later, with nobody watching.
+  n := (select count(*) from public.sponsorships where sponsor_name like 'ZZ TEST%');
+  if n = 0 then
+    raise exception 'FAIL: no sponsorship rows to attempt against - the check below would be vacuous. If the RLS harness has been removed at cutover, point this block at another sponsorship row.';
+  end if;
+  raise notice 'PASS: % sponsorship row(s) exist to attempt against (control)', n;
+
   set local role authenticated;
   update public.sponsorships set amount = 1 where sponsor_name like 'ZZ TEST%';
   get diagnostics n = row_count;

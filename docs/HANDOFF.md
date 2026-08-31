@@ -645,6 +645,19 @@ walk-ins do not register. That caveat is rendered above the registration list in
   submission, which is not a thing to leave reachable. `autoComplete="off"`
   stops a saved-address feature filling it in and locking a real person out.
 
+- **A speculative error message is evidence of an unguarded write.** The
+  page_content save handler read `toast.error('Save failed - are you an admin?')`.
+  Nobody writes that by accident: someone hit the failure, diagnosed the cause
+  correctly, and shipped a GUESS in place of a check. The write had no
+  `.select()`, so there was nothing to check with - it reported a save that
+  never happened, then purged the cache and re-served the old copy as the new
+  one. An editor would have saved twice and concluded the CMS was broken.
+
+  When hunting the remaining unguarded writes, grep for error strings that
+  speculate about the cause rather than report it: `are you`, `you may not`,
+  `permission`, `try again`, `?'` inside a toast. Each one marks a place
+  somebody already met this failure and could not detect it.
+
 - **Admin write-guard inventory. 33 calls remain unguarded, all money/identity.**
   A Supabase write that RLS filters out returns `error: null` and zero rows.
   Checking only `error` therefore reports success for a write that never
