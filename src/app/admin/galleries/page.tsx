@@ -18,11 +18,7 @@ const ACCEPT = ['image/jpeg', 'image/png', 'image/webp']
 
 const GALLERIES: { slug: string; label: string; where: string; href?: string }[] = [
   { slug: 'about', label: 'About AATC', where: 'lower on /info/about', href: '/info/about' },
-  // Slug created, placement NOT assumed. There is no kids contest page - the
-  // kids category is one contest inside /events/tattoo-contests. Where this
-  // renders is Ryan's call; until it is wired, uploads here are stored and
-  // simply not displayed anywhere.
-  { slug: 'kids-contest', label: 'Kids Contest', where: 'not yet placed on a page - see note' },
+  { slug: 'kids-contest', label: 'Kids Contest', where: 'on /events/kids-contest', href: '/events/kids-contest' },
 ]
 
 interface Img {

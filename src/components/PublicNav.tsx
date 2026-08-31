@@ -34,6 +34,7 @@ const DROPDOWNS: DropdownConfig[] = [
     prefix: '/events',
     links: [
       { href: '/events/tattoo-contests', label: 'Tattoo Contests' },
+      { href: '/events/kids-contest', label: 'Kids Temp Tattoo Contest' },
       { href: '/events/tattoo-panels', label: 'Tattoo Panels' },
       { href: '/events/schedule', label: 'Event Schedule' },
       { href: '/events/pinup-contest', label: 'Miss AATC Pinup Contest' },

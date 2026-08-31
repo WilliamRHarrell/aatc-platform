@@ -101,7 +101,7 @@ const RULES = [
   'There is no limit on the number of categories you may enter.',
   'Judges decisions are final. No appeals or disputes will be entertained.',
   'By entering, you consent to having your tattoo photographed for AATC promotional purposes.',
-  "Contestants must be 18 or older to enter the tattoo contests. The only exception is the Kids' Temporary Tattoo Contest, which is free to enter and takes place on Sunday.",
+  "Contestants must be 18 or older to enter the tattoo contests. The only exception is the Kids' Temporary Tattoo Contest, which is free to enter and takes place on Sunday - see /events/kids-contest.",
 ]
 
 /**

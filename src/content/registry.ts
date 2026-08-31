@@ -350,6 +350,47 @@ export const REGISTRY: PageDef[] = [
     },
   },
   {
+    key: 'kidsContest',
+    title: 'Kids Temp Tattoo Contest (/events/kids-contest)',
+    sections: {
+      hero_kicker: { label: 'Hero kicker', type: 'text', default: 'Sunday on the Main Stage' },
+      hero_title: { label: 'Hero title (H1)', type: 'text', default: 'Kids Temp Tattoo Contest' },
+      hero_intro: {
+        label: 'Hero intro',
+        type: 'markdown',
+        default:
+          'The one contest at AATC open to under-18s. Kids show off a temporary tattoo on the main stage on Sunday, judged the same way every other category is - and it is **free to enter**.',
+      },
+      // NO CLOCK TIME, and that is the accurate answer rather than a missing
+      // one. Ryan confirmed how contests actually run: categories go
+      // concurrently rather than in fixed slots, each runs until its winner is
+      // announced, and the announcer calls them live from the main stage. So
+      // there is no time to publish and there will not be one.
+      //
+      // Saying nothing about timing would read as information the visitor
+      // failed to find, and they would go looking for a schedule that does not
+      // exist. Describing how it works is the honest version.
+      //
+      // Do NOT reintroduce the 4:00 PM judging start here. It is real, and it
+      // applies to the contest block as a whole - attaching it to this category
+      // would be the sixth wrong time claim on this page family.
+      when_note: {
+        label: 'When it happens',
+        help: 'There is deliberately no clock time. Categories run concurrently and are called live. Do not add one.',
+        type: 'markdown',
+        default:
+          'Contest categories run throughout the day rather than at fixed times, and the announcer calls each one from the main stage. The Kids Temporary Tattoo Contest usually runs shortly before the Tattoo Battle winner is announced. Listen for it, or ask at the contest table.',
+      },
+      how_to_enter: {
+        label: 'How to enter',
+        type: 'markdown',
+        default:
+          'Register at the contest booth near the main stage on Sunday. Entry is free, and no advance sign-up is needed. Bring the child and their temporary tattoo - anything goes, as long as it is not permanent.',
+      },
+      gallery_title: { label: 'Gallery heading', type: 'text', default: 'From Previous Years' },
+    },
+  },
+  {
     key: 'sponsors',
     title: 'Sponsors (/sponsors)',
     sections: {
