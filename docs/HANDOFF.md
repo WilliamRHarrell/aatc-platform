@@ -737,6 +737,24 @@ walk-ins do not register. That caveat is rendered above the registration list in
   confirmed to match. Same discipline the VIP price and Collector's Choice
   consolidations used.
 
+- **RULE: a claim about what a page RENDERS must check both code and data.**
+  Rendered HTML on the deployment is the authority; a source grep is a hint.
+
+  I reported the Tattoo Battle credit as appearing on no page, having grepped
+  `src/` and found nothing. It was rendering on `/events/schedule` the whole
+  time, from `schedule_items.presented_by_fallback` - data, not code. Nomadica
+  is the same, rendering on the homepage from `panels.presented_by_fallback`.
+
+  This is the absence rule again, one layer over: **an absence found by one
+  method is not an absence.** It will recur and get worse as the section 16 work
+  moves content out of source files and into tables - page_content,
+  page_images, page_galleries, team_members, schedule_items and panels all now
+  render text or images that no source grep will ever find.
+
+  Practically: `curl` the deployed page and grep THAT. It is the only check that
+  sees both layers at once, and it is what caught every rendered-output claim in
+  this session that turned out to be right.
+
 - **RULE: rollback direction follows which failure is VISIBLE.** When a write
   spans a file and a row, the order and the rollback are not a style choice -
   pick whichever failure a visitor can see, and make that one impossible.
