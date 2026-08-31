@@ -860,6 +860,37 @@ walk-ins do not register. That caveat is rendered above the registration list in
   Where a guard protects money, ask what query would find the damage, and write
   it at the same time.
 
+- **RULE: 'anon cannot see it' has TWO failure modes, and a test must accept
+  either.** Assert the OUTCOME, not the mechanism.
+
+  | table state | what anon gets |
+  |---|---|
+  | grant exists, RLS filters | zero rows |
+  | grant revoked | **42501 insufficient_privilege - it THROWS** |
+
+  Every anon test written before `exclusivity_grants` ran against a table where
+  the grant existed, so `select count(*)` returned 0 and a plain comparison
+  worked. 062 is the first table in the project with NO anon grant at all, and
+  the same test threw instead - the isolation working correctly, reported as a
+  harness failure.
+
+  Wrap the read, catch `insufficient_privilege` BY NAME (never `when others`,
+  which swallows unrelated failures and prints PASS), and pass on either
+  outcome. Asserting the specific error would fail the test if someone later
+  added a harmless grant while leaving RLS correct - a pass that should stay a
+  pass.
+
+  **Tables currently revoked from anon**, where a naive anon test will throw:
+  `sponsorships`, `exhibitors`, `food_trucks`, `panels` (038), `schedule_items`
+  (044), `presentation_credits`, `presentation_credit_items` (060),
+  `exclusivity_grants` (062).
+
+  **And when this block errors, Postgres hints
+  `GRANT SELECT ... TO anon`. DO NOT RUN IT.** It resolves the error by handing
+  anon the table, which is the precise thing the migration exists to prevent.
+  The hint is printed by the database on every run and it is the exact wrong
+  action; verify_062 carries that warning inline for the same reason.
+
 - **RULE: test the boundary ITSELF, not a point safely either side of it.** A
   case placed comfortably inside or outside a limit passes under any nearby
   comparison and proves nothing about which one is in use.

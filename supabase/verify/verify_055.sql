@@ -111,6 +111,15 @@ begin
   delete from public.pinup_entries where email like 'zz-likeness-%@example.com';
 end $$;
 
--- ── Z. residue check - run LAST. want: 1 row, count 0. No cleanup here.
-select 'pinup_entries' as tbl, count(*)
+-- ── Z. FIXTURE RESIDUE CHECK - run LAST
+--
+--    ⚠  THESE ARE NOT TABLE ROW COUNTS. Every number below counts only rows
+--    this script created, matched on the zz- / ZZ prefix. A clean run is ALL
+--    ZEROS. It says nothing about your real data - `contests` really does hold
+--    49 categories while this reports 0.
+--
+--    A non-zero here means a block failed to clean up after itself, which is
+--    information worth having rather than something to tidy away.
+select 'pinup_entries matching zz-likeness-%'   as fixtures_looked_for,
+       count(*)                                    as fixtures_remaining
   from public.pinup_entries where email like 'zz-likeness-%@example.com';

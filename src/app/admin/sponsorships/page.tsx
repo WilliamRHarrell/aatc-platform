@@ -34,6 +34,8 @@ interface Sponsorship {
   is_in_kind: boolean
   amount_locked: boolean
   hold_expires_at: string | null
+  show_on_sponsors: boolean | null
+  show_on_vote_pages: boolean | null
 }
 
 interface SponsorInvoice {
@@ -71,9 +73,12 @@ interface FormState {
   instagram: string
   facebook: string
   notes: string
+  // Placement is chosen at creation, not inherited. See the insert below.
+  show_on_sponsors: boolean
+  show_on_vote_pages: boolean
 }
 
-const EMPTY_FORM: FormState = { sponsor_name: '', tier: 'brass', website: '', status: 'pending', contact_name: '', email: '', phone: '', instagram: '', facebook: '', notes: '' }
+const EMPTY_FORM: FormState = { sponsor_name: '', tier: 'brass', website: '', status: 'pending', contact_name: '', email: '', phone: '', instagram: '', facebook: '', notes: '', show_on_sponsors: true, show_on_vote_pages: false }
 
 export default function AdminSponsorshipsPage() {
   const supabase = createClient()
@@ -185,6 +190,10 @@ export default function AdminSponsorshipsPage() {
       instagram: s.instagram ?? '',
       facebook: s.facebook ?? '',
       notes: s.notes ?? '',
+      // Existing rows keep whatever they already have; editing a sponsor must
+      // not silently republish or unpublish them.
+      show_on_sponsors: s.show_on_sponsors ?? true,
+      show_on_vote_pages: s.show_on_vote_pages ?? false,
     })
     setLogoFile(null)
     setEditing(s.id)
@@ -279,6 +288,15 @@ export default function AdminSponsorshipsPage() {
           instagram: form.instagram.trim() || null,
           facebook: form.facebook.trim() || null,
           notes: form.notes.trim() || null,
+          // SENT EXPLICITLY, never left to the column default. 063 defaults
+          // show_on_sponsors to TRUE so applying it did not empty /sponsors for
+          // rows that predate the flag - that is a compatibility measure, not
+          // the intended behaviour for new sponsors. If this form ever stops
+          // supplying a value, every new sponsor publishes because nobody
+          // decided to. The default and the form are two different mechanisms
+          // and must not be confused for one.
+          show_on_sponsors: form.show_on_sponsors,
+          show_on_vote_pages: form.show_on_vote_pages,
         })
         .select('*')
         .single()

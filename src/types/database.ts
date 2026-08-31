@@ -1195,6 +1195,8 @@ export type Database = {
           facebook: string | null
           featured_footer: boolean
           show_on_homepage: boolean
+          show_on_sponsors: boolean
+          show_on_vote_pages: boolean
           is_in_kind: boolean
           amount_locked: boolean
           hold_expires_at: string | null
@@ -1221,6 +1223,8 @@ export type Database = {
           facebook?: string | null
           featured_footer?: boolean
           show_on_homepage?: boolean
+          show_on_sponsors?: boolean
+          show_on_vote_pages?: boolean
           is_in_kind?: boolean
           amount_locked?: boolean
           hold_expires_at?: string | null
@@ -1247,6 +1251,8 @@ export type Database = {
           facebook?: string | null
           featured_footer?: boolean
           show_on_homepage?: boolean
+          show_on_sponsors?: boolean
+          show_on_vote_pages?: boolean
           is_in_kind?: boolean
           amount_locked?: boolean
           hold_expires_at?: string | null
@@ -1287,6 +1293,8 @@ export type Database = {
           facebook: string | null
           featured_footer: boolean
           show_on_homepage: boolean
+          show_on_sponsors: boolean
+          show_on_vote_pages: boolean
           homepage_order: number | null
         }
         Relationships: []

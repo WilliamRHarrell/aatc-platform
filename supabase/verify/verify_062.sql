@@ -54,7 +54,7 @@ end $$;
 --    checked. sponsors_public publishes every column of every confirmed
 --    sponsorship, which is what a column on that table would have inherited.
 do $$
-declare n int; v_leak int;
+declare n int; v_leak int; declare_denied boolean;
 begin
   -- CONTROL: rows exist and are visible as postgres. Without this the anon
   -- checks below pass against an empty table and prove nothing.
@@ -62,11 +62,39 @@ begin
   if n = 0 then raise exception 'FAIL: no rows to hide - block C would be vacuous'; end if;
   raise notice 'PASS: % grant(s) exist and are readable as postgres (control)', n;
 
-  set local role anon;
-  n := (select count(*) from public.exclusivity_grants);
+  -- ⚠  IF THIS BLOCK ERRORS, POSTGRES WILL HINT:
+  --       GRANT SELECT ON public.exclusivity_grants TO anon;
+  --    DO NOT RUN THAT. It would 'fix' the error by handing anon the table and
+  --    defeating the entire purpose of this migration - negotiated contractual
+  --    terms would become readable with the public key. The hint appears every
+  --    time this block runs and it is the exact wrong action.
+  --
+  --    TWO REFUSAL MODES ARE BOTH CORRECT and this accepts either:
+  --      42501 insufficient_privilege - no table grant at all (today's state)
+  --      zero rows                    - a grant exists and RLS filters it out
+  --
+  --    The assertion is that anon CANNOT SEE THE ROWS, not that a particular
+  --    error fires. Asserting the error would fail this test if someone later
+  --    added a harmless grant while leaving RLS correct - a pass that should
+  --    still be a pass. Caught by NAME, never `when others`, which would
+  --    swallow an unrelated failure and print PASS.
+  declare_denied := false;
+  begin
+    set local role anon;
+    n := (select count(*) from public.exclusivity_grants);
+    reset role;
+  exception
+    when insufficient_privilege then
+      declare_denied := true;
+      n := 0;
+  end;
   reset role;
-  if n <> 0 then raise exception 'FAIL: anon read % exclusivity row(s)', n; end if;
-  raise notice 'PASS: anon cannot read exclusivity_grants';
+
+  if not declare_denied and n <> 0 then
+    raise exception 'FAIL: anon read % exclusivity row(s) - a negotiated term is readable with the public key', n;
+  end if;
+  raise notice 'PASS: anon cannot see exclusivity_grants (%)',
+    case when declare_denied then 'no table grant, 42501' else 'grant exists, RLS filtered to 0 rows' end;
 
   -- No view anywhere selects from it. This is the check that would have caught
   -- an is_exclusive column on sponsorships being swept into sponsors_public.
@@ -110,6 +138,15 @@ begin
   delete from public.exclusivity_grants where buyer_name like 'ZZ %';
 end $$;
 
--- ── Z. residue check - run LAST. want: 1 row, count 0.
-select 'exclusivity_grants' as tbl, count(*)
+-- ── Z. FIXTURE RESIDUE CHECK - run LAST
+--
+--    ⚠  THESE ARE NOT TABLE ROW COUNTS. Every number below counts only rows
+--    this script created, matched on the zz- / ZZ prefix. A clean run is ALL
+--    ZEROS. It says nothing about your real data - `contests` really does hold
+--    49 categories while this reports 0.
+--
+--    A non-zero here means a block failed to clean up after itself, which is
+--    information worth having rather than something to tidy away.
+select 'exclusivity_grants matching ZZ %'       as fixtures_looked_for,
+       count(*)                                    as fixtures_remaining
   from public.exclusivity_grants where buyer_name like 'ZZ %';

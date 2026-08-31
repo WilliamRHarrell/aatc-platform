@@ -66,6 +66,10 @@ const getSponsors = unstable_cache(
       .from('sponsors_public')
       .select('id, sponsor_name, tier, logo_url, website, instagram, facebook')
       .eq('event_id', event.id)
+      // Placement is a decision now, not an automatic consequence of being
+      // confirmed. show_on_sponsors defaults TRUE (migration 063) so this
+      // filter changes nothing today - every existing row still publishes.
+      .eq('show_on_sponsors', true)
       .order('sponsor_name')
 
     if (error) {

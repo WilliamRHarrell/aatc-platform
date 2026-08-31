@@ -171,14 +171,25 @@ begin
   reset role;
 end $$;
 
--- ── Z. cleanup and residue check - run LAST
---    want: 0 rows from the final select.
+-- ── Z. FIXTURE RESIDUE CHECK - run LAST
+--
+--    ⚠  THESE ARE NOT TABLE ROW COUNTS. Every number below counts only rows
+--    this script created, matched on the zz- / ZZ prefix. A clean run is ALL
+--    ZEROS. It says nothing about your real data - `contests` really does hold
+--    49 categories while this reports 0.
+--
+--    A non-zero here means a block failed to clean up after itself, which is
+--    information worth having rather than something to tidy away.
 delete from public.contest_votes
  where voter_id in (select id from auth.users where email like 'zz-voter-%@example.com');
 delete from public.contest_entries where collector_name like 'ZZ %';
 delete from public.contests where name like 'ZZ %';
 delete from auth.users where email like 'zz-voter-%@example.com';
 
-select 'contests' as tbl, count(*) from public.contests where name like 'ZZ %'
-union all select 'entries', count(*) from public.contest_entries where collector_name like 'ZZ %'
-union all select 'users', count(*) from auth.users where email like 'zz-voter-%@example.com';
+select 'contests matching ZZ %'                as fixtures_looked_for,
+       count(*)                                    as fixtures_remaining
+  from public.contests where name like 'ZZ %'
+union all select 'contest_entries matching ZZ %', count(*)
+  from public.contest_entries where collector_name like 'ZZ %'
+union all select 'auth.users matching zz-voter-%', count(*)
+  from auth.users where email like 'zz-voter-%@example.com';

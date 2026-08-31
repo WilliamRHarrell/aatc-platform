@@ -183,8 +183,15 @@ begin
   delete from public.pinup_entries where email like 'zz-%@example.com';
 end $$;
 
--- ── Z. residue check - run LAST
---    want: 0 rows.
+-- ── Z. FIXTURE RESIDUE CHECK - run LAST
+--
+--    ⚠  THESE ARE NOT TABLE ROW COUNTS. Every number below counts only rows
+--    this script created, matched on the zz- / ZZ prefix. A clean run is ALL
+--    ZEROS. It says nothing about your real data - `contests` really does hold
+--    49 categories while this reports 0.
+--
+--    A non-zero here means a block failed to clean up after itself, which is
+--    information worth having rather than something to tidy away.
 select id, full_name, email, status
   from public.pinup_entries
  where email like 'zz-%@example.com' or full_name like 'ZZ %';

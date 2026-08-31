@@ -310,8 +310,15 @@ end $$;
 --    want: an integer, and anon may call it.
 select public.pinup_spots_remaining((select id from public.events where is_active order by start_date limit 1)) as remaining;
 
--- ── Z. residue check - run LAST
---    want: 0 rows. Every block above cleans up after itself.
+-- ── Z. FIXTURE RESIDUE CHECK - run LAST
+--
+--    ⚠  THESE ARE NOT TABLE ROW COUNTS. Every number below counts only rows
+--    this script created, matched on the zz- / ZZ prefix. A clean run is ALL
+--    ZEROS. It says nothing about your real data - `contests` really does hold
+--    49 categories while this reports 0.
+--
+--    A non-zero here means a block failed to clean up after itself, which is
+--    information worth having rather than something to tidy away.
 select id, full_name, email, status, created_at
   from public.pinup_entries
  where email like 'zz-%@example.com' or full_name like 'ZZ %';

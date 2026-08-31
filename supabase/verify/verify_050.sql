@@ -211,11 +211,15 @@ select policyname, cmd
    and policyname ilike '%page images%'
  order by policyname;
 
--- ── Z. residue check - run LAST, and expect nothing
---    want: 0 rows, and schedule-hero active = t.
---    C and D clean up after themselves and a failed INSERT leaves nothing, but
---    a probe row that escaped would be a test row on a live table, which is a
---    round we have already spent once.
+-- ── Z. FIXTURE RESIDUE CHECK - run LAST
+--
+--    ⚠  THESE ARE NOT TABLE ROW COUNTS. Every number below counts only rows
+--    this script created, matched on the zz- / ZZ prefix. A clean run is ALL
+--    ZEROS. It says nothing about your real data - `contests` really does hold
+--    49 categories while this reports 0.
+--
+--    A non-zero here means a block failed to clean up after itself, which is
+--    information worth having rather than something to tidy away.
 select slug, image_path, alt, active
   from public.page_images
  where slug like 'zz-%'

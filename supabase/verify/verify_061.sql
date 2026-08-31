@@ -182,10 +182,22 @@ begin
   update public.events set voting_opens_at = v_save_o, voting_closes_at = v_save_c where id = v_event;
 end $$;
 
--- ── Z. residue check - run LAST. want: 4 rows, all count 0, and the window
---    restored to whatever it was before this file ran.
-select 'contests' as tbl, count(*) from public.contests where name like 'ZZ Window%'
-union all select 'entries', count(*) from public.contest_entries where collector_name like 'ZZ Window%'
-union all select 'users',   count(*) from auth.users where email = 'zz-window@example.com'
-union all select 'votes',   count(*) from public.contest_votes
-                             where voter_id in (select id from auth.users where email = 'zz-window@example.com');
+-- ── Z. FIXTURE RESIDUE CHECK - run LAST
+--
+--    ⚠  THESE ARE NOT TABLE ROW COUNTS. Every number below counts only rows
+--    this script created, matched on the zz- / ZZ prefix. A clean run is ALL
+--    ZEROS. It says nothing about your real data - `contests` really does hold
+--    49 categories while this reports 0.
+--
+--    A non-zero here means a block failed to clean up after itself, which is
+--    information worth having rather than something to tidy away.
+select 'contests matching ZZ Window%'          as fixtures_looked_for,
+       count(*)                                    as fixtures_remaining
+  from public.contests where name like 'ZZ Window%'
+union all select 'contest_entries matching ZZ Window%', count(*)
+  from public.contest_entries where collector_name like 'ZZ Window%'
+union all select 'auth.users for zz-window@example.com', count(*)
+  from auth.users where email = 'zz-window@example.com'
+union all select 'contest_votes by the zz-window user', count(*)
+  from public.contest_votes
+ where voter_id in (select id from auth.users where email = 'zz-window@example.com');

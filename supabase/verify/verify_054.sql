@@ -149,11 +149,21 @@ begin
   delete from auth.users where id = v_uid;
 end $$;
 
--- ── Z. residue check - run LAST. want: 4 rows, all count 0.
---    Pure check, no cleanup. Block E owns the teardown, so anything showing here
---    means E did not run or did not finish - which is information, where a Z
---    that also deletes would quietly paper over it.
-select 'contests'  as tbl, count(*) from public.contests        where name like 'ZZ Editor%'
-union all select 'entries', count(*) from public.contest_entries where collector_name like 'ZZ Editor%'
-union all select 'profiles', count(*) from public.profiles       where email = 'zz-editor@example.com'
-union all select 'users',    count(*) from auth.users            where email = 'zz-editor@example.com';
+-- ── Z. FIXTURE RESIDUE CHECK - run LAST
+--
+--    ⚠  THESE ARE NOT TABLE ROW COUNTS. Every number below counts only rows
+--    this script created, matched on the zz- / ZZ prefix. A clean run is ALL
+--    ZEROS. It says nothing about your real data - `contests` really does hold
+--    49 categories while this reports 0.
+--
+--    A non-zero here means a block failed to clean up after itself, which is
+--    information worth having rather than something to tidy away.
+select 'contests matching ZZ Editor%'          as fixtures_looked_for,
+       count(*)                                    as fixtures_remaining
+  from public.contests where name like 'ZZ Editor%'
+union all select 'contest_entries matching ZZ Editor%', count(*)
+  from public.contest_entries where collector_name like 'ZZ Editor%'
+union all select 'profiles for zz-editor@example.com', count(*)
+  from public.profiles where email = 'zz-editor@example.com'
+union all select 'auth.users for zz-editor@example.com', count(*)
+  from auth.users where email = 'zz-editor@example.com';
