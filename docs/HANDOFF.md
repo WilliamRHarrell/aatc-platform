@@ -1,5 +1,184 @@
 # AATC Platform - Handoff
 
+<!-- ============================================================
+     SESSION HANDOFF - written 2026-08-31, end of a long working session.
+     Read this block first. Everything below it is the standing reference.
+     ============================================================ -->
+
+## 0. START HERE - state as of 2026-08-31
+
+### Migrations: applied and verified through 063
+
+| # | what | verified |
+|---|---|---|
+| 050 | `page_images` + bucket | verify_050 |
+| 051 | `pinup_entries` + `register_pinup_entry()` | verify_051 |
+| 052 | contest columns + marketing consent | verify_052 |
+| 053 | vote auth, one vote per category per day | verify_053 |
+| 054 | content_editor editorial writes | verify_054 |
+| 055 | likeness release | verify_055 |
+| 056 | after-parties hero image slug | - |
+| 057 | `page_galleries` | - |
+| 058 | after-party per-night image slugs | - |
+| 059 | `team_members` | - |
+| 060 | `presentation_credits` + join table | (verify via 062 block C) |
+| 061 | voting window | verify_061 |
+| 062 | `exclusivity_grants` | verify_062 |
+| 063 | `show_on_sponsors` / `show_on_vote_pages` | - |
+
+Seeds applied: `contests_2027.sql` (49 categories, 13/20/16 Fri/Sat/Sun),
+`tattoo_battle_credit.sql`, `voting_window_2027.sql`.
+
+**Nothing is left unapplied except what is listed in section 2.**
+
+### Live and working
+
+- **Pinup registration is OPEN.** `PINUP_REGISTRATION_OPEN = true` in
+  `src/lib/event-config.ts`. WAF rate limiting verified by an OBSERVED 403
+  (8 POSTs: five 503s then 403 on 6, 7, 8). Honeypot + 2s timing filter on
+  `/api/pinup-entry` and `/api/panel-register`. `pinup_entries` is EMPTY - the
+  one test row was deleted, 25 spots free.
+- **49 contest categories seeded**, kids category flagged on Sunday.
+- **Voting window**: opens 2027-04-21T12:00:00-04:00, closes
+  2027-05-22T00:00:00-04:00 (EXCLUSIVE, compared with `<`, meaning end of day
+  21 May). Enforced in RLS, not the UI. NULL window = closed.
+- **`/contests`** shows one of three states from `voting_state()`.
+- **Admin screens**: `/admin/page-images`, `/admin/galleries`, `/admin/team`,
+  `/admin/pinup`, `/admin/credits` (credits + exclusivity).
+- **Write-guard sweep COMPLETE**: 76/76 admin writes guarded, one documented
+  exception (booth clear-previous-assignment, where zero rows is normal).
+
+### Built but not yet exercised
+
+- **`show_on_vote_pages`** - the slot exists (`VotePageSponsors` on
+  `/contests`) and renders nothing because no sponsor is ticked. Working as
+  intended; it needs a sponsor, not code.
+- **`presentation_credits`** - table and admin exist, NO rows migrated. The four
+  existing credits still render from `presented_by_fallback`. See section 2.
+
+## 1. WORDING QUESTION OUTSTANDING
+
+The Collector's Choice package says **"Your logo on every vote page of our
+website"** - plural. There is ONE vote page, `/contests`, listing all categories
+inline. Either the copy is loose and should read "the vote page", or it implies
+per-category pages that do not exist and would need building. **Ask Ryan; do not
+build pages to match the wording.** It appears in
+`src/app/apply/sponsor/page.tsx` and `src/app/sponsors/packages/page.tsx`.
+
+## 2. IN FLIGHT / NEXT
+
+### presentation_credits dual-read, then retire the fallback
+
+Nothing is migrated into it yet, deliberately. The sequence agreed:
+
+1. Dual-read: render from a credit if one exists, else `presented_by_fallback`.
+2. Verify `/events/schedule`, `/` and `/tickets` render BYTE-IDENTICALLY.
+3. Only then move the four rows and drop the fallback.
+
+Same discipline as `TEAM_FALLBACK` and the VIP price. **`verify_044` query F is
+the counter** - it stands at 4 and counts ITEM ROWS carrying a text credit, not
+credits sold (3 Battle rows + 1 seminar = 2 commitments).
+
+**Amounts are unknown.** Ryan has not said what was charged for the Battle or
+the seminar. Do not invent figures; `presentation_credits.amount` stays 0 until
+he does.
+
+## 3. THE THREE SPONSORS - NOT YET ENTERED
+
+**Ryan enters production data himself. Do not create these rows.**
+
+| sponsor | invoiced | paid via Square | exclusivity category |
+|---|---|---|---|
+| Nomadica | $7,500 | $1,875 | `accounting_presentation` |
+| All American Tattoo Supply | $5,000 | $2,500 | `on_site_supplier` |
+| Whole Life Aftercare | $7,500 | $750 | `tattoo_battle` |
+
+**All three are off-tier** (against Gold $5,000 / Platinum $10,000). Record the
+negotiated `amount` and, separately, `based_on_tier` - keeping both means an
+off-tier deal loses neither the figure nor the package it came from.
+
+**What each needs:**
+
+1. A `sponsorships` row - name, tier, `amount`, `status = 'confirmed'`, and
+   `show_on_sponsors` / `show_on_vote_pages` / `featured_footer` /
+   `show_on_homepage` set EXPLICITLY.
+2. An `invoices` row for the full amount, with `amount_paid` set to the Square
+   figure and `payment_method` recording how it arrived. Migration 033 added
+   `payment_method` / `payment_reference` for exactly this; its documented set
+   is `stripe_external, cash, check, bank_transfer, other` - **`square` needs
+   adding to that convention**, it is free text so no migration is required.
+3. An `exclusivity_grants` row - INTERNAL ONLY, never rendered.
+4. Whole Life Aftercare additionally has the Tattoo Battle presenting credit,
+   already live on three schedule rows and four pages.
+
+**Square to portal does not double-count.** `create-checkout` computes
+`balance = amount - amount_paid`, so recording the Square money leaves the
+portal offering only the remainder: Nomadica $5,625, AATS $2,500, WLA $6,750.
+
+**What publishing does:** a `sponsorships` row with `status = 'confirmed'` and
+`show_on_sponsors = true` appears on `/sponsors`. Nothing else about it is
+public - `sponsors_public` exposes a fixed column list, and exclusivity lives in
+its own table with no anon grant at all.
+
+**EXCLUSIVITY IS NEVER PUBLIC.** The word "exclusive" appears nowhere on the
+site in connection with any sponsor - verified in RENDERED output, not just
+source. The four occurrences that do exist are an Artist Lounge tier perk and
+VIP poster copy, unrelated.
+
+## 4. DEFERRED, WITH TRIGGERS
+
+| item | blocked on / revisit when |
+|---|---|
+| **payments ledger** | Revisit BEFORE on-site pre-registration. 2027 is Stripe-dominant; Ryan takes ~20-25% of next year's bookings as cash/card at a table during the show. Estimate 1-1.5 days. See the entry below on why a mis-recorded manual payment is undetectable. |
+| **In Memoriam photos** | Blocked on the WordPress media harvest, CUTOVER section A. Building against URLs that die is wasted work, and it is where "no placeholder humans" matters most. |
+| **After-party venues** | Nights are live (Thu/Fri/Sat, Thursday pre-convention). Venue, act, door price and time all wait on Ryan. Per-night image slugs already exist. |
+| **`/admin/schedule` for content_editor** | Granted 2026-08-31. Done. |
+
+## 5. HOW TO VERIFY ANYTHING
+
+    python3 -c "import pglast; pglast.parse_sql(open('FILE.sql').read())"   # parse
+    python3 scripts/check-sql-fixtures.py                                   # fixture columns
+    node scripts/check-no-em-dashes.mjs                                     # dashes + harness literals
+    npx tsc --noEmit && npm run build                                       # types + build
+    curl -s https://aatc-platform.vercel.app/PATH | grep -c 'thing'         # what RENDERS
+
+The last one is not optional - see the code-and-data rule below.
+
+
+## 6. THE RULES - index
+
+All of these are written out in full further down. They came from real defects
+in this codebase, not from principle, and each one names the incident. If you
+are about to do something in the left column, read the entry.
+
+| doing this | rule |
+|---|---|
+| asserting something is absent, blocked or invisible | **A negative assertion needs a positive control.** Five instances, one of which printed a strong PASS on a real run and was believed. |
+| testing a limit or boundary | **Test the boundary itself**, not a point safely either side. Same idea as swapping `sort_order` to tell two identical-looking sources apart. |
+| writing a verify block that creates fixtures | **Cleanup belongs with the last block that NEEDS the fixture.** And a residue check is not a cleanup - a block that deletes and reports always reports clean. |
+| a fix produces a new failure downstream | **Check whether that code had ever run** before assuming the fix broke it. Two bugs can stack, the first masking the second. |
+| claiming what a page does or does not render | **Check both code AND data.** Deployed HTML is the authority; a source grep is a hint. Content now lives in tables. |
+| anything about sponsor credits | **Owed-and-unrendered and sold-and-unrendered are the same defect** from opposite directions. Neither throws. |
+| writing an anon test | **"anon cannot see it" has two failure modes** - zero rows, or 42501 if the grant is revoked. Assert the outcome, not the error. List of revoked tables included. |
+| guarding a write that touches money | **Guard prevents, query detects.** A guard is necessary but not sufficient; write the reconciliation at the same time. |
+| copying a good pattern from a file | **A pattern applied once does not extend to the next branch.** The Stripe webhook was the model in one of its two branches. |
+| applying a rule everywhere | **A rule applied mechanically produces its own bugs.** One documented exception exists and must not be "fixed". |
+| adding a person to the site | **No placeholder humans.** Nullable columns + a check constraint that forbids publishing an incomplete row. |
+| writing an error message | **A speculative message is evidence of an unguarded write.** "are you an admin?" is the tell. |
+| a write spanning a file and a row | **Rollback direction follows which failure is visible.** |
+| a constraint could be violated | **Make the invalid state unreachable**, not merely detectable. |
+| editing a migration | **Never edit one someone is partway through applying.** Add a new one. |
+| moving hardcoded content into a table | **Confirm the new source matches the old BEFORE deleting the old.** |
+| writing a plpgsql function | **RETURNS TABLE columns become OUT variables** - qualify every column reference. And **a verify block must CALL the function**, not just describe it. |
+| writing dates a year ahead | **Check BOTH offsets independently**, especially across March/November. |
+| choosing a boundary value | **Encode for robustness over literalness**; let the comment carry the intent. |
+| adding a rule, fee, consent or restriction | **Grep for absolute statements** the change makes untrue - `never`, `always`, `all`, `only`, `free`, `public`. |
+| a repo-wide find and replace | **The exclusion category is DATA, not syntax** - any string literal compared against stored data. |
+| an SQL Editor warning appears | **It parses without plpgsql context.** `select ... into v` reads as CREATE TABLE. Never accept a GRANT it suggests. |
+
+<!-- ============================================================ -->
+
+
 **Last session:** 2026-08-13
 **State:** build green, 66 routes, both prebuild guards passing.
 **Git:** see §1 - push state changes as soon as this is acted on.
