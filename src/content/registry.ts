@@ -335,11 +335,28 @@ export const REGISTRY: PageDef[] = [
           COLLECTORS_CHOICE_PRIZE,
       },
       vote_hint: { label: 'Per-category vote hint', type: 'text', default: 'Tap a photo to enlarge · Select your favorite to vote' },
-      empty_title: { label: 'Empty-state title', type: 'text', default: 'Voting opens soon' },
+      // THREE STATES, not one. A visitor arriving in June needs a different
+      // sentence from one arriving in March, and 'Voting opens soon' is wrong
+      // for both once the window has passed. The state comes from
+      // events.voting_opens_at / voting_closes_at via voting_state(), so it is
+      // driven by the configured window rather than by whether entries exist.
+      before_title: { label: 'Before voting opens: title', type: 'text', default: 'Voting opens after the convention' },
+      before_body: {
+        label: 'Before voting opens: body',
+        type: 'markdown',
+        default: 'Trophy winners are posted once the show is over, and voting runs for 30 days from Wednesday 21 April 2027.',
+      },
+      closed_title: { label: 'After voting closes: title', type: 'text', default: 'Voting has closed' },
+      closed_body: {
+        label: 'After voting closes: body',
+        type: 'markdown',
+        default: 'Thanks to everyone who voted. The Collector\u2019s Choice winner will be announced by AATC.',
+      },
+      empty_title: { label: 'Voting open, nothing posted yet: title', type: 'text', default: 'Winners are being posted' },
       empty_body: {
         label: 'Empty-state body',
         type: 'markdown',
-        default: 'Voting opens after the convention and runs for 30 days. Check back to cast your votes.',
+        default: 'Trophy winners from each category are going up now. Check back shortly to cast your votes.',
       },
       thankyou_title: { label: 'Thank-you title', type: 'text', default: 'Thank you for voting!' },
       thankyou_body: {

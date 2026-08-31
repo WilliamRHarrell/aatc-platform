@@ -64,8 +64,49 @@ const getContests = unstable_cache(
   { revalidate: 60, tags: ['contests'] }
 )
 
+/**
+ * The voting window, from events.voting_opens_at / voting_closes_at via
+ * voting_state(). Deliberately independent of whether entries exist: trophy
+ * winners are uploaded on the Sunday evening while the photos are fresh, and
+ * voting must stay shut until the Wednesday regardless.
+ *
+ * The RLS policy in migration 061 is what actually closes voting. This only
+ * decides which of three sentences a visitor reads - hiding the board is not a
+ * gate, the same way hiding the pinup form was not one.
+ */
+const getVotingState = unstable_cache(
+  async (): Promise<'unscheduled' | 'before' | 'open' | 'closed'> => {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    const { data: event } = await supabase.from('events').select('id').eq('is_active', true).maybeSingle()
+    if (!event) return 'unscheduled'
+    const { data, error } = await supabase.rpc('voting_state', { p_event_id: event.id })
+    if (error) {
+      // 42883 means migration 061 has not been applied yet. Treat an unknown
+      // state as 'before' rather than 'open': showing a board that cannot
+      // accept votes is worse than saying voting has not started.
+      console.error(`[contests] voting_state failed (${error.code}): ${error.message} - treating as before.`)
+      return 'before'
+    }
+    return (data as 'unscheduled' | 'before' | 'open' | 'closed') ?? 'before'
+  },
+  ['voting_state'],
+  { revalidate: 60, tags: ['contests'] }
+)
+
 export default async function ContestsPage() {
-  const [c, contests] = await Promise.all([getContent('contests'), getContests()])
+  const [c, contests, votingState] = await Promise.all([
+    getContent('contests'),
+    getContests(),
+    getVotingState(),
+  ])
+
+  // 'unscheduled' reads as 'before' to a visitor: no window configured is not a
+  // state anyone outside the admin needs a distinct sentence for.
+  const phase = votingState === 'closed' ? 'closed' : votingState === 'open' ? 'open' : 'before'
+  const showBoard = phase === 'open' && contests.length > 0
 
   return (
     <div className="min-h-screen">
@@ -87,11 +128,15 @@ export default async function ContestsPage() {
       </div>
 
       <div className="mx-auto max-w-5xl px-4 py-10">
-        {contests.length === 0 ? (
+        {!showBoard ? (
           <div className="rounded-2xl px-5 py-20 text-center" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
-            <p className="text-sm font-medium text-white">{c.empty_title}</p>
+            <p className="text-sm font-medium text-white">
+              {phase === 'before' ? c.before_title : phase === 'closed' ? c.closed_title : c.empty_title}
+            </p>
             <div className="mt-1 text-sm" style={{ color: '#555' }}>
-              <Markdown inline>{c.empty_body}</Markdown>
+              <Markdown inline>
+                {phase === 'before' ? c.before_body : phase === 'closed' ? c.closed_body : c.empty_body}
+              </Markdown>
             </div>
           </div>
         ) : (
