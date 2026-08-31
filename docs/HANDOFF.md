@@ -645,6 +645,32 @@ walk-ins do not register. That caveat is rendered above the registration list in
   submission, which is not a thing to leave reachable. `autoComplete="off"`
   stops a saved-address feature filling it in and locking a real person out.
 
+- **SQL Editor pre-flight warnings are parsed WITHOUT plpgsql context.** The
+  analyzer reads a script as plain SQL, so constructs that are local to a DO
+  block can present as DDL. `select id into v_event from ...` is a variable
+  assignment inside plpgsql; outside it, `SELECT ... INTO name` is
+  `CREATE TABLE name AS`. The editor duly warned that verify_051 "creates a
+  table without enabling Row Level Security" and named `v_event` - a DECLARE
+  variable, in a file that creates no table at all.
+
+  Renaming the variable would not have helped: the trigger is the INTO syntax,
+  not the identifier, so any name is misread identically. The verify scripts now
+  assign with `v := (select ...)` and use `FOR r IN ... LOOP` for records, with
+  a style note in each file. Do not convert them back.
+
+  **The reason this was worth fixing rather than dismissing:** a warning that
+  fires spuriously on every run trains the operator to click through warnings.
+  That habit costs more than the rewrite, because the same dialog also carries
+  a TRUE warning. "This query includes destructive operations" is accurate for
+  every verify script here - verify_051 alone has nine DELETEs and one UPDATE.
+  They are fixture cleanup, every one filtered to the `zz-` prefix, and each
+  block removes its own rows. That warning should be read and recognised, which
+  it will not be if the dialog has already been taught to mean nothing.
+
+  Never accept "Run and enable RLS" on one of these. It appends an ALTER TABLE
+  the script never contained, against a target chosen by the same misparse that
+  invented the table.
+
 - **DO NOT RE-RUN migration 051. It would break the live intake path.**
   051 contains `create or replace function register_pinup_entry(...)` with
   EIGHT arguments. 052 drops that signature and creates a NINE argument version
