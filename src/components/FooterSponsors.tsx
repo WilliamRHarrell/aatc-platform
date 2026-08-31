@@ -1,7 +1,7 @@
 import { unstable_cache } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
-import { excludeHarnessSponsors } from '@/lib/sponsor-display'
+import { excludeHarnessSponsors, HARNESS_PREFIX } from '@/lib/sponsor-display'
 
 /**
  * Footer sponsor logos - SERVER rendered.
@@ -31,11 +31,49 @@ const getFooterSponsors = unstable_cache(
     )
 
     // No join into `invoices` - that subquery is the 42P17 cycle (migration 028).
+    //
+    // THE CAP OF 5 WAS REMOVED 2026-08-31, and the two defects it was hiding
+    // with it.
+    //
+    // It had no layout basis. This renders into `flex flex-wrap`, so logos flow
+    // onto further rows at any count and nothing breaks at 8 or 12; the footer
+    // simply gets taller. Meanwhile the cap collided with the placement rule
+    // that Gold and above appear in the footer, which Title + Platinum + Gold
+    // would have exceeded before April. A number with no layout behind it is not
+    // worth ordering rules or rotation to defend, so it went.
+    //
+    // NOTED, NOT SOLVED: on mobile the logos are h-14 and wrap roughly two or
+    // three per row, so a dozen sponsors is about five rows of footer on every
+    // page. That is a real design consideration, and it argues for SMALLER
+    // LOGOS AT HIGHER COUNTS - not for a cap, and certainly not for five.
+    // Revisit when the footer actually holds enough sponsors to feel it; there
+    // is one today.
+    //
+    // 1. ORDER. There was previously no `order by` at all under the limit, so
+    //    Postgres returned an arbitrary five - plan-dependent and free to differ
+    //    between two identical queries. The sixth sponsor vanished silently and
+    //    WHICH five survived was undecidable from the code: a sold placement
+    //    that renders or not at the planner's discretion. Ordering is by tier
+    //    first, which sorts by ENUM DECLARATION ORDER (title, platinum, gold,
+    //    silver, brass, then the individual items) and so happens to be
+    //    descending value, then by name to break ties. Deterministic either way,
+    //    which is the requirement; the cap being gone is not a reason to leave
+    //    render order undefined.
+    //
+    // 2. HARNESS ROWS, EXCLUDED SERVER-SIDE. excludeHarnessSponsors ran AFTER
+    //    the limit, so a harness row inside the window cost a real sponsor their
+    //    slot - four logos rendered while five were flagged. Removing the limit
+    //    dissolves that, but the exclusion is done in the query anyway so the
+    //    defect cannot come back with any future limit. The presentation-layer
+    //    filter below is kept as well: it is the documented single place for
+    //    this rule and it still catches rows this predicate cannot.
     const { data, error } = await supabase
       .from('sponsors_public')
       .select('id, sponsor_name, logo_url, website')
       .eq('featured_footer', true)
-      .limit(5)
+      .not('sponsor_name', 'ilike', `${HARNESS_PREFIX}%`)
+      .order('tier')
+      .order('sponsor_name')
 
     if (error) {
       console.error(`[footer] sponsor query failed (${error.code}): ${error.message}`)

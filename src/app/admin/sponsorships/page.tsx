@@ -462,11 +462,26 @@ export default function AdminSponsorshipsPage() {
 
   const toggleFooter = async (s: Sponsorship) => {
     const newVal = !s.featured_footer
-    const currentFeatured = sponsorships.filter(sp => sp.featured_footer && sp.id !== s.id).length
-    if (newVal && currentFeatured >= 5) {
-      toast.error('Max 5 footer sponsors - remove one first')
-      return
-    }
+    // THE CAP OF 5 WAS REMOVED 2026-08-31, and with it a population mismatch.
+    //
+    // The cap had no layout basis - the footer is `flex flex-wrap` and simply
+    // grows a row - and it collided with the rule that Gold and above appear in
+    // the footer, which Title + Platinum + Gold would have exceeded before
+    // April.
+    //
+    // It was also counting the wrong rows. The count ran over EVERY sponsorship
+    // loaded here regardless of status, while the footer renders from
+    // sponsors_public, which is confirmed only. So a cancelled or pending row
+    // held a slot that rendered nothing, and admin could refuse a sixth
+    // CONFIRMED sponsor because two dead rows occupied the count. That count
+    // existed nowhere else in this screen, so deleting the cap deletes the
+    // mismatch rather than moving it.
+    //
+    // The real guard against silent truncation was never here anyway: it was
+    // FooterSponsors' own `.limit(5)`, which had no `order by` under it. A rule
+    // enforced only in one UI is not a rule - anything writing this column
+    // directly bypassed it, and the render layer then truncated without saying
+    // so.
     // A SOLD PLACEMENT. Unguarded, a filtered or stale update returned zero
     // rows with no error, the toggle showed on, and requestRevalidate below
     // then purged the cache and re-served the page WITHOUT the sponsor - the

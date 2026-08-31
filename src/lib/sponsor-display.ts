@@ -26,7 +26,13 @@
 // removed at cutover via the FK-ordered block in
 // supabase/seeds/rls_harness_records.sql:107-122. See docs/CUTOVER.md.
 
-const HARNESS_PREFIX = 'ZZ TEST'
+/**
+ * Exported so a query that LIMITS can exclude harness rows server-side, before
+ * the limit rather than after it. FooterSponsors used to `.limit(5)` and then
+ * filter, so a harness row inside the window silently cost a real sponsor their
+ * slot. The prefix stays defined once, here, whichever layer applies it.
+ */
+export const HARNESS_PREFIX = 'ZZ TEST'
 
 export function isHarnessSponsor(sponsorName: string | null | undefined): boolean {
   return (sponsorName ?? '').trimStart().startsWith(HARNESS_PREFIX)
