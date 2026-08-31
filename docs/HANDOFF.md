@@ -645,6 +645,13 @@ walk-ins do not register. That caveat is rendered above the registration list in
   submission, which is not a thing to leave reachable. `autoComplete="off"`
   stops a saved-address feature filling it in and locking a real person out.
 
+- **RULE: a residue check and a cleanup are different jobs and must not share a
+  block.** A final block that deletes fixtures AND reports what is left destroys
+  the evidence that the owning block failed to clean up - it always reports
+  clean, because it just made itself clean. Cleanup belongs to the last block
+  that needs the fixture; the last block in the file only LOOKS. `verify_054`
+  block Z is the pattern: four counts, no deletes.
+
 - **RULE: a test fixture supplies every required column itself; it does not rely
   on a trigger to fill them in.** `verify_054` created an `auth.users` row and
   then inserted a `profiles` row with only `(id, role)`, depending on
@@ -722,6 +729,34 @@ walk-ins do not register. That caveat is rendered above the registration list in
 
   Tracked here rather than remembered. Fixing RLS without fixing this pattern
   leaves the same class of bug waiting for the next mismatch.
+
+- **Audit fixture inserts:** `python3 scripts/check-sql-fixtures.py`
+
+  Flags any `insert into` in a verify script that omits a column the table
+  requires (NOT NULL, no default). Written after `verify_054` aborted before a
+  single assertion ran because its fixture left out `profiles.email`.
+
+  It builds the schema by walking the migrations IN ORDER and applying
+  `create table`, `add column`, `drop column` and `set not null` - not from
+  `create table` alone. The first version did the latter and reported
+  `contest_votes.voter_token` missing from five inserts in verify_053; migration
+  053 drops that column, so it was noise. An extractor that ignores later ALTERs
+  emits that forever and costs somebody an investigation each time to rediscover
+  it is nothing.
+
+  It also knows the difference between two kinds of trigger, which is the whole
+  point rather than a detail:
+
+  - **BEFORE INSERT on the same table** always runs, so omitting the column is
+    correct. `contest_votes.vote_date` is set by `set_vote_date()` this way, and
+    naming it in an INSERT would be wrong since the trigger overwrites it.
+    Excused.
+  - **AFTER INSERT on a different table** is a cross-table side effect that may
+    not fire. `profiles.email` was left to `on_auth_user_created`, a trigger on
+    `auth.users`. NOT excused - that is the bug this exists to catch.
+
+  Mutation-tested: re-introducing the `profiles` omission is caught, and the
+  legitimate `vote_date` omission stays clean.
 
 - **Parse-check SQL without applying it.** `pip3 install pglast`, then:
 
