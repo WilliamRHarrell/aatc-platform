@@ -61,26 +61,16 @@ const getTeam = unstable_cache(
   { revalidate: 60, tags: ['team'] }
 )
 
-export default async function TeamSection({
-  className,
-  fallback = [],
-}: {
-  className?: string
-  /**
-   * TEMPORARY, and delete it the moment 059 is applied and the rendered output
-   * is confirmed to match.
-   *
-   * Without it this section goes dark between the deploy and the migration:
-   * the table does not exist yet, the query 42P01s, and two real people vanish
-   * from a live page. Same discipline as the VIP price and Collector's Choice -
-   * confirm the new source matches the old BEFORE deleting the old, rather than
-   * deleting first and finding out.
-   */
-  fallback?: { id: string; name: string; role: string; bio: string; photo_path: string | null }[]
-}) {
-  const fromDb = await getTeam()
-  const team = fromDb.length > 0 ? fromDb : fallback
-  // Never a heading over nothing.
+export default async function TeamSection({ className }: { className?: string }) {
+  const team = await getTeam()
+  // Never a heading over nothing. If the query fails or every row is
+  // unpublished, the section is absent rather than showing an empty grid.
+  //
+  // There is no fallback any more. One existed while 059 was unapplied so the
+  // section did not go dark between the deploy and the migration; it was
+  // removed once the rendered output was confirmed to come from the table. A
+  // fallback that outlives its verification is just a second source waiting to
+  // disagree with the first.
   if (team.length === 0) return null
 
   const src = (p: string) =>

@@ -13,28 +13,8 @@ import TeamSection from '@/components/TeamSection'
  * on this page did not exist, and Ryan's bio claimed he is an Army veteran when
  * he is not. Both were corrected. The corrected wording is seeded verbatim by
  * 059 and must not be reworded - see that file before editing either bio.
- *
- * TEAM_FALLBACK below is TEMPORARY. It is the same two people, and it exists
- * only so the section does not go dark between this deploying and 059 being
- * applied. Delete it - and the prop - once 059 is applied and the rendered
- * output matches.
+
  */
-const TEAM_FALLBACK = [
-  {
-    id: 'fallback-ryan',
-    name: 'Ryan Harrell',
-    role: 'Founder & Director',
-    bio: 'Born and raised in Fayetteville, with a large part of his family serving. Built AATC to put the tattoo community and the military community in the same room.',
-    photo_path: null,
-  },
-  {
-    id: 'fallback-nicole',
-    name: 'Nicole Harrell',
-    role: 'Co-Founder',
-    bio: 'Military brat. Her dad would still be jumping out of planes if Uncle Sam would let him.',
-    photo_path: null,
-  },
-]
 
 const DIFFERENTIATORS = [
   {
@@ -155,7 +135,7 @@ export default function AboutPage() {
 
       {/* Team */}
       <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
-        <TeamSection fallback={TEAM_FALLBACK} />
+        <TeamSection />
       </section>
       <PageGallery slug="about" title="Around the Convention" className="mx-auto max-w-5xl px-4 py-12" />
 
