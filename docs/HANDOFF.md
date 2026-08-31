@@ -860,6 +860,35 @@ walk-ins do not register. That caveat is rendered above the registration list in
   Where a guard protects money, ask what query would find the damage, and write
   it at the same time.
 
+- **RULE: a date pair written a year ahead needs BOTH offsets checked
+  independently, especially if it spans March or November.** US DST changes on
+  the second Sunday in March and the first Sunday in November. A window whose
+  two ends fall either side of a changeover has two different UTC offsets, and
+  writing one offset for both is wrong in a way nothing flags: the value parses,
+  the constraint passes, the verify passes, and the boundary is an hour out.
+
+  The 2027 voting window is `2027-04-21T12:00:00-04:00` to
+  `2027-05-22T00:00:00-04:00`. Both fall inside DST 2027 (14 March to 7
+  November), so `-04:00` is correct for each - CHECKED, not assumed, because the
+  cost of being wrong is silent and the cost of checking is one calculation.
+
+  Dates written far ahead are exactly where this bites: nobody is holding a
+  calendar for April 2027 in their head, and the error surfaces on the day.
+  `FINAL_DUE_AT` in event-config.ts already takes the safer route of storing UTC
+  with the local time in a comment; either convention works, provided the offset
+  is derived rather than copied from a neighbouring value.
+
+- **RULE: encode for robustness over literalness at a boundary.** The voting
+  window closes at end of day 21 May, stored as `2027-05-22T00:00:00-04:00` and
+  compared with `<`. The literal reading - `23:59:59` with `<=` - was rejected
+  because it depends on the comparison staying `<=`, and one edit to `<` would
+  silently drop the final second with nothing to catch it. The comment carries
+  the literal intent so the midnight value does not read as an off-by-one.
+
+  The verify makes the distinction real: it sets the bound to exactly `now()`,
+  which `<=` would accept and `<` refuses. A bound in the past passes either way
+  and proves nothing about which comparison is in use.
+
 - **RULE: a claim about what a page RENDERS must check both code and data.**
   Rendered HTML on the deployment is the authority; a source grep is a hint.
 

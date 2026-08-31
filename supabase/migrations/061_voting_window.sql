@@ -35,7 +35,7 @@ alter table public.events
 comment on column public.events.voting_opens_at is
   'Collector''s Choice voting opens. NULL means voting has never been scheduled and is CLOSED - the absence of a window is not an open one.';
 comment on column public.events.voting_closes_at is
-  'Collector''s Choice voting closes, INCLUSIVE. The stored value is the last instant a vote is accepted, so the check is <= rather than <.';
+  'Collector''s Choice voting closes, EXCLUSIVE. The stored value is the first instant a vote is REFUSED, so the check is < rather than <=. For 2027 that is 2027-05-22T00:00:00-04:00, which expresses "end of day Friday 21 May" - it is not an off-by-one. An inclusive 23:59:59 was considered and rejected: it is one edit away from silently losing the final second if someone changes <= to <.';
 
 -- Both set, and open before close. A half-configured window is the state that
 -- would silently leave voting open forever.
@@ -71,7 +71,7 @@ create policy "contest_votes: own insert" on public.contest_votes
          and e.voting_opens_at  is not null
          and e.voting_closes_at is not null
          and now() >= e.voting_opens_at
-         and now() <= e.voting_closes_at
+         and now() <  e.voting_closes_at
     )
   );
 
@@ -87,7 +87,7 @@ as $$
   select case
     when e.voting_opens_at is null or e.voting_closes_at is null then 'unscheduled'
     when now() <  e.voting_opens_at  then 'before'
-    when now() <= e.voting_closes_at then 'open'
+    when now() <  e.voting_closes_at then 'open'
     else 'closed'
   end
   from public.events e where e.id = p_event_id;

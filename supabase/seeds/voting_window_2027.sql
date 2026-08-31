@@ -5,7 +5,8 @@
 -- Values confirmed by Ryan, 2026-08-31.
 --
 --   opens   Wednesday 21 April 2027, 12:00 noon  America/New_York
---   closes  Friday    21 May   2027, 23:59:59    America/New_York
+--   closes  end of Friday 21 May 2027, stored EXCLUSIVELY as
+--           2027-05-22T00:00:00-04:00 America/New_York
 --
 -- Checked rather than taken on trust:
 --   21 April 2027 IS a Wednesday.
@@ -18,14 +19,15 @@
 --   is correct for each. This is the detail that would have been wrong if the
 --   window had straddled a changeover.
 --
--- ONE NOTE ON THE CLOSING BOUNDARY, since it was asked. 23:59:59 leaves a
--- one-second gap before midnight, so it only behaves as intended with an
--- INCLUSIVE comparison - which is what 061 uses (now() <= voting_closes_at).
--- An exclusive bound at 2027-05-22T00:00:00-04:00 would be marginally more
--- robust, in that it cannot be broken by someone later changing <= to <. The
--- difference is one second at the end of a 30-day window and the stated value
--- is kept, because 'closes at the end of the day' is the intent and this
--- expresses it literally.
+-- THE CLOSING VALUE IS MIDNIGHT ON THE 22nd, AND THAT IS NOT AN OFF-BY-ONE.
+-- The intent is end of day on Friday 21 May. It is stored as the first instant
+-- a vote is REFUSED - 2027-05-22T00:00:00-04:00 - and compared with <, so the
+-- last accepted vote is at 23:59:59.999 on the 21st.
+--
+-- An inclusive 23:59:59 was considered and rejected. It reads more literally,
+-- but it depends on the comparison staying <=, and one edit to < would silently
+-- drop the final second of a thirty-day window with nothing to catch it.
+-- Robustness over literalness; the comment carries the literal intent instead.
 -- ============================================================
 
 do $$
@@ -33,7 +35,7 @@ declare
   v_event uuid;
   v_name  text;
   v_open  constant timestamptz := '2027-04-21T12:00:00-04:00';
-  v_close constant timestamptz := '2027-05-21T23:59:59-04:00';
+  v_close constant timestamptz := '2027-05-22T00:00:00-04:00';  -- exclusive: end of 21 May
 begin
   select id, name into v_event, v_name
     from public.events where is_active order by start_date limit 1;
@@ -59,7 +61,9 @@ end $$;
 select name,
        voting_opens_at  at time zone 'America/New_York' as opens_et,
        voting_closes_at at time zone 'America/New_York' as closes_et,
-       (voting_closes_at::date - voting_opens_at::date)  as window_days,
+       -- 31 by subtraction because the bound is exclusive midnight; the window
+       -- is 30 days of voting, 21 April through 21 May inclusive.
+       (voting_closes_at::date - voting_opens_at::date)  as days_to_exclusive_bound,
        public.voting_state(id)                           as state_now
   from public.events
  where id = '28a3ad3d-d843-4c7e-a80a-bf0a76b9ad0c';

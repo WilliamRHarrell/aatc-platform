@@ -11,8 +11,8 @@
 -- THE BOUNDARIES TESTED ARE THE REAL ONES, not round numbers:
 --   2027-04-20T12:00:00  before open   -> refused
 --   2027-04-21T12:00:01  one second in -> allowed
---   2027-05-21T23:59:58  one second out-> allowed
---   2027-05-22T00:00:00  after close   -> refused
+--   2027-05-21T23:59:59  last moment   -> allowed
+--   2027-05-22T00:00:00  the bound     -> refused (exclusive)
 -- Testing 'some time in the middle' would pass against a window off by a month.
 -- ============================================================
 
@@ -136,25 +136,28 @@ begin
   raise notice 'PASS: 2027-04-21T12:00:01 equivalent allowed (one second inside)';
   delete from public.contest_votes where voter_id = v_user;
 
-  -- 2027-05-21T23:59:58 : ONE SECOND before close -> allowed
+  -- 2027-05-21T23:59:59 : the last accepted instant -> allowed
   update public.events set voting_opens_at = now() - interval '30 days', voting_closes_at = now() + interval '1 second' where id = v_event;
   set local role authenticated;
   insert into public.contest_votes (entry_id, contest_id, voter_id) values (v_entry, v_contest, v_user);
   reset role;
   n := (select count(*) from public.contest_votes where voter_id = v_user);
-  if n <> 1 then raise exception 'FAIL: a vote one second BEFORE closing was refused - the boundary is exclusive when it should be inclusive'; end if;
-  raise notice 'PASS: 2027-05-21T23:59:58 equivalent allowed (one second before close)';
+  if n <> 1 then raise exception 'FAIL: a vote one second before the closing bound was refused'; end if;
+  raise notice 'PASS: 2027-05-21T23:59:59 equivalent allowed (inside the exclusive bound)';
   delete from public.contest_votes where voter_id = v_user;
 
-  -- 2027-05-22T00:00:00 : after close -> refused
-  update public.events set voting_opens_at = now() - interval '31 days', voting_closes_at = now() - interval '1 second' where id = v_event;
+  -- 2027-05-22T00:00:00 : the bound itself -> refused, because it is EXCLUSIVE.
+  -- Set the bound to exactly now() rather than a second ago: a <= comparison
+  -- would accept this and a < refuses it, so this case is what distinguishes
+  -- the two. A bound in the past would pass either way and prove nothing.
+  update public.events set voting_opens_at = now() - interval '31 days', voting_closes_at = now() where id = v_event;
   begin
     set local role authenticated;
     insert into public.contest_votes (entry_id, contest_id, voter_id) values (v_entry, v_contest, v_user);
     reset role;
-    raise exception 'FAIL: a vote was accepted AFTER the window closed (2027-05-22 case)';
+    raise exception 'FAIL: a vote was accepted AT the closing bound - the comparison is <= when it must be <';
   exception
-    when insufficient_privilege then raise notice 'PASS: 2027-05-22 equivalent refused (after close)';
+    when insufficient_privilege then raise notice 'PASS: 2027-05-22T00:00:00 equivalent refused (bound is exclusive)';
   end;
   reset role;
 
