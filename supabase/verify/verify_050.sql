@@ -19,6 +19,15 @@
 
 -- ============================================================
 -- VERIFY 050 - run after the migration. Nothing mutates permanently.
+--
+-- STYLE NOTE: variables are assigned with `v := (select ...)`, never with
+-- `select ... into v`. Both are valid plpgsql and mean the same thing, but the
+-- SQL Editor's pre-flight analyzer reads the file without knowing it is inside
+-- a DO block, and in plain SQL `SELECT ... INTO name` is CREATE TABLE AS. It
+-- was reporting "creates a table without enabling RLS" against DECLARE
+-- variables like v_event, on a script that creates no tables at all. Renaming
+-- the variables would not have helped - the trigger is the INTO syntax, not
+-- the name. Please do not convert these back.
 -- ============================================================
 
 -- ── A. bucket exists, public, 10 MB, three MIME types
@@ -70,7 +79,7 @@ do $$
 declare n int;
 begin
   insert into public.page_images (slug, alt) values ('zz-altonly-probe', 'prepared');
-  select count(*) into n from public.page_images where slug = 'zz-altonly-probe';
+  n := (select count(*) from public.page_images where slug = 'zz-altonly-probe');
   if n <> 1 then
     raise exception 'FAIL: alt-without-image was not inserted';
   end if;
@@ -112,7 +121,7 @@ do $$
 declare n_active int; n_inactive int;
 begin
   set local role anon;
-  select count(*) into n_active from public.page_images where slug = 'schedule-hero';
+  n_active := (select count(*) from public.page_images where slug = 'schedule-hero');
   reset role;
 
   if n_active <> 1 then
@@ -123,7 +132,7 @@ begin
   update public.page_images set active = false where slug = 'schedule-hero';
 
   set local role anon;
-  select count(*) into n_inactive from public.page_images where slug = 'schedule-hero';
+  n_inactive := (select count(*) from public.page_images where slug = 'schedule-hero');
   reset role;
 
   if n_inactive <> 0 then
@@ -176,8 +185,8 @@ begin
   end if;
   raise notice 'PASS: anon update affected 0 rows';
 
-  select count(*) into n from public.page_images
-   where slug = 'schedule-hero' and caption is not null;
+  n := (select count(*) from public.page_images
+   where slug = 'schedule-hero' and caption is not null);
   if n <> 0 then
     raise exception 'FAIL: caption was modified despite a 0 row count';
   end if;

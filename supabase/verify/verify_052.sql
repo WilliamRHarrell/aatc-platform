@@ -15,6 +15,15 @@
 -- are the only ones that need selecting and running individually, and only if
 -- you want to read them. They assert nothing on their own; the notice blocks do
 -- the asserting.
+--
+-- STYLE NOTE: variables are assigned with `v := (select ...)`, never with
+-- `select ... into v`. Both are valid plpgsql and mean the same thing, but the
+-- SQL Editor's pre-flight analyzer reads the file without knowing it is inside
+-- a DO block, and in plain SQL `SELECT ... INTO name` is CREATE TABLE AS. It
+-- was reporting "creates a table without enabling RLS" against DECLARE
+-- variables like v_event, on a script that creates no tables at all. Renaming
+-- the variables would not have helped - the trigger is the INTO syntax, not
+-- the name. Please do not convert these back.
 -- ============================================================
 
 -- ── A. contests gained its two columns
@@ -52,7 +61,7 @@ select p.oid::regprocedure as signature, p.pronargs as arg_count
 do $$
 declare v_event uuid; v_id uuid; v_optin boolean; v_at timestamptz;
 begin
-  select id into v_event from public.events where is_active order by start_date limit 1;
+  v_event := (select id from public.events where is_active order by start_date limit 1);
   delete from public.pinup_entries where email like 'zz-consent-%@example.com';
 
   -- Two statements, deliberately. Joining the function to pinup_entries in ONE
@@ -60,11 +69,11 @@ begin
   -- statement, and the outer scan uses the snapshot taken at statement start,
   -- so the join finds nothing. The failure would surface as 'no row created',
   -- blaming the function for a defect in the test.
-  select r.id into v_id from public.register_pinup_entry(
-    v_event, 'ZZ Consent Off', 'zz-consent-off@example.com', '(910) 555-0501') r;
+  v_id := (select r.id from public.register_pinup_entry(
+    v_event, 'ZZ Consent Off', 'zz-consent-off@example.com', '(910) 555-0501') r);
 
-  select marketing_opt_in, marketing_opt_in_at into v_optin, v_at
-    from public.pinup_entries where id = v_id;
+  v_optin := (select marketing_opt_in    from public.pinup_entries where id = v_id);
+  v_at    := (select marketing_opt_in_at from public.pinup_entries where id = v_id);
 
   if v_optin is null then raise exception 'FAIL: no row created - the assertions below would be vacuous'; end if;
   raise notice 'PASS: control row created and readable';
@@ -82,16 +91,16 @@ end $$;
 do $$
 declare v_event uuid; v_id uuid; v_optin boolean; v_at timestamptz; v_src text;
 begin
-  select id into v_event from public.events where is_active order by start_date limit 1;
+  v_event := (select id from public.events where is_active order by start_date limit 1);
 
   -- Split for the same snapshot reason as block D.
-  select r.id into v_id from public.register_pinup_entry(
+  v_id := (select r.id from public.register_pinup_entry(
     v_event, 'ZZ Consent On', 'zz-consent-on@example.com', '(910) 555-0502',
-    null, null, null, 25, true) r;
+    null, null, null, 25, true) r);
 
-  select marketing_opt_in, marketing_opt_in_at, marketing_opt_in_source
-    into v_optin, v_at, v_src
-    from public.pinup_entries where id = v_id;
+  v_optin := (select marketing_opt_in        from public.pinup_entries where id = v_id);
+  v_at    := (select marketing_opt_in_at     from public.pinup_entries where id = v_id);
+  v_src   := (select marketing_opt_in_source from public.pinup_entries where id = v_id);
 
   if v_optin is not true then raise exception 'FAIL: opt-in was not recorded'; end if;
   raise notice 'PASS: marketing_opt_in stored as true';
@@ -130,20 +139,20 @@ end $$;
 do $$
 declare v_event uuid; r1 record; r2 record;
 begin
-  select id into v_event from public.events where is_active order by start_date limit 1;
+  v_event := (select id from public.events where is_active order by start_date limit 1);
   delete from public.pinup_entries where email like 'zz-cap52-%@example.com';
 
-  select * into r1 from public.register_pinup_entry(
+  for r1 in select * from public.register_pinup_entry(
     v_event, 'ZZ Cap52 One', 'zz-cap52-1@example.com', '(910) 555-0601',
-    null, null, null, 1) as t;
+    null, null, null, 1) as t loop exit; end loop;
   if r1.status <> 'confirmed' or r1.queue_position <> 1 then
     raise exception 'FAIL: first entry was % at position %', r1.status, r1.queue_position;
   end if;
   raise notice 'PASS: first entry confirmed at queue_position 1';
 
-  select * into r2 from public.register_pinup_entry(
+  for r2 in select * from public.register_pinup_entry(
     v_event, 'ZZ Cap52 Two', 'zz-cap52-2@example.com', '(910) 555-0602',
-    null, null, null, 1) as t;
+    null, null, null, 1) as t loop exit; end loop;
   if r2.status <> 'waitlist' or r2.queue_position <> 2 then
     raise exception 'FAIL: second entry was % at position %', r2.status, r2.queue_position;
   end if;

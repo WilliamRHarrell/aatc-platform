@@ -21,6 +21,15 @@
 -- reports the weak PASS, which is honest and expected. The two-tab procedure in
 -- that block is the only way to see the strong case, and it is optional - the
 -- lock is the least likely thing here to be wrong.
+--
+-- STYLE NOTE: variables are assigned with `v := (select ...)`, never with
+-- `select ... into v`. Both are valid plpgsql and mean the same thing, but the
+-- SQL Editor's pre-flight analyzer reads the file without knowing it is inside
+-- a DO block, and in plain SQL `SELECT ... INTO name` is CREATE TABLE AS. It
+-- was reporting "creates a table without enabling RLS" against DECLARE
+-- variables like v_event, on a script that creates no tables at all. Renaming
+-- the variables would not have helped - the trigger is the INTO syntax, not
+-- the name. Please do not convert these back.
 -- ============================================================
 
 -- ── A. table shape and index
@@ -45,7 +54,7 @@ select indexname, indexdef
 do $$
 declare v_event uuid; n int;
 begin
-  select id into v_event from public.events where is_active order by start_date limit 1;
+  v_event := (select id from public.events where is_active order by start_date limit 1);
   if v_event is null then raise exception 'FAIL: no active event'; end if;
 
   set local role anon;
@@ -88,19 +97,19 @@ end $$;
 do $$
 declare v_event uuid; n_admin int; n_anon int;
 begin
-  select id into v_event from public.events where is_active order by start_date limit 1;
+  v_event := (select id from public.events where is_active order by start_date limit 1);
 
   insert into public.pinup_entries (event_id, full_name, email, phone, age_confirmed)
   values (v_event, 'ZZ Verify Visible', 'zz-verify-visible@example.com', '(910) 555-0003', true);
 
-  select count(*) into n_admin from public.pinup_entries where email = 'zz-verify-visible@example.com';
+  n_admin := (select count(*) from public.pinup_entries where email = 'zz-verify-visible@example.com');
   if n_admin <> 1 then
     raise exception 'FAIL: the control row is not visible even to postgres (got %). The anon check below would be vacuous.', n_admin;
   end if;
   raise notice 'PASS: control row exists and is readable as postgres';
 
   set local role anon;
-  select count(*) into n_anon from public.pinup_entries where email = 'zz-verify-visible@example.com';
+  n_anon := (select count(*) from public.pinup_entries where email = 'zz-verify-visible@example.com');
   reset role;
 
   if n_anon <> 0 then
@@ -118,7 +127,7 @@ end $$;
 do $$
 declare v_event uuid; n int;
 begin
-  select id into v_event from public.events where is_active order by start_date limit 1;
+  v_event := (select id from public.events where is_active order by start_date limit 1);
   insert into public.pinup_entries (event_id, full_name, email, phone, age_confirmed)
   values (v_event, 'ZZ Verify Update', 'zz-verify-update@example.com', '(910) 555-0004', true);
 
@@ -130,8 +139,8 @@ begin
   if n <> 0 then raise exception 'FAIL: anon updated % row(s)', n; end if;
   raise notice 'PASS: anon update affected 0 rows';
 
-  select count(*) into n from public.pinup_entries
-   where email = 'zz-verify-update@example.com' and status = 'confirmed';
+  n := (select count(*) from public.pinup_entries
+   where email = 'zz-verify-update@example.com' and status = 'confirmed');
   if n <> 0 then raise exception 'FAIL: the row was modified despite a 0 row count'; end if;
   raise notice 'PASS: row genuinely unchanged';
 
@@ -145,27 +154,27 @@ end $$;
 do $$
 declare v_event uuid; r record; i int; v_status text;
 begin
-  select id into v_event from public.events where is_active order by start_date limit 1;
+  v_event := (select id from public.events where is_active order by start_date limit 1);
   delete from public.pinup_entries where email like 'zz-cap-%@example.com';
 
   for i in 1..3 loop
-    select status into v_status from public.register_pinup_entry(
+    v_status := (select status from public.register_pinup_entry(
       v_event, 'ZZ Cap ' || i, 'zz-cap-' || i || '@example.com', '(910) 555-01' || lpad(i::text,2,'0'),
-      null, null, null, 3);
+      null, null, null, 3));
     if v_status <> 'confirmed' then
       raise exception 'FAIL: entry % was %, expected confirmed', i, v_status;
     end if;
   end loop;
   raise notice 'PASS: entries 1 to 3 confirmed against a capacity of 3';
 
-  select status into v_status from public.register_pinup_entry(
-    v_event, 'ZZ Cap 4', 'zz-cap-4@example.com', '(910) 555-0104', null, null, null, 3);
+  v_status := (select status from public.register_pinup_entry(
+    v_event, 'ZZ Cap 4', 'zz-cap-4@example.com', '(910) 555-0104', null, null, null, 3));
   if v_status <> 'waitlist' then
     raise exception 'FAIL: entry 4 was %, expected waitlist', v_status;
   end if;
   raise notice 'PASS: entry past capacity is waitlisted, not rejected';
 
-  select count(*) into i from public.pinup_entries where email like 'zz-cap-%@example.com';
+  i := (select count(*) from public.pinup_entries where email like 'zz-cap-%@example.com');
   if i <> 4 then raise exception 'FAIL: expected 4 rows stored, found %', i; end if;
   raise notice 'PASS: the waitlisted entry was stored, not discarded';
 
@@ -198,14 +207,14 @@ declare
   r2 record;
   n int;
 begin
-  select id into v_event from public.events where is_active order by start_date limit 1;
+  v_event := (select id from public.events where is_active order by start_date limit 1);
   delete from public.pinup_entries where email like 'zz-shape-%@example.com';
 
-  select * into r1 from public.register_pinup_entry(
-    v_event, 'ZZ Shape One', 'zz-shape-1@example.com', '(910) 555-0401') as t;
+  for r1 in select * from public.register_pinup_entry(
+    v_event, 'ZZ Shape One', 'zz-shape-1@example.com', '(910) 555-0401') as t loop exit; end loop;
 
   if r1.id is null then raise exception 'FAIL: returned id is null'; end if;
-  select count(*) into n from public.pinup_entries where pinup_entries.id = r1.id;
+  n := (select count(*) from public.pinup_entries where pinup_entries.id = r1.id);
   if n <> 1 then raise exception 'FAIL: returned id % does not resolve to a row', r1.id; end if;
   raise notice 'PASS: returned id resolves to the row that was created';
 
@@ -220,8 +229,8 @@ begin
   raise notice 'PASS: first registration reported queue_position %', r1.queue_position;
 
   -- The one that a hardcoded value would fail.
-  select * into r2 from public.register_pinup_entry(
-    v_event, 'ZZ Shape Two', 'zz-shape-2@example.com', '(910) 555-0402') as t;
+  for r2 in select * from public.register_pinup_entry(
+    v_event, 'ZZ Shape Two', 'zz-shape-2@example.com', '(910) 555-0402') as t loop exit; end loop;
 
   if r2.queue_position <> r1.queue_position + 1 then
     raise exception 'FAIL: queue_position did not advance - first %, second %',
@@ -251,7 +260,7 @@ end $$;
 do $$
 declare v_event uuid; v_key bigint; n int;
 begin
-  select id into v_event from public.events where is_active order by start_date limit 1;
+  v_event := (select id from public.events where is_active order by start_date limit 1);
   v_key := hashtext('pinup_entry:' || v_event::text);
 
   -- pid <> pg_backend_pid() is REQUIRED, not tidiness. The whole file runs in
@@ -259,10 +268,10 @@ begin
   -- pg_advisory_xact_lock holds until that transaction ends. Without the pid
   -- filter this block finds the lock THIS session is still holding and reports
   -- it as a concurrent registration - a pass that describes nothing.
-  select count(*) into n from pg_locks
+  n := (select count(*) from pg_locks
    where locktype = 'advisory'
      and objid = (v_key::bigint & 4294967295)
-     and pid <> pg_backend_pid();
+     and pid <> pg_backend_pid());
 
   if n > 0 then
     raise notice 'PASS: the advisory lock is currently HELD - a concurrent registration is blocking, which is the guarantee working';
@@ -276,7 +285,7 @@ end $$;
 do $$
 declare v_event uuid;
 begin
-  select id into v_event from public.events where is_active order by start_date limit 1;
+  v_event := (select id from public.events where is_active order by start_date limit 1);
   begin
     perform public.register_pinup_entry(v_event, '  ', 'zz-blank@example.com', '(910) 555-0300');
     raise exception 'FAIL: a blank full_name was accepted';

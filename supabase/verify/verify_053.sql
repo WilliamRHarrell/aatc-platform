@@ -15,6 +15,15 @@
 -- are the only ones that need selecting and running individually, and only if
 -- you want to read them. They assert nothing on their own; the notice blocks do
 -- the asserting.
+--
+-- STYLE NOTE: variables are assigned with `v := (select ...)`, never with
+-- `select ... into v`. Both are valid plpgsql and mean the same thing, but the
+-- SQL Editor's pre-flight analyzer reads the file without knowing it is inside
+-- a DO block, and in plain SQL `SELECT ... INTO name` is CREATE TABLE AS. It
+-- was reporting "creates a table without enabling RLS" against DECLARE
+-- variables like v_event, on a script that creates no tables at all. Renaming
+-- the variables would not have helped - the trigger is the INTO syntax, not
+-- the name. Please do not convert these back.
 -- ============================================================
 
 -- ── A. shape
@@ -39,7 +48,7 @@ select policyname, cmd, roles::text, qual, with_check
 do $$
 declare v_event uuid; v_contest uuid; v_entry uuid; v_user uuid; n int;
 begin
-  select id into v_event from public.events where is_active order by start_date limit 1;
+  v_event := (select id from public.events where is_active order by start_date limit 1);
 
   insert into auth.users (id, email, instance_id, aud, role)
   values (gen_random_uuid(), 'zz-voter-a@example.com', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated')
@@ -54,7 +63,7 @@ begin
   insert into public.contest_votes (entry_id, contest_id, voter_id)
   values (v_entry, v_contest, v_user);
 
-  select count(*) into n from public.contest_votes where voter_id = v_user;
+  n := (select count(*) from public.contest_votes where voter_id = v_user);
   if n <> 1 then raise exception 'FAIL: expected 1 vote, found %', n; end if;
   raise notice 'PASS: an authenticated user can vote (control)';
 
@@ -70,9 +79,9 @@ end $$;
 do $$
 declare v_contest uuid; v_entry uuid; v_user uuid;
 begin
-  select id into v_contest from public.contests where name='ZZ Verify Contest';
-  select id into v_entry   from public.contest_entries where contest_id=v_contest limit 1;
-  select id into v_user    from auth.users where email='zz-voter-a@example.com';
+  v_contest := (select id from public.contests where name='ZZ Verify Contest');
+  v_entry := (select id from public.contest_entries where contest_id=v_contest limit 1);
+  v_user := (select id from auth.users where email='zz-voter-a@example.com');
 
   begin
     insert into public.contest_votes (entry_id, contest_id, voter_id)
@@ -89,16 +98,16 @@ end $$;
 do $$
 declare v_contest uuid; v_entry uuid; v_user uuid; v_id uuid; n int;
 begin
-  select id into v_contest from public.contests where name='ZZ Verify Contest';
-  select id into v_entry   from public.contest_entries where contest_id=v_contest limit 1;
-  select id into v_user    from auth.users where email='zz-voter-a@example.com';
+  v_contest := (select id from public.contests where name='ZZ Verify Contest');
+  v_entry := (select id from public.contest_entries where contest_id=v_contest limit 1);
+  v_user := (select id from auth.users where email='zz-voter-a@example.com');
 
   update public.contest_votes set vote_date = vote_date - 1 where voter_id = v_user;
 
   insert into public.contest_votes (entry_id, contest_id, voter_id)
   values (v_entry, v_contest, v_user) returning id into v_id;
 
-  select count(*) into n from public.contest_votes where voter_id = v_user;
+  n := (select count(*) from public.contest_votes where voter_id = v_user);
   if n <> 2 then raise exception 'FAIL: expected 2 votes across 2 days, found %', n; end if;
   raise notice 'PASS: the same user may vote again the following day';
 end $$;
@@ -109,11 +118,11 @@ end $$;
 do $$
 declare v_contest uuid; v_entry uuid; v_user uuid; n int;
 begin
-  select id into v_contest from public.contests where name='ZZ Verify Contest';
-  select id into v_entry   from public.contest_entries where contest_id=v_contest limit 1;
-  select id into v_user    from auth.users where email='zz-voter-a@example.com';
+  v_contest := (select id from public.contests where name='ZZ Verify Contest');
+  v_entry := (select id from public.contest_entries where contest_id=v_contest limit 1);
+  v_user := (select id from auth.users where email='zz-voter-a@example.com');
 
-  select count(*) into n from public.contest_votes where voter_id = v_user;
+  n := (select count(*) from public.contest_votes where voter_id = v_user);
   if n = 0 then raise exception 'FAIL: no rows to hide - the checks below would be vacuous'; end if;
   raise notice 'PASS: % rows exist and are visible as postgres (control)', n;
 
@@ -129,7 +138,7 @@ begin
   reset role;
 
   set local role anon;
-  select count(*) into n from public.contest_votes;
+  n := (select count(*) from public.contest_votes);
   reset role;
   if n <> 0 then raise exception 'FAIL: anon read % vote row(s)', n; end if;
   raise notice 'PASS: anon cannot read votes';
@@ -140,9 +149,9 @@ end $$;
 do $$
 declare v_contest uuid; v_entry uuid; v_a uuid; v_b uuid;
 begin
-  select id into v_contest from public.contests where name='ZZ Verify Contest';
-  select id into v_entry   from public.contest_entries where contest_id=v_contest limit 1;
-  select id into v_a from auth.users where email='zz-voter-a@example.com';
+  v_contest := (select id from public.contests where name='ZZ Verify Contest');
+  v_entry := (select id from public.contest_entries where contest_id=v_contest limit 1);
+  v_a := (select id from auth.users where email='zz-voter-a@example.com');
 
   insert into auth.users (id, email, instance_id, aud, role)
   values (gen_random_uuid(), 'zz-voter-b@example.com', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated')
