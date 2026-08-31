@@ -104,10 +104,19 @@ things worse, not better.
       the codebase enforces a request rate, so a code review will not find them
       and their absence will not fail a build, a test or a deploy.
 
+      Exactly TWO active rules, both scoped to POST:
+
       | path | method | rule |
       |---|---|---|
-      | `/api/pinup-entry` | POST | 5 requests / 60s per IP, deny |
-      | `/api/panel-register` | POST | 5 requests / 60s per IP, deny |
+      | `/api/pinup-entry` | POST | 5 requests / 60s per IP, Deny 403 |
+      | `/api/panel-register` | POST | 5 requests / 60s per IP, Deny 403 |
+
+- [ ] **Delete the two disabled duplicate rules.** They cover the same two
+      endpoints without POST in the description and are currently disabled
+      rather than removed. A disabled rule looks like coverage in the list, so
+      whoever next adjusts a threshold may edit one that does nothing and
+      conclude the change had no effect, or re-enable it and end up with two
+      rules counting the same requests against separate windows.
 
       Configured in the Vercel dashboard: Project -> Firewall -> Custom Rules.
       Requires a Pro plan or above.

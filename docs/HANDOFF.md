@@ -614,10 +614,20 @@ walk-ins do not register. That caveat is rendered above the registration list in
   because at the application level they are. That is by design, not an
   oversight.
 
+  **EXACTLY TWO active rules**, both scoped to POST:
+
   | path | method | rule | where |
   |---|---|---|---|
-  | `/api/pinup-entry` | POST | 5 req / 60s per IP, deny | Vercel dashboard |
-  | `/api/panel-register` | POST | 5 req / 60s per IP, deny | Vercel dashboard |
+  | `/api/pinup-entry` | POST | 5 req / 60s per IP, Deny 403 | Vercel dashboard |
+  | `/api/panel-register` | POST | 5 req / 60s per IP, Deny 403 | Vercel dashboard |
+
+  **Two DISABLED duplicates also exist in the dashboard - delete them, do not
+  leave them disabled.** They cover the same two endpoints without POST in the
+  description. A disabled rule reads as coverage to anyone scanning the list,
+  so the next person adjusting a threshold may edit a rule that does nothing and
+  conclude the change had no effect - or re-enable one and end up with two rules
+  counting the same requests against different windows. Four rules for two
+  endpoints is how that starts.
 
   Project -> Firewall -> Custom Rules, Pro plan or above. Chosen over an
   application throttle because it runs at the edge before a function is
@@ -644,6 +654,19 @@ walk-ins do not register. That caveat is rendered above the registration list in
   can land in it - the penalty for touching it is a silently rejected
   submission, which is not a thing to leave reachable. `autoComplete="off"`
   stops a saved-address feature filling it in and locking a real person out.
+
+- **CONFIRMED: both "10th" claims are correct. Do not strip them.**
+
+  | claim | where |
+  |---|---|
+  | 10th annual Miss All American Pin-Up Contest | `content/registry.ts:67`, `:211` |
+  | 10th Annual All American Tattoo Convention | `lib/aatc-template.ts:60` |
+
+  Source: Ryan, direct confirmation 2026-08-31. Recorded because the ordinal is
+  exactly the shape of unverified factual claim this project has removed
+  elsewhere - fabricated venues, invented DJ names, a $500 prize that was
+  actually a $200 gift certificate - so a future audit will flag it again.
+  It has been checked. Leave it.
 
 - **RULE: when adding a consent, rule, fee or restriction, grep for absolute
   statements the change makes untrue.** A blanket claim can become false through
