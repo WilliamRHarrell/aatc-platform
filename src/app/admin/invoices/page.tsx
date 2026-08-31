@@ -6,6 +6,7 @@ import { formatCurrency } from '@/lib/utils'
 import { minDepositCents } from '@/lib/pricing'
 import { describeBooths } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
+import { guardedWrite } from '@/lib/db-write'
 
 interface Invoice {
   id: string
@@ -181,13 +182,24 @@ export default function AdminInvoicesPage() {
       updateData.paid_at = nowIso
     }
 
-    const { error } = await supabase
-      .from('invoices')
-      .update(updateData)
-      .eq('id', paymentModal.id)
+    // The highest-stakes write in the admin. Unguarded, a filtered or stale
+    // update returned error: null and zero rows - and this handler then said
+    // 'paid in full!' and marked the row paid in local state, while the database
+    // still showed it unpaid. Someone hands over money at the booth, the screen
+    // confirms it, and the record disagrees. .select() is the difference between
+    // recording a payment and appearing to.
+    const res = await guardedWrite(
+      supabase
+        .from('invoices')
+        .update(updateData)
+        .eq('id', paymentModal.id)
+        .select('id'),
+      'Payment NOT recorded',
+      `admin/invoices recordPayment id=${paymentModal.id} cents=${cents}`,
+    )
 
-    if (error) {
-      toast.error('Failed to record payment')
+    if (!res.ok) {
+      toast.error(`${res.error} - do not treat this as paid. Check the invoice before taking further payment.`)
     } else {
       const invName = paymentModal.application?.business_name ?? paymentModal.sponsorship?.sponsor_name ?? 'Invoice'
       toast.success(
@@ -213,13 +225,14 @@ export default function AdminInvoicesPage() {
 
   const markOverdue = async (inv: Invoice) => {
     setWorking(inv.id)
-    const { error } = await supabase
-      .from('invoices')
-      .update({ status: 'overdue' })
-      .eq('id', inv.id)
+    const res = await guardedWrite(
+      supabase.from('invoices').update({ status: 'overdue' }).eq('id', inv.id).select('id'),
+      'Not marked overdue',
+      `admin/invoices markOverdue id=${inv.id}`,
+    )
 
-    if (error) {
-      toast.error('Failed to update status')
+    if (!res.ok) {
+      toast.error(res.error)
     } else {
       setInvoices(prev => prev.map(i => i.id === inv.id ? { ...i, status: 'overdue' } : i))
     }
@@ -228,13 +241,14 @@ export default function AdminInvoicesPage() {
 
   const markCancelled = async (inv: Invoice) => {
     setWorking(inv.id)
-    const { error } = await supabase
-      .from('invoices')
-      .update({ status: 'cancelled' })
-      .eq('id', inv.id)
+    const res = await guardedWrite(
+      supabase.from('invoices').update({ status: 'cancelled' }).eq('id', inv.id).select('id'),
+      'Not cancelled',
+      `admin/invoices markCancelled id=${inv.id}`,
+    )
 
-    if (error) {
-      toast.error('Failed to update status')
+    if (!res.ok) {
+      toast.error(res.error)
     } else {
       setInvoices(prev => prev.map(i => i.id === inv.id ? { ...i, status: 'cancelled' } : i))
     }

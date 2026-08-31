@@ -64,8 +64,26 @@ things worse, not better.
       |---|---|---|
       | sponsorship | `f2a007e0` | gold, confirmed, `show_on_homepage`, `featured_footer` |
       | sponsorship | `8a7cd934` | brass, pending, owned by the harness user |
-      | invoice | `2ef5dc4e` | pending, on `8a7cd934` |
+      | invoice | `2ef5dc4e` | $500, pending, on `8a7cd934` |
       | auth user | `bb38e89d` | `rls-harness@allamericantattooconvention.com` |
+
+- [ ] **Account for BOTH live invoices before teardown, so neither is a
+      surprise.** As of 2026-08-31 `invoices` holds exactly two rows and neither
+      is an orphan - both carry a `sponsorship_id`:
+
+      | invoice | amount | attached to | disposition |
+      |---|---|---|---|
+      | `2ef5dc4e` | $500 | `8a7cd934`, the ZZ TEST harness | REMOVE with the harness, invoices first per the FK order above |
+      | `d5f1c5f3` | $3,000 | `32ef207d`, Tattoo Goo | REAL - keep. Unanswered Gold offer; see the Tattoo Goo entry |
+
+      The harness invoice is already covered by the FK-ordered block, which
+      deletes invoices before sponsorships. It is listed here so that running
+      the teardown and finding one invoice left is recognised as CORRECT rather
+      than as an incomplete removal.
+
+      Re-check with `supabase/verify/reconcile_approved_without_invoice.sql`
+      block C, which finds invoices attached to neither an application nor a
+      sponsorship. It should stay at 0 rows through the teardown.
 
 - [ ] **Know what stops being tested when you do.** Three things lose coverage
       the moment the harness goes, and none of them fail loudly:

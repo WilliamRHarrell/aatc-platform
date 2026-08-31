@@ -737,6 +737,21 @@ walk-ins do not register. That caveat is rendered above the registration list in
   confirmed to match. Same discipline the VIP price and Collector's Choice
   consolidations used.
 
+- **RULE: where a silent failure has a financial consequence, a guard on the
+  write is necessary but not sufficient. There must also be a way to find the
+  bad state after the fact.** The guard prevents; a reconciliation query
+  detects. Neither alone would have surfaced an unbilled exhibitor.
+
+  The unguarded invoice insert on the approve path is the case that produced
+  this: an application could reach `approved` with no invoice, appear in no
+  queue, and simply never be billed, at $500 to $1,200 a booth. Guarding the
+  write stops it happening again; it does nothing about rows already in that
+  state, and nothing at all if a future edit reintroduces the gap.
+
+  `supabase/verify/reconcile_approved_without_invoice.sql` is the detector.
+  Where a guard protects money, ask what query would find the damage, and write
+  it at the same time.
+
 - **RULE: a claim about what a page RENDERS must check both code and data.**
   Rendered HTML on the deployment is the authority; a source grep is a hint.
 
@@ -853,13 +868,21 @@ walk-ins do not register. That caveat is rendered above the registration list in
 
   | | count | status |
   |---|---|---|
-  | guarded, or checks returned rows | 39 | done |
+  | guarded, or checks returned rows | 44 | done |
   | editorial, unguarded | **0** | done |
   | `applications`, unguarded | **0** | done |
-  | money / identity, unguarded | **20** | OUTSTANDING |
+  | `invoices`, unguarded | **0** | done |
+  | money / identity, unguarded | **10** | OUTSTANDING |
 
-  The remaining 20, by table: `invoices` 10, `sponsorships` 7, `booths` 2,
-  `profiles` 1 (`api/admin/set-role`). These stay admin-only under the RLS
+  The remaining 10, by table: `sponsorships` 7, `booths` 2, `profiles` 1
+  (`api/admin/set-role`).
+
+  `invoices` turned out to be 12 sites, not the 10 first counted - the original
+  scan covered `src/app/admin` and `src/app/api/admin` and missed
+  `src/app/api/webhooks/stripe`. That one needed no change: it already checks
+  for zero rows explicitly and returns 500 so Stripe RETRIES, with a comment
+  explaining why. It is the model the rest of the codebase should have followed
+  and did not. These stay admin-only under the RLS
   widening, so a role mismatch is unlikely to trigger them - but a wrong `.eq()`
   or an already-deleted row produces the identical silent success today, on the
   tables where it costs the most.

@@ -7,6 +7,7 @@ import { calculatePricing, type BoothSize, type ExhibitorType } from '@/lib/pric
 import { formatCurrency } from '@/lib/utils'
 import { describeBooths, boothSlotCount } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
+import { guardedWrite } from '@/lib/db-write'
 
 interface ApprovedApp {
   id: string
@@ -204,13 +205,27 @@ export default function AdminBoothsPage() {
         ? depositCents - appIds.slice(0, -1).reduce((sum, _, j) => sum + Math.round(depositCents * (boothPricings[j].total / totalAllBooths)), 0)
         : Math.round(depositCents * proportion)
       const fullyPaid = thisDeposit >= pricing.total
-      await supabase.from('invoices').insert({
+      // Unchecked before. This is the same revenue gap as the approve path in
+      // /admin/applications: a silently failed insert leaves the application
+      // created and the exhibitor never billed, with nothing surfacing it.
+      // Detected after the fact by
+      // supabase/verify/reconcile_approved_without_invoice.sql.
+      const invRes = await guardedWrite(
+        supabase.from('invoices').insert({
         application_id: appIds[i],
         amount: pricing.total,
         amount_paid: Math.min(thisDeposit, pricing.total),
         status: fullyPaid ? 'paid' : 'pending',
         paid_at: fullyPaid ? new Date().toISOString() : null,
-      })
+      }).select('id'),
+        `Invoice not created for booth ${i + 1}`,
+        `admin/booths bulkInvoice app=${appIds[i]}`,
+      )
+      if (!invRes.ok) {
+        toast.error(invRes.error)
+        setAddSaving(false)
+        return
+      }
     }
 
     const boothLabel = addForm.booths.length > 1 ? `${addForm.booths.length} booths` : 'booth'

@@ -12,6 +12,13 @@
 -- with nothing surfacing it.
 --
 -- ⚠  READ BLOCK A BEFORE BELIEVING BLOCK B.
+--
+-- Why this file leads with a control when a verify script could get away with
+-- an ordinary assertion: THIS QUERY WILL BE RUN AGAIN, next year, against a
+-- full table, by someone who reads the result as fact and acts on it. A verify
+-- script that goes vacuous is caught by the next developer to read it. A
+-- reconciliation that goes vacuous produces a NUMBER, and a number gets
+-- believed. Leading with the control keeps it honest at both points in time.
 -- On 2026-08-31 this returned ZERO - but `applications` was EMPTY, cleared by
 -- the pre-cutover teardown. Zero out of zero is not a clean bill of health, it
 -- is an absence of evidence, and the two are easy to confuse in a report that

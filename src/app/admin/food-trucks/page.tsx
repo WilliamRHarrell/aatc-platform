@@ -229,10 +229,18 @@ export default function AdminFoodTrucksPage() {
         const oldDayCount = existingTruck.days.length
         const newDayCount = form.days.length
         if (oldDayCount !== newDayCount) {
-          await supabase
-            .from('invoices')
-            .update({ amount: PRICING[newDayCount] })
-            .eq('id', invoice.id)
+          // Unchecked before. A silent failure here bills the truck for the
+          // OLD number of days while the admin shows the new one - the two
+          // disagree and nothing says so.
+          const amtRes = await guardedWrite(
+            supabase.from('invoices')
+              .update({ amount: PRICING[newDayCount] })
+              .eq('id', invoice.id)
+              .select('id'),
+            'Days changed but the invoice amount was not updated',
+            `admin/food-trucks invoiceAmount id=${invoice.id}`,
+          )
+          if (!amtRes.ok) toast.error(amtRes.error)
         }
       }
 
@@ -288,14 +296,21 @@ export default function AdminFoodTrucksPage() {
       }
 
       // Create invoice
-      await supabase
+      // Same revenue gap as the booth and approve paths: a food truck created
+      // with no invoice is never billed and appears in no queue.
+      const invRes = await guardedWrite(
+        supabase
         .from('invoices')
         .insert({
           food_truck_id: truck.id,
           amount: PRICING[form.days.length],
           amount_paid: 0,
           status: 'pending',
-        })
+        }).select('id'),
+        'Food truck created but the invoice was not',
+        `admin/food-trucks invoice truck=${truck.id}`,
+      )
+      if (!invRes.ok) toast.error(invRes.error)
 
       toast.success('Food truck added')
       closeModal()
