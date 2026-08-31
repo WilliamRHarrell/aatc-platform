@@ -331,7 +331,7 @@ export const REGISTRY: PageDef[] = [
         label: 'Header intro',
         type: 'markdown',
         default:
-          'Every tattoo done at the show is cataloged and posted here for **30 days of voting** after the weekend ends. Voting is free, and needs a quick account so each person votes once per category per day. ' +
+          'Every trophy-winning tattoo from the show - first, second and third place in each category - is posted here for voting after the weekend ends. Voting is free, and needs a quick account so each person votes once per category per day. ' +
           COLLECTORS_CHOICE_PRIZE,
       },
       vote_hint: { label: 'Per-category vote hint', type: 'text', default: 'Tap a photo to enlarge · Select your favorite to vote' },

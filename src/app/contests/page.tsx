@@ -11,7 +11,7 @@ import { COLLECTORS_CHOICE_PRIZE } from '@/lib/event-config'
 export const metadata: Metadata = {
   title: 'AATC Collector’s Choice | Vote for Your Favorite Tattoo | AATC 2027',
   description:
-    'Every tattoo done at the All American Tattoo Convention is cataloged here for 30 days of voting after the show. Voting is free and needs an account. ' +
+    'Every trophy-winning tattoo from the All American Tattoo Convention - first, second and third in each category - is posted here for voting after the show. Voting is free and needs an account. ' +
     COLLECTORS_CHOICE_PRIZE,
 }
 
