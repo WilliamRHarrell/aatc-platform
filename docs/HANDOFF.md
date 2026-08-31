@@ -405,7 +405,7 @@ are about to do something in the left column, read the entry.
 | building a monitor | **A check that stops running keeps its last result and reads all-clear forever.** The vacuous-pass shape, applied to monitoring rather than to assertions. Show the last-run time in every state, including the healthy one. |
 | relying on a guard | **Correct, documented, and inert.** Three instances this session: 047's hold, the voting seed, `amount_locked`. A guard names the case it defends in its own comment - go read that case against live data. Prefer REMOVING the precondition to satisfying it. Full section below. |
 | touching `sponsorships` | **Run it against Tattoo Goo first.** One row, one query. It has surfaced five defects before any of them fired, because every assumption the system makes about a sponsorship is false for it. Full section below. |
-| a fallback image or value | **No placeholder humans applies to BRANDS.** The footer substituted a real company's artwork for any sponsor without a logo, captioned with the other sponsor's name. Render the name, not a borrowed asset. |
+| a fallback image or value | **No placeholder humans applies to BRANDS, and to any medium.** Substituting a real entity's asset as a default is the same failure whatever the medium. **A fallback asset must be GENERATED OR NEUTRAL, never borrowed from real content** - the footer's placeholder was picked from the site's own assets, which is exactly how a real business's mark becomes a default nobody notices. Render the name, not a borrowed asset. |
 | a path that has never run | **That is where the next defect sits.** `featured_footer` had never rendered a real sponsor, and the never-executed branch held the cross-brand placeholder. Inspect never-executed paths BEFORE the first real execution, not after. |
 | a verify that passes on a view | **Row counts and values do not check SHAPE.** A view can return the right rows with the right credits and be missing a column entirely. `create or replace` refuses a drop, but a DROP + CREATE does not. Assert the column list and order. |
 | moving hardcoded content into a table | **Confirm the new source matches the old BEFORE deleting the old.** |
@@ -463,6 +463,40 @@ reprice. A guard you no longer need cannot be disarmed.
 **When a guard must stay conditional, the condition needs the treatment in the
 next section**: it fails loudly, or it is checked on a schedule, or it will
 quietly become permanent.
+
+
+## A FALLBACK ASSET IS GENERATED OR NEUTRAL, NEVER BORROWED
+
+The footer's placeholder was `site-assets/skin-reserve-home-2.webp` - a real
+business's image, used as the default for any sponsor with no logo, captioned
+with that sponsor's name and linked to their website.
+
+**The near-miss is worth more than the fix, because of HOW it happened.**
+Nobody set out to misrepresent anyone. Whoever wrote that line needed a
+placeholder and reached for something already in the bucket. That is the entire
+mechanism: **a default chosen from the site's own real content is indistinguishable
+from a deliberate choice**, reads as finished work, and survives review because
+an image that loads looks correct.
+
+It also never executed. `featured_footer` had only ever been set on the RLS
+harness row, which is filtered out, so the branch had no live run in which
+anyone could have noticed.
+
+The rule, stated so it covers the next one rather than only this one:
+
+- **A fallback asset must be generated or neutral.** A monogram, an initial, a
+  shape, the entity's own name as text. Never another real entity's content.
+- **This is not about logos.** Substituting any real entity's asset as a default
+  is the same failure in any medium: a stock bio, a sample review, a specimen
+  address, a real venue as an example venue.
+- **`/sponsors` had it right all along** - it renders the sponsor's initial when
+  there is no logo. The footer was the outlier, and consistency between two
+  surfaces rendering the same data is worth checking on its own.
+
+Same family as **no placeholder humans**: that rule forbids inventing a person's
+name or credential, and this one forbids borrowing a real one. Inventing and
+borrowing fail in the same direction - something appears on the site that is not
+true of the thing it is attached to.
 
 
 ## TATTOO GOO BREAKS EVERY ASSUMPTION - RUN NEW CODE AGAINST IT FIRST
