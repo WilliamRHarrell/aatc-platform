@@ -150,7 +150,13 @@ export function daysUntilDoors(now: number = Date.now()): number {
 /**
  * Miss AATC Pinup Contest online registration.
  *
- * FALSE until rate limiting lands. POST /api/pinup-entry is the first anonymous
+ * TRUE as of 2026-08-31. Rate limiting is live and VERIFIED BY OBSERVATION, not
+ * by configuration: 8 POSTs to /api/pinup-entry produced five 503s (route
+ * closed) then 403 on requests 6, 7 and 8, with the blocks logged in the Vercel
+ * Firewall tab. The threshold fired exactly on the sixth request, which also
+ * shows that 503s from the closed route still counted toward the limit.
+ *
+ * Was FALSE until rate limiting landed. POST /api/pinup-entry is the first anonymous
  * unauthenticated write path in this repo and there is no rate limiting or
  * captcha anywhere in it. 25 junk entries would corrupt the list for a contest
  * capped at 25, days before the show, with no way to tell real from fake.
@@ -160,7 +166,7 @@ export function daysUntilDoors(now: number = Date.now()): number {
  * or not a form is rendered. Flip this once, in the commit that adds the rate
  * limiting.
  */
-export const PINUP_REGISTRATION_OPEN = false
+export const PINUP_REGISTRATION_OPEN = true
 
 /** Places in the pinup contest. Past this, entries are waitlisted, not refused. */
 export const PINUP_CAPACITY = 25
