@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { SPONSOR_TIERS as TIER_INFO, ALL_TIERS, type SponsorTier } from '@/lib/sponsor-tiers'
 import { createClient } from '@/lib/supabase'
+import { tierFieldsForNewSponsorship, tierLabelWithCustom } from '@/lib/sponsor-placements'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { requestRevalidate } from '@/lib/revalidate'
@@ -32,6 +33,7 @@ interface Sponsorship {
   show_on_homepage: boolean
   homepage_order: number | null
   is_in_kind: boolean
+  is_custom: boolean
   amount_locked: boolean
   hold_expires_at: string | null
   show_on_sponsors: boolean | null
@@ -76,9 +78,31 @@ interface FormState {
   // Placement is chosen at creation, not inherited. See the insert below.
   show_on_sponsors: boolean
   show_on_vote_pages: boolean
+  /**
+   * DOLLARS, as typed. Held as a string so a half-typed value does not become 0.
+   *
+   * THIS FIELD DID NOT EXIST BEFORE 2026-08-31, and its absence was a live
+   * defect. `amount` was always derived as TIER_INFO[form.tier].amount, so the
+   * edit path repriced the row to current packet pricing on every save unless
+   * amount_locked was set. The guard for that was written and correct - and
+   * NOT SET on Tattoo Goo, the one grandfathered row it existed to protect.
+   * Editing their phone number would have moved them from $3,000 to $5,000.
+   *
+   * With the amount as an explicit field, initialised from the STORED value on
+   * edit, there is nothing left to derive and nothing to silently reprice.
+   */
+  amount: string
+  /**
+   * Stated, never inferred. Pre-filled by the suggestion on create and then left
+   * alone: NOTHING RECOMPUTES IT ON SAVE. Recomputing would compare amount
+   * against the tier price, which marks a grandfathered row custom the next time
+   * anyone opens it - Tattoo Goo is gold at $3,000 and is not custom. Mirrors
+   * is_in_kind, which is a plain checkbox for the same reason.
+   */
+  is_custom: boolean
 }
 
-const EMPTY_FORM: FormState = { sponsor_name: '', tier: 'brass', website: '', status: 'pending', contact_name: '', email: '', phone: '', instagram: '', facebook: '', notes: '', show_on_sponsors: true, show_on_vote_pages: false }
+const EMPTY_FORM: FormState = { sponsor_name: '', tier: 'brass', website: '', status: 'pending', contact_name: '', email: '', phone: '', instagram: '', facebook: '', notes: '', show_on_sponsors: true, show_on_vote_pages: false, amount: (TIER_INFO.brass.amount / 100).toString(), is_custom: false }
 
 export default function AdminSponsorshipsPage() {
   const supabase = createClient()
@@ -143,6 +167,48 @@ export default function AdminSponsorshipsPage() {
   // The row currently open in the edit form, for the amount-lock notice.
   const editingRow = editing ? sponsorships.find(sp => sp.id === editing) : undefined
 
+  /**
+   * The round-down suggestion. DISPLAY ONLY - it never writes to the row, and it
+   * is recomputed from what is TYPED in the form, never from a stored amount.
+   * Running it over stored rows is the thing sponsor-placements.ts forbids.
+   */
+  const suggestion = useMemo(() => {
+    if (form.amount === '') return null
+    const cents = Math.round(parseFloat(form.amount) * 100)
+    if (!Number.isFinite(cents) || cents <= 0) return null
+    const fields = tierFieldsForNewSponsorship(cents)
+    if (!fields) return null
+    return { ...fields, label: tierLabelWithCustom(fields.tier, fields.is_custom) }
+  }, [form.amount])
+
+  /**
+   * Choosing a tier fills in its price, UNLESS a figure has been typed that is
+   * not simply another tier's price.
+   *
+   * Preserves the old ergonomics - pick Gold, get $5,000 - now that the amount
+   * is a real field rather than something derived at save. Without this, leaving
+   * the box untouched would store $0, which is how a form that gained a field
+   * quietly loses a value.
+   *
+   * It will not clobber a negotiated figure: $7,500 is nobody's tier price, so
+   * clicking between tiers to compare them leaves it alone.
+   */
+  const selectTier = (t: SponsorTier) => {
+    setForm(f => {
+      const typed = f.amount === '' ? null : Math.round(parseFloat(f.amount) * 100)
+      const isUntouched =
+        typed === null || ALL_TIERS.some(x => TIER_INFO[x].amount === typed)
+      return {
+        ...f,
+        tier: t,
+        amount: isUntouched ? (TIER_INFO[t].amount / 100).toString() : f.amount,
+      }
+    })
+  }
+
+  const suggestionApplied =
+    suggestion !== null && suggestion.tier === form.tier && suggestion.is_custom === form.is_custom
+
   /** A pending offer whose hold has lapsed - the slot is being held for nobody. */
   const isStaleHold = (s: Sponsorship) =>
     s.status === 'pending' && !!s.hold_expires_at && new Date(s.hold_expires_at) < new Date()
@@ -194,6 +260,10 @@ export default function AdminSponsorshipsPage() {
       // not silently republish or unpublish them.
       show_on_sponsors: s.show_on_sponsors ?? true,
       show_on_vote_pages: s.show_on_vote_pages ?? false,
+      // FROM THE ROW, not from the tier. This is what stops an edit repricing a
+      // grandfathered sponsorship.
+      amount: (s.amount / 100).toString(),
+      is_custom: s.is_custom ?? false,
     })
     setLogoFile(null)
     setEditing(s.id)
@@ -228,11 +298,25 @@ export default function AdminSponsorshipsPage() {
       }
     }
 
-    const tierAmount = TIER_INFO[form.tier].amount
+    // THE AMOUNT IS WHAT WAS TYPED. It is no longer derived from the tier.
+    //
+    // It used to be `TIER_INFO[form.tier].amount`, which meant every save
+    // rewrote the amount to current packet pricing. The guard below was written
+    // to stop that and is correct - but it only fires when amount_locked is set,
+    // and amount_locked is FALSE on Tattoo Goo, the single grandfathered row it
+    // exists to protect. So editing their phone number would have repriced them
+    // from $3,000 to $5,000, and then invoiced the new figure.
+    //
+    // A guard whose precondition is never satisfied prevents nothing. Deriving
+    // nothing at all is the stronger fix; amount_locked remains as a second
+    // line, for deliberate edits rather than incidental ones.
+    const amountCents = Math.round(parseFloat(form.amount || '0') * 100)
+    if (!Number.isFinite(amountCents) || amountCents < 0) {
+      toast.error('Enter a valid amount')
+      setWorking(false)
+      return
+    }
 
-    // Grandfathered amounts are historical commitments. Without this guard,
-    // editing a phone number would silently reprice the sponsorship to current
-    // packet pricing (migration 036).
     const lockedRow = editing ? sponsorships.find(sp => sp.id === editing) : undefined
     const amountIsLocked = !!lockedRow?.amount_locked
 
@@ -242,7 +326,11 @@ export default function AdminSponsorshipsPage() {
         tier: form.tier,
         website: form.website.trim() || null,
         status: form.status,
-        ...(amountIsLocked ? {} : { amount: tierAmount }),
+        ...(amountIsLocked ? {} : { amount: amountCents }),
+        // Carried through from the checkbox as-is. NOT recomputed from the
+        // amount: doing so would mark a grandfathered row custom on the next
+        // incidental save.
+        is_custom: form.is_custom,
         contact_name: form.contact_name.trim() || null,
         email: form.email.trim() || null,
         phone: form.phone.trim() || null,
@@ -280,7 +368,8 @@ export default function AdminSponsorshipsPage() {
           tier: form.tier,
           website: form.website.trim() || null,
           status: form.status,
-          amount: tierAmount,
+          amount: amountCents,
+          is_custom: form.is_custom,
           logo_url,
           contact_name: form.contact_name.trim() || null,
           email: form.email.trim() || null,
@@ -697,7 +786,7 @@ export default function AdminSponsorshipsPage() {
                 <button
                   key={t}
                   type="button"
-                  onClick={() => setForm(f => ({ ...f, tier: t }))}
+                  onClick={() => selectTier(t)}
                   className="rounded-lg px-3 py-2 text-xs font-semibold transition-colors"
                   style={{
                     backgroundColor: active ? `${info.color}25` : 'rgba(255,255,255,0.04)',
@@ -719,7 +808,7 @@ export default function AdminSponsorshipsPage() {
                 <button
                   key={t}
                   type="button"
-                  onClick={() => setForm(f => ({ ...f, tier: t }))}
+                  onClick={() => selectTier(t)}
                   className="rounded-lg px-3 py-2 text-xs font-semibold transition-colors"
                   style={{
                     backgroundColor: active ? 'rgba(139,115,85,0.2)' : 'rgba(255,255,255,0.04)',
@@ -731,6 +820,77 @@ export default function AdminSponsorshipsPage() {
                 </button>
               )
             })}
+          </div>
+
+          {/* ── Amount, and the round-down SUGGESTION ──────────────
+              The suggestion is a DEFAULT, not a rule. Ryan may negotiate a
+              package that does not follow it, and a form that derived the tier
+              silently would fight him. So it is shown, pre-selectable, and
+              always overridable - the tier buttons above stay authoritative.
+
+              Nothing here recomputes on save. The amount is what is typed and
+              is_custom is what the box says. */}
+          <div className="mt-4 border-t pt-4" style={{ borderColor: '#2a2a2a' }}>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>
+              Amount (USD)
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.amount}
+              onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+              placeholder={(TIER_INFO[form.tier].amount / 100).toString()}
+              disabled={!!editingRow?.amount_locked}
+              className="w-full rounded-lg px-3 py-2 text-sm text-white disabled:opacity-50"
+              style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
+            />
+
+            {suggestion && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                <span style={{ color: '#666' }}>
+                  Suggested: <strong style={{ color: '#C4A882' }}>{suggestion.label}</strong>
+                </span>
+                {!suggestionApplied && (
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, tier: suggestion.tier, is_custom: suggestion.is_custom }))}
+                    className="rounded-md px-2 py-1 text-xs font-semibold"
+                    style={{ backgroundColor: 'rgba(139,115,85,0.2)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.4)' }}
+                  >
+                    Apply
+                  </button>
+                )}
+                <span style={{ color: '#555' }}>
+                  Rounded DOWN, so the sponsor gets at least what that tier promises.
+                </span>
+              </div>
+            )}
+
+            {form.amount !== '' && !suggestion && (
+              <p className="mt-2 text-xs" style={{ color: '#eab308' }}>
+                Below every package price, so there is no tier at or below it. Choose one above
+                deliberately - rounding UP would promise placements that were not bought.
+              </p>
+            )}
+
+            <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs" style={{ color: '#999' }}>
+              <input
+                type="checkbox"
+                checked={form.is_custom}
+                onChange={e => setForm(f => ({ ...f, is_custom: e.target.checked }))}
+              />
+              <span>
+                Custom amount - negotiated rather than the package price.
+                {form.is_custom && (
+                  <strong style={{ color: '#C4A882' }}> {tierLabelWithCustom(form.tier, true)}</strong>
+                )}
+              </span>
+            </label>
+            <p className="mt-1 text-[11px]" style={{ color: '#555' }}>
+              Stated, not inferred. A grandfathered price is not a custom one: Tattoo Goo is
+              Gold at the pre-July $3,000 and this box stays unticked for them.
+            </p>
           </div>
         </div>
 

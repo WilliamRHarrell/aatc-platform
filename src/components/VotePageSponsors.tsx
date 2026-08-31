@@ -5,9 +5,14 @@ import { excludeHarnessSponsors } from '@/lib/sponsor-display'
 /**
  * Collector's Choice sponsor slot. SERVER rendered.
  *
- * This is the surface behind the packages line 'Your logo on every vote page of
- * our website'. Until now that placement was SOLD and had nowhere to render -
- * /contests carried a comment claiming it did, and no query.
+ * This is the surface behind the packages line 'Your logo on our Collector's
+ * Choice voting page'. Until recently that placement was SOLD and had nowhere to
+ * render - /contests carried a comment claiming it did, and no query.
+ *
+ * The copy said 'every vote page of our website', plural, and was corrected to
+ * the singular on 2026-08-31. There is ONE vote page - /contests, listing every
+ * category inline - so the plural implied pages that do not exist. Settled by
+ * fixing the promise rather than by building pages to match loose wording.
  *
  * Renders NOTHING when no sponsor has show_on_vote_pages ticked. That is the
  * normal state today and will be until Ryan ticks one: the slot is ready and

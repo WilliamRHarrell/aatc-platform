@@ -82,11 +82,11 @@ export const GOLD_AND_ABOVE: readonly SponsorTier[] = ['title', 'platinum', 'gol
  * website page attached, so they get the sponsors page and nothing more. They
  * are ABSENT here rather than mapped to something plausible.
  *
- * ⚠  Collector's Choice is recorded as ONE vote page because there is one:
- * /contests, listing every category inline. The packet copy says "your logo on
- * every vote page of our website", plural, and that wording is unresolved - see
- * HANDOFF section 1. If it turns out to promise per-category pages, this entry
- * is not what changes; the pages would have to exist first.
+ * Collector's Choice is ONE vote page because there is one: /contests, listing
+ * every category inline. The packet copy used to say "every vote page of our
+ * website", plural, implying pages that do not exist; it was corrected to the
+ * singular on 2026-08-31 - the promise was fixed rather than pages built to
+ * match loose wording. This entry and the copy now agree.
  */
 const PACKAGE_PAGE: Partial<Record<SponsorTier, Placement>> = {
   collectors_choice: 'vote_pages',

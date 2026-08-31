@@ -168,14 +168,24 @@ a pure `create or replace` and the grants survived.
 - **`presentation_credits`** - table and admin exist, NO rows migrated. The four
   existing credits still render from `presented_by_fallback`. See section 2.
 
-## 1. WORDING QUESTION OUTSTANDING
+## 1. WORDING QUESTION - SETTLED 2026-08-31
 
-The Collector's Choice package says **"Your logo on every vote page of our
-website"** - plural. There is ONE vote page, `/contests`, listing all categories
-inline. Either the copy is loose and should read "the vote page", or it implies
-per-category pages that do not exist and would need building. **Ask Ryan; do not
-build pages to match the wording.** It appears in
-`src/app/apply/sponsor/page.tsx` and `src/app/sponsors/packages/page.tsx`.
+The Collector's Choice package said **"Your logo on every vote page of our
+website"** - plural, while there is ONE vote page: `/contests`, listing all
+categories inline. **Settled: the copy was loose. It now reads "Your logo on our
+Collector's Choice voting page."**
+
+Changed in `src/app/apply/sponsor/page.tsx:75` and
+`src/app/sponsors/packages/page.tsx:118`, with the comment in
+`src/components/VotePageSponsors.tsx` and the mapping note in
+`src/lib/sponsor-placements.ts` updated to match.
+
+**The principle, which is the part worth keeping:** the promise was corrected
+rather than pages built to satisfy loose wording. A sold placement whose copy
+describes something that does not exist is fixed at the copy unless someone
+actually intends to build the thing. The same call was made on the footer, where
+rotation would have made "your logo in the footer" mean "sometimes" - get the
+promise right instead.
 
 ## 2. IN FLIGHT / NEXT
 
@@ -390,6 +400,9 @@ are about to do something in the left column, read the entry.
 | trusting a green migration | **A green migration does not imply its data landed.** Schema and seed are separate applications with separate evidence, and the seed's evidence is THE DATA. 061 was applied and verified while the voting window was NULL on both events. |
 | asserting live state in HANDOFF | **A fact stated in this file is a claim, not evidence.** Name how it was verified and when, every time. Both incidents this session began with acting on an unverified sentence in here. |
 | verifying a seed | **Assert VALUES, not non-nullness.** A seed that wrote the wrong values looks identical to one that wrote the right ones. Call the function; read the number. |
+| adding a constraint | **A constraint makes a state unreachable WITHIN ITS OWN SCOPE and can leave the same failure reachable from outside it.** `panels_published_has_schedule` guarantees a published panel HAS a day; it cannot guarantee the day is one the programme runs on. A seminar moved to 2027-04-20 satisfies the constraint and still vanishes from /events/schedule. Ask what the constraint does NOT cover, and cover that elsewhere. |
+| reading src/types/database.ts | **It is HAND-MAINTAINED and silently goes stale.** It has the shape of a generated file but there is no generation step wired up. It is not authoritative - the database is. |
+| building a monitor | **A check that stops running keeps its last result and reads all-clear forever.** The vacuous-pass shape, applied to monitoring rather than to assertions. Show the last-run time in every state, including the healthy one. |
 | a verify that passes on a view | **Row counts and values do not check SHAPE.** A view can return the right rows with the right credits and be missing a column entirely. `create or replace` refuses a drop, but a DROP + CREATE does not. Assert the column list and order. |
 | moving hardcoded content into a table | **Confirm the new source matches the old BEFORE deleting the old.** |
 | writing a plpgsql function | **RETURNS TABLE columns become OUT variables** - qualify every column reference. And **a verify block must CALL the function**, not just describe it. |

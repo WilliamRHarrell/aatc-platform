@@ -72,7 +72,7 @@ const TIER_PERKS: Record<SponsorTier, string[]> = {
     'Option to name the VIP bag pickup table after your company',
   ],
   collectors_choice: [
-    'Your logo on every vote page of our website',
+    'Your logo on our Collector\'s Choice voting page',
     'Award named after your company',
     COLLECTORS_CHOICE_PRIZE,
     '30 days of online voting after the show',
