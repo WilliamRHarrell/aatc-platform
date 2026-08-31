@@ -645,6 +645,25 @@ walk-ins do not register. That caveat is rendered above the registration list in
   submission, which is not a thing to leave reachable. `autoComplete="off"`
   stops a saved-address feature filling it in and locking a real person out.
 
+- **DO NOT RE-RUN migration 051. It would break the live intake path.**
+  051 contains `create or replace function register_pinup_entry(...)` with
+  EIGHT arguments. 052 drops that signature and creates a NINE argument version
+  carrying `p_marketing_opt_in`. Both are applied, and the live function is
+  correctly the nine argument one - verified against the deployed PostgREST
+  schema.
+
+  Re-running 051 now would recreate the eight argument overload ALONGSIDE the
+  nine argument one. Postgres allows that; the damage shows up at call time,
+  because the route calls the function with NAMED arguments and a named call
+  can match either overload. That raises an ambiguity error on the pinup intake
+  path, in front of a contestant, and nothing about the migration run would look
+  wrong.
+
+  `verify_052` block C exists for exactly this: it asserts that only ONE
+  `register_pinup_entry` survives. If a future migration needs to change that
+  function again, it must drop the previous signature explicitly rather than
+  relying on `create or replace`, which only replaces an identical signature.
+
 - **RULE: in plpgsql, RETURNS TABLE column names become OUT variables.** Any
   bare reference to one inside the function body is ambiguous between the
   variable and the column of the same name. plpgsql's default
@@ -707,8 +726,21 @@ walk-ins do not register. That caveat is rendered above the registration list in
      their preflight, and the teardown block deleted nothing while reporting
      success. Fails closed, announces nothing.
 
+  4. `verify_051` block G counted advisory locks without filtering
+     `pg_backend_pid()`. The whole file runs in one transaction and blocks F, F2
+     and H all call `register_pinup_entry()`, whose `pg_advisory_xact_lock`
+     holds until that transaction ends - so the block found the lock ITS OWN
+     session was holding and reported it as a concurrent registration.
+
+     **This one was read and believed.** It printed the strong PASS on a real
+     run, a person read it, and moved on to the next script. The other three
+     were caught by inspection before anyone relied on them; this is what the
+     shape does when it is not caught. Fixed by adding
+     `and pid <> pg_backend_pid()`.
+
   The shape is always the same: the check looks for an absence and an absence is
-  what a broken check produces too.
+  what a broken check produces too. A check that observes a RESOURCE has the
+  same failure - it finds the one it created itself.
 
 - **Silent success is the default failure mode of an RLS write, not an edge
   case.** Measured on the live `page_images` table, not reasoned about: an anon
