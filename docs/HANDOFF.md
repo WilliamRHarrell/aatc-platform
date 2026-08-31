@@ -645,6 +645,19 @@ walk-ins do not register. That caveat is rendered above the registration list in
   submission, which is not a thing to leave reachable. `autoComplete="off"`
   stops a saved-address feature filling it in and locking a real person out.
 
+- **RULE: a test fixture supplies every required column itself; it does not rely
+  on a trigger to fill them in.** `verify_054` created an `auth.users` row and
+  then inserted a `profiles` row with only `(id, role)`, depending on
+  `on_auth_user_created` to have already created the profile so that
+  `ON CONFLICT` would take the update branch. The trigger did not fire, the
+  insert branch ran with a null `email` - which is NOT NULL - and the file
+  aborted before a single assertion executed. Migration 054 was fine; it was
+  simply untested.
+
+  Write fixtures so they work whether or not the trigger runs, and have the
+  conflict branch set the same columns as the insert, so both paths converge on
+  one fully-populated row instead of one of them leaving a half-populated one.
+
 - **RULE: when a fix produces a new failure downstream, check whether that code
   had ever run before assuming the fix broke it.** Two bugs can stack, the first
   masking the second, and the repair then presents as a regression it did not

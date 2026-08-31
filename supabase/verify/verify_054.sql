@@ -46,11 +46,31 @@ declare v_uid uuid; v_event uuid; v_cid uuid; n int;
 begin
   v_event := (select id from public.events where is_active order by start_date limit 1);
 
+  -- Every NOT NULL column is supplied explicitly. profiles.email is NOT NULL
+  -- (migration 001) and the fixture previously omitted it, relying on the
+  -- on_auth_user_created trigger to have inserted the row first so that
+  -- ON CONFLICT would take the update branch. It did not fire here, so the
+  -- insert branch ran with a null email and aborted the whole file before a
+  -- single assertion executed.
+  --
+  -- The fixture no longer depends on whether that trigger runs. If the trigger
+  -- did create the row, ON CONFLICT updates it; if it did not, the insert
+  -- carries everything the table requires. The conflict branch sets email too,
+  -- so both paths converge on the same row rather than one of them leaving a
+  -- half-populated one.
+  --
+  -- Nullable and deliberately left null: full_name, marketing_opt_in_at,
+  -- marketing_opt_in_source. marketing_opt_in is NOT NULL but defaults to false.
   insert into auth.users (id, email, instance_id, aud, role)
   values (gen_random_uuid(), 'zz-editor@example.com', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated')
   returning id into v_uid;
-  insert into public.profiles (id, role) values (v_uid, 'content_editor')
-  on conflict (id) do update set role = 'content_editor';
+
+  insert into public.profiles (id, email, full_name, role)
+  values (v_uid, 'zz-editor@example.com', 'ZZ Verify Editor', 'content_editor')
+  on conflict (id) do update
+    set role = 'content_editor',
+        email = excluded.email,
+        full_name = excluded.full_name;
 
   perform set_config('request.jwt.claims', json_build_object('sub', v_uid::text, 'role','authenticated')::text, true);
   set local role authenticated;
@@ -118,13 +138,22 @@ begin
   raise notice 'PASS: content_editor cannot update sponsorships';
 
   delete from public.contest_entries where id = v_eid;
+
+  -- E is the last block that needs the editor fixture, so E removes it. Per the
+  -- rule in 6e78fed: cleanup belongs with the last USER, not with whichever
+  -- block happens to run afterwards. Block Z is left as a pure residue check.
+  -- profiles cascades from auth.users, but both are deleted explicitly so the
+  -- teardown does not depend on the FK action staying as it is.
+  delete from public.contests where name like 'ZZ Editor%';
+  delete from public.profiles where id = v_uid;
+  delete from auth.users where id = v_uid;
 end $$;
 
--- ── Z. cleanup and residue - run LAST. want: 0 rows.
-delete from public.contest_entries where collector_name like 'ZZ Editor%';
-delete from public.contests where name like 'ZZ Editor%';
-delete from public.profiles where id in (select id from auth.users where email = 'zz-editor@example.com');
-delete from auth.users where email = 'zz-editor@example.com';
-
-select 'contests' as tbl, count(*) from public.contests where name like 'ZZ Editor%'
-union all select 'users', count(*) from auth.users where email = 'zz-editor@example.com';
+-- ── Z. residue check - run LAST. want: 4 rows, all count 0.
+--    Pure check, no cleanup. Block E owns the teardown, so anything showing here
+--    means E did not run or did not finish - which is information, where a Z
+--    that also deletes would quietly paper over it.
+select 'contests'  as tbl, count(*) from public.contests        where name like 'ZZ Editor%'
+union all select 'entries', count(*) from public.contest_entries where collector_name like 'ZZ Editor%'
+union all select 'profiles', count(*) from public.profiles       where email = 'zz-editor@example.com'
+union all select 'users',    count(*) from auth.users            where email = 'zz-editor@example.com';
