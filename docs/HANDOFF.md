@@ -737,6 +737,47 @@ walk-ins do not register. That caveat is rendered above the registration list in
   confirmed to match. Same discipline the VIP price and Collector's Choice
   consolidations used.
 
+- **There is NO payments table, and a mis-recorded manual payment is therefore
+  UNDETECTABLE after the fact.** `invoices.amount_paid` is a running total
+  mutated in place by `/admin/invoices`. A payment is not an event that gets
+  recorded; it is an increment that gets applied.
+
+  So if `recordPayment` ever silently affected zero rows, `amount_paid` was
+  never incremented and NOTHING anywhere says a payment was attempted - no row,
+  no log, no column. `reconcile_approved_without_invoice.sql` block H finds
+  invoices that contradict THEMSELVES (marked paid but underpaid, paid_at with a
+  non-paid status, overpaid); it cannot find an invoice that is simply, quietly,
+  short. The only record of that payment is the cash in the box and what the
+  exhibitor remembers.
+
+  Stripe payments are the exception: they carry `stripe_payment_intent_id` and
+  can be reconciled against the Stripe dashboard. Cash and card-at-the-booth
+  cannot. If that gap ever needs closing, it is a payments/ledger table - an
+  append-only record of attempts, not a mutated total - and it should be costed
+  against how much cash actually changes hands at the booth.
+
+- **THE MODEL for a money-path write: `src/app/api/webhooks/stripe/route.ts`.**
+  It was the only site in the entire guard sweep that needed no change, and it
+  is worth copying rather than merely noticing. Three parts:
+
+  1. `.select()` on the write, so there are rows to count.
+  2. An EXPLICIT zero-row branch, separate from the error branch.
+  3. **A failure mode that is loud in the direction that matters.** It returns
+     500 rather than 200, because Stripe retries on non-2xx - so a transient
+     cause self-heals and a permanent one keeps alerting instead of vanishing
+     into one silent success.
+
+  Point 3 is the part that does not generalise mechanically and has to be
+  thought about per site. For Stripe the loud direction is a retry. For an
+  operator recording cash at the booth it is the opposite: `recordPayment` must
+  REFUSE to show 'paid in full', because the natural next action after a payment
+  error is to take the payment again, and the person has already handed the
+  money over.
+
+  The difference between that file and everything around it is not technique.
+  Somebody reasoned about what a silent success would COST on that specific
+  path, and wrote the failure mode to match.
+
 - **RULE: where a silent failure has a financial consequence, a guard on the
   write is necessary but not sufficient. There must also be a way to find the
   bad state after the fact.** The guard prevents; a reconciliation query
@@ -864,7 +905,13 @@ walk-ins do not register. That caveat is rendered above the registration list in
   a failure, and it requires a `.select()` on the query or there are no rows to
   count.
 
-  Full scan of `src/app/admin/**` and `src/app/api/admin/**`, 59 write calls:
+  **Paths scanned:** `src/app/admin/**`, `src/app/api/admin/**`,
+  `src/app/api/webhooks/**`, `src/components/admin/**`. Recorded because the
+  first pass omitted `webhooks` and therefore reported `invoices` as 10 sites
+  when it is 12. An inventory that under-reports leaves sites unguarded with
+  nobody looking for them, so the scope of the count belongs beside the count.
+
+  59 write calls at first scan, 61 including the two in `webhooks`:
 
   | | count | status |
   |---|---|---|

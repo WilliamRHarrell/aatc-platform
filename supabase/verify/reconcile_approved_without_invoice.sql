@@ -70,3 +70,109 @@ select s.id, s.sponsor_name, s.tier, s.status, s.amount, s.is_in_kind,
   left join public.invoices i on i.sponsorship_id = s.id
  where s.status = 'confirmed'
  order by s.sponsor_name;
+
+-- ============================================================
+-- PART 2: the other three insert-never-happened paths, plus what can and
+-- cannot be known about payments.
+--
+-- Added after the invoices guard pass. Blocks E through G are the same shape as
+-- B - a write that could silently not happen, with a financial consequence and
+-- nothing surfacing it. Same control-first structure: read the population
+-- before believing the finding.
+-- ============================================================
+
+-- ── E. CONTROL for F and G: population of the food truck side
+--    want: food_trucks > 0. If it is 0, F and G are vacuous.
+select
+  (select count(*) from public.food_trucks)                                as food_trucks_total,
+  (select count(*) from public.food_trucks where is_published)             as published,
+  (select count(*) from public.invoices where food_truck_id is not null)   as food_truck_invoices;
+
+-- ── F. Food trucks with no invoice
+--    want: 0 rows, PROVIDED E showed food_trucks > 0.
+--    Same gap as the approve path and the bulk booth create: the truck exists,
+--    was never invoiced, and appears in no queue.
+select t.id, t.business_name, t.email, t.days, t.created_at
+  from public.food_trucks t
+  left join public.invoices i on i.food_truck_id = t.id
+ where i.id is null
+ order by t.created_at;
+
+-- ── G. Food truck invoices whose amount disagrees with the day count
+--    want: 0 rows.
+--    THE ONE WORTH HAVING. The other checks find a MISSING row, which is at
+--    least a visible absence. This finds a WRONG NUMBER on a row that exists
+--    and looks entirely normal - the truck changed from 2 days to 3, the
+--    invoice update silently affected zero rows, and it is billed for 2. No
+--    other query surfaces it and nobody notices until the money is short.
+--
+--    ⚠  The mapping below duplicates PRICING in
+--    src/app/admin/food-trucks/page.tsx. If the prices change there, change
+--    them here. This is a known duplication, called out rather than hidden.
+select t.id,
+       t.business_name,
+       array_length(t.days, 1)          as day_count,
+       i.amount                         as invoiced_cents,
+       case array_length(t.days, 1)
+         when 1 then 6000
+         when 2 then 12000
+         when 3 then 16000
+       end                              as expected_cents,
+       i.status,
+       i.amount_paid
+  from public.food_trucks t
+  join public.invoices i on i.food_truck_id = t.id
+ where i.amount is distinct from (
+         case array_length(t.days, 1)
+           when 1 then 6000
+           when 2 then 12000
+           when 3 then 16000
+         end)
+ order by t.business_name;
+
+-- ── H. Invoice rows that contradict themselves
+--    want: 0 rows. These do not prove a payment was mis-recorded, but each is a
+--    state no correct sequence of operations produces.
+select id,
+       amount, amount_paid, status, paid_at,
+       case
+         when status = 'paid' and amount_paid < amount        then 'marked paid but underpaid'
+         when status <> 'paid' and amount_paid >= amount and amount > 0
+                                                              then 'fully paid but not marked paid'
+         when paid_at is not null and status <> 'paid'        then 'has paid_at but is not paid'
+         when amount_paid > amount                            then 'overpaid'
+       end as problem
+  from public.invoices
+ where (status = 'paid' and amount_paid < amount)
+    or (status <> 'paid' and amount_paid >= amount and amount > 0)
+    or (paid_at is not null and status <> 'paid')
+    or (amount_paid > amount)
+ order by id;
+
+-- ── I. WHAT CANNOT BE CHECKED, stated so nobody assumes otherwise
+--
+-- There is NO payments table. Not missing from this file - it does not exist in
+-- the schema. `invoices.amount_paid` is a running total mutated in place by
+-- /admin/invoices, so a payment is not an event that was recorded, it is an
+-- increment that was applied.
+--
+-- The consequence: A MANUAL PAYMENT THAT FAILED TO RECORD IS UNDETECTABLE HERE.
+-- If recordPayment silently affected zero rows, amount_paid was never
+-- incremented and there is no row, log or column anywhere saying a payment was
+-- attempted. Block H finds invoices that contradict THEMSELVES; it cannot find
+-- an invoice that is simply, quietly, short. The only record of that payment is
+-- the cash in the box and whatever the exhibitor remembers.
+--
+-- What CAN be reconciled externally: Stripe payments. Those carry
+-- stripe_payment_intent_id, so the rows below can be checked against the Stripe
+-- dashboard. Cash and card-at-the-booth payments cannot.
+--
+-- want: read, not asserted. Every paid invoice either has a Stripe id (check it
+-- against Stripe) or does not (manual - unverifiable after the fact).
+select id, amount, amount_paid, status, paid_at,
+       (stripe_payment_intent_id is not null) as stripe_backed,
+       case when stripe_payment_intent_id is null then 'manual - no external record'
+            else 'reconcilable against Stripe' end as verifiability
+  from public.invoices
+ where amount_paid > 0 or status = 'paid'
+ order by paid_at nulls last;
