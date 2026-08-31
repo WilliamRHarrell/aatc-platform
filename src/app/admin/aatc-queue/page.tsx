@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase'
+import { guardedWrite } from '@/lib/db-write'
 
 interface Submission {
   id: string
@@ -66,14 +67,21 @@ export default function AATCQueuePage() {
     if (reason === null) return
     setBusyId(id)
     const { data: { user } } = await supabase.auth.getUser()
-    const { error } = await supabase.from('aatc_submissions').update({
-      status: 'rejected',
-      rejection_reason: reason || 'Not approved',
-      reviewed_by: user?.id ?? null,
-      reviewed_at: new Date().toISOString(),
-    }).eq('id', id)
+    // Guarded: a rejection that silently affects zero rows would tell the
+    // reviewer the artist had been rejected while the submission stayed
+    // pending, and load() below would quietly put it back in the queue.
+    const res = await guardedWrite(
+      supabase.from('aatc_submissions').update({
+        status: 'rejected',
+        rejection_reason: reason || 'Not approved',
+        reviewed_by: user?.id ?? null,
+        reviewed_at: new Date().toISOString(),
+      }).eq('id', id).select('id'),
+      'Rejection not saved',
+      `admin/aatc-queue reject id=${id}`,
+    )
     setBusyId(null)
-    if (error) { toast.error(error.message); return }
+    if (!res.ok) { toast.error(res.error); return }
     toast.success('Rejected')
     load()
   }

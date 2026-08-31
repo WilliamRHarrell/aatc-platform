@@ -645,6 +645,47 @@ walk-ins do not register. That caveat is rendered above the registration list in
   submission, which is not a thing to leave reachable. `autoComplete="off"`
   stops a saved-address feature filling it in and locking a real person out.
 
+- **Admin write-guard inventory. 33 calls remain unguarded, all money/identity.**
+  A Supabase write that RLS filters out returns `error: null` and zero rows.
+  Checking only `error` therefore reports success for a write that never
+  happened. `guardedWrite()` (src/lib/db-write.ts) treats zero-rows-no-error as
+  a failure, and it requires a `.select()` on the query or there are no rows to
+  count.
+
+  Full scan of `src/app/admin/**` and `src/app/api/admin/**`, 59 write calls:
+
+  | | count | status |
+  |---|---|---|
+  | guarded, or checks returned rows | 26 | done |
+  | editorial, unguarded | **0** | done in this pass |
+  | money / identity, unguarded | **33** | OUTSTANDING |
+
+  The remaining 33, by table: `applications` 13, `invoices` 10,
+  `sponsorships` 7, `booths` 2, `profiles` 1 (`api/admin/set-role`). These stay
+  admin-only under the RLS widening, so a role mismatch is unlikely to trigger
+  them - but a wrong `.eq()` or an already-deleted row produces the identical
+  silent success today, on the tables where it costs the most.
+
+  Tracked here rather than remembered. Fixing RLS without fixing this pattern
+  leaves the same class of bug waiting for the next mismatch.
+
+- **Parse-check SQL without applying it.** `pip3 install pglast`, then:
+
+      python3 -c "import pglast,sys; pglast.parse_sql(open(sys.argv[1]).read())" FILE.sql
+
+  Real libpg_query bindings, so it is PostgreSQL's own parser. Catches the class
+  that costs a round trip in the SQL editor - unterminated dollar quotes,
+  reserved words as identifiers, unbalanced parens - without touching a
+  database. All 75 files under supabase/ currently parse.
+
+  Deliberately NOT wired into `prebuild`: the Vercel build image has no Python,
+  so it would break deploys to catch a class of error that only ever reaches a
+  human running a script by hand.
+
+  Note what it does NOT cover: the plpgsql body of a DO block or a function is a
+  string to the SQL parser, so errors inside one - an ambiguous column, a bad
+  variable reference - parse clean. Only calling it finds those.
+
 - **SQL Editor pre-flight warnings are parsed WITHOUT plpgsql context.** The
   analyzer reads a script as plain SQL, so constructs that are local to a DO
   block can present as DDL. `select id into v_event from ...` is a variable

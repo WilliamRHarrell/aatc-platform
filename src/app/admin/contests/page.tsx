@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import toast from 'react-hot-toast'
+import { guardedWrite } from '@/lib/db-write'
 
 interface Contest {
   id: string
@@ -197,16 +198,21 @@ export default function AdminContestsPage() {
   const saveEdit = async () => {
     if (!form.name.trim() || !editingId) return
     setWorking(true)
-    const { error } = await supabase
-      .from('contests')
-      .update({
-        name: form.name.trim(),
-        description: form.description.trim() || null,
-        scheduled_time: form.scheduled_time || null,
-      })
-      .eq('id', editingId)
+    const res = await guardedWrite(
+      supabase
+        .from('contests')
+        .update({
+          name: form.name.trim(),
+          description: form.description.trim() || null,
+          scheduled_time: form.scheduled_time || null,
+        })
+        .eq('id', editingId)
+        .select('id'),
+      'Contest not updated',
+      `admin/contests saveEdit id=${editingId}`,
+    )
 
-    if (!error) {
+    if (res.ok) {
       setContests(prev => prev.map(c =>
         c.id === editingId
           ? { ...c, name: form.name.trim(), description: form.description.trim() || null, scheduled_time: form.scheduled_time || null }
@@ -215,7 +221,7 @@ export default function AdminContestsPage() {
       toast.success('Contest updated')
       setEditingId(null)
     } else {
-      toast.error('Failed to update contest')
+      toast.error(res.error)
     }
     setWorking(false)
   }
@@ -223,12 +229,19 @@ export default function AdminContestsPage() {
   const deleteContest = async (id: string) => {
     if (!window.confirm('Delete this contest?')) return
     setDeleting(id)
-    const { error } = await supabase.from('contests').delete().eq('id', id)
-    if (!error) {
+    // .select() is what makes a blocked delete visible. Without it a delete
+    // filtered out by RLS returns error: null and zero rows, and the row would
+    // vanish from this list while surviving in the database.
+    const res = await guardedWrite(
+      supabase.from('contests').delete().eq('id', id).select('id'),
+      'Contest not deleted',
+      `admin/contests delete id=${id}`,
+    )
+    if (res.ok) {
       setContests(prev => prev.filter(c => c.id !== id))
       toast.success('Contest deleted')
     } else {
-      toast.error('Failed to delete')
+      toast.error(res.error)
     }
     setDeleting(null)
   }
@@ -250,10 +263,21 @@ export default function AdminContestsPage() {
 
     setContests(updated)
 
-    await Promise.all([
-      supabase.from('contests').update({ order: b.order }).eq('id', a.id),
-      supabase.from('contests').update({ order: a.order }).eq('id', b.id),
+    // Previously unchecked entirely. A reorder that RLS filters out left the
+    // list showing the new order while the database kept the old one, and the
+    // discrepancy only appeared on the next page load.
+    const [ra, rb] = await Promise.all([
+      guardedWrite(
+        supabase.from('contests').update({ order: b.order }).eq('id', a.id).select('id'),
+        'Order not saved', `admin/contests reorder id=${a.id}`),
+      guardedWrite(
+        supabase.from('contests').update({ order: a.order }).eq('id', b.id).select('id'),
+        'Order not saved', `admin/contests reorder id=${b.id}`),
     ])
+    if (!ra.ok || !rb.ok) {
+      toast.error('Order not saved. Reloading.')
+      setContests(contests)
+    }
   }
 
   const scheduled = contests.filter(c => c.scheduled_time).length

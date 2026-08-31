@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase'
 import toast from 'react-hot-toast'
+import { guardedWrite } from '@/lib/db-write'
 
 interface Contest {
   id: string
@@ -145,12 +146,21 @@ export default function ContestEntriesPage() {
       }
     }
 
-    const { error } = await supabase.from('contest_entries').delete().eq('id', entry.id)
-    if (!error) {
+    // Guarded, and the ordering above matters: the storage photo is removed
+    // BEFORE this. An RLS-filtered delete returns error: null and zero rows, so
+    // the entry would have stayed in the database with its photo already gone -
+    // a competition record left pointing at a dead image, while the UI said it
+    // was deleted. contest_entries rows are results, not copy.
+    const res = await guardedWrite(
+      supabase.from('contest_entries').delete().eq('id', entry.id).select('id'),
+      'Entry not deleted',
+      `admin/contests/${contestId} deleteEntry id=${entry.id}`,
+    )
+    if (res.ok) {
       setEntries(prev => prev.filter(e => e.id !== entry.id))
       toast.success('Entry deleted')
     } else {
-      toast.error('Failed to delete')
+      toast.error(res.error)
     }
     setDeleting(null)
   }

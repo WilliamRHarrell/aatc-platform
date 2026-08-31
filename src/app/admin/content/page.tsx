@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase'
 import { REGISTRY, getPageDef } from '@/content/registry'
 import Markdown from '@/components/Markdown'
 import { requestRevalidate } from '@/lib/revalidate'
+import { guardedWrite } from '@/lib/db-write'
 
 /** page_content page_key -> the public route it drives. */
 const PAGE_ROUTE: Record<string, string> = {
@@ -53,22 +54,31 @@ export default function AdminContentPage() {
   const save = async (sectionKey: string) => {
     setSavingKey(sectionKey)
     const { data: { user } } = await supabase.auth.getUser()
-    const { error } = await supabase
-      .from('page_content')
-      .upsert(
-        {
-          page_key: pageKey,
-          section_key: sectionKey,
-          content: values[sectionKey] ?? '',
-          content_type: pageDef.sections[sectionKey].type,
-          updated_at: new Date().toISOString(),
-          updated_by: user?.id ?? null,
-        },
-        { onConflict: 'page_key,section_key' }
-      )
+    // The toast already guessed at RLS as the cause. guardedWrite makes that a
+    // detection rather than a guess: an upsert filtered out by policy returns
+    // error: null and zero rows, so without .select() the editor would report a
+    // save that never happened and then purge the cache to re-serve the old copy.
+    const res = await guardedWrite(
+      supabase
+        .from('page_content')
+        .upsert(
+          {
+            page_key: pageKey,
+            section_key: sectionKey,
+            content: values[sectionKey] ?? '',
+            content_type: pageDef.sections[sectionKey].type,
+            updated_at: new Date().toISOString(),
+            updated_by: user?.id ?? null,
+          },
+          { onConflict: 'page_key,section_key' }
+        )
+        .select('id'),
+      'Save failed - you may not have permission to edit content',
+      `admin/content ${pageKey}.${sectionKey}`,
+    )
     setSavingKey(null)
-    if (error) {
-      toast.error('Save failed - are you an admin?')
+    if (!res.ok) {
+      toast.error(res.error)
       return
     }
 

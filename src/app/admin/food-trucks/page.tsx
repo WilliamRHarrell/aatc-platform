@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { guardedWrite } from '@/lib/db-write'
 
 const DAY_OPTIONS = ['friday', 'saturday', 'sunday'] as const
 const DAY_LABELS: Record<string, string> = { friday: 'Fri', saturday: 'Sat', sunday: 'Sun' }
@@ -209,13 +210,14 @@ export default function AdminFoodTrucksPage() {
         updateData.logo_url = path
       }
 
-      const { error } = await supabase
-        .from('food_trucks')
-        .update(updateData)
-        .eq('id', editingId)
+      const res = await guardedWrite(
+        supabase.from('food_trucks').update(updateData).eq('id', editingId).select('id'),
+        'Food truck not updated',
+        `admin/food-trucks update id=${editingId}`,
+      )
 
-      if (error) {
-        toast.error('Failed to update food truck')
+      if (!res.ok) {
+        toast.error(res.error)
         setWorking(false)
         return
       }
@@ -275,10 +277,13 @@ export default function AdminFoodTrucksPage() {
           .from('food-truck-logos')
           .upload(path, logoFile)
         if (!uploadError) {
-          await supabase
-            .from('food_trucks')
-            .update({ logo_url: path })
-            .eq('id', truck.id)
+          // Was unchecked. A blocked update here leaves the file uploaded and
+          // the row still pointing at nothing, which reads as a failed upload.
+          await guardedWrite(
+            supabase.from('food_trucks').update({ logo_url: path }).eq('id', truck.id).select('id'),
+            'Logo not linked',
+            `admin/food-trucks logo id=${truck.id}`,
+          )
         }
       }
 
@@ -312,9 +317,15 @@ export default function AdminFoodTrucksPage() {
       await supabase.from('invoices').delete().eq('id', invoice.id)
     }
 
-    const { error } = await supabase.from('food_trucks').delete().eq('id', editingId)
-    if (error) {
-      toast.error('Failed to delete food truck')
+    // Guarded: the invoice above is already deleted by this point, so a
+    // silently-blocked truck delete would leave the truck with its invoice gone.
+    const res = await guardedWrite(
+      supabase.from('food_trucks').delete().eq('id', editingId).select('id'),
+      'Food truck not deleted',
+      `admin/food-trucks delete id=${editingId}`,
+    )
+    if (!res.ok) {
+      toast.error(res.error)
       setWorking(false)
       return
     }
@@ -327,13 +338,14 @@ export default function AdminFoodTrucksPage() {
 
   const togglePublished = async (truck: FoodTruck) => {
     const newVal = !truck.is_published
-    const { error } = await supabase
-      .from('food_trucks')
-      .update({ is_published: newVal })
-      .eq('id', truck.id)
+    const res = await guardedWrite(
+      supabase.from('food_trucks').update({ is_published: newVal }).eq('id', truck.id).select('id'),
+      'Published status not saved',
+      `admin/food-trucks publish id=${truck.id}`,
+    )
 
-    if (error) {
-      toast.error('Failed to update published status')
+    if (!res.ok) {
+      toast.error(res.error)
       return
     }
 
