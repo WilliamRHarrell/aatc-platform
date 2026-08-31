@@ -7,6 +7,7 @@ import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
 import VotingBoard, { type Contest, type Entry } from './VotingBoard'
 import { COLLECTORS_CHOICE_PRIZE } from '@/lib/event-config'
+import VotePageSponsors from '@/components/VotePageSponsors'
 
 export const metadata: Metadata = {
   title: 'AATC Collector’s Choice | Vote for Your Favorite Tattoo | AATC 2027',
@@ -17,8 +18,10 @@ export const metadata: Metadata = {
 
 /**
  * Server-side contest fetch. The entry grid and the surrounding prose have to be
- * in the server HTML - this page carries the Collector's Choice sponsor placement,
- * so it must be crawlable rather than rendered after hydration.
+ * in the server HTML - this page carries the Collector's Choice sponsor
+ * placement (VotePageSponsors below), so it must be crawlable rather than
+ * rendered after hydration. That comment described an intention for some time
+ * before the slot existed; it is now true.
  */
 const getContests = unstable_cache(
   async (): Promise<Contest[]> => {
@@ -126,6 +129,10 @@ export default async function ContestsPage() {
           </span>
         </div>
       </div>
+
+      {/* The Collector's Choice placement. Renders nothing until a sponsor has
+          show_on_vote_pages ticked, which is the state today. */}
+      <VotePageSponsors className="mx-auto max-w-5xl px-4 pt-8" />
 
       <div className="mx-auto max-w-5xl px-4 py-10">
         {!showBoard ? (
