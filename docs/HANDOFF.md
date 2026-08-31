@@ -645,6 +645,34 @@ walk-ins do not register. That caveat is rendered above the registration list in
   submission, which is not a thing to leave reachable. `autoComplete="off"`
   stops a saved-address feature filling it in and locking a real person out.
 
+- **RULE: when a fix produces a new failure downstream, check whether that code
+  had ever run before assuming the fix broke it.** Two bugs can stack, the first
+  masking the second, and the repair then presents as a regression it did not
+  cause.
+
+  Concretely: `verify_052` block D had a snapshot defect that aborted the whole
+  file. Block G had a separate defect - it set capacity to 1 while inheriting two
+  rows that blocks D and E leave behind, so it asserted 'confirmed at position 1'
+  against a count of 2. Because D aborted first, and the whole file is one
+  transaction, **block G had never executed once**. Fixing D did not break G; it
+  revealed G.
+
+  The tell is that the "new" failure is in code with no history of passing. Check
+  that before treating it as a regression - the alternative is reverting a
+  correct fix to restore a state where the second bug was merely invisible.
+
+- **RULE: cleanup belongs with the LAST BLOCK THAT NEEDS the fixture, not with
+  whichever block happens to run next.** In `verify_052`, blocks D and E created
+  rows and the delete lived at the end of block G. That made G's correctness
+  depend on undeclared ordering, and G is the block whose assertion the rows
+  broke.
+
+  A block that has a precondition must ESTABLISH it, not inherit it - and then
+  ASSERT it, because ensuring only covers the fixtures you know about. A real
+  row would produce the same off-by-N against a script that looks correct.
+  `verify_051` block F was hardened the same way even though it passes: a pass
+  that depends on undeclared block ordering is luck, not a guarantee.
+
 - **A speculative error message is evidence of an unguarded write.** The
   page_content save handler read `toast.error('Save failed - are you an admin?')`.
   Nobody writes that by accident: someone hit the failure, diagnosed the cause
