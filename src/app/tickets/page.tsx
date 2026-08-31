@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { getContent } from '@/content/getContent'
 import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
+import { TATTOO_BATTLE_PRESENTER } from '@/lib/event-config'
 
 export const metadata: Metadata = {
   title: 'Buy Tickets | All American Tattoo Convention 2027 | Fayetteville NC',
@@ -15,7 +16,7 @@ const SCHEDULE = [
     events: [
       { time: '12:00 PM', title: 'All-Veteran Parachute Team jumps in' },
       { time: '12:30 PM', title: 'Missing Man Table Ceremony - Main Stage' },
-      { time: '1:00 PM', title: 'The All American Tattoo Battle begins' },
+      { time: '1:00 PM', title: 'The All American Tattoo Battle begins', presentedBy: TATTOO_BATTLE_PRESENTER },
       { time: '1:00 PM', title: 'Tattoo contest registration opens' },
       { time: '4:00 PM', title: 'Tattoo contests begin - Main Stage' },
       { time: '9:30 PM', title: 'Tattoo of the Day - Main Stage' },
@@ -42,7 +43,7 @@ const SCHEDULE = [
       { time: '1:00 PM', title: 'Tattoo contest registration opens' },
       { time: '3:00 PM', title: 'Presentation to nonprofit' },
       { time: '4:00 PM', title: 'Tattoo contests begin - Main Stage' },
-      { time: '6:00 PM', title: 'All American Tattoo Battle Champion crowned' },
+      { time: '6:00 PM', title: 'All American Tattoo Battle Champion crowned', presentedBy: TATTOO_BATTLE_PRESENTER },
       { time: '7:00 PM', title: 'Tattoo of the Day & Best of Show' },
       { time: '8:00 PM', title: 'Show close' },
     ],
@@ -261,6 +262,13 @@ export default async function TicketsPage() {
                       </span>
                       <span className="text-xs" style={{ color: '#999' }}>
                         {event.title}
+                        {/* Presentation credit, same source as the homepage and
+                            the kids contest page. See event-config.ts. */}
+                        {'presentedBy' in event && event.presentedBy && (
+                          <span className="block font-semibold" style={{ color: '#C4A882' }}>
+                            Presented by {event.presentedBy}
+                          </span>
+                        )}
                       </span>
                     </div>
                   ))}

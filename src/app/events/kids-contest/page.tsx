@@ -4,6 +4,7 @@ import PublicNav from '@/components/PublicNav'
 import PageGallery from '@/components/PageGallery'
 import Markdown from '@/components/Markdown'
 import { getContent } from '@/content/getContent'
+import { TATTOO_BATTLE_PRESENTER } from '@/lib/event-config'
 
 // Kids Temp Tattoo Contest.
 //
@@ -92,6 +93,12 @@ export default async function KidsContestPage() {
               Every other AATC contest is 18 and over. Best Temporary Tattoo (Kids) is the only
               exception, and it runs as one of Sunday&apos;s categories.
             </span>
+          </p>
+          {/* This page anchors the kids contest timing to the Tattoo Battle, so
+              it names the Battle - and the credit goes wherever it is named.
+              One source: src/lib/event-config.ts. */}
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wider" style={{ color: '#C4A882' }}>
+            The All American Tattoo Battle is presented by {TATTOO_BATTLE_PRESENTER}
           </p>
           <Link
             href="/events/tattoo-contests"

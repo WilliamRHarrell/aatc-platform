@@ -96,7 +96,7 @@ const CATEGORIES: Record<string, string[]> = {
  */
 const RULES = [
   'All tattoos entered can be fresh or healed work, with the exception of Tattoo of the Day and Best in Show.',
-  'Contestants must be present during judging to be eligible for awards.',
+  'Contestants must be present when their category is called to be eligible for awards.',
   'Each entry must be registered and paid for before the contest begins.',
   'There is no limit on the number of categories you may enter.',
   'Judges decisions are final. No appeals or disputes will be entertained.',
@@ -209,8 +209,8 @@ export default function TattooContestsClient({ prizesSlot }: { prizesSlot: React
             {[
               { step: '1', title: 'Register at the Contest Booth', desc: 'Visit the contest registration booth located near the main stage. Registration opens at 1:00 PM each day; judging begins at 4:00 PM.' },
               { step: '2', title: 'Pay the Entry Fee', desc: `${CONTEST_ENTRY_FEE_NOTE} Cash and card accepted at the booth.` },
-              { step: '3', title: 'Get Judged', desc: 'Report to the judging area at the scheduled time. Our panel of professional artists will evaluate each entry based on technical execution, creativity, and overall impact.' },
-              { step: '4', title: 'Attend the Awards', desc: 'Winners are announced on stage following each judging session. You must be present to accept your award.' },
+              { step: '3', title: 'Listen for Your Category', desc: 'Categories are called live from the main stage rather than running to a fixed schedule, and several run at once. When yours is called, bring your entry to the judging area. Our panel of professional artists evaluates each entry on technical execution, creativity and overall impact.' },
+              { step: '4', title: 'Stay for the Result', desc: 'Each category runs until its winner is announced from the main stage, so results come through the day rather than in one block at the end. You must be present to accept your award.' },
             ].map(item => (
               <div
                 key={item.step}
@@ -235,7 +235,7 @@ export default function TattooContestsClient({ prizesSlot }: { prizesSlot: React
             className="mt-6 rounded-2xl p-5"
             style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
           >
-            <h3 className="mb-3 text-sm font-bold text-white">Judging Times</h3>
+            <h3 className="mb-3 text-sm font-bold text-white">Daily Contest Schedule</h3>
             <div className="space-y-2">
               {[
                 { day: 'Friday', time: 'Registration 1:00 PM / Judging 4:00 PM' },

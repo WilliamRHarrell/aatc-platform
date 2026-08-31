@@ -1,3 +1,4 @@
+import { TATTOO_BATTLE_PRESENTER } from './event-config'
 /**
  * Homepage list content that has no table of its own yet.
  *
@@ -21,6 +22,8 @@ export interface HomeEvent {
   day: string
   description: string
   href: string
+  /** Presentation credit, where the item has a presenting sponsor. */
+  presentedBy?: string
 }
 
 export const HOME_EVENTS: HomeEvent[] = [
@@ -34,6 +37,7 @@ export const HOME_EVENTS: HomeEvent[] = [
   },
   {
     name: 'The All American Tattoo Battle',
+    presentedBy: TATTOO_BATTLE_PRESENTER,
     day: 'Fri - Sun',
     // Fri 1:00 PM start, 5:00 PM voting opens; champion crowned Sun 6:00 PM.
     description:

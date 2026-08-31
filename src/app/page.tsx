@@ -359,6 +359,14 @@ export default async function HomePage() {
                   </span>
                 </div>
                 <p className="mt-2 text-sm leading-relaxed" style={{ color: '#999999' }}>{ev.description}</p>
+                {/* Presentation credit reads at the weight of the thing it
+                    presents, not as a footnote - same treatment as the pinup
+                    prize sponsors. One source: src/lib/event-config.ts. */}
+                {ev.presentedBy && (
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-wider" style={{ color: '#C4A882' }}>
+                    Presented by {ev.presentedBy}
+                  </p>
+                )}
               </Link>
             ))}
           </div>

@@ -308,3 +308,23 @@ export const CONTEST_ENTRY_FEE_NOTE =
  * until it is.
  */
 export const AATC_MAILING_ADDRESS: string | null = '5439 Yadkin Rd STE 112, Fayetteville, NC 28303'
+
+/**
+ * Presentation credit for the All American Tattoo Battle. Confirmed current by
+ * Ryan, 2026-08-31.
+ *
+ * ONE definition, imported everywhere the Battle is named. This is the third
+ * sponsor credit on the site and repeating it inline is the pattern that
+ * produced four different wordings of the Collector's Choice prize.
+ *
+ * It ALREADY renders on /events/schedule, from
+ * schedule_items.presented_by_fallback - data, not code, which is why a source
+ * grep for the name found nothing and it looked undelivered. That row stays the
+ * source for the schedule page; this constant covers the pages that name the
+ * Battle in prose and had no credit at all.
+ *
+ * When presentation_credits is built (CUTOVER section E2), both this constant
+ * and the fallback column should read from it instead.
+ */
+export const TATTOO_BATTLE_PRESENTER = 'Whole Life Aftercare'
+export const TATTOO_BATTLE_PRESENTED_BY = `Presented by ${TATTOO_BATTLE_PRESENTER}`
