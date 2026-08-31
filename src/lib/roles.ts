@@ -66,6 +66,9 @@ const PATHS: Record<AdminRole, string[] | '*'> = {
     // that cannot be filtered server-side, so a sponsorship_manager sees
     // exhibitor invoice totals too. Accepted; noted in CUTOVER.md.
     '/admin/invoices',
+    // presentation_credits and exclusivity_grants are commercial records, and
+    // their RLS grants sponsorship_manager alongside admin (060, 062).
+    '/admin/credits',
   ],
 }
 

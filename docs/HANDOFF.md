@@ -860,6 +860,34 @@ walk-ins do not register. That caveat is rendered above the registration list in
   Where a guard protects money, ask what query would find the damage, and write
   it at the same time.
 
+- **RULE: test the boundary ITSELF, not a point safely either side of it.** A
+  case placed comfortably inside or outside a limit passes under any nearby
+  comparison and proves nothing about which one is in use.
+
+  `verify_061`'s after-close case sets the closing bound to exactly `now()`.
+  `<=` accepts that and `<` refuses it, so the test distinguishes them. The
+  first version put the bound a second in the past, which passes either way -
+  it would have reported a pass against the comparison it was written to catch.
+
+  Same principle as swapping `sort_order` in the database to tell whether the
+  About page was reading `team_members` or `TEAM_FALLBACK`: when two possible
+  behaviours produce identical output, you have to construct the input that
+  makes them differ.
+
+- **Exclusivity categories are a CONTROLLED LIST, and adding one is a code
+  change in TWO places.** `EXCLUSIVITY_CATEGORIES` in `src/lib/exclusivity.ts`
+  and the `check (category in (...))` constraint in migration 062 must agree.
+  Add to one only, and either the admin offers a category the database refuses,
+  or the database allows one the admin never shows.
+
+  The duplication is deliberate. The guarantee is a unique index on
+  `(event_id, category)`, and an index cannot tell that `tattoo_battle` and
+  `Tattoo Battle` are the same exclusive - free text would make the check
+  unenforceable. If Ryan sells a new exclusive in 2028: add it to the constant,
+  add it to the constraint in a new migration, and the admin picks it up.
+
+  Current list: `on_site_supplier`, `accounting_presentation`, `tattoo_battle`.
+
 - **RULE: a date pair written a year ahead needs BOTH offsets checked
   independently, especially if it spans March or November.** US DST changes on
   the second Sunday in March and the first Sunday in November. A window whose

@@ -146,6 +146,15 @@ const NAV = [
     ),
   },
   {
+    href: '/admin/credits',
+    label: 'Credits',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2l3 6 6 .9-4.5 4.2 1.1 6.1L12 16.3 6.4 19.2l1.1-6.1L3 8.9 9 8z"/>
+      </svg>
+    ),
+  },
+  {
     href: '/admin/sponsorships',
     label: 'Sponsorships',
     icon: (

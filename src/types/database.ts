@@ -899,6 +899,42 @@ export type Database = {
         }
         Relationships: []
       }
+      exclusivity_grants: {
+        Row: {
+          buyer_name: string
+          category: string
+          created_at: string
+          credit_id: string | null
+          event_id: string
+          id: string
+          notes: string | null
+          sponsorship_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          buyer_name: string
+          category: string
+          created_at?: string
+          credit_id?: string | null
+          event_id: string
+          id?: string
+          notes?: string | null
+          sponsorship_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          buyer_name?: string
+          category?: string
+          created_at?: string
+          credit_id?: string | null
+          event_id?: string
+          id?: string
+          notes?: string | null
+          sponsorship_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       presentation_credits: {
         Row: {
           amount: number
