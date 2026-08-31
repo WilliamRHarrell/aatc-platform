@@ -403,6 +403,10 @@ are about to do something in the left column, read the entry.
 | adding a constraint | **A constraint makes a state unreachable WITHIN ITS OWN SCOPE and can leave the same failure reachable from outside it.** `panels_published_has_schedule` guarantees a published panel HAS a day; it cannot guarantee the day is one the programme runs on. A seminar moved to 2027-04-20 satisfies the constraint and still vanishes from /events/schedule. Ask what the constraint does NOT cover, and cover that elsewhere. |
 | reading src/types/database.ts | **It is HAND-MAINTAINED and silently goes stale.** It has the shape of a generated file but there is no generation step wired up. It is not authoritative - the database is. |
 | building a monitor | **A check that stops running keeps its last result and reads all-clear forever.** The vacuous-pass shape, applied to monitoring rather than to assertions. Show the last-run time in every state, including the healthy one. |
+| relying on a guard | **Correct, documented, and inert.** Three instances this session: 047's hold, the voting seed, `amount_locked`. A guard names the case it defends in its own comment - go read that case against live data. Prefer REMOVING the precondition to satisfying it. Full section below. |
+| touching `sponsorships` | **Run it against Tattoo Goo first.** One row, one query. It has surfaced five defects before any of them fired, because every assumption the system makes about a sponsorship is false for it. Full section below. |
+| a fallback image or value | **No placeholder humans applies to BRANDS.** The footer substituted a real company's artwork for any sponsor without a logo, captioned with the other sponsor's name. Render the name, not a borrowed asset. |
+| a path that has never run | **That is where the next defect sits.** `featured_footer` had never rendered a real sponsor, and the never-executed branch held the cross-brand placeholder. Inspect never-executed paths BEFORE the first real execution, not after. |
 | a verify that passes on a view | **Row counts and values do not check SHAPE.** A view can return the right rows with the right credits and be missing a column entirely. `create or replace` refuses a drop, but a DROP + CREATE does not. Assert the column list and order. |
 | moving hardcoded content into a table | **Confirm the new source matches the old BEFORE deleting the old.** |
 | writing a plpgsql function | **RETURNS TABLE columns become OUT variables** - qualify every column reference. And **a verify block must CALL the function**, not just describe it. |
@@ -429,6 +433,67 @@ The authoritative launch list is [CUTOVER.md](CUTOVER.md). This file is session
 state; that file is the plan.
 
 ---
+
+## CORRECT, DOCUMENTED, AND INERT
+
+**Three instances in one session, and it is now the most common failure shape in
+this codebase.** A mechanism is written, it is right, its comment names exactly
+the case it defends against - and its precondition is never satisfied, so it
+does nothing. **Inert and working look identical from outside.** Nothing throws,
+nothing reports, and the comment reads as reassurance.
+
+| mechanism | precondition | why it was inert |
+|---|---|---|
+| **047's hold** | "run when `verify_046` returns zero rows" | It returned two, for months, because of the very defect 064 later repaired. Nobody re-ran it, so the hold became permanent without anyone deciding it. |
+| **migration 061** | the voting window SEED writes the dates | 061 applied cleanly, the columns and `voting_state()` existed, the migration table was green. The seed had never run and both events held NULL. |
+| **`amount_locked`** | someone sets it on the row | Written to stop exactly this: "editing a phone number would silently reprice the sponsorship to current packet pricing." It is FALSE on Tattoo Goo, the single grandfathered row it exists to protect. The invoice follows the amount, so this was the expensive one. |
+
+**THE CHECK IS CHEAP, AND IT IS THIS: every guard in this codebase names the case
+it was written for, in its own comment. Go and read that case against live
+data.** `amount_locked` says "grandfathered amounts"; there is one grandfathered
+row; it takes one query to see the guard is off. The 047 hold names
+`verify_046`; running it takes seconds. Neither was done, because a documented
+guard reads as a solved problem.
+
+**Prefer removing the precondition to satisfying it.** The fix for
+`amount_locked` was not to set it - it was to stop deriving the amount at all, so
+there is nothing to guard. A field initialised from the stored value cannot
+reprice. A guard you no longer need cannot be disarmed.
+
+**When a guard must stay conditional, the condition needs the treatment in the
+next section**: it fails loudly, or it is checked on a schedule, or it will
+quietly become permanent.
+
+
+## TATTOO GOO BREAKS EVERY ASSUMPTION - RUN NEW CODE AGAINST IT FIRST
+
+**It is the only real sponsorship row in the database, and it has now surfaced
+five defects before any of them fired.** Not one was found by the code failing;
+every one was found by asking "what does this do to Tattoo Goo?"
+
+`tier = 'gold'`, `amount = 300000` ($3,000), `status = 'pending'`,
+`amount_locked = false`, `is_custom = false`. It is **grandfathered** at the
+pre-July price - CUTOVER records that as correct, not an error - and it holds an
+open Gold offer that has not been accepted.
+
+| # | what it would have broken |
+|---|---|
+| 1 | **Round-down derivation** would demote it gold -> silver ($3,000 rounds down to $2,500) and strip a sold homepage placement. |
+| 2 | **`missingPlacements`** run over every row reports it owed homepage and footer - it is PENDING and owed nothing yet. Fixed by scoping to confirmed. |
+| 3 | **`is_custom` recomputed on save** marks it custom, because $3,000 is not gold's $5,000. Grandfathered is not custom. Fixed by making it a stated checkbox. |
+| 4 | **The placement check** would have reported it as a permanent false positive on every run - the failure that gets a check ignored rather than read. |
+| 5 | **`amount_locked` being false** meant editing any field repriced it $3,000 -> $5,000, and the invoice follows the amount. |
+
+**So: any new code touching `sponsorships` gets run against Tattoo Goo before it
+is trusted.** It is one row and one query. Every assumption this system makes
+about a sponsorship - that tier matches amount, that a price is current, that a
+row is confirmed, that a guard is armed - is false for that row, which is
+precisely what makes it the best test in the database.
+
+The general form: **grandfathered and non-standard rows are where a system's
+assumptions break.** They are rare, so they are not what anyone pictures while
+writing the code, and they are real, so they are not what anyone deletes.
+
 
 ## A hold whose gate fails silently becomes permanent
 

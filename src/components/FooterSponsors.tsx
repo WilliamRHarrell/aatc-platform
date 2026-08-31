@@ -86,7 +86,33 @@ const getFooterSponsors = unstable_cache(
   { revalidate: 60, tags: ['sponsors'] }
 )
 
-const PLACEHOLDER_IMG = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/site-assets/skin-reserve-home-2.webp`
+/**
+ * REMOVED 2026-08-31: a placeholder image stood here, pointing at
+ * site-assets/skin-reserve-home-2.webp, and it was used for ANY footer sponsor
+ * with no logo uploaded:
+ *
+ *     <img src={s.logo_url || PLACEHOLDER_IMG} alt={s.sponsor_name} />
+ *
+ * Skin Reserve is a REAL BUSINESS - named on /info/policies as an aftercare
+ * vendor selling on the floor. So a sponsor without a logo would have rendered
+ * SKIN RESERVE'S ARTWORK captioned with that sponsor's name, hyperlinked to
+ * their website with rel="sponsored". One company's brand presented as
+ * another's, on every page of the site.
+ *
+ * It had never fired: the only row that ever had featured_footer set was the
+ * RLS harness, which is filtered out. The three real sponsors are entered from
+ * invoice data and their logos arrive separately, so this would have gone live
+ * the moment the footer had anything to render. A path that has never executed
+ * successfully is where the next defect sits.
+ *
+ * This is "no placeholder humans" applied to brands. The rule forbids inventing
+ * a person's name or credential; showing one business's mark under another
+ * business's name is the same failure with a logo instead of a face.
+ *
+ * The fallback is now the sponsor's NAME as text, which is honest, and matches
+ * what /sponsors already did - it renders the sponsor's initial rather than
+ * borrowing an image.
+ */
 
 export default async function FooterSponsors() {
   const sponsors = await getFooterSponsors()
@@ -105,14 +131,24 @@ export default async function FooterSponsors() {
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-6 sm:gap-10">
           {sponsors.map(s => {
-            const img = (
+            // No logo means no logo. A sponsor is never represented by another
+            // sponsor's artwork; the name is rendered as a wordmark instead.
+            const img = s.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={s.logo_url || PLACEHOLDER_IMG}
+                src={s.logo_url}
                 alt={s.sponsor_name}
                 title={s.sponsor_name}
                 className="h-14 w-auto opacity-60 grayscale transition-all hover:opacity-100 hover:grayscale-0 sm:h-20"
               />
+            ) : (
+              <span
+                title={s.sponsor_name}
+                className="font-display flex h-14 items-center text-base font-bold opacity-60 transition-opacity hover:opacity-100 sm:h-20 sm:text-lg"
+                style={{ color: '#C4A882' }}
+              >
+                {s.sponsor_name}
+              </span>
             )
             return s.website ? (
               <a
