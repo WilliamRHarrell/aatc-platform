@@ -645,6 +645,32 @@ walk-ins do not register. That caveat is rendered above the registration list in
   submission, which is not a thing to leave reachable. `autoComplete="off"`
   stops a saved-address feature filling it in and locking a real person out.
 
+- **RULE: when adding a consent, rule, fee or restriction, grep for absolute
+  statements the change makes untrue.** A blanket claim can become false through
+  a change made on a different page, and nothing will flag it - it was true when
+  written, still compiles, and still reads fluently.
+
+  Search visitor-facing copy for: `never`, `always`, `all`, `only`, `every`,
+  `free`, `anyone`, `nothing`, `public`. Most hits are the brand name and are
+  noise; the ones that matter are promises about what is required, who can do
+  something, and what it costs.
+
+  Two live examples, both found this way rather than by anyone noticing:
+
+  1. `/info/policies` said marketing consent is "never required - you can enter a
+     contest, or vote, without opting in". True when written. Migration 055 added
+     a REQUIRED likeness release on the pinup form, and the sentence silently
+     became a description of all consent on the site that was no longer accurate.
+  2. `/contests` and the `contests` CMS default both promised "30 days of PUBLIC
+     voting". True when written. Migration 053 tied a vote to `auth.uid()`, so
+     voting now needs an account - and the copy still told visitors it did not.
+     Corrected to say voting is free but needs an account, matching the sign-in
+     prompt the board already renders.
+
+  The second is the sharper one: the code change was correct, the copy change was
+  simply never made, and no test can catch a sentence that has quietly stopped
+  being true.
+
 - **The likeness release IS a condition of entry. That is a deliberate
   exception.** The pinup form carries three consents and they are not equivalent:
 
