@@ -720,6 +720,23 @@ walk-ins do not register. That caveat is rendered above the registration list in
   "marketing is opt-in and never required" section would read as covering all
   consent on the site, which is no longer true.
 
+- **RULE: never edit a migration someone is partway through applying.** Add a
+  new one instead. A migration edited mid-run yields a database matching neither
+  version of the file, and nothing in the run looks wrong - the editor reports
+  success for whatever text was pasted. 058 exists for exactly this: the
+  after-party night slugs belonged logically in 056, but Ryan was applying 056
+  at the time. Migrations are cheap; a database in an unrecorded state is not.
+
+- **RULE: confirm the new source matches the old BEFORE deleting the old.** When
+  moving hardcoded content into a table, the table does not exist until the
+  migration is applied, and a deploy usually lands first. Deleting the hardcoded
+  copy in the same change means the section goes dark in between.
+  `TeamSection` takes a temporary `fallback` prop carrying the same two people,
+  used only while 059 is unapplied; it and `TEAM_FALLBACK` in
+  `src/app/info/about/page.tsx` are deleted once the rendered output is
+  confirmed to match. Same discipline the VIP price and Collector's Choice
+  consolidations used.
+
 - **RULE: rollback direction follows which failure is VISIBLE.** When a write
   spans a file and a row, the order and the rollback are not a style choice -
   pick whichever failure a visitor can see, and make that one impossible.

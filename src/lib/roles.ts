@@ -42,6 +42,8 @@ const PATHS: Record<AdminRole, string[] | '*'> = {
     '/admin/page-images',
     // page_galleries is editorial content by the same reasoning (057).
     '/admin/galleries',
+    // team_members is editorial content by the same reasoning (059).
+    '/admin/team',
     // GRANTED 2026-08-31 by Ryan. This was excluded while schedule_items carried
     // only `schedule_items: admin all`, because an editor would have reached the
     // page, seen an empty schedule and had every write silently refused.

@@ -2,34 +2,37 @@
 
 import PublicNav from '@/components/PublicNav'
 import PageGallery from '@/components/PageGallery'
+import TeamSection from '@/components/TeamSection'
 
 /**
- * THREE OF THE FOUR PEOPLE HERE DID NOT EXIST.
+ * The team section moved to the `team_members` table in migration 059 and is
+ * rendered by src/components/TeamSection.tsx.
  *
- * Sarah Mitchell, Marcus Thompson and Jessica Rivera were placeholder copy
- * shipped to a live page as named staff with invented biographies - including
- * "Veteran advocate" and "Tattoo industry veteran". Removed rather than
- * reworded. This codebase already refuses to fabricate panel speakers for
- * exactly this reason; a fake head of Veterans Outreach on a page aimed at
- * Gold Star families is the same problem with more at stake.
+ * THE REASONING MOVED WITH IT, and is repeated in both the migration and the
+ * component rather than left here alone: three of the four people once listed
+ * on this page did not exist, and Ryan's bio claimed he is an Army veteran when
+ * he is not. Both were corrected. The corrected wording is seeded verbatim by
+ * 059 and must not be reworded - see that file before editing either bio.
  *
- * Ryan's bio also claimed he is an Army veteran. He is not. Corrected - see
- * spec §3.1/§3.3.
- *
- * Real team, per the spec. Two further members are coming and will be
- * unpublished rows once the `team_members` table lands (§16.3); until then the
- * grid renders whoever is actually here, and it must handle 2, 3 or 4.
+ * TEAM_FALLBACK below is TEMPORARY. It is the same two people, and it exists
+ * only so the section does not go dark between this deploying and 059 being
+ * applied. Delete it - and the prop - once 059 is applied and the rendered
+ * output matches.
  */
-const TEAM = [
+const TEAM_FALLBACK = [
   {
+    id: 'fallback-ryan',
     name: 'Ryan Harrell',
     role: 'Founder & Director',
     bio: 'Born and raised in Fayetteville, with a large part of his family serving. Built AATC to put the tattoo community and the military community in the same room.',
+    photo_path: null,
   },
   {
+    id: 'fallback-nicole',
     name: 'Nicole Harrell',
     role: 'Co-Founder',
     bio: 'Military brat. Her dad would still be jumping out of planes if Uncle Sam would let him.',
+    photo_path: null,
   },
 ]
 
@@ -152,45 +155,7 @@ export default function AboutPage() {
 
       {/* Team */}
       <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
-        <div className="mx-auto max-w-5xl">
-          <h2 className="mb-2 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
-            <span className="text-emboss">The Team</span>
-          </h2>
-          <p className="mb-8 text-center text-xs" style={{ color: '#666' }}>
-            <span className="text-emboss">The people behind the convention</span>
-          </p>
-          {/* Columns track the member count so 2, 3 or 4 all sit centred rather
-              than leaving dead cells at the end of a fixed 4-up grid (§3.3). */}
-          <div
-            className={`mx-auto grid gap-4 sm:grid-cols-2 ${
-              TEAM.length >= 4 ? 'lg:max-w-none lg:grid-cols-4'
-                : TEAM.length === 3 ? 'lg:max-w-3xl lg:grid-cols-3'
-                : 'lg:max-w-2xl lg:grid-cols-2'
-            }`}
-          >
-            {TEAM.map((member) => (
-              <div
-                key={member.name}
-                className="rounded-2xl p-6 text-center"
-                style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
-              >
-                <div
-                  className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full text-lg font-bold text-white"
-                  style={{ backgroundColor: '#2a2a2a' }}
-                >
-                  {member.name.split(' ').map(n => n[0]).join('')}
-                </div>
-                <h3 className="text-sm font-bold text-white">{member.name}</h3>
-                <p className="mt-1 text-xs font-medium" style={{ color: '#C4A882' }}>
-                  {member.role}
-                </p>
-                <p className="mt-3 text-xs leading-relaxed" style={{ color: '#999' }}>
-                  {member.bio}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
+        <TeamSection fallback={TEAM_FALLBACK} />
       </section>
       <PageGallery slug="about" title="Around the Convention" className="mx-auto max-w-5xl px-4 py-12" />
 

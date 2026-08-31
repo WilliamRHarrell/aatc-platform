@@ -863,6 +863,42 @@ export type Database = {
           },
         ]
       }
+      team_members: {
+        Row: {
+          bio: string | null
+          created_at: string
+          id: string
+          name: string | null
+          photo_path: string | null
+          published: boolean
+          role: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          photo_path?: string | null
+          published?: boolean
+          role?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          photo_path?: string | null
+          published?: boolean
+          role?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       page_galleries: {
         Row: {
           active: boolean
