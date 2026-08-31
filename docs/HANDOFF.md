@@ -782,6 +782,47 @@ walk-ins do not register. That caveat is rendered above the registration list in
   append-only record of attempts, not a mutated total - and it should be costed
   against how much cash actually changes hands at the booth.
 
+- **RULE: a pattern applied correctly once in a file does not extend to the next
+  branch. "This file already handles it" is not evidence about the branch you
+  have not read.**
+
+  `src/app/api/webhooks/stripe/route.ts` was held up throughout the guard sweep
+  as the model - `.select()`, an explicit zero-row branch, and a 500 so Stripe
+  retries. It is the model, in ONE of its two branches. Ten lines below the
+  invoice branch, the `panel_registrations` branch checked only `error`: Stripe
+  takes the money, the update matches no row, nothing errors, and the log says
+  'marked as paid'. Same file, same function, same author, same session.
+
+  It was found by a mechanical final sweep, not by reading the file - and the
+  file had been read several times by then, each time confirming the pattern was
+  present. Confirming a pattern EXISTS in a file is not the same as confirming
+  it is applied everywhere in that file.
+
+- **COUNTERWEIGHT, and it belongs with the rule above: a rule applied
+  mechanically produces its own bugs.** The clear-previous-assignment update in
+  `/admin/booths/[id]` is checked for an error but deliberately NOT for zero
+  rows, because zero rows is the NORMAL case - an exhibitor with no prior
+  assignment has nothing to clear. A row-count check there would fail every
+  first assignment.
+
+  It is recorded as deliberate precisely so the next person applying the
+  guard-everything rule does not "fix" it. The rule is right almost everywhere;
+  knowing where it is wrong is part of the rule.
+
+- **Owed-and-unrendered, and sold-and-unrendered, are the same defect from
+  opposite directions. Neither surfaces as an error.**
+
+  | | what happened | how it looked |
+  |---|---|---|
+  | owed, unrendered | Whole Life Aftercare presented the Tattoo Battle and the credit appeared on one of four pages naming it | nothing wrong; the docs recorded the obligation and no page contradicted it |
+  | sold, unrendered | a sponsorship placement toggle silently affected zero rows, then `requestRevalidate` purged the cache and re-served the page WITHOUT the sponsor | the toggle showed ON, and the purge actively confirmed the wrong state |
+
+  Both are a sponsor paying for something a visitor never sees. Neither throws,
+  neither logs, and neither appears in any queue. The first is caught by reading
+  the commitments and diffing against rendered HTML; the second by guarding the
+  write. They need different checks, which is why finding one says nothing about
+  the other.
+
 - **THE MODEL for a money-path write: `src/app/api/webhooks/stripe/route.ts`.**
   It was the only site in the entire guard sweep that needed no change, and it
   is worth copying rather than merely noticing. Three parts:
