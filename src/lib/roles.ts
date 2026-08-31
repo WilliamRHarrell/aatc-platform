@@ -40,16 +40,15 @@ const PATHS: Record<AdminRole, string[] | '*'> = {
     // BUCKET both - an editor who could set image_path but not upload the file
     // it names would produce nothing but a broken image.
     '/admin/page-images',
-    // '/admin/schedule' is STILL not here, but the reason has changed and the
-    // old one is no longer true. It used to be that schedule_items carried only
-    // `schedule_items: admin all`, so an editor would have reached the page,
-    // seen an empty schedule and had every write refused. Migration 054 gave
-    // schedule_items an editorial policy, so that precondition is now met and
-    // adding this line would work.
-    //
-    // It is left out because granting a role a new screen is a decision, not a
-    // side effect of a migration that happened to widen a table. Flagged for
-    // Ryan rather than taken - see HANDOFF.
+    // page_galleries is editorial content by the same reasoning (057).
+    '/admin/galleries',
+    // GRANTED 2026-08-31 by Ryan. This was excluded while schedule_items carried
+    // only `schedule_items: admin all`, because an editor would have reached the
+    // page, seen an empty schedule and had every write silently refused.
+    // Migration 054 gave the table an editorial policy and all four write paths
+    // already go through guardedWrite(), so both halves of the old objection are
+    // resolved - the role can read it, write it, and be told when it cannot.
+    '/admin/schedule',
     '/admin/panels',
     '/admin/contests',
     '/admin/food-trucks',

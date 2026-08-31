@@ -21,6 +21,7 @@ const WHERE: Record<string, { page: string; position: string; href: string }> = 
   'schedule-hero':  { page: 'Event Schedule',  position: 'under the hero, above the schedule', href: '/events/schedule' },
   'pinup-entry':    { page: 'Pinup Contest',   position: 'above the entry form',               href: '/events/pinup-contest' },
   'contest-prizes': { page: 'Tattoo Contests', position: 'in the prizes section',              href: '/events/tattoo-contests' },
+  'after-parties-hero': { page: 'After Parties', position: 'under the header',                  href: '/events/after-parties' },
 }
 
 interface Row {

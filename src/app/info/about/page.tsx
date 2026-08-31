@@ -1,6 +1,7 @@
 'use client'
 
 import PublicNav from '@/components/PublicNav'
+import PageGallery from '@/components/PageGallery'
 
 /**
  * THREE OF THE FOUR PEOPLE HERE DID NOT EXIST.
@@ -191,6 +192,8 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+      <PageGallery slug="about" title="Around the Convention" className="mx-auto max-w-5xl px-4 py-12" />
+
 
       {/* Footer CTA */}
       <div className="border-t px-4 py-10 text-center" style={{ borderColor: '#2a2a2a' }}>

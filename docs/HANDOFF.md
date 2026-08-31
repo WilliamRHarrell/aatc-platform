@@ -720,6 +720,32 @@ walk-ins do not register. That caveat is rendered above the registration list in
   "marketing is opt-in and never required" section would read as covering all
   consent on the site, which is no longer true.
 
+- **RULE: rollback direction follows which failure is VISIBLE.** When a write
+  spans a file and a row, the order and the rollback are not a style choice -
+  pick whichever failure a visitor can see, and make that one impossible.
+
+  | operation | order | why |
+  |---|---|---|
+  | upload | file, then row - **remove the file if the row fails** | an unreferenced file is invisible; a row pointing at nothing is a broken image |
+  | remove | row, then file | a blocked row delete leaves the image showing, which is harmless; the reverse leaves a live row pointing at a deleted file |
+
+  Both are in `/admin/page-images` and `/admin/galleries`. The same reasoning
+  already applied to the contest entry delete, which removed the storage photo
+  BEFORE the row and so left a competition record pointing at a dead image when
+  the delete was silently blocked.
+
+- **RULE: make the invalid state unreachable, not merely detectable.** Alt text
+  is validated BEFORE the upload in both image admins, not after. 050 has a
+  check constraint that rejects an image with blank alt, so uploading first
+  would put a file in the bucket and then fail the row write - an orphan that
+  looks like a successful upload to whoever browses the bucket later. The
+  constraint is the backstop; the ordering is the fix.
+
+  `page_galleries.alt` is NOT NULL outright rather than conditionally, because
+  a gallery row IS an image - there is no state in which its alt text is
+  legitimately absent. `page_images.alt` has to stay conditional because a slot
+  can exist before its image does.
+
 - **RULE: a residue check and a cleanup are different jobs and must not share a
   block.** A final block that deletes fixtures AND reports what is left destroys
   the evidence that the owning block failed to clean up - it always reports

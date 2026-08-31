@@ -863,6 +863,42 @@ export type Database = {
           },
         ]
       }
+      page_galleries: {
+        Row: {
+          active: boolean
+          alt: string
+          caption: string | null
+          created_at: string
+          gallery_slug: string
+          id: string
+          image_path: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          alt: string
+          caption?: string | null
+          created_at?: string
+          gallery_slug: string
+          id?: string
+          image_path: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          alt?: string
+          caption?: string | null
+          created_at?: string
+          gallery_slug?: string
+          id?: string
+          image_path?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       page_images: {
         Row: {
           active: boolean

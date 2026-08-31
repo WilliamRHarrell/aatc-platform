@@ -1,6 +1,7 @@
 'use client'
 
 import PublicNav from '@/components/PublicNav'
+import PageImage from '@/components/PageImage'
 
 // REMOVED 2026-08-27: this held three invented venues (one of which names a
 // real Fayetteville business that has not agreed to host), invented DJ and band
@@ -40,6 +41,9 @@ export default function AfterPartiesPage() {
           <span className="text-emboss">When the convention floor closes, the night is just getting started. Join us at venues across downtown Fayetteville for live music, drinks, and late-night celebrations with fellow tattoo lovers.</span>
         </p>
       </div>
+
+      {/* Slot 'after-parties-hero'. Renders nothing until an admin uploads. */}
+      <PageImage slug="after-parties-hero" className="mx-auto mt-8 max-w-3xl px-4" />
 
       {/* Party Cards */}
       <section className="px-4 py-12">
