@@ -1,20 +1,26 @@
 -- ============================================================
--- ⚠  RUN ONE LETTERED BLOCK AT A TIME - DO NOT RUN THIS FILE WHOLE.
+-- HOW TO RUN: paste the whole file and run it. Block by block is not required.
 --
--- The Supabase SQL Editor displays only the LAST statement's result. Running
--- the whole file returns the final query and discards every check above it.
+-- Read the MESSAGES / NOTICES pane, not the results grid. Most checks here
+-- report through RAISE NOTICE, and Messages accumulates across a whole-file
+-- run, so every PASS is visible at the end.
 --
--- ⚠  BLOCKS C THROUGH H REPORT VIA `RAISE NOTICE`, NOT THE RESULTS GRID.
--- Read the Messages / Notices pane. PASS is a notice; FAIL is a raised
--- exception, so it shows red.
+-- A failure RAISES, which aborts the run. So a clean finish IS a pass - no news
+-- is good news. It also means the whole file is one transaction: an abort rolls
+-- back every test row along with it, which is why a failed run leaves nothing
+-- behind.
 --
--- Negative assertions catch only the named condition, never `when others`, and
--- every one of them is paired with a control proving the query could have found
--- something. See the rule in docs/HANDOFF.md - block G of verify_050 passed
--- while testing nothing because it lacked exactly that.
+-- The results grid shows only the LAST statement's output. So the blocks that
+-- return ROWS rather than notices - the shape and policy listings near the top -
+-- are the only ones that need selecting and running individually, and only if
+-- you want to read them. They assert nothing on their own; the notice blocks do
+-- the asserting.
 --
--- ⚠  BLOCKS C, D, F, F2, G2 AND H WRITE TEST ROWS, then delete them.
--- Block Z re-checks. Everything is prefixed zz-.
+-- ONE GENUINE EXCEPTION: block G observes an advisory lock held by ANOTHER
+-- session, which a single run cannot produce by definition. Run whole-file it
+-- reports the weak PASS, which is honest and expected. The two-tab procedure in
+-- that block is the only way to see the strong case, and it is optional - the
+-- lock is the least likely thing here to be wrong.
 -- ============================================================
 
 -- ── A. table shape and index
@@ -248,8 +254,15 @@ begin
   select id into v_event from public.events where is_active order by start_date limit 1;
   v_key := hashtext('pinup_entry:' || v_event::text);
 
+  -- pid <> pg_backend_pid() is REQUIRED, not tidiness. The whole file runs in
+  -- one transaction, blocks F, F2 and H all call register_pinup_entry(), and
+  -- pg_advisory_xact_lock holds until that transaction ends. Without the pid
+  -- filter this block finds the lock THIS session is still holding and reports
+  -- it as a concurrent registration - a pass that describes nothing.
   select count(*) into n from pg_locks
-   where locktype = 'advisory' and objid = (v_key::bigint & 4294967295);
+   where locktype = 'advisory'
+     and objid = (v_key::bigint & 4294967295)
+     and pid <> pg_backend_pid();
 
   if n > 0 then
     raise notice 'PASS: the advisory lock is currently HELD - a concurrent registration is blocking, which is the guarantee working';

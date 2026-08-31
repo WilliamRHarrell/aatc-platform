@@ -1,25 +1,20 @@
 -- ============================================================
--- ⚠  RUN ONE LETTERED BLOCK AT A TIME - DO NOT RUN THIS FILE WHOLE.
+-- HOW TO RUN: paste the whole file and run it. Block by block is not required.
 --
--- The Supabase SQL Editor displays only the LAST statement's result. Running
--- the whole file returns the final query and silently discards every check
--- above it, which looks exactly like a file that only ever had one check in
--- it. Nothing errors; the other results simply never appear.
+-- Read the MESSAGES / NOTICES pane, not the results grid. Most checks here
+-- report through RAISE NOTICE, and Messages accumulates across a whole-file
+-- run, so every PASS is visible at the end.
 --
--- ⚠  BLOCKS C, D, G AND G2 REPORT VIA `RAISE NOTICE`, NOT THE RESULTS GRID.
--- Read the Messages / Notices pane for those four. A PASS is a notice; a FAIL
--- is a raised exception, so it shows up as a red error and is hard to miss.
+-- A failure RAISES, which aborts the run. So a clean finish IS a pass - no news
+-- is good news. It also means the whole file is one transaction: an abort rolls
+-- back every test row along with it, which is why a failed run leaves nothing
+-- behind.
 --
--- Negative assertions are wrapped in a DO block that catches ONLY the specific
--- error class it expects. The first version of this file asserted the alt
--- constraint by running a bare INSERT and expecting it to error - the
--- constraint fired correctly, but the raw ERROR aborted the script and blocks
--- D through I never ran, so the anon-visibility check went unverified while
--- the file looked like it had passed. An expected failure has to be caught and
--- reported, not allowed to terminate the run.
---
--- The catch is always on the named condition (check_violation), never
--- `when others` - a bare catch would swallow an unrelated error and print PASS.
+-- The results grid shows only the LAST statement's output. So the blocks that
+-- return ROWS rather than notices - the shape and policy listings near the top -
+-- are the only ones that need selecting and running individually, and only if
+-- you want to read them. They assert nothing on their own; the notice blocks do
+-- the asserting.
 -- ============================================================
 
 -- ============================================================

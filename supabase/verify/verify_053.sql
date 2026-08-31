@@ -1,15 +1,20 @@
 -- ============================================================
--- ⚠  RUN ONE LETTERED BLOCK AT A TIME - DO NOT RUN THIS FILE WHOLE.
---    The SQL Editor shows only the LAST statement's result.
+-- HOW TO RUN: paste the whole file and run it. Block by block is not required.
 --
--- ⚠  BLOCKS C THROUGH G REPORT VIA `RAISE NOTICE`. Read the Messages pane.
---    PASS is a notice; FAIL is a raised exception and shows red.
+-- Read the MESSAGES / NOTICES pane, not the results grid. Most checks here
+-- report through RAISE NOTICE, and Messages accumulates across a whole-file
+-- run, so every PASS is visible at the end.
 --
--- Every negative assertion is paired with a control proving the query could
--- have found something. See the rule in docs/HANDOFF.md.
+-- A failure RAISES, which aborts the run. So a clean finish IS a pass - no news
+-- is good news. It also means the whole file is one transaction: an abort rolls
+-- back every test row along with it, which is why a failed run leaves nothing
+-- behind.
 --
--- ⚠  WRITES TEST DATA (two auth users, a contest, an entry, votes) and removes
---    it. Block Z re-checks. Everything is prefixed zz-.
+-- The results grid shows only the LAST statement's output. So the blocks that
+-- return ROWS rather than notices - the shape and policy listings near the top -
+-- are the only ones that need selecting and running individually, and only if
+-- you want to read them. They assert nothing on their own; the notice blocks do
+-- the asserting.
 -- ============================================================
 
 -- ── A. shape

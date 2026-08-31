@@ -1,16 +1,20 @@
 -- ============================================================
--- ⚠  RUN ONE LETTERED BLOCK AT A TIME - DO NOT RUN THIS FILE WHOLE.
---    The SQL Editor shows only the LAST statement's result.
+-- HOW TO RUN: paste the whole file and run it. Block by block is not required.
 --
--- ⚠  BLOCKS D THROUGH G REPORT VIA `RAISE NOTICE`. Read the Messages pane.
+-- Read the MESSAGES / NOTICES pane, not the results grid. Most checks here
+-- report through RAISE NOTICE, and Messages accumulates across a whole-file
+-- run, so every PASS is visible at the end.
 --
--- 052 does two things that verify_051 cannot cover: it adds columns, and it
--- REPLACES register_pinup_entry() with a nine argument version. The replacement
--- is a full copy of the definition, so it can drift from the original and it
--- carried both of the original's defects until they were fixed in both places.
--- A verify that only checked the new columns would miss that entirely.
+-- A failure RAISES, which aborts the run. So a clean finish IS a pass - no news
+-- is good news. It also means the whole file is one transaction: an abort rolls
+-- back every test row along with it, which is why a failed run leaves nothing
+-- behind.
 --
--- ⚠  BLOCKS E, F AND G WRITE TEST ROWS, then delete them. Block Z re-checks.
+-- The results grid shows only the LAST statement's output. So the blocks that
+-- return ROWS rather than notices - the shape and policy listings near the top -
+-- are the only ones that need selecting and running individually, and only if
+-- you want to read them. They assert nothing on their own; the notice blocks do
+-- the asserting.
 -- ============================================================
 
 -- ── A. contests gained its two columns
@@ -46,15 +50,21 @@ select p.oid::regprocedure as signature, p.pronargs as arg_count
 --    want: two PASS notices. The control comes first: a row must exist and be
 --    readable, or "opt_in is false" would pass against an empty table.
 do $$
-declare v_event uuid; v_optin boolean; v_at timestamptz;
+declare v_event uuid; v_id uuid; v_optin boolean; v_at timestamptz;
 begin
   select id into v_event from public.events where is_active order by start_date limit 1;
   delete from public.pinup_entries where email like 'zz-consent-%@example.com';
 
+  -- Two statements, deliberately. Joining the function to pinup_entries in ONE
+  -- statement does not work: the row is inserted by the function during that
+  -- statement, and the outer scan uses the snapshot taken at statement start,
+  -- so the join finds nothing. The failure would surface as 'no row created',
+  -- blaming the function for a defect in the test.
+  select r.id into v_id from public.register_pinup_entry(
+    v_event, 'ZZ Consent Off', 'zz-consent-off@example.com', '(910) 555-0501') r;
+
   select marketing_opt_in, marketing_opt_in_at into v_optin, v_at
-    from public.register_pinup_entry(
-      v_event, 'ZZ Consent Off', 'zz-consent-off@example.com', '(910) 555-0501') r
-    join public.pinup_entries e on e.id = r.id;
+    from public.pinup_entries where id = v_id;
 
   if v_optin is null then raise exception 'FAIL: no row created - the assertions below would be vacuous'; end if;
   raise notice 'PASS: control row created and readable';
@@ -70,16 +80,18 @@ end $$;
 --    consent is ever questioned, so it must come from the database clock and
 --    not from anything a caller supplied.
 do $$
-declare v_event uuid; v_optin boolean; v_at timestamptz; v_src text;
+declare v_event uuid; v_id uuid; v_optin boolean; v_at timestamptz; v_src text;
 begin
   select id into v_event from public.events where is_active order by start_date limit 1;
 
+  -- Split for the same snapshot reason as block D.
+  select r.id into v_id from public.register_pinup_entry(
+    v_event, 'ZZ Consent On', 'zz-consent-on@example.com', '(910) 555-0502',
+    null, null, null, 25, true) r;
+
   select marketing_opt_in, marketing_opt_in_at, marketing_opt_in_source
     into v_optin, v_at, v_src
-    from public.register_pinup_entry(
-      v_event, 'ZZ Consent On', 'zz-consent-on@example.com', '(910) 555-0502',
-      null, null, null, 25, true) r
-    join public.pinup_entries e on e.id = r.id;
+    from public.pinup_entries where id = v_id;
 
   if v_optin is not true then raise exception 'FAIL: opt-in was not recorded'; end if;
   raise notice 'PASS: marketing_opt_in stored as true';
