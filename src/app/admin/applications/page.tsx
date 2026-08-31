@@ -8,6 +8,7 @@ import { formatCurrency } from '@/lib/utils'
 import { describeBooths } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 import type { Database } from '@/types/database'
+import { guardedWrite } from '@/lib/db-write'
 
 // The `artists` column is stored as JSON; describe its real shape here so the
 // regenerated Json type doesn't break array access throughout this file.
@@ -199,26 +200,43 @@ function DetailDrawer({
         .maybeSingle()
 
       if (!existing) {
-        const { error: invErr } = await supabase.from('invoices').insert({
-          application_id: app.id,
-          amount: compEnabled ? 0 : invoiceAmount,
-          amount_paid: 0,
-          status: compEnabled ? 'paid' : 'pending',
-        })
-        if (invErr) {
-          toast.error('Approved, but failed to create invoice - fix manually in admin/invoices')
+        // Guarded too: an invoice that silently fails to insert leaves an
+        // APPROVED application with no invoice, which reads as paid-in-full
+        // nowhere and simply never gets billed.
+        const invRes = await guardedWrite(
+          supabase.from('invoices').insert({
+            application_id: app.id,
+            amount: compEnabled ? 0 : invoiceAmount,
+            amount_paid: 0,
+            status: compEnabled ? 'paid' : 'pending',
+          }).select('id'),
+          'Approved, but the invoice was not created',
+          `admin/applications invoice app=${app.id}`,
+        )
+        if (!invRes.ok) {
+          toast.error(`${invRes.error} - fix manually in admin/invoices`)
           setWorking(false)
           return
         }
       }
     } else {
-      const { error } = await supabase
-        .from('applications')
-        .update({ status: newStatus })
-        .eq('id', app.id)
+      // This is the REJECT and WAITLIST path, and it was the silent one. An
+      // update filtered out by RLS, or an .eq() matching an already-deleted
+      // row, returns error: null and zero rows - so the reviewer saw the status
+      // change, the list reloaded, and the application came straight back into
+      // the queue with no explanation. .select() is what makes that visible.
+      const res = await guardedWrite(
+        supabase
+          .from('applications')
+          .update({ status: newStatus })
+          .eq('id', app.id)
+          .select('id'),
+        'Status not updated',
+        `admin/applications setStatus id=${app.id} -> ${newStatus}`,
+      )
 
-      if (error) {
-        toast.error('Failed to update status')
+      if (!res.ok) {
+        toast.error(res.error)
         setWorking(false)
         return
       }

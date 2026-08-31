@@ -9,6 +9,7 @@ import { formatCurrency } from '@/lib/utils'
 import { describeBooths, boothSlotCount } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 import type { Database } from '@/types/database'
+import { guardedWrite } from '@/lib/db-write'
 
 type ArtistEntry = {
   name?: string | null
@@ -310,20 +311,25 @@ export default function BoothDetailPage() {
     if (!app) return
     setSavingProfile(true)
 
-    const { error } = await supabase
-      .from('applications')
-      .update({
-        business_name: profile.business_name.trim() || app.business_name,
-        instagram: profile.instagram.trim() || null,
-        facebook: profile.facebook.trim() || null,
-        website: profile.website.trim() || null,
-        tv_show: profile.tv_show.trim() || null,
-        notes: profile.notes.trim() || null,
-      })
-      .eq('id', appId)
+    const res = await guardedWrite(
+      supabase
+        .from('applications')
+        .update({
+          business_name: profile.business_name.trim() || app.business_name,
+          instagram: profile.instagram.trim() || null,
+          facebook: profile.facebook.trim() || null,
+          website: profile.website.trim() || null,
+          tv_show: profile.tv_show.trim() || null,
+          notes: profile.notes.trim() || null,
+        })
+        .eq('id', appId)
+        .select('id'),
+      'Profile not saved',
+      `admin/booths/${appId} saveProfile`,
+    )
 
-    if (error) {
-      toast.error('Failed to save profile')
+    if (!res.ok) {
+      toast.error(res.error)
     } else {
       toast.success('Profile updated')
     }
@@ -345,7 +351,20 @@ export default function BoothDetailPage() {
     } else {
       const { data: urlData } = supabase.storage.from('exhibitor-media').getPublicUrl(path)
       const url = urlData.publicUrl
-      await supabase.from('applications').update({ logo_url: url }).eq('id', appId)
+      // The file is already in storage by this point, so a silent failure here
+      // leaves an uploaded logo the application does not reference. The UI said
+      // 'Logo uploaded' either way.
+      const res = await guardedWrite(
+        supabase.from('applications').update({ logo_url: url }).eq('id', appId).select('id'),
+        'Logo uploaded but not linked to the application',
+        `admin/booths/${appId} logo`,
+      )
+      if (!res.ok) {
+        await supabase.storage.from('exhibitor-media').remove([path])
+        toast.error(`${res.error} The file was removed rather than left unlinked.`)
+        setUploadingLogo(false)
+        return
+      }
       setLogoUrl(url)
       setLogoFile(null)
       setLogoPreview(null)
@@ -356,7 +375,12 @@ export default function BoothDetailPage() {
   }
 
   const removeLogo = async () => {
-    await supabase.from('applications').update({ logo_url: null }).eq('id', appId)
+    const res = await guardedWrite(
+      supabase.from('applications').update({ logo_url: null }).eq('id', appId).select('id'),
+      'Logo not removed',
+      `admin/booths/${appId} removeLogo`,
+    )
+    if (!res.ok) { toast.error(res.error); return }
     setLogoUrl(null)
     toast.success('Logo removed')
   }
@@ -384,7 +408,18 @@ export default function BoothDetailPage() {
     }
 
     const merged = [...portfolioUrls, ...newUrls]
-    await supabase.from('applications').update({ portfolio_image_urls: merged }).eq('id', appId)
+    // Same shape as the logo: the files are uploaded before this runs, so a
+    // silent failure orphans them and the count in the toast is a fiction.
+    const res = await guardedWrite(
+      supabase.from('applications').update({ portfolio_image_urls: merged }).eq('id', appId).select('id'),
+      'Images uploaded but not saved to the application',
+      `admin/booths/${appId} portfolioAdd`,
+    )
+    if (!res.ok) {
+      toast.error(res.error)
+      setUploadingPortfolio(false)
+      return
+    }
     setPortfolioUrls(merged)
     if (portfolioRef.current) portfolioRef.current.value = ''
     toast.success(`${newUrls.length} image${newUrls.length !== 1 ? 's' : ''} uploaded`)
@@ -394,8 +429,16 @@ export default function BoothDetailPage() {
   const removePortfolioImage = async (url: string) => {
     const updated = portfolioUrls.filter(u => u !== url)
     const path = url.split('/exhibitor-media/')[1]
+    // Row first, then the file - a blocked row update leaves the image showing,
+    // which is harmless. The reverse leaves the application pointing at a
+    // deleted object, which renders broken on the public directory.
+    const res = await guardedWrite(
+      supabase.from('applications').update({ portfolio_image_urls: updated }).eq('id', appId).select('id'),
+      'Image not removed',
+      `admin/booths/${appId} portfolioRemove`,
+    )
+    if (!res.ok) { toast.error(res.error); return }
     if (path) await supabase.storage.from('exhibitor-media').remove([path])
-    await supabase.from('applications').update({ portfolio_image_urls: updated }).eq('id', appId)
     setPortfolioUrls(updated)
     toast.success('Image removed')
   }
@@ -428,8 +471,14 @@ export default function BoothDetailPage() {
     const updatedArtists = (app.artists ?? []).map((ar2, idx) =>
       idx === i ? { ...ar2, name: edit?.name ?? ar2.name, nickname: edit?.nickname, instagram: edit?.instagram ?? '', styles: edit?.styles, id_url } : ar2
     )
-    const { error } = await supabase.from('applications').update({ artists: updatedArtists as unknown as Database['public']['Tables']['applications']['Row']['artists'] }).eq('id', appId)
-    if (error) { toast.error('Failed to save artist') } else { toast.success('Artist saved') }
+    const saveRes = await guardedWrite(
+      supabase.from('applications')
+        .update({ artists: updatedArtists as unknown as Database['public']['Tables']['applications']['Row']['artists'] })
+        .eq('id', appId).select('id'),
+      'Artist not saved',
+      `admin/booths/${appId} saveArtist idx=${i}`,
+    )
+    if (!saveRes.ok) { toast.error(saveRes.error) } else { toast.success('Artist saved') }
     setSavingArtist(null)
   }
 
@@ -454,7 +503,18 @@ export default function BoothDetailPage() {
     const updatedArtists = (app.artists ?? []).map((ar, idx) =>
       idx === artistIdx ? { ...ar, portfolio_urls: merged } : ar
     )
-    await supabase.from('applications').update({ artists: updatedArtists as never }).eq('id', appId)
+    // Files are already uploaded. A silent failure here orphans them and the
+    // toast still reports a count that was never saved.
+    const addRes = await guardedWrite(
+      supabase.from('applications').update({ artists: updatedArtists as never }).eq('id', appId).select('id'),
+      'Images uploaded but not saved to the artist',
+      `admin/booths/${appId} artistPortfolioAdd idx=${artistIdx}`,
+    )
+    if (!addRes.ok) {
+      toast.error(addRes.error)
+      setUploadingArtistPortfolio(null)
+      return
+    }
     setArtistPortfolioUrls(prev => ({ ...prev, [artistIdx]: merged }))
     toast.success(`${newUrls.length} image${newUrls.length !== 1 ? 's' : ''} uploaded`)
     setUploadingArtistPortfolio(null)
@@ -469,7 +529,12 @@ export default function BoothDetailPage() {
     const updatedArtists = (app.artists ?? []).map((ar, idx) =>
       idx === artistIdx ? { ...ar, portfolio_urls: updated } : ar
     )
-    await supabase.from('applications').update({ artists: updatedArtists as never }).eq('id', appId)
+    const remRes = await guardedWrite(
+      supabase.from('applications').update({ artists: updatedArtists as never }).eq('id', appId).select('id'),
+      'Image not removed',
+      `admin/booths/${appId} artistPortfolioRemove idx=${artistIdx}`,
+    )
+    if (!remRes.ok) { toast.error(remRes.error); return }
     setArtistPortfolioUrls(prev => ({ ...prev, [artistIdx]: updated }))
     toast.success('Image removed')
   }

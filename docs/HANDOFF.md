@@ -853,15 +853,21 @@ walk-ins do not register. That caveat is rendered above the registration list in
 
   | | count | status |
   |---|---|---|
-  | guarded, or checks returned rows | 26 | done |
-  | editorial, unguarded | **0** | done in this pass |
-  | money / identity, unguarded | **33** | OUTSTANDING |
+  | guarded, or checks returned rows | 39 | done |
+  | editorial, unguarded | **0** | done |
+  | `applications`, unguarded | **0** | done |
+  | money / identity, unguarded | **20** | OUTSTANDING |
 
-  The remaining 33, by table: `applications` 13, `invoices` 10,
-  `sponsorships` 7, `booths` 2, `profiles` 1 (`api/admin/set-role`). These stay
-  admin-only under the RLS widening, so a role mismatch is unlikely to trigger
-  them - but a wrong `.eq()` or an already-deleted row produces the identical
-  silent success today, on the tables where it costs the most.
+  The remaining 20, by table: `invoices` 10, `sponsorships` 7, `booths` 2,
+  `profiles` 1 (`api/admin/set-role`). These stay admin-only under the RLS
+  widening, so a role mismatch is unlikely to trigger them - but a wrong `.eq()`
+  or an already-deleted row produces the identical silent success today, on the
+  tables where it costs the most.
+
+  A note on counting them: an insert using `.select(...).single()` IS guarded,
+  because `.single()` errors on zero rows. Several inserts read as gaps to a
+  naive scan because the `.single()` sits twenty lines below the `.from()` call.
+  Check the whole statement before treating one as unprotected.
 
   Tracked here rather than remembered. Fixing RLS without fixing this pattern
   leaves the same class of bug waiting for the next mismatch.

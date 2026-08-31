@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { guardedWrite } from '@/lib/db-write'
 
 
 interface ImportPayload {
@@ -176,11 +177,20 @@ export async function POST(req: Request) {
     // nothing: it has a deposit_due_at and no deposit_paid_at, which is
     // precisely the lifecycle sweep's expiry profile. A half-finished import
     // would arm the sweep against the exhibitor it was meant to onboard.
-    const { error: appDelErr } = await adminClient.from('applications').delete().eq('id', app.id)
-    if (appDelErr) {
+    // Guarded on ROW COUNT, not just on error. This runs a service-role client,
+    // so RLS is not the risk - an already-deleted row or a mismatched id is.
+    // Either way the delete returns error: null and zero rows, and the existing
+    // log below would stay silent while the application survives in exactly the
+    // state the comment above warns about.
+    const delRes = await guardedWrite(
+      adminClient.from('applications').delete().eq('id', app.id).select('id'),
+      'rollback delete affected no rows',
+      `import-returning rollback app=${app.id}`,
+    )
+    if (!delRes.ok) {
       console.error(
         `[import-returning] could not remove application ${app.id} after invoice failure: ` +
-        `${appDelErr.message}. It is approved with no invoice and IS A SWEEP TARGET - ` +
+        `${delRes.error}. It is approved with no invoice and IS A SWEEP TARGET - ` +
         'delete it or record its payment before LIFECYCLE_SWEEP_ENABLED is set.'
       )
     }
