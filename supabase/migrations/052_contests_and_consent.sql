@@ -76,7 +76,7 @@ create or replace function public.register_pinup_entry(
   p_capacity         int  default 25,
   p_marketing_opt_in boolean default false
 )
-returns table (id uuid, status text, position int)
+returns table (id uuid, status text, queue_position int)
 language plpgsql
 security definer
 set search_path = public, pg_catalog
@@ -95,10 +95,16 @@ begin
 
   perform pg_advisory_xact_lock(hashtext('pinup_entry:' || p_event_id::text));
 
+  -- pinup_entries.status is QUALIFIED, and must stay qualified. RETURNS TABLE
+  -- puts `status` in scope as an OUT variable, so a bare `status` here is
+  -- ambiguous between the variable and the column. plpgsql's default
+  -- variable_conflict is `error`, so this raises at RUNTIME - on the first
+  -- registration, after the form is live - rather than at CREATE FUNCTION time.
+  -- The same trap applies to `id`; every reference to it below is qualified too.
   select count(*) into v_taken
     from public.pinup_entries
-   where event_id = p_event_id
-     and status in ('pending','confirmed');
+   where pinup_entries.event_id = p_event_id
+     and pinup_entries.status in ('pending','confirmed');
 
   v_status := case when v_taken < p_capacity then 'confirmed' else 'waitlist' end;
 
