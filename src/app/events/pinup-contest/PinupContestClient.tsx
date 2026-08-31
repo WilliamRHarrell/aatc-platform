@@ -4,7 +4,7 @@ import { useState } from 'react'
 import {
   PINUP_REGISTRATION_OPEN,
   PINUP_PRIZES,
-  PINUP_PRIZE_SPONSOR,
+  PINUP_PRIZE_SPONSORS,
   PINUP_ADDITIONAL_PRIZES_NOTE,
 } from '@/lib/event-config'
 import HoneypotField from '@/components/HoneypotField'
@@ -184,7 +184,7 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
                     Gift certificates sponsored by
                   </p>
                   <p className="mt-1 text-sm font-bold" style={{ color: '#C4A882' }}>
-                    {PINUP_PRIZE_SPONSOR}
+                    {PINUP_PRIZE_SPONSORS.join(' and ')}
                   </p>
                 </div>
 

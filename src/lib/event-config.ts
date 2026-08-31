@@ -184,7 +184,21 @@ export const PINUP_CAPACITY = 25
  * material misstatement to someone deciding whether to take part.
  *
  * The amounts are gift certificate VALUES, not cash. Do not shorten to "$200"
- * on any surface - the wording is the substance of the prize here.
+ * on any surface - the wording is the substance of the prize here. That applies
+ * to Market Roots exactly as it does to Skin Specialists.
+ *
+ * TWO prize sponsors as of 2026-08-31, both confirmed in writing by the
+ * businesses themselves and relayed by Ryan:
+ *
+ *   Skin Specialists   $200 / $150 / $100, first through third
+ *   Market Roots       $300, FIRST PLACE ONLY. Styling, Downtown Fayetteville.
+ *
+ * Market Roots is first place only - do not propagate it to the runner-up rows.
+ * If a third sponsor is confirmed, add it here; this is the single source and a
+ * new sponsor is a one-line change. Prize sponsors deliberately do NOT live in
+ * presentation_credits: that table is not built, and it was designed for
+ * presenting-sponsor credits on schedule items and panels, priced and invoiced,
+ * which is a different thing. See docs/CUTOVER.md section E2.
  *
  * 'Convention Feature' is a photo shoot at the show, with the images used in
  * AATC promotional material. Confirmed by Ryan, 2026-08-28. It is carried as a
@@ -198,11 +212,18 @@ export const PINUP_CAPACITY = 25
  * docs/HANDOFF.md.
  */
 export const PINUP_PRIZE_SPONSOR = 'Skin Specialists'
+export const PINUP_PRIZE_SPONSOR_2 = 'Market Roots'
+
+/** Every business funding a pinup prize, for the credit block. Order as listed. */
+export const PINUP_PRIZE_SPONSORS = [PINUP_PRIZE_SPONSOR, PINUP_PRIZE_SPONSOR_2]
 
 export const PINUP_PRIZES: { place: string; prize: string; note?: string }[] = [
   {
     place: '1st - Miss AATC',
-    prize: `Custom Crown, Sash, Trophy + $200 Gift Certificate to ${PINUP_PRIZE_SPONSOR} + Convention Feature`,
+    prize:
+      `Custom Crown, Sash, Trophy + $200 Gift Certificate to ${PINUP_PRIZE_SPONSOR}` +
+      ` + $300 Gift Certificate to ${PINUP_PRIZE_SPONSOR_2} (styling, Downtown Fayetteville)` +
+      ' + Convention Feature',
     note: 'Convention Feature - a photo shoot at the show, with images used in AATC promotional material.',
   },
   {
