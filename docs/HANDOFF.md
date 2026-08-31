@@ -56,7 +56,7 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **047** | **HELD - GATE NOW OPEN, DO NOT RUN AS-IS** | Drops `panels.panel_date` / `panel_time`. Gate: step 3 of its own header, "verify_046 returns zero rows". That gate FAILED SILENTLY for months - both panels had a null `panel_day`, which is the defect 064 repaired - so the hold became permanent without anyone deciding it. **The gate is now satisfiable.** 047 was AMENDED 2026-08-31 to carry 065's credit join; before amendment, running it would have silently reverted the panels dual-read. Running it also changes `panels_public` from 20 columns to 18, so `verify_065` block E must be updated in the same pass. Its header carries the replacement list. |
 | 048-063 | **APPLIED** | as above. |
 | **064** | **APPLIED + VERIFIED** 2026-08-31 | panel day/start repair, `panels_published_has_schedule`. |
-| **065** | **NOT APPLIED** | dual-read. Rejected on its first run with `42P16` (see below); fixed. Paste it, then `verify_065.sql`. |
+| **065** | **APPLIED + VERIFIED** 2026-08-31 | dual-read. Rejected on its FIRST run with `42P16` because its column list came from unapplied 047; fixed to the live shape and re-run. Verified by Ryan via `verify_065.sql` (four credits, all `source = 'fallback'`) and by re-fetching the three pages against a pre-064 baseline. |
 
 **What this audit could and could not see.** It reads the live schema through
 PostgREST's OpenAPI document, which exposes tables, views, columns and callable
@@ -84,21 +84,33 @@ verify block run in the SQL Editor.
 | 062 | `exclusivity_grants` | verify_062 |
 | 063 | `show_on_sponsors` / `show_on_vote_pages` | - |
 
-### ⚠ THE VOTING WINDOW IS NOT SET. This file previously said it was.
+### The voting window - VERIFIED LIVE 2026-08-31
 
-`events.voting_opens_at` and `voting_closes_at` are **NULL on both events**,
-confirmed live 2026-08-31. `voting_window_2027.sql` has NOT been applied.
+**Verified by:** Ryan ran `voting_window_2027.sql` in the SQL Editor and read
+its report, 2026-08-31. Not asserted, not inferred from the migration status.
 
-Migration 061 IS applied - the columns and `voting_state(p_event_id)` exist. It
-is the SEED that never ran, which is why this was missed: the migration table
-above was green and the seed list said otherwise.
+| field | value |
+|---|---|
+| opens | 2027-04-21 12:00 ET |
+| closes | 2027-05-22 00:00 ET |
+| `days_to_exclusive_bound` | **31** |
+| `voting_state()` now | **"before"** |
 
-**Current real behaviour:** a NULL window is CLOSED, enforced in RLS. So the
-site fails safe and `/contests` shows the closed state. Nothing is leaking. But
-until the seed runs, voting cannot open, and this file previously stated the
-window as live fact with exact timestamps. Run `voting_window_2027.sql` when
-voting should be able to open; its UPDATE targets `where is_active`, and its
-report's hardcoded id `28a3ad3d-...` is confirmed to be the active event.
+The 31 is correct against an EXCLUSIVE bound: 30 days of voting, with the
+boundary at the start of day 31. The closing comparison is `<`, so voting ends
+at the end of 21 May. `voting_state()` was CALLED, not described - it returns
+"before" today, which is the expected value for 2026-08-31.
+
+**What this replaces.** Until 2026-08-31 this file stated the window as live
+fact with exact timestamps while both columns were actually NULL on both events.
+The seed had never run. **A green migration masked a missing seed:** 061 was
+applied - the columns and `voting_state(p_event_id)` existed - so the migration
+table was green and nothing pointed at the data. It failed closed, which is the
+only reason nothing leaked, but voting could not have opened.
+
+This is the same failure as 047, twice in one session, and the more serious of
+the two: 047 was a migration nobody had run, this was a fact the handoff
+asserted as settled.
 
 ### Seed status - also explicit, also audited live 2026-08-31
 
@@ -108,38 +120,25 @@ report's hardcoded id `28a3ad3d-...` is confirmed to be the active event.
 | `schedule_2027.sql` | **APPLIED** | 25 schedule_items live |
 | `panels_2027.sql` | **APPLIED** | 2 panels live. NOTE: it ran AFTER 046, which is why 046's backfill matched nothing and 064 was needed. |
 | `tattoo_battle_credit.sql` | **APPLIED** | 3 Battle rows carry `Whole Life Aftercare` |
-| `voting_window_2027.sql` | **NOT APPLIED** | both events have NULL `voting_opens_at` / `voting_closes_at`. See the warning above. |
+| `voting_window_2027.sql` | **APPLIED + VERIFIED** 2026-08-31 | Ryan ran it and read the report: opens 2027-04-21 12:00 ET, closes 2027-05-22 00:00 ET, `days_to_exclusive_bound` 31, `voting_state()` returns "before". See above. |
 
-### WRITTEN BUT NOT YET APPLIED - paste 065, then verify_065
+### Nothing is awaiting application
 
-There is no psql, Supabase CLI or connection string in this environment, only
-the anon and service-role keys, and DDL does not go through PostgREST - so these
-are paste-into-the-SQL-Editor jobs. Live view shapes were read through
-PostgREST's OpenAPI document, which is the one way this environment can see
-them.
+Everything written is applied. The one migration deliberately NOT applied is
+047, which is HELD - see the status table above for its gate and why it must not
+be run as-is without also updating `verify_065` block E.
 
-| # | what | then run |
-|---|---|---|
-| ~~064~~ | APPLIED AND VERIFIED 2026-08-31 | done |
-| 065 | `presentation_credits` dual-read on both public views | `verify_065.sql` |
+**How things get applied here:** there is no psql, Supabase CLI or connection
+string in this environment, only the anon and service-role keys, and DDL does not
+go through PostgREST. Migrations and seeds are pasted into the Supabase SQL
+Editor by Ryan. Live view SHAPES can be read from this environment through
+PostgREST's OpenAPI document, which is how the 42P16 diagnosis was done.
 
 **065 was rejected on its first run** with `42P16: cannot drop columns from
-view`, because its `panels_public` list was copied from 047 - which is not
-applied. Nothing was applied; the statement was refused whole. Fixed by
-restoring the live 046 shape and changing only the `presented_by` expression,
-so it stays a pure `create or replace` and the grants survive.
-
-**Order mattered and 064 has landed**, so `/events/schedule` now carries both
-seminars and 065's identical-render check is finally meaningful. Re-capture the
-baseline for `/events/schedule` before running step 2; any baseline taken before
-064 differs for reasons unrelated to 065.
-
-Both verify files are the paste-the-whole-file, read-the-MESSAGES-pane shape: a
-failure RAISES and aborts, so a clean finish IS a pass, and the single trailing
-`select` is what the editor displays.
-
-**Apart from 064 and 065, nothing is left unapplied except what is listed in
-section 2.**
+view`, because its `panels_public` column list was copied from 047 - which is not
+applied. Nothing was applied; the statement was refused whole. Fixed by restoring
+the live 046 shape and changing only the `presented_by` expression, so it stayed
+a pure `create or replace` and the grants survived.
 
 ### Live and working
 
@@ -149,9 +148,12 @@ section 2.**
   `/api/pinup-entry` and `/api/panel-register`. `pinup_entries` is EMPTY - the
   one test row was deleted, 25 spots free.
 - **49 contest categories seeded**, kids category flagged on Sunday.
-- **Voting window**: opens 2027-04-21T12:00:00-04:00, closes
-  2027-05-22T00:00:00-04:00 (EXCLUSIVE, compared with `<`, meaning end of day
-  21 May). Enforced in RLS, not the UI. NULL window = closed.
+- **Voting window** (VERIFIED live 2026-08-31 - Ryan ran the seed and read its
+  report; `voting_state()` returns "before", `days_to_exclusive_bound` 31):
+  opens 2027-04-21T12:00:00-04:00, closes 2027-05-22T00:00:00-04:00 (EXCLUSIVE,
+  compared with `<`, meaning end of day 21 May). Enforced in RLS, not the UI.
+  NULL window = closed. Until this date the same sentence appeared here
+  UNVERIFIED, and both columns were actually NULL.
 - **`/contests`** shows one of three states from `voting_state()`.
 - **Admin screens**: `/admin/page-images`, `/admin/galleries`, `/admin/team`,
   `/admin/pinup`, `/admin/credits` (credits + exclusivity).
@@ -244,16 +246,47 @@ Nothing is migrated into it yet, deliberately. The sequence agreed:
    the top slot because it is the only source carrying `website`; invert it and
    an item holding both renders one company's name linked to another company's
    site. Whole Life Aftercare is due both, so this is not hypothetical.
-2. Verify `/events/schedule`, `/` and `/tickets` render BYTE-IDENTICALLY.
-   **Re-capture the baseline AFTER 064 lands** - 064 adds two seminars to
-   `/events/schedule`, so any baseline taken before it will differ for reasons
-   that have nothing to do with 065.
+2. **DONE - VERIFIED 2026-08-31.** Evidence below.
 3. Only then move the four rows and drop the fallback. `verify_065.sql` block Z
    is the reconciliation: it lists every rendered credit with the source it
-   resolves from. Drive `source = 'fallback'` to zero first.
+   resolves from. Drive `source = 'fallback'` to zero first. **This is the next
+   action on this thread**, and it is blocked on nothing but the amounts.
 
-065 is a **provable no-op** on today's data - no confirmed credit item exists,
-so the new coalesce branch is never taken. That is exactly why `verify_065`
+#### Step 2 evidence - 065 changed nothing that renders
+
+**Verified by:** Ryan ran `verify_065.sql` in the SQL Editor (all four credits
+resolve with `source = 'fallback'`), and the three pages were re-fetched from
+production and compared against a baseline captured before 064 and 065.
+2026-08-31.
+
+| page | pre-064/065 | now | reading |
+|---|---|---|---|
+| `/tickets` | WLA 4 | WLA 4 | unchanged. Hardcoded from `TATTOO_BATTLE_PRESENTER`, so it is the CONTROL - it cannot move when a view changes, and it did not. |
+| `/` | WLA 2, Nomadica 2 | WLA 2, Nomadica 2 | credits unchanged. Separately gained `Sunday, April 18 · 1:30 PM` on the seminar cards, which is 064's repair, not 065. |
+| `/events/schedule` | WLA 6, Nomadica **0** | WLA 6, Nomadica **2** | the ONLY credit change, and it is 064's: the seminar and its credit were absent before and are present now. |
+
+So every credit that rendered before 065 renders identically after it, and the
+only additions are the two seminars 064 restored. `verify_065` block C proves
+the same thing one layer down, per row, in SQL.
+
+**Two traps hit while doing this, both worth knowing:**
+
+- **The first re-fetch was a STALE ISR COPY** (`age: 15`, `x-vercel-cache: HIT`)
+  and showed Nomadica still absent from `/events/schedule`. Taken at face value
+  that reads as "064 did not reach the page". These pages revalidate on a 60s
+  ISR window, so **a rendered check must confirm the page actually revalidated** -
+  check `age` and poll past the window - or it is a measurement of the past.
+  Confirmed stable afterwards by polling 8 times across a full revalidation
+  cycle (`age` cycling 0 to 60): Bookkeeping present, Nomadica x2, every time.
+  One fetch is not evidence for an ISR page; a full cycle is.
+- **Byte-for-byte is the wrong test across a deploy.** Pushing triggered a
+  Vercel build, so every asset hash, the `dpl_` deployment id and the RSC build
+  id changed. Compare rendered TEXT with those stripped. After stripping,
+  `/tickets` differs only by the build id.
+
+065 is **APPLIED and VERIFIED** (Ryan, 2026-08-31). It was a **provable no-op**
+on the data as it stood - no confirmed credit item exists, so the new coalesce
+branch is never taken. That is exactly why `verify_065`
 block D matters: it builds fixtures to take that branch, because blocks A to C
 would pass identically for a migration that read the credit wrongly or not at
 all.
@@ -354,6 +387,9 @@ are about to do something in the left column, read the entry.
 | replacing a view | **Read the live shape, not the last migration that touched it.** A file says what a shape was INTENDED to be; only the database says what it IS. 065 copied 047's column list, 047 turned out never to have been applied, and Postgres refused the whole statement with 42P16. Pin the list in a verify block afterwards. |
 | holding a migration | **A hold whose gate fails silently is indistinguishable from a hold nobody remembers.** The gate must FAIL LOUDLY or be CHECKED ON A SCHEDULE - recording it in a header is not enough. Full entry below. |
 | writing "applied through N" | **Do not. A range is not a status.** It reads as contiguous and hides anything unapplied inside it. State every migration as applied, held (with its gate AND that gate's current status) or not applied. This is how 047 hid for months. |
+| trusting a green migration | **A green migration does not imply its data landed.** Schema and seed are separate applications with separate evidence, and the seed's evidence is THE DATA. 061 was applied and verified while the voting window was NULL on both events. |
+| asserting live state in HANDOFF | **A fact stated in this file is a claim, not evidence.** Name how it was verified and when, every time. Both incidents this session began with acting on an unverified sentence in here. |
+| verifying a seed | **Assert VALUES, not non-nullness.** A seed that wrote the wrong values looks identical to one that wrote the right ones. Call the function; read the number. |
 | a verify that passes on a view | **Row counts and values do not check SHAPE.** A view can return the right rows with the right credits and be missing a column entirely. `create or replace` refuses a drop, but a DROP + CREATE does not. Assert the column list and order. |
 | moving hardcoded content into a table | **Confirm the new source matches the old BEFORE deleting the old.** |
 | writing a plpgsql function | **RETURNS TABLE columns become OUT variables** - qualify every column reference. And **a verify block must CALL the function**, not just describe it. |
@@ -422,6 +458,51 @@ implies contiguity it cannot promise. 047 sat unapplied inside "applied and
 verified through 063", and that sentence is why migration 065 was written
 against a column list that did not exist, and was rejected with
 `42P16: cannot drop columns from view`.
+
+### A green migration does not imply its data landed
+
+**Schema and seed are two separate applications, with two separate bodies of
+evidence, and the seed's evidence is THE DATA - never the migration's status.**
+
+This is the same shape as the hold above, one layer down. Migration 061 was
+applied and verified: the columns existed, `voting_state(p_event_id)` existed,
+the row in the migration table was green. Every one of those facts was true, and
+none of them said anything about whether a window had been WRITTEN. It had not.
+`voting_window_2027.sql` had never run, both events held NULL, and this file
+meanwhile stated the window as live fact with exact timestamps.
+
+A green migration row answers "can this data exist?". It never answers "does
+it?". So:
+
+- Seeds get their own status table, with the DATA as evidence - a count, a
+  value, a function's return - not a tick against the migration that made room
+  for it.
+- **A verify block must CALL the function, not describe it**, and must assert on
+  VALUES, not on non-nullness. A seed that wrote the wrong values looks exactly
+  like a seed that wrote the right ones: both leave a non-null column. The
+  voting window was confirmed by reading 31 for `days_to_exclusive_bound` and
+  "before" from `voting_state()`, not by observing two timestamps were present.
+- The same applies to anything else where schema and content are applied
+  separately: `page_content`, `page_images`, `team_members`, `contests`. An empty
+  table and an unapplied seed are indistinguishable from the schema side.
+
+### A fact stated in this file is a CLAIM, not evidence
+
+Both the 047 hold and the voting window were asserted here as settled, and both
+were wrong. Neither was a lie; each was true when written, or believed true, and
+then nothing re-checked it. **This file is the least reliable source in the
+project about live state, precisely because it is the easiest to write.**
+
+So: **anything in this file describing LIVE STATE must name how it was verified
+and when.** Not "the voting window opens 2027-04-21" but "verified by Ryan
+running the seed and reading its report, 2026-08-31". A sentence without a
+provenance is a sentence someone will act on, and the two incidents this session
+both began with acting on one.
+
+Where the provenance is a person saying so, write that too - "Ryan confirmed"
+is a real and useful provenance, and it is honest about being a claim rather
+than a measurement. The failure mode is not trusting people; it is a statement
+whose origin has been forgotten, which then reads as measured fact.
 
 **And the reason this one matters more than the others in this file:** the
 failure it produces is invisible. Running 047 as originally written would have
@@ -563,6 +644,11 @@ clamp and leave the UPDATE clamp broken with no error raised. That is what
 
 ## 2. Migration state - 027 to 049 (HISTORICAL - not a status)
 
+> **Statuses in this table were CORRECTED 2026-08-31** against the live
+> database. Several said "NOT YET APPLIED" and were in fact applied - which is
+> the same class of stale claim as the 047 and voting-window incidents. The
+> authoritative status is the explicit table in section 0.
+
 > **This heading names a RANGE OF FILES, not an assertion that all of them are
 > applied.** The authoritative status is the explicit table in section 0, audited
 > against the live database. Do not read a range anywhere in this file as
@@ -594,11 +680,11 @@ outstanding and must run after the deploy.
 | 042 | booth `is_sellable` / `house_use` | applied |
 | 043 | service_role trigger exemption + 4 owner policies | applied |
 | 044 | `schedule_items` + sponsor presentation credit | applied + verified |
-| 045 | rename Apply Hub CMS key `home` → `applyHub` | **NOT YET APPLIED - run after the deploy** |
-| 046 | panels get real `panel_day` / `panel_start` | **NOT YET APPLIED - run BEFORE the deploy** |
+| 045 | rename Apply Hub CMS key `home` → `applyHub` | **APPLIED** (live audit 2026-08-31). Effect unobservable either way: `page_content` holds 0 rows, so there was nothing to rename. |
+| 046 | panels get real `panel_day` / `panel_start` | **APPLIED** (columns live). Its BACKFILL matched nothing - see 064. |
 | 047 | drop the free-text panel date columns | **HELD until 2026-08-20** |
-| 048 | profile self-edit: audit trail + logo storage path | **NOT YET APPLIED** |
-| 049 | sponsor owner UPDATE + commercial clamp + insert clamp | **NOT YET APPLIED** |
+| 048 | profile self-edit: audit trail + logo storage path | **APPLIED** (`profile_edits` live). |
+| 049 | sponsor owner UPDATE + commercial clamp + insert clamp | **UNCONFIRMED** - trigger functions and policies only, invisible to the OpenAPI audit. No evidence either way. |
 
 **Convention adopted after 046 failed with 42P16 (2026-08-14): `create or
 replace view` can only APPEND columns.** It compares the new column list
