@@ -1036,9 +1036,17 @@ walk-ins do not register. That caveat is rendered above the registration list in
      shape does when it is not caught. Fixed by adding
      `and pid <> pg_backend_pid()`.
 
+  5. **A log that only fires on error cannot report a silent success.** The
+     `import-returning` rollback deleted an application after a failed invoice
+     insert and logged only when `error` was non-null. Its own comment says the
+     surviving row is 'approved with no invoice and IS A SWEEP TARGET' - so the
+     warning about that state could not fire in the case that creates it, since
+     a zero-row delete returns no error. Guarded on row count in 723aa82.
+
   The shape is always the same: the check looks for an absence and an absence is
   what a broken check produces too. A check that observes a RESOURCE has the
-  same failure - it finds the one it created itself.
+  same failure - it finds the one it created itself. And a check that only runs
+  on the error path cannot see the failure that produces no error.
 
 - **Silent success is the default failure mode of an RLS write, not an edge
   case.** Measured on the live `page_images` table, not reasoned about: an anon
@@ -1107,8 +1115,18 @@ walk-ins do not register. That caveat is rendered above the registration list in
 - **Tattoo Goo** is `status='pending'` - an unanswered Gold offer at $3,000, hold
   expiring 2026-08-28. Accept path is held, commented, in
   `supabase/seeds/tattoo_goo_offer.sql`.
-- **Two invoices** ($160 each, Jazz N Soul and Tacos Snacks) survive against
-  deleted food trucks. Harmless; flagged rather than removed.
+- **Two invoices exist, and this note used to describe the wrong ones.** It
+  previously said $160 each against deleted food trucks (Jazz N Soul, Tacos
+  Snacks). Those are gone. As of 2026-08-31 the two live invoices are:
+
+  | amount | attached to | what it is |
+  |---|---|---|
+  | $3,000 | sponsorship `32ef207d` | Tattoo Goo, the unanswered Gold offer |
+  | $500 | sponsorship `8a7cd934` | the ZZ TEST RLS harness pending row |
+
+  Neither is an orphan - both carry a `sponsorship_id`. The harness one goes
+  with the harness at cutover, FK-ordered. Verified by query, not by reading
+  this note, which is why the note was wrong.
 - **Storage still holds test uploads.** Delete `contest-photos`,
   `food-truck-logos`, `panel-images`, and the user-id folders in
   `application-docs` and `exhibitor-media`. Keep `exhibitor-media/sponsors/`
