@@ -1,6 +1,41 @@
 -- Migration 047: drop the free-text panel_date / panel_time. Phase 2 of 2.
 --
 -- ════════════════════════════════════════════════════════════
+-- ⚠  AMENDED 2026-08-31. THIS IS NOT THE ORIGINAL BODY.
+-- ════════════════════════════════════════════════════════════
+--
+-- WHAT CHANGED: the panels_public definition below now carries the
+-- presentation_credits join and the three-way coalesce introduced by migration
+-- 065. Nothing else was touched - the drops, the dependency check, the grant
+-- and the hold conditions are as originally written.
+--
+-- WHY: this migration DROPS and RECREATES panels_public from its own text. Its
+-- original body predates presentation_credits entirely - 060 created that table
+-- thirteen migrations later - so it rebuilt the view with
+-- `coalesce(sp.sponsor_name, p.presented_by_fallback)` and no credit join.
+-- Running it as written, after 065, would have silently reverted the panels
+-- dual-read: no error, no failing page, a sold presentation credit simply
+-- stops rendering. That is the worst failure shape in this project, and it is
+-- the one 064 was written to repair a case of.
+--
+-- WHY NOW: this migration sat unapplied because its own gate never passed. Step
+-- 3 below requires verify_046 to return zero rows; it returned two, because
+-- both panels had a null panel_day - the exact defect 064 repaired on
+-- 2026-08-31. The gate is satisfiable now, which means someone will run this,
+-- which is why it could no longer be left as written.
+--
+-- ⚠  WHEN YOU DO RUN THIS, UPDATE verify_065.sql BLOCK E IN THE SAME PASS.
+-- Block E pins panels_public's column list, and this migration deliberately
+-- changes it: 20 columns become 18, the deprecated pair goes, and panel_day /
+-- panel_start move from last to positions 5 and 6. Block E will fail on the
+-- old string, and that failure is correct - it is the guard doing its job, not
+-- a defect. The expected list afterwards is:
+--
+--   id,event_id,title,description,panel_day,panel_start,location,panelists,
+--   is_free,cost,signup_type,max_capacity,image_url,host_email,presented_by,
+--   presented_by_website,presented_by_logo_url,presented_by_linked
+--
+-- ════════════════════════════════════════════════════════════
 -- HELD UNTIL 2026-08-20. DEFERRED ON PURPOSE — NOT FORGOTTEN.
 -- ════════════════════════════════════════════════════════════
 --
@@ -76,7 +111,13 @@ select p.id, p.event_id, p.title, p.description,
        p.location, p.panelists, p.is_free, p.cost, p.signup_type,
        p.max_capacity, p.image_url,
        case when p.signup_type = 'email_host' then p.host_email end as host_email,
-       coalesce(sp.sponsor_name, p.presented_by_fallback) as presented_by,
+       -- AMENDED 2026-08-31: carries migration 065's dual-read. Precedence is
+       -- confirmed sponsorship, then confirmed credit, then the text fallback.
+       -- The sponsorship keeps the top slot because it is the only source that
+       -- also supplies website and logo_url; invert it and a row holding both
+       -- would render one company's name linked to another company's site.
+       -- Without these three lines this migration silently un-ships 065.
+       coalesce(sp.sponsor_name, c.buyer_name, p.presented_by_fallback) as presented_by,
        sp.website  as presented_by_website,
        sp.logo_url as presented_by_logo_url,
        (sp.id is not null) as presented_by_linked
@@ -84,6 +125,14 @@ select p.id, p.event_id, p.title, p.description,
   left join sponsorships sp
     on sp.id = p.presented_by_sponsorship_id
    and sp.status = 'confirmed'
+  -- Cannot fan a panel into several rows: uq_credit_item_panel (060) allows at
+  -- most one credit per panel. An unconfirmed credit falls through to the
+  -- fallback, for the same reason an unconfirmed sponsorship does.
+  left join presentation_credit_items ci
+    on ci.panel_id = p.id
+  left join presentation_credits c
+    on c.id = ci.credit_id
+   and c.status = 'confirmed'
  where p.is_published = true;
 
 -- Reissued because the DROP above discarded it. Omitting this is a silent

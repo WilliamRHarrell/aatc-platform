@@ -193,6 +193,18 @@ export default function AdminPanelsPage() {
 
   const savePanel = async () => {
     if (!form.title.trim() || !eventId) return
+
+    // Mirrors panels_published_has_schedule (migration 064). The constraint is
+    // the real guard; this exists so the reason arrives as a sentence instead
+    // of as a check violation surfacing through guardedWrite's generic message.
+    // Not a speculative check: /events/schedule keeps only panels whose
+    // panel_day matches a programme day, so publishing without both columns
+    // puts the panel, and any presentation credit on it, on no page at all.
+    if (form.is_published && (!form.panel_day || !form.panel_start)) {
+      toast.error('A published panel needs both a day and a start time, or it is dropped from the schedule page.')
+      return
+    }
+
     setWorking(true)
 
     const costCents = form.is_free ? 0 : Math.round(parseFloat(form.cost || '0') * 100)

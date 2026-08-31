@@ -7,7 +7,65 @@
 
 ## 0. START HERE - state as of 2026-08-31
 
-### Migrations: applied and verified through 063
+### ⚠ 047 IS NOT APPLIED, AND "THROUGH 063" NEVER MEANT ALL OF THEM
+
+Read this before writing any migration that touches `panels_public`.
+
+**047 has never run.** It is Phase 2 of the 046 change and was deliberately
+HELD, gated on a step-3 confirmation that `verify_046` returned zero rows. That
+gate never passed - the failed backfill 064 repaired is exactly what was failing
+it - so the hold worked as designed and then quietly became permanent.
+
+Consequences, all confirmed against the live database:
+
+- `panels` still has `panel_date` and `panel_time`, still holding
+  `'Sunday, April 18'` with `'1:30 PM'` and `'3:00 PM'`.
+- `panels_public` is still **046's shape**: the deprecated pair at positions 5
+  and 6, and `panel_day` / `panel_start` APPENDED LAST.
+- This file previously headed its migration list "applied and verified through
+  063". That range read as contiguous, 047 sits unapplied inside it, and that is
+  how migration 065 came to be written against a column list that does not exist
+  and was rejected whole with **`42P16: cannot drop columns from view`**. The
+  range phrasing is now banned and replaced by an explicit status table below.
+
+**The lesson, and it is now a rule below: a migration file says what someone
+INTENDED a shape to be. Only the database says what it IS.** Read live view
+shapes from `information_schema` before replacing a view. `verify_065` block E
+pins both lists so this cannot recur silently.
+
+**⚠ BEFORE 047 IS EVER RUN, CARRY THE CREDIT JOIN INTO ITS VIEW BODY.** 047
+drops and recreates `panels_public` from its own text, which still reads
+`coalesce(sp.sponsor_name, p.presented_by_fallback)` with no credit join.
+Running it as written would silently revert 065's panels dual-read: no error, no
+failing page, a presentation credit simply stops rendering. 047's precondition
+is finally satisfiable now that 064 has landed, so this is live, not theoretical.
+
+### Migration status - EXPLICIT, because a range is not a status
+
+**Never write "applied through N" again.** That phrasing is what produced the
+047 incident: it reads as contiguous, it was not, and a migration sat unapplied
+inside the range for months. A number omitted from a range says nothing about
+why. Every migration below is stated as APPLIED, HELD (with its gate and the
+gate's current status) or NOT APPLIED.
+
+Audited 2026-08-31 against the LIVE DATABASE, not against this file.
+
+| # | status | detail |
+|---|---|---|
+| 001-046 | **APPLIED** | every table, view and column each one creates is present live. |
+| **047** | **HELD - GATE NOW OPEN, DO NOT RUN AS-IS** | Drops `panels.panel_date` / `panel_time`. Gate: step 3 of its own header, "verify_046 returns zero rows". That gate FAILED SILENTLY for months - both panels had a null `panel_day`, which is the defect 064 repaired - so the hold became permanent without anyone deciding it. **The gate is now satisfiable.** 047 was AMENDED 2026-08-31 to carry 065's credit join; before amendment, running it would have silently reverted the panels dual-read. Running it also changes `panels_public` from 20 columns to 18, so `verify_065` block E must be updated in the same pass. Its header carries the replacement list. |
+| 048-063 | **APPLIED** | as above. |
+| **064** | **APPLIED + VERIFIED** 2026-08-31 | panel day/start repair, `panels_published_has_schedule`. |
+| **065** | **NOT APPLIED** | dual-read. Rejected on its first run with `42P16` (see below); fixed. Paste it, then `verify_065.sql`. |
+
+**What this audit could and could not see.** It reads the live schema through
+PostgREST's OpenAPI document, which exposes tables, views, columns and callable
+RPCs. It CANNOT see policies, grants, indexes, constraints, trigger functions or
+function bodies. So the migrations that only change RLS, grants or trigger
+functions - **002, 003, 007, 011, 015, 024, 025, 031, 034, 041, 043, 049, 054** -
+are not confirmed by it. There is no evidence of absence for any of them; they
+are simply invisible to this method. Anything asserting one of those needs a
+verify block run in the SQL Editor.
 
 | # | what | verified |
 |---|---|---|
@@ -17,19 +75,71 @@
 | 053 | vote auth, one vote per category per day | verify_053 |
 | 054 | content_editor editorial writes | verify_054 |
 | 055 | likeness release | verify_055 |
-| 056 | after-parties hero image slug | - |
+| 056 | after-parties hero image slug | live: 4 after-party slugs present |
 | 057 | `page_galleries` | - |
-| 058 | after-party per-night image slugs | - |
+| 058 | after-party per-night image slugs | live: thursday/friday/saturday present |
 | 059 | `team_members` | - |
 | 060 | `presentation_credits` + join table | (verify via 062 block C) |
-| 061 | voting window | verify_061 |
+| 061 | voting window COLUMNS + `voting_state()` | verify_061. **The SEED is a separate matter - see below.** |
 | 062 | `exclusivity_grants` | verify_062 |
 | 063 | `show_on_sponsors` / `show_on_vote_pages` | - |
 
-Seeds applied: `contests_2027.sql` (49 categories, 13/20/16 Fri/Sat/Sun),
-`tattoo_battle_credit.sql`, `voting_window_2027.sql`.
+### ⚠ THE VOTING WINDOW IS NOT SET. This file previously said it was.
 
-**Nothing is left unapplied except what is listed in section 2.**
+`events.voting_opens_at` and `voting_closes_at` are **NULL on both events**,
+confirmed live 2026-08-31. `voting_window_2027.sql` has NOT been applied.
+
+Migration 061 IS applied - the columns and `voting_state(p_event_id)` exist. It
+is the SEED that never ran, which is why this was missed: the migration table
+above was green and the seed list said otherwise.
+
+**Current real behaviour:** a NULL window is CLOSED, enforced in RLS. So the
+site fails safe and `/contests` shows the closed state. Nothing is leaking. But
+until the seed runs, voting cannot open, and this file previously stated the
+window as live fact with exact timestamps. Run `voting_window_2027.sql` when
+voting should be able to open; its UPDATE targets `where is_active`, and its
+report's hardcoded id `28a3ad3d-...` is confirmed to be the active event.
+
+### Seed status - also explicit, also audited live 2026-08-31
+
+| seed | status | evidence |
+|---|---|---|
+| `contests_2027.sql` | **APPLIED** | 49 contests live |
+| `schedule_2027.sql` | **APPLIED** | 25 schedule_items live |
+| `panels_2027.sql` | **APPLIED** | 2 panels live. NOTE: it ran AFTER 046, which is why 046's backfill matched nothing and 064 was needed. |
+| `tattoo_battle_credit.sql` | **APPLIED** | 3 Battle rows carry `Whole Life Aftercare` |
+| `voting_window_2027.sql` | **NOT APPLIED** | both events have NULL `voting_opens_at` / `voting_closes_at`. See the warning above. |
+
+### WRITTEN BUT NOT YET APPLIED - paste 065, then verify_065
+
+There is no psql, Supabase CLI or connection string in this environment, only
+the anon and service-role keys, and DDL does not go through PostgREST - so these
+are paste-into-the-SQL-Editor jobs. Live view shapes were read through
+PostgREST's OpenAPI document, which is the one way this environment can see
+them.
+
+| # | what | then run |
+|---|---|---|
+| ~~064~~ | APPLIED AND VERIFIED 2026-08-31 | done |
+| 065 | `presentation_credits` dual-read on both public views | `verify_065.sql` |
+
+**065 was rejected on its first run** with `42P16: cannot drop columns from
+view`, because its `panels_public` list was copied from 047 - which is not
+applied. Nothing was applied; the statement was refused whole. Fixed by
+restoring the live 046 shape and changing only the `presented_by` expression,
+so it stays a pure `create or replace` and the grants survive.
+
+**Order mattered and 064 has landed**, so `/events/schedule` now carries both
+seminars and 065's identical-render check is finally meaningful. Re-capture the
+baseline for `/events/schedule` before running step 2; any baseline taken before
+064 differs for reasons unrelated to 065.
+
+Both verify files are the paste-the-whole-file, read-the-MESSAGES-pane shape: a
+failure RAISES and aborts, so a clean finish IS a pass, and the single trailing
+`select` is what the editor displays.
+
+**Apart from 064 and 065, nothing is left unapplied except what is listed in
+section 2.**
 
 ### Live and working
 
@@ -67,13 +177,86 @@ build pages to match the wording.** It appears in
 
 ## 2. IN FLIGHT / NEXT
 
+### Seminar times are PRESENTER-CONFIRMED, not document-derived
+
+Confirmed with both presenters directly on **2026-08-31**. They said the times
+are correct and will come back if that changes.
+
+| seminar | `panel_day` | `panel_start` |
+|---|---|---|
+| Bookkeeping for Tattoo Industry Professionals (Nomadica) | 2027-04-18 | 13:30 |
+| Tooth Gem Seminar | 2027-04-18 | 15:00 |
+
+These values were RECOVERED from `supabase/seeds/panels_2027.sql`,
+`docs/aatc-2027-schedule-spec.md:50` and `docs/CUTOVER.md:465`, which all agree
+- but they are now confirmed by the people presenting, and that is the stronger
+source.
+
+**So if a presenter moves, the correction goes to the DATA**, not to whichever
+document looks authoritative. Change the `panels` row through `/admin/panels`
+or a new migration. The seed file cannot be the fix: a seed does not re-run
+against a live database, so editing it would leave production unchanged and
+leave the seed describing a schedule nobody is presenting. The documents above
+are now the WEAKER record, and the next person to read them needs to know that
+before they "correct" a live row to match a stale doc.
+
+**Correction, same day:** an earlier version of this paragraph said 047 had
+dropped `panel_date` / `panel_time`. It has not - 047 is unapplied, and both
+columns are still live and still hold `'Sunday, April 18'` with `'1:30 PM'` and
+`'3:00 PM'`. That is a fourth source agreeing with the presenters, and it also
+explains 046's failure: the strings were always right, so the backfill's join
+simply had no `schedule_items` rows to match when it ran. The panels seed ran
+AFTER 046, not before it.
+
+### The seminars were missing from /events/schedule - migration 064
+
+Found 2026-08-31 by querying `panels_public` as anon, not by reading source.
+Both panels had `panel_day` and `panel_start` **NULL**. `/events/schedule`
+keeps only panels whose `panel_day` matches a programme day, so **both seminars
+were absent from the schedule page, and with them the Nomadica presentation
+credit** - a sold commitment rendering on no page that matters. Nothing threw.
+
+How it happened: 046 backfilled by joining `panels.panel_date` against labels
+built from `schedule_items`, that join matched nothing when it ran, and an
+UPDATE affecting zero rows is not an error. 047 then dropped `panel_date` /
+`panel_time`, so the source strings are gone from the database.
+`verify_046.sql:49` checks for exactly this and returned those two rows.
+
+064 repairs the data, asserts its own post-condition (the assertion 046 lacked)
+and adds `panels_published_has_schedule`, so publishing a panel with no slot is
+now impossible rather than merely detectable.
+
+Blast radius, checked per page in RENDERED output:
+
+| page | before 064 |
+|---|---|
+| `/events/schedule` | both seminars absent, Nomadica credit not rendered |
+| `/` | both render, but with no day and no time |
+| `/events/tattoo-panels` | renders them client-side under a literal "TBD" |
+
 ### presentation_credits dual-read, then retire the fallback
 
 Nothing is migrated into it yet, deliberately. The sequence agreed:
 
 1. Dual-read: render from a credit if one exists, else `presented_by_fallback`.
+   **Written as migration 065.** Precedence decided 2026-08-31: **confirmed
+   sponsorship, then confirmed credit, then fallback.** The sponsorship keeps
+   the top slot because it is the only source carrying `website`; invert it and
+   an item holding both renders one company's name linked to another company's
+   site. Whole Life Aftercare is due both, so this is not hypothetical.
 2. Verify `/events/schedule`, `/` and `/tickets` render BYTE-IDENTICALLY.
-3. Only then move the four rows and drop the fallback.
+   **Re-capture the baseline AFTER 064 lands** - 064 adds two seminars to
+   `/events/schedule`, so any baseline taken before it will differ for reasons
+   that have nothing to do with 065.
+3. Only then move the four rows and drop the fallback. `verify_065.sql` block Z
+   is the reconciliation: it lists every rendered credit with the source it
+   resolves from. Drive `source = 'fallback'` to zero first.
+
+065 is a **provable no-op** on today's data - no confirmed credit item exists,
+so the new coalesce branch is never taken. That is exactly why `verify_065`
+block D matters: it builds fixtures to take that branch, because blocks A to C
+would pass identically for a migration that read the credit wrongly or not at
+all.
 
 Same discipline as `TEAM_FALLBACK` and the VIP price. **`verify_044` query F is
 the counter** - it stands at 4 and counts ITEM ROWS carrying a text credit, not
@@ -168,6 +351,10 @@ are about to do something in the left column, read the entry.
 | a write spanning a file and a row | **Rollback direction follows which failure is visible.** |
 | a constraint could be violated | **Make the invalid state unreachable**, not merely detectable. |
 | editing a migration | **Never edit one someone is partway through applying.** Add a new one. |
+| replacing a view | **Read the live shape, not the last migration that touched it.** A file says what a shape was INTENDED to be; only the database says what it IS. 065 copied 047's column list, 047 turned out never to have been applied, and Postgres refused the whole statement with 42P16. Pin the list in a verify block afterwards. |
+| holding a migration | **A hold whose gate fails silently is indistinguishable from a hold nobody remembers.** The gate must FAIL LOUDLY or be CHECKED ON A SCHEDULE - recording it in a header is not enough. Full entry below. |
+| writing "applied through N" | **Do not. A range is not a status.** It reads as contiguous and hides anything unapplied inside it. State every migration as applied, held (with its gate AND that gate's current status) or not applied. This is how 047 hid for months. |
+| a verify that passes on a view | **Row counts and values do not check SHAPE.** A view can return the right rows with the right credits and be missing a column entirely. `create or replace` refuses a drop, but a DROP + CREATE does not. Assert the column list and order. |
 | moving hardcoded content into a table | **Confirm the new source matches the old BEFORE deleting the old.** |
 | writing a plpgsql function | **RETURNS TABLE columns become OUT variables** - qualify every column reference. And **a verify block must CALL the function**, not just describe it. |
 | writing dates a year ahead | **Check BOTH offsets independently**, especially across March/November. |
@@ -191,6 +378,57 @@ see CUTOVER.md §A for the SSL-mode trap.
 
 The authoritative launch list is [CUTOVER.md](CUTOVER.md). This file is session
 state; that file is the plan.
+
+---
+
+## A hold whose gate fails silently becomes permanent
+
+**Written out in full because it is the most valuable rule from the 2026-08-31
+session, and because the incident took months to surface and was found by
+accident.**
+
+Migration 047 was held on purpose. Its header named the gate precisely: run it
+only once step 3 confirms `verify_046` returns zero rows. That was a good
+decision, correctly recorded, and it still failed - because **the gate was being
+failed by a defect nobody was watching for.** Both panels had a null
+`panel_day`, so `verify_046` would have returned two rows every time it was run.
+It was not run again. The hold silently became permanent.
+
+The two states are indistinguishable from outside:
+
+- a hold waiting on a condition that has not yet been met, and
+- a hold waiting on a condition that has FAILED and will never be met
+
+Both look like "not applied yet". Neither throws. And the second one degrades
+further over time, because the surrounding docs keep being written as though the
+migration is merely pending.
+
+**So a hold is not adequately expressed by recording it.** A recorded gate is a
+note to a reader who may never come. Every hold needs ONE of:
+
+1. **A gate that fails loudly.** The condition is asserted somewhere that runs
+   on its own - a prebuild guard, a verify block in a file someone runs for
+   another reason, a check that raises. If the gate fails, something says so
+   without being asked.
+2. **A scheduled re-check**, with the date written down, and the current status
+   of the gate recorded each time it is checked - not just the gate itself.
+
+And the status must say **what the gate is doing right now**: open, blocked, or
+blocked-for-a-reason-that-is-itself-a-bug. "Held" alone is the state that hid
+this for months.
+
+The corollary is the phrasing rule: **never write "applied through N".** A range
+implies contiguity it cannot promise. 047 sat unapplied inside "applied and
+verified through 063", and that sentence is why migration 065 was written
+against a column list that did not exist, and was rejected with
+`42P16: cannot drop columns from view`.
+
+**And the reason this one matters more than the others in this file:** the
+failure it produces is invisible. Running 047 as originally written would have
+dropped and recreated `panels_public` without the credit join added by 065. No
+error. No failing page. No test failure. A sold presentation credit would simply
+have stopped rendering - the exact defect class this project has now hit twice,
+from both directions.
 
 ---
 
@@ -323,7 +561,12 @@ clamp and leave the UPDATE clamp broken with no error raised. That is what
       scope them - but it reads `food_trucks`, which is why finding (2) above
       matters there.
 
-## 2. Migration state - 027 through 049
+## 2. Migration state - 027 to 049 (HISTORICAL - not a status)
+
+> **This heading names a RANGE OF FILES, not an assertion that all of them are
+> applied.** The authoritative status is the explicit table in section 0, audited
+> against the live database. Do not read a range anywhere in this file as
+> "everything in it is applied" - that reading is exactly what hid 047.
 
 Applied through 044. Outstanding: 045, 046, 048, 049 (and 047, deliberately held). 027-033 and 035-042 confirmed by direct probe on
 2026-08-03; 034 confirmed by the operator (its effect is not visible through
