@@ -645,6 +645,44 @@ walk-ins do not register. That caveat is rendered above the registration list in
   submission, which is not a thing to leave reachable. `autoComplete="off"`
   stops a saved-address feature filling it in and locking a real person out.
 
+- **RULE: in plpgsql, RETURNS TABLE column names become OUT variables.** Any
+  bare reference to one inside the function body is ambiguous between the
+  variable and the column of the same name. plpgsql's default
+  `variable_conflict` is `error`, so it does NOT fail at `CREATE FUNCTION` - it
+  raises `column reference "x" is ambiguous` at CALL time.
+
+  Qualify every column reference in a function whose RETURNS TABLE shares a name
+  with a column it touches. `register_pinup_entry` returns `(id, status,
+  queue_position)` and reads `pinup_entries.status`; the unqualified version
+  created cleanly and would have thrown a 500 for the first contestant to
+  submit, on a contest capped at 25 where the earliest entries matter most.
+
+  **Applying the migration cannot catch this.** Nor can inspecting `pg_proc`, nor
+  checking the returned column names - all three report a healthy function. Only
+  calling it does.
+
+- **RULE: a verify block must CALL a function, not just describe it.** The two
+  defects in `register_pinup_entry` failed at different moments and only one was
+  loud:
+
+  | defect | caught at | announces itself |
+  |---|---|---|
+  | `position` as a RETURNS TABLE column | CREATE FUNCTION (parse) | yes, 42601 |
+  | bare `status` shadowed by the OUT variable | first CALL | no |
+
+  So every function a migration creates or replaces needs a verify block that
+  invokes it and reads back EVERY returned column, including the ones nothing
+  consumes yet. `queue_position` is returned by `register_pinup_entry` and used
+  by nothing - a hardcoded 1 or a null would have satisfied every other
+  assertion in `verify_051`, which is why block F2 registers twice and asserts
+  the value ADVANCES rather than merely existing.
+
+  Note also that a `create or replace` in a later migration is a SEPARATE
+  definition and needs its own verify. 052 rewrites `register_pinup_entry`
+  wholesale, so `verify_052` re-asserts the capacity branch and the returned
+  shape rather than trusting `verify_051`, which tested a different function
+  body. Both copies carried both defects until they were fixed in both places.
+
 - **RULE: a negative assertion needs a positive control.** Any check that
   something is absent, blocked, invisible, or rejected must be paired with a
   check proving the query could have found something in the first place.

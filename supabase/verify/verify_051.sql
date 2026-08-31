@@ -13,7 +13,8 @@
 -- something. See the rule in docs/HANDOFF.md - block G of verify_050 passed
 -- while testing nothing because it lacked exactly that.
 --
--- ⚠  BLOCKS F AND G WRITE TEST ROWS, then delete them. Block Z re-checks.
+-- ⚠  BLOCKS C, D, F, F2, G2 AND H WRITE TEST ROWS, then delete them.
+-- Block Z re-checks. Everything is prefixed zz-.
 -- ============================================================
 
 -- ── A. table shape and index
@@ -163,6 +164,66 @@ begin
   raise notice 'PASS: the waitlisted entry was stored, not discarded';
 
   delete from public.pinup_entries where email like 'zz-cap-%@example.com';
+end $$;
+
+-- ── F2. the function RETURNS what it claims to  (NOTICE pane)
+--    want: four PASS notices.
+--
+--    Block F asserts on `status` alone, and that is not enough. A function can
+--    parse, be created, return the right column NAMES, and still be broken at
+--    call time - which is exactly what happened here twice in one definition:
+--
+--      `position` as a RETURNS TABLE column is a parse error, caught at
+--      CREATE FUNCTION. That one announces itself.
+--
+--      A bare `status` inside the body is ambiguous against the OUT variable of
+--      the same name. plpgsql's default variable_conflict is `error`, so it
+--      raises at CALL time, not at creation. A verify that only inspected
+--      pg_proc, or only checked the returned column names, would report a
+--      healthy function.
+--
+--    So this block calls it for real and reads every column back. id must be a
+--    usable key that resolves to a row; queue_position must ADVANCE, because a
+--    hardcoded 1 or a null would satisfy every other assertion in this file.
+do $$
+declare
+  v_event uuid;
+  r1 record;
+  r2 record;
+  n int;
+begin
+  select id into v_event from public.events where is_active order by start_date limit 1;
+  delete from public.pinup_entries where email like 'zz-shape-%@example.com';
+
+  select * into r1 from public.register_pinup_entry(
+    v_event, 'ZZ Shape One', 'zz-shape-1@example.com', '(910) 555-0401') as t;
+
+  if r1.id is null then raise exception 'FAIL: returned id is null'; end if;
+  select count(*) into n from public.pinup_entries where pinup_entries.id = r1.id;
+  if n <> 1 then raise exception 'FAIL: returned id % does not resolve to a row', r1.id; end if;
+  raise notice 'PASS: returned id resolves to the row that was created';
+
+  if r1.status is null or r1.status not in ('confirmed','waitlist') then
+    raise exception 'FAIL: returned status was %', r1.status;
+  end if;
+  raise notice 'PASS: returned status is %', r1.status;
+
+  if r1.queue_position is null or r1.queue_position < 1 then
+    raise exception 'FAIL: returned queue_position was %', r1.queue_position;
+  end if;
+  raise notice 'PASS: first registration reported queue_position %', r1.queue_position;
+
+  -- The one that a hardcoded value would fail.
+  select * into r2 from public.register_pinup_entry(
+    v_event, 'ZZ Shape Two', 'zz-shape-2@example.com', '(910) 555-0402') as t;
+
+  if r2.queue_position <> r1.queue_position + 1 then
+    raise exception 'FAIL: queue_position did not advance - first %, second %',
+      r1.queue_position, r2.queue_position;
+  end if;
+  raise notice 'PASS: queue_position advanced % -> %', r1.queue_position, r2.queue_position;
+
+  delete from public.pinup_entries where email like 'zz-shape-%@example.com';
 end $$;
 
 -- ── G. concurrent inserts do not both take the last place  (NOTICE pane)
