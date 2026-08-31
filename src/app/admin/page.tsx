@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import DirectoryHealth from '@/components/admin/DirectoryHealth'
 import RecentProfileEdits from '@/components/admin/RecentProfileEdits'
+import PlacementCheckCard from '@/components/admin/PlacementCheckCard'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
@@ -129,6 +130,13 @@ export default function AdminPage() {
       {/* Directory funnel - the last count is a real anonymous read */}
       <div className="mb-8">
         <DirectoryHealth />
+      </div>
+
+      {/* Sponsor placements. Primary surface for the standing check: read as a
+          side effect of working, rather than depending on anyone remembering to
+          look. The email is secondary and only fires on what CHANGED. */}
+      <div className="mb-8">
+        <PlacementCheckCard />
       </div>
 
       {/* Type + status breakdown */}

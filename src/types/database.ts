@@ -899,6 +899,36 @@ export type Database = {
         }
         Relationships: []
       }
+      placement_check_runs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          finding_keys: string[]
+          findings: Json
+          id: string
+          ran_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          finding_keys?: string[]
+          findings?: Json
+          id?: string
+          ran_at?: string
+          status: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          finding_keys?: string[]
+          findings?: Json
+          id?: string
+          ran_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       exclusivity_grants: {
         Row: {
           buyer_name: string
@@ -1197,6 +1227,7 @@ export type Database = {
           show_on_homepage: boolean
           show_on_sponsors: boolean
           show_on_vote_pages: boolean
+          is_custom: boolean
           is_in_kind: boolean
           amount_locked: boolean
           hold_expires_at: string | null
@@ -1225,6 +1256,7 @@ export type Database = {
           show_on_homepage?: boolean
           show_on_sponsors?: boolean
           show_on_vote_pages?: boolean
+          is_custom?: boolean
           is_in_kind?: boolean
           amount_locked?: boolean
           hold_expires_at?: string | null
@@ -1253,6 +1285,7 @@ export type Database = {
           show_on_homepage?: boolean
           show_on_sponsors?: boolean
           show_on_vote_pages?: boolean
+          is_custom?: boolean
           is_in_kind?: boolean
           amount_locked?: boolean
           hold_expires_at?: string | null

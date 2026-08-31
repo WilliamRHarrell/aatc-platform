@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { runPlacementCheck, diffFindings, type Finding } from '@/lib/placement-check'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://aatc-platform.vercel.app'
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
@@ -22,6 +23,120 @@ async function sendEmail(kind: string, applicationId: string, extra: Record<stri
     },
     body: JSON.stringify({ kind, applicationId, ...extra }),
   })
+}
+
+
+/**
+ * The standing placement check, folded into this sweep rather than given its own
+ * cron entry. It is four small reads with no fan-out, so it costs nothing to run
+ * here, and one job that does two things beats two jobs nobody watches.
+ *
+ * RECORDS THE RUN WHATEVER HAPPENS. The dashboard has to tell no-findings from
+ * never-ran from errored, and a card that renders nothing means all three - two
+ * of which mean the check is broken. A failure is stored as status 'error' with
+ * the reason, never as an empty finding set, because an empty set reads as
+ * all-clear to both the card and the diff.
+ *
+ * EMAILS ONLY WHAT CHANGED, and only when something ACTIONABLE is new. Never
+ * daily, never on all-clear. This shares an inbox with the alert for a payment
+ * taken and not recorded, so a routine "still 3 findings" would train its
+ * readers to ignore the channel - and the thing they would start ignoring is
+ * the payment alert.
+ */
+async function placementCheck(supabase: ReturnType<typeof adminSupabase>) {
+  const { data: previous } = await supabase
+    .from('placement_check_runs')
+    .select('finding_keys')
+    .eq('status', 'ok')
+    .order('ran_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  let findings: Finding[]
+  try {
+    const result = await runPlacementCheck(supabase)
+    findings = result.findings
+    await supabase.from('placement_check_runs').insert({
+      status: 'ok',
+      findings: result.findings as unknown as never,
+      finding_keys: result.findingKeys,
+    })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e)
+    console.error(`[placement-check] FAILED: ${message}`)
+    await supabase.from('placement_check_runs').insert({ status: 'error', error_message: message })
+    return { ok: false, error: message }
+  }
+
+  // Diff against the last SUCCESSFUL run. Diffing against an errored run would
+  // treat every live finding as new and send a duplicate alert the morning after
+  // any transient failure.
+  const previousKeys = (previous?.finding_keys as string[] | undefined) ?? []
+  const { added, resolvedKeys } = diffFindings(findings, previousKeys)
+  const newActionable = added.filter(f => f.actionable)
+
+  // A first run has no baseline. Everything looks new, which is true but is not
+  // a CHANGE - and an alert listing every pre-existing finding is the "3
+  // findings" mail this design exists to avoid. Record it, do not send it.
+  const isFirstRun = previous === null
+
+  if (newActionable.length > 0 && !isFirstRun) {
+    await sendPlacementAlert(newActionable, resolvedKeys.length)
+  }
+
+  return {
+    ok: true,
+    findings: findings.length,
+    actionable: findings.filter(f => f.actionable).length,
+    new_actionable: newActionable.length,
+    resolved: resolvedKeys.length,
+    emailed: newActionable.length > 0 && !isFirstRun,
+  }
+}
+
+async function sendPlacementAlert(added: Finding[], resolvedCount: number) {
+  const to = process.env.PAYMENT_ALERT_EMAIL
+  if (!to || !process.env.RESEND_API_KEY) {
+    // Loud, because the finding is real and nobody is being told about it.
+    console.error(
+      '[placement-check] ALERT NOT SENT - PAYMENT_ALERT_EMAIL or RESEND_API_KEY unset. ' +
+      `${added.length} new placement finding(s) went unreported.`
+    )
+    return
+  }
+
+  // The subject carries the finding when there is exactly one, because a
+  // subject that reads "1 placement finding" makes the reader open the mail to
+  // learn something the subject could have told them.
+  const subject = added.length === 1
+    ? `AATC placement: ${added[0].message}`
+    : `AATC placement: ${added.length} new findings`
+
+  const lines = added.map(f => `<li>${f.message}</li>`).join('')
+  const resolved = resolvedCount > 0
+    ? `<p style="color:#666;font-size:13px;">${resolvedCount} previous finding(s) no longer apply.</p>`
+    : ''
+
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: process.env.RESEND_FROM_EMAIL,
+        to,
+        subject,
+        html:
+          `<p>New since the last check:</p><ul>${lines}</ul>${resolved}` +
+          `<p style="color:#666;font-size:13px;">A sponsor is not receiving a placement they paid for. ` +
+          `The full current list is on the admin dashboard.</p>`,
+      }),
+    })
+  } catch (e) {
+    console.error(`[placement-check] alert send failed: ${e instanceof Error ? e.message : String(e)}`)
+  }
 }
 
 export async function GET(req: Request) {
@@ -162,9 +277,13 @@ export async function GET(req: Request) {
     }
   }
 
+  // Runs regardless of the destructive kill switch: it only reads and records.
+  const placement = await placementCheck(supabase)
+
   return NextResponse.json({
     ok: true,
     mode: destructive ? 'full' : 'reminders-only',
+    placement,
     ranAt: now.toISOString(),
     ...(destructive ? {} : {
       note: 'Expiry and cancellation were NOT performed. would_expire / would_cancel ' +
