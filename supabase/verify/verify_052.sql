@@ -130,6 +130,11 @@ begin
   exception
     when check_violation then raise notice 'PASS: opt-in without a timestamp rejected';
   end;
+
+  -- F is the last block that needs the rows D and E created, so F removes them.
+  -- Cleanup belongs with the last user, not in whichever block happens to run
+  -- afterwards - that is what left two live rows for the capacity block to count.
+  delete from public.pinup_entries where email like 'zz-consent-%@example.com';
 end $$;
 
 -- ── G. the replaced function still behaves  (NOTICE pane)
@@ -137,10 +142,27 @@ end $$;
 --    the capacity branch and the returned shape are re-asserted here rather
 --    than trusted from verify_051 - that file tested a DIFFERENT definition.
 do $$
-declare v_event uuid; r1 record; r2 record;
+declare v_event uuid; r1 record; r2 record; n int;
 begin
   v_event := (select id from public.events where is_active order by start_date limit 1);
-  delete from public.pinup_entries where email like 'zz-cap52-%@example.com';
+  -- ENSURE the precondition, then ASSERT it. This block sets capacity to 1 and
+  -- expects the first entry to be confirmed at position 1, which is only true
+  -- against an empty entry list for this event. It previously deleted just its
+  -- own zz-cap52- rows and INHERITED the rest of the state: blocks D and E each
+  -- leave a row behind, so register_pinup_entry counted 2 and returned
+  -- 'waitlist at position 3'. The assertion was correct; the precondition was
+  -- assumed rather than established.
+  --
+  -- Asserted as well as ensured, because the delete only covers fixtures. A real
+  -- entry for this event would produce the same confusing off-by-N, and this
+  -- says so plainly instead.
+  delete from public.pinup_entries where email like 'zz-%@example.com';
+
+  n := (select count(*) from public.pinup_entries
+         where event_id = v_event and status in ('pending','confirmed'));
+  if n <> 0 then
+    raise exception 'FAIL: cannot test capacity - % live entr(y/ies) already exist for this event. This block needs an empty entry list; clear them or run it against a clean database.', n;
+  end if;
 
   for r1 in select * from public.register_pinup_entry(
     v_event, 'ZZ Cap52 One', 'zz-cap52-1@example.com', '(910) 555-0601',
@@ -158,8 +180,7 @@ begin
   end if;
   raise notice 'PASS: entry past capacity waitlisted at queue_position 2';
 
-  delete from public.pinup_entries where email like 'zz-cap52-%@example.com';
-  delete from public.pinup_entries where email like 'zz-consent-%@example.com';
+  delete from public.pinup_entries where email like 'zz-%@example.com';
 end $$;
 
 -- ── Z. residue check - run LAST

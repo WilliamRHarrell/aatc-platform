@@ -155,7 +155,18 @@ do $$
 declare v_event uuid; r record; i int; v_status text;
 begin
   v_event := (select id from public.events where is_active order by start_date limit 1);
-  delete from public.pinup_entries where email like 'zz-cap-%@example.com';
+  -- ENSURE then ASSERT, same as verify_052 block G. This block sets capacity to
+  -- 3 and expects entries 1 to 3 to be confirmed, which only holds against an
+  -- empty entry list. Blocks C, D and E each delete their own rows at the END of
+  -- the block, so today that is true - but it is INHERITED, not established, and
+  -- inheriting it is exactly what broke the equivalent block in verify_052.
+  delete from public.pinup_entries where email like 'zz-%@example.com';
+
+  i := (select count(*) from public.pinup_entries
+         where event_id = v_event and status in ('pending','confirmed'));
+  if i <> 0 then
+    raise exception 'FAIL: cannot test capacity - % live entr(y/ies) already exist for this event. This block needs an empty entry list.', i;
+  end if;
 
   for i in 1..3 loop
     v_status := (select status from public.register_pinup_entry(
