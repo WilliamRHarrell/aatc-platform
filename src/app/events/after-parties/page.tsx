@@ -2,6 +2,7 @@
 
 import PublicNav from '@/components/PublicNav'
 import PageImage from '@/components/PageImage'
+import { AFTER_PARTIES } from '@/lib/homepage-content'
 
 // REMOVED 2026-08-27: this held three invented venues (one of which names a
 // real Fayetteville business that has not agreed to host), invented DJ and band
@@ -12,17 +13,6 @@ import PageImage from '@/components/PageImage'
 // Venues are not confirmed. Per §3.4 there is no hardcoded day list here or on
 // the homepage: both render whatever published rows exist, grouped by day, and
 // a day with no rows does not render at all.
-const PARTIES: {
-  night: string
-  date: string
-  title: string
-  time: string
-  venue: string
-  address: string
-  description: string
-  entertainment: string[]
-  cover: string
-}[] = []
 
 export default function AfterPartiesPage() {
   return (
@@ -45,69 +35,48 @@ export default function AfterPartiesPage() {
       {/* Slot 'after-parties-hero'. Renders nothing until an admin uploads. */}
       <PageImage slug="after-parties-hero" className="mx-auto mt-8 max-w-3xl px-4" />
 
-      {/* Party Cards */}
+      {/* Party Cards - NIGHTS ONLY.
+          Thursday, Friday and Saturday are confirmed. Venue, act, door price and
+          start time are NOT: the last set of those on this page was invented and
+          was removed, so nothing goes back until Ryan confirms it. Read from the
+          same AFTER_PARTIES constant the homepage uses, so the two cannot drift.
+      */}
       <section className="px-4 py-12">
         <div className="mx-auto max-w-4xl space-y-6">
-          {PARTIES.length === 0 && (
-            <div
-              className="rounded-2xl px-6 py-10 text-center"
-              style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
-            >
-              <p className="text-sm" style={{ color: '#999' }}>
-                After-party venues for {'2027'} are being finalized. Nights, venues and
-                cover will be posted here once they are confirmed.
-              </p>
-            </div>
-          )}
-          {PARTIES.map(party => (
+          {AFTER_PARTIES.map(party => (
             <div
               key={party.night}
               className="rounded-2xl p-6"
               style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
             >
-              <div className="mb-4 flex flex-wrap items-center gap-3">
-                <span
-                  className="rounded-lg px-3 py-1 text-xs font-bold uppercase tracking-wider text-white"
-                  style={{ backgroundColor: '#8B7355' }}
-                >
-                  {party.night}
-                </span>
-                <span className="text-xs" style={{ color: '#666' }}>{party.date}</span>
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <h2 className="font-display text-xl font-bold text-white">
+                  <span className="text-emboss">{party.night}</span>
+                </h2>
+                <span className="text-sm" style={{ color: '#C4A882' }}>{party.date}</span>
+                {party.preConvention && (
+                  <span
+                    className="rounded-full px-2 py-0.5 text-xs font-semibold"
+                    style={{ backgroundColor: 'rgba(196,168,130,0.15)', color: '#C4A882' }}
+                  >
+                    Before the convention opens
+                  </span>
+                )}
               </div>
 
-              <h3 className="text-xl font-bold text-white">{party.title}</h3>
-
-              <div className="mt-3 flex flex-wrap gap-4">
-                <span className="text-xs" style={{ color: '#C4A882' }}>{party.time}</span>
-                <span className="text-xs" style={{ color: '#999' }}>{party.venue}</span>
-                <span className="text-xs" style={{ color: '#666' }}>{party.address}</span>
-              </div>
-
-              <p className="mt-4 text-sm leading-relaxed" style={{ color: '#999' }}>
-                {party.description}
-              </p>
-
-              <div className="mt-5">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: '#666' }}>
-                  What to Expect
+              {party.preConvention && (
+                <p className="mt-2 text-xs leading-relaxed" style={{ color: '#999' }}>
+                  The convention itself runs Friday to Sunday, April 16-18. This night is a
+                  kickoff the evening before the doors open, so plan your travel accordingly
+                  if you want to be there.
                 </p>
-                <ul className="space-y-1.5">
-                  {party.entertainment.map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs" style={{ color: '#999' }}>
-                      <span className="mt-1 h-1 w-1 shrink-0 rounded-full" style={{ backgroundColor: '#8B7355' }} />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              )}
 
-              <div
-                className="mt-5 rounded-lg px-4 py-2.5"
-                style={{ backgroundColor: '#2a2a2a' }}
-              >
-                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#666' }}>Cover: </span>
-                <span className="text-xs" style={{ color: '#C4A882' }}>{party.cover}</span>
-              </div>
+              <PageImage slug={party.imageSlug} className="mt-4" />
+
+              <p className="mt-3 text-xs" style={{ color: '#666' }}>
+                Venue and details to be announced.
+              </p>
             </div>
           ))}
         </div>

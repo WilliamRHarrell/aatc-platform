@@ -93,6 +93,12 @@ export const HOME_EVENTS: HomeEvent[] = [
 
 export interface AfterParty {
   night: string
+  /** Calendar date, so travel planning does not depend on knowing the weekday. */
+  date: string
+  /** True for nights that fall BEFORE the convention opens. */
+  preConvention: boolean
+  /** page_images slug for this night. Renders nothing until an image is uploaded. */
+  imageSlug: string
   venue: string | null
   address: string | null
 }
@@ -107,9 +113,16 @@ export interface AfterParty {
  * back without checking, and do not render an empty slot in its place.
  */
 export const AFTER_PARTIES: AfterParty[] = [
-  { night: 'Thursday', venue: null, address: null },
-  { night: 'Friday', venue: null, address: null },
-  { night: 'Saturday', venue: null, address: null },
+  // THURSDAY IS PRE-CONVENTION. The show runs Friday to Sunday, April 16-18, so
+  // the Thursday night is a kickoff before the doors ever open. Someone booking
+  // travel around the show dates would otherwise arrive a day after it. That is
+  // why the flag exists rather than the nights being listed flat.
+  { night: 'Thursday', date: 'April 15', preConvention: true,  imageSlug: 'after-party-thursday', venue: null, address: null },
+  { night: 'Friday',   date: 'April 16', preConvention: false, imageSlug: 'after-party-friday',   venue: null, address: null },
+  { night: 'Saturday', date: 'April 17', preConvention: false, imageSlug: 'after-party-saturday', venue: null, address: null },
+  // NO SUNDAY NIGHT. The convention's last day is Sunday; there is no after
+  // party for it. An earlier version of /events/after-parties listed
+  // Friday/Saturday/Sunday with invented venues - all of it removed.
 ]
 
 export function mapsUrl(address: string): string {
