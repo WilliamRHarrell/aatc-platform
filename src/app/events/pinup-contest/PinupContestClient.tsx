@@ -41,6 +41,7 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
     phone: '',
     address: '',
     ageConfirmed: '',
+    likenessRelease: '',
     marketingOptIn: '',
   })
   const [submitting, setSubmitting] = useState(false)
@@ -68,6 +69,7 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
         body: JSON.stringify({
           ...form,
           ageConfirmed: form.ageConfirmed === 'yes',
+          likenessRelease: form.likenessRelease === 'yes',
           marketingOptIn: form.marketingOptIn === 'yes',
           website: honeypot,
           elapsedMs: Date.now() - mountedAt,
@@ -322,6 +324,34 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
                     </label>
                     {fieldErrors.ageConfirmed && (
                       <p className="mt-1 text-xs" style={{ color: '#fca5a5' }}>{fieldErrors.ageConfirmed}</p>
+                    )}
+                  </div>
+
+                  {/* REQUIRED, and the only consent here that is a condition of
+                      entry. Says so on its face, and says why: the first place
+                      prize is a photo shoot, so it cannot be awarded to someone
+                      who has not agreed to be photographed. Burying that would
+                      make it look like boilerplate. Separate checkbox from both
+                      the age confirmation and the marketing opt-in - three
+                      distinct things, three boxes, none pre-checked. */}
+                  <div>
+                    <label className="flex items-start gap-2 text-xs" style={{ color: '#999' }}>
+                      <input
+                        type="checkbox"
+                        checked={form.likenessRelease === 'yes'}
+                        onChange={e => setForm({ ...form, likenessRelease: e.target.checked ? 'yes' : '' })}
+                        className="mt-0.5"
+                        aria-invalid={Boolean(fieldErrors.likenessRelease)}
+                      />
+                      <span>
+                        I agree to be photographed at the convention, and that AATC may use those
+                        photographs to promote the convention. <strong style={{ color: '#C4A882' }}>Required
+                        to enter</strong> - the first place Convention Feature prize is a photo shoot,
+                        so it cannot be awarded to a contestant who has not agreed. *
+                      </span>
+                    </label>
+                    {fieldErrors.likenessRelease && (
+                      <p className="mt-1 text-xs" style={{ color: '#fca5a5' }}>{fieldErrors.likenessRelease}</p>
                     )}
                   </div>
 

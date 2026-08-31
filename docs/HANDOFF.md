@@ -645,6 +645,32 @@ walk-ins do not register. That caveat is rendered above the registration list in
   submission, which is not a thing to leave reachable. `autoComplete="off"`
   stops a saved-address feature filling it in and locking a real person out.
 
+- **The likeness release IS a condition of entry. That is a deliberate
+  exception.** The pinup form carries three consents and they are not equivalent:
+
+  | consent | required? | why |
+  |---|---|---|
+  | `age_confirmed` | yes | contestants must be 18+ |
+  | `likeness_release` | **yes** | the first place prize is a photo shoot |
+  | `marketing_opt_in` | **no** | never a condition of anything |
+
+  Confirmed by Ryan, 2026-08-31. The reasoning for making the release mandatory
+  rather than optional-with-a-contingent-prize: judging happens on the day, and a
+  contest whose top prize cannot be awarded to some entrants forces you either to
+  check consent before judging or to re-award afterwards. Both are worse than
+  asking up front. It over-collects in one sense - 24 of 25 entrants consent to
+  something only the winner uses - which is why the wording states the tie to the
+  prize on its face instead of reading as boilerplate.
+
+  Enforced in THREE places so the route is not the only thing standing between a
+  POST and a stored entry: the check constraint, the anon insert policy
+  (`with check (... and likeness_release = true)`), and `register_pinup_entry`
+  itself.
+
+  `/info/policies` distinguishes the two explicitly. Without that the page's
+  "marketing is opt-in and never required" section would read as covering all
+  consent on the site, which is no longer true.
+
 - **RULE: a residue check and a cleanup are different jobs and must not share a
   block.** A final block that deletes fixtures AND reports what is left destroys
   the evidence that the owning block failed to clean up - it always reports

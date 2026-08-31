@@ -148,6 +148,9 @@ export async function POST(req: NextRequest) {
   // the timestamp - a self-reported consent time is not evidence of anything,
   // and it is the field that would matter if the consent were ever questioned.
   const marketingOptIn = body.marketingOptIn === true
+  // Required, unlike the other two consents. Validated here AND enforced by the
+  // insert policy and the function, so a direct POST to PostgREST cannot skip it.
+  const likenessRelease = body.likenessRelease === true
 
   // Server-side, not browser-side. `required` attributes are a convenience for
   // the person filling the form in, not a check - anything can POST here.
@@ -157,6 +160,8 @@ export async function POST(req: NextRequest) {
   else if (!EMAIL.test(email)) fieldErrors.email = 'That email address does not look right.'
   if (!phoneRaw) fieldErrors.phone = 'Please enter a phone number.'
   if (!ageConfirmed) fieldErrors.ageConfirmed = 'Contestants must be 18 or older.'
+  if (!likenessRelease) fieldErrors.likenessRelease =
+    'This is required to enter, because the first place prize is a photo shoot.'
 
   const phone = phoneRaw ? normalisePhone(phoneRaw) : null
   if (phoneRaw && !phone) fieldErrors.phone = 'Please enter a 10 digit US phone number.'
@@ -192,6 +197,7 @@ export async function POST(req: NextRequest) {
       p_address: address || null,
       p_notes: notes || null,
       p_marketing_opt_in: marketingOptIn,
+      p_likeness_release: likenessRelease,
     }),
     'Your entry did not save',
     `pinup-entry event=${event.id}`,

@@ -208,6 +208,19 @@ export default function PoliciesPage() {
               </p>
             </div>
             <div>
+              <p className="mb-1 font-bold text-white">Photography at the contest</p>
+              <p>
+                Entering the Miss AATC Pinup Contest requires agreeing to be photographed at
+                the convention and to AATC using those photographs to promote the convention.
+                This one <strong className="text-white">is</strong> required, unlike the
+                marketing opt-in above, and the reason is specific: the first place prize
+                includes a photo shoot, so it cannot be awarded to a contestant who has not
+                agreed to be photographed. It is a separate checkbox and it is not ticked for
+                you. If you would rather not be photographed, the contest is not something we
+                can enter you into - but nothing else on this site asks for it.
+              </p>
+            </div>
+            <div>
               <p className="mb-1 font-bold text-white">How to unsubscribe</p>
               <p>
                 Every marketing email has an unsubscribe option, or you can reply to any of
