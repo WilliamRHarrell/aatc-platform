@@ -50,7 +50,7 @@ export default function VipMeetGreetPage() {
           <span className="text-emboss">Gold Star VIP Meet & Greet</span>
         </h1>
         <p className="mx-auto mt-0 max-w-xl text-sm" style={{ color: '#999' }}>
-          <span className="text-emboss">An exclusive Saturday morning experience reserved for VIP 3-Day Pass holders. Meet renowned TV tattoo artists, get autographs, and take home a signed limited-edition poster before the convention floor opens to the public.</span>
+          <span className="text-emboss">An exclusive Saturday morning experience for Gold Star families and VIP 3-Day Pass holders. Meet renowned TV tattoo artists, get autographs, and take home a signed limited-edition poster before the convention floor opens to the public.</span>
         </p>
       </div>
 
@@ -65,8 +65,8 @@ export default function VipMeetGreetPage() {
             {[
               { label: 'Date', value: 'Saturday, April 17' },
               { label: 'Time', value: '10:00 AM' },
-              { label: 'Location', value: 'VIP Lounge' },
-              { label: 'Access', value: 'VIP 3-Day Pass Only' },
+              { label: 'Location', value: 'Front Room, Crown Complex' },
+              { label: 'Access', value: 'Gold Star Families & VIP Pass Holders' },
             ].map(item => (
               <div
                 key={item.label}
@@ -112,7 +112,14 @@ export default function VipMeetGreetPage() {
           No phone number or email is listed - §17.5 is open, and ACS
           coordinator contacts change. A stale number on THIS page is worse
           than none, because the person dialling it is already dealing with
-          enough. */}
+          enough.
+
+          Confirmed by Ryan 2026-09-13: Saturday 10:00 AM (a dictation
+          autocorrect kept writing "Sunday" - Saturday is right), Front Room at
+          the Crown Complex, refreshments served, VIP ticket holders also
+          welcome. "Around 50" passes is deliberately an approximation - the
+          figure varies year to year, so do not tighten it to an exact count,
+          and never show a remaining count or imply availability. */}
       <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
         <div className="mx-auto max-w-3xl">
           <h2 className="mb-6 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
@@ -123,9 +130,13 @@ export default function VipMeetGreetPage() {
             style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
           >
             <p className="text-sm leading-relaxed" style={{ color: '#bbb' }}>
-              American Tattoo Society donates VIP passes to Gold Star Family members. To sign
-              up, contact the Army Community Service Survivor Outreach Services Support
-              Coordinator, USAG Fort Bragg. Passes are first come, first served.
+              American Tattoo Society donates around 50 VIP passes each year for Gold Star
+              Family members. To sign up, contact the Army Community Service Survivor Outreach
+              Services Support Coordinator, USAG Fort Bragg. Passes are first come, first served.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed" style={{ color: '#bbb' }}>
+              The meet and greet is held in the Front Room at the Crown Complex, and
+              refreshments are served.
             </p>
           </div>
         </div>
