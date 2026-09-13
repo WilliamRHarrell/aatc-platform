@@ -31,7 +31,7 @@
 
 | Time | Item |
 |---|---|
-| 10:00 AM | Gold Star VIP Meet & Greet - Front Room |
+| 10:00 AM | Gold Star VIP Meet & Greet - Seminar Room |
 | 12:00 PM | Opening Ceremonies - Main Stage |
 | 1:00 PM | Tattoo Contest registration opens |
 | 1:30 PM | Strongest at the Sideshow - **Team Strongman competition** - Ballroom · *medieval armored combat demonstrations run in the breaks between rounds* |

@@ -1,6 +1,7 @@
 'use client'
 
 import PublicNav from '@/components/PublicNav'
+import { ROOMS } from '@/lib/event-config'
 
 /**
  * 2027 IS TEAM STRONGMAN ONLY.
@@ -66,10 +67,14 @@ export default function StrongestSideshowPage() {
               time (2:00 PM) disagreed with both other places the time lived.
               Strongman time now lives in exactly two places - the schedule_items
               seed and homepage-content.ts - both 1:00 PM. Do not reintroduce a
-              third copy here; link to the schedule instead. */}
+              third copy here; link to the schedule instead.
+
+              Room: the Ballroom, confirmed by Ryan 2026-09-13, sourced from
+              ROOMS in event-config.ts. The footnote below used to say "Sideshow
+              Stage area on the convention floor", which contradicted this. */}
           <div className="grid gap-4 sm:grid-cols-1">
             {[
-              { label: 'Saturday', value: '1:00 PM - Team Strongman, Crown Ballroom' },
+              { label: 'Saturday', value: `1:00 PM - Team Strongman, ${ROOMS.ballroom}` },
             ].map(item => (
               <div
                 key={item.label}
@@ -83,7 +88,7 @@ export default function StrongestSideshowPage() {
           </div>
 
           <p className="mt-4 text-center text-xs" style={{ color: '#666' }}>
-            <span className="text-emboss">All events take place at the Sideshow Stage area on the convention floor.</span>
+            <span className="text-emboss">Strongest at the Sideshow takes place in the {ROOMS.ballroom}.</span>
           </p>
         </div>
       </section>
@@ -146,7 +151,7 @@ export default function StrongestSideshowPage() {
           <span className="text-emboss">Think you are the strongest at the show?</span>
         </p>
         <p className="text-sm" style={{ color: '#999' }}>
-          <span className="text-emboss">Register at the Sideshow Stage or contact{' '}
+          <span className="text-emboss">Register in the {ROOMS.ballroom} or contact{' '}
           <a href="mailto:info@allamericantattooconvention.com" style={{ color: '#C4A882' }}>
             info@allamericantattooconvention.com
           </a></span>

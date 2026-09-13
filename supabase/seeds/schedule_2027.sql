@@ -57,7 +57,7 @@ select e.id, v.day_date, v.start_time, v.sort_order, v.title, v.location,
 -- ── Saturday, April 17, 2027 ──────────────────────────────
   -- Gold Star refers to the families of fallen service members. This is a
   -- private hosting, not a ticket tier - the wording must not read as one.
-  (date '2027-04-17', time '10:00', 0, 'Gold Star VIP Meet & Greet', 'Front Room', 'tribute',
+  (date '2027-04-17', time '10:00', 0, 'Gold Star VIP Meet & Greet', 'Seminar Room', 'tribute',
    'A private meet & greet hosted for Gold Star families before doors open.', null),
   (date '2027-04-17', time '12:00', 0, 'Opening Ceremonies', 'Main Stage', 'ceremony', '', null),
   (date '2027-04-17', time '13:00', 0, 'Tattoo Contest Registration Opens', 'Contest Booth', 'contest', '', null),
@@ -68,8 +68,8 @@ select e.id, v.day_date, v.start_time, v.sort_order, v.title, v.location,
   -- sort_order 1: moving this from 1:30 to 1:00 puts it on the same start time
   -- as contest registration above. Registration leads (attendees act on it
   -- first); this is the editorial tiebreak the column exists for.
-  (date '2027-04-17', time '13:00', 1, 'Strongest at the Sideshow', 'Crown Ballroom', 'contest',
-   'Team strongman competition. Medieval armored combat demonstrations run between team strongman contest events, starting at 1:00 PM in the Crown Ballroom.', null),
+  (date '2027-04-17', time '13:00', 1, 'Strongest at the Sideshow', 'Ballroom', 'contest',
+   'Team strongman competition. Medieval armored combat demonstrations run between team strongman contest events, starting at 1:00 PM in the Ballroom.', null),
   -- Dating Game runs BOTH Friday and Saturday at 6:00 PM (§10.1). The Friday
   -- row is above; this is the Saturday instance the original seed omitted.
   (date '2027-04-17', time '18:00', 0, 'Tattoo Dating Game', 'Main Stage', 'programme', '', null),

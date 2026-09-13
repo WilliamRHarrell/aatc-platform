@@ -7,6 +7,7 @@ import { guardedWrite } from '@/lib/db-write'
 import { dayLabel, timeLabel } from '@/lib/schedule-format'
 import { toCsv, slugify, downloadCsv } from '@/lib/csv'
 import toast from 'react-hot-toast'
+import { VENUE_LOCATIONS } from '@/lib/event-config'
 
 interface Panel {
   id: string
@@ -71,7 +72,8 @@ const EMPTY_FORM: PanelFormState = {
   is_published: false,
 }
 
-const LOCATIONS = ['Front Room', 'Ballroom', 'Main Stage', 'Booth']
+// 'Booth' is the one location not in the shared list: it expands to "Booth #N".
+const LOCATIONS: readonly string[] = [...VENUE_LOCATIONS, 'Booth']
 
 const SIGNUP_TYPE_LABELS: Record<string, string> = {
   none: 'No Signup',

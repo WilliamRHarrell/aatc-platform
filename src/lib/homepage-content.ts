@@ -1,4 +1,4 @@
-import { TATTOO_BATTLE_PRESENTER } from './event-config'
+import { TATTOO_BATTLE_PRESENTER, ROOMS } from './event-config'
 /**
  * Homepage list content that has no table of its own yet.
  *
@@ -66,7 +66,7 @@ export const HOME_EVENTS: HomeEvent[] = [
     // 2027 CHANGE: team strongman only. Dead-lift and bench press are dropped -
     // do not reinstate them here without checking the schedule spec.
     description:
-      'Team strongman competition in the Crown Ballroom, Saturday at 1:00 PM.',
+      `Team strongman competition in the ${ROOMS.ballroom}, Saturday at 1:00 PM.`,
     href: '/events/strongest-sideshow',
   },
   {
@@ -80,7 +80,7 @@ export const HOME_EVENTS: HomeEvent[] = [
   {
     name: 'Gold Star VIP Meet & Greet',
     day: 'Saturday',
-    // Sat 10:00 AM, Front Room - before doors. Gold Star = families of fallen
+    // Sat 10:00 AM, Seminar Room - before doors. Gold Star = families of fallen
     // service members. Keep this wording; it is not a ticket tier.
     description:
       'Before doors open Saturday, we host Gold Star families for a private meet & greet with our featured artists.',

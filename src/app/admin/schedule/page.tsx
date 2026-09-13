@@ -25,6 +25,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { guardedWrite } from '@/lib/db-write'
 import toast from 'react-hot-toast'
+import { VENUE_LOCATIONS } from '@/lib/event-config'
 
 interface ScheduleItem {
   id: string
@@ -83,7 +84,7 @@ const KINDS = [
   { value: 'seminar', label: 'Seminar' },
 ]
 
-const LOCATIONS = ['Main Stage', 'Ballroom', 'Front Room', 'Contest Booth', 'Seminar Room']
+const LOCATIONS = VENUE_LOCATIONS
 
 /** 'YYYY-MM-DD' → 'Friday, April 16'. Built from parts: `new Date(iso)` parses
  *  as UTC midnight and renders as the previous day west of Greenwich. */

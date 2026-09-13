@@ -1,6 +1,7 @@
 'use client'
 
 import PublicNav from '@/components/PublicNav'
+import { ROOMS } from '@/lib/event-config'
 
 const WHAT_INCLUDED = [
   {
@@ -65,7 +66,7 @@ export default function VipMeetGreetPage() {
             {[
               { label: 'Date', value: 'Saturday, April 17' },
               { label: 'Time', value: '10:00 AM' },
-              { label: 'Location', value: 'Front Room, Crown Complex' },
+              { label: 'Location', value: `${ROOMS.seminarRoom}, Crown Complex` },
               { label: 'Access', value: 'Gold Star Families & VIP Pass Holders' },
             ].map(item => (
               <div
@@ -115,8 +116,8 @@ export default function VipMeetGreetPage() {
           enough.
 
           Confirmed by Ryan 2026-09-13: Saturday 10:00 AM (a dictation
-          autocorrect kept writing "Sunday" - Saturday is right), Front Room at
-          the Crown Complex, refreshments served, VIP ticket holders also
+          autocorrect kept writing "Sunday" - Saturday is right), Seminar Room at
+          the Crown Complex (the name comes from ROOMS in event-config.ts), refreshments served, VIP ticket holders also
           welcome. "Around 50" passes is deliberately an approximation - the
           figure varies year to year, so do not tighten it to an exact count,
           and never show a remaining count or imply availability. */}
@@ -135,7 +136,7 @@ export default function VipMeetGreetPage() {
               Services Support Coordinator, USAG Fort Bragg. Passes are first come, first served.
             </p>
             <p className="mt-3 text-sm leading-relaxed" style={{ color: '#bbb' }}>
-              The meet and greet is held in the Front Room at the Crown Complex, and
+              The meet and greet is held in the {ROOMS.seminarRoom} at the Crown Complex, and
               refreshments are served.
             </p>
           </div>

@@ -259,7 +259,7 @@ Upon receipt of your invoice, a **25% deposit** is due, with the remainder paid 
 - 12:30 - Missing Man Table Ceremony - Main Stage
 - 1:00 - The All American Tattoo Battle begins - Main Stage
 - 1:00 - Tattoo contest registration opens
-- 2:00 - Seminar - Front Room [2027 seminar TBA]
+- 2:00 - Seminar - Seminar Room [2027 seminar TBA]
 - 4:00 - Tattoo contests begin - Main Stage
 - 5:00 - Tattoo Battle ends - Main Stage
 - 8:00 - Live wrestling - Ballroom [confirm 2027 entertainment]
@@ -268,9 +268,9 @@ Upon receipt of your invoice, a **25% deposit** is due, with the remainder paid 
 - 10:00 - Show close
 
 ### Saturday, April 17
-- 10:00 - Gold Star VIP Meet & Greet - Front Room
+- 10:00 - Gold Star VIP Meet & Greet - Seminar Room
 - 12:00 - Opening ceremonies - Main Stage
-- 1:00 - Seminar - Front Room [2027 seminar TBA]
+- 1:00 - Seminar - Seminar Room [2027 seminar TBA]
 - 1:00 - Tattoo contest registration opens
 - 1:30 - Strongest at the Sideshow - deadlift, bench press & team strongman - Ballroom
 - 2:00 - Miss All American Pin-Up Contest - Main Stage
@@ -281,9 +281,9 @@ Upon receipt of your invoice, a **25% deposit** is due, with the remainder paid 
 
 ### Sunday, April 18
 - 12:00 - Opening ceremonies - Main Stage
-- 12:00 - Seminar - Front Room [2027 seminar TBA]
+- 12:00 - Seminar - Seminar Room [2027 seminar TBA]
 - 1:00 - Tattoo contest registration opens
-- 2:00 - Seminar - Front Room [2027 seminar TBA]
+- 2:00 - Seminar - Seminar Room [2027 seminar TBA]
 - 2:00 - Live wrestling - Ballroom [confirm]
 - 3:00 - Presentation to nonprofit
 - 4:00 - Tattoo contests begin - Main Stage
@@ -312,7 +312,7 @@ Our most famous event - see the full page → /events/pin-up-contest
 Saturday morning, before doors open to the public, we host Gold Star families for a private meet & greet with our featured artists and guests. See the Wall of Honor page to learn more.
 
 ### Seminars
-Industry seminars run all weekend in the Front Room - past sessions include Black & Grey with Marshall Bennett, The Art of the Consult with Matt Hodel, Mastering Color: Theory, Vibrancy & Psychology in Tattooing, and a Tooth Gem Seminar. [Provide 2027 seminar lineup, instructors, and whether tickets/fees apply - each named seminar + instructor is its own search draw.]
+Industry seminars run all weekend in the Seminar Room - past sessions include Black & Grey with Marshall Bennett, The Art of the Consult with Matt Hodel, Mastering Color: Theory, Vibrancy & Psychology in Tattooing, and a Tooth Gem Seminar. [Provide 2027 seminar lineup, instructors, and whether tickets/fees apply - each named seminar + instructor is its own search draw.]
 
 ### Live Entertainment
 Live pro wrestling in the Ballroom (Ring Wars Carolina in 2025), Strongest at the Sideshow strongman competition, and more. [Provide 2027 entertainment lineup - each named act is a search term worth listing.]

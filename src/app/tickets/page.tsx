@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { getContent } from '@/content/getContent'
 import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
-import { TATTOO_BATTLE_PRESENTER } from '@/lib/event-config'
+import { TATTOO_BATTLE_PRESENTER, ROOMS } from '@/lib/event-config'
 
 export const metadata: Metadata = {
   title: 'Buy Tickets | All American Tattoo Convention 2027 | Fayetteville NC',
@@ -26,10 +26,10 @@ const SCHEDULE = [
   {
     day: 'Saturday, April 17',
     events: [
-      { time: '10:00 AM', title: 'Gold Star VIP Meet & Greet - Front Room' },
+      { time: '10:00 AM', title: `Gold Star VIP Meet & Greet - ${ROOMS.seminarRoom}` },
       { time: '12:00 PM', title: 'Opening ceremonies - Main Stage' },
       { time: '1:00 PM', title: 'Tattoo contest registration opens' },
-      { time: '1:30 PM', title: 'Strongest at the Sideshow - Ballroom' },
+      { time: '1:30 PM', title: `Strongest at the Sideshow - ${ROOMS.ballroom}` },
       { time: '2:00 PM', title: 'Miss All American Pin-Up Contest - Main Stage' },
       { time: '4:00 PM', title: 'Tattoo contests begin - Main Stage' },
       { time: '10:00 PM', title: 'Tattoo of the Day - Main Stage' },

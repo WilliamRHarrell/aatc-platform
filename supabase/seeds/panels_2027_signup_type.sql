@@ -1,7 +1,7 @@
 -- ============================================================
 -- Open registration on both 2027 seminars, and set their room targets.
 --   signup_type: 'none' → 'free_registration'
---   max_capacity: → 150 (Ballroom)
+--   max_capacity: → 150 (planning target; room is the Seminar Room, see note)
 --
 -- WHAT THIS DOES AND DOES NOT DO.
 --   Does:     turns on the registration form, so attendees can sign up in
@@ -32,24 +32,26 @@
 --
 -- Nothing on the public page mentions capacity, remaining spots or fullness.
 --
--- ── ROOMS, CONFIRMED 2026-08-13 ─────────────────────────────
--- Both seminars are on SUNDAY, and Sunday's sessions are in the BALLROOM -
--- 150 seats. That is what this sets.
+-- ── ROOMS, CORRECTED 2026-09-13 ─────────────────────────────
+-- The 2026-08-13 note that stood here put Sunday's seminars in the Ballroom.
+-- That was WRONG. Ryan confirmed 2026-09-13: both seminars and the Gold Star
+-- VIP Meet & Greet are in the SEMINAR ROOM, and the Ballroom holds only
+-- Strongest at the Sideshow. Room names live in ROOMS in
+-- src/lib/event-config.ts - one name per space, everywhere.
 --
--- The 50-seat SEMINAR ROOM is Friday and Saturday only, and nothing is
--- scheduled in it. **If a Friday or Saturday seminar is ever added, its
--- max_capacity is 50** - and that is the room where a turnout like last year's
--- Bookkeeping seminar (~50 people) would actually be tight.
---
--- At 150 the amber flag does not fire until 120 registrations, which is the
--- intended behaviour: no false alarm on a turnout like last year's.
+-- max_capacity below is still 150, which was the Ballroom figure. The old
+-- note put the Seminar Room at 50 seats, which a turnout like last year's
+-- Bookkeeping seminar (~50 people) would fill. The Seminar Room's planning
+-- target is NOT confirmed - Ryan to say - so the number is left as it was
+-- rather than guessed. At 150 the amber flag fires at 120 registrations; at
+-- 50 it would fire at 40.
 -- ============================================================
 
 begin;
 
 update panels
    set signup_type  = 'free_registration'::panel_signup_type,
-       max_capacity = 150   -- Ballroom. Planning target, not a cap.
+       max_capacity = 150   -- Planning target, not a cap. Room is the Seminar Room; see note.
  where event_id = (select id from events where is_active)
    and title in ('Bookkeeping for Tattoo Industry Professionals',
                  'Tooth Gem Seminar');

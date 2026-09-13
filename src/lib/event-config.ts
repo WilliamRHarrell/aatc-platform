@@ -33,6 +33,29 @@ export const VENUE_STATE = 'NC'
 export const VENUE_POSTAL = '28306'
 export const VENUE_MAP_URL = 'https://share.google/vRhsv0xqNzDRTPtGC'
 
+/**
+ * Rooms at the Crown Complex, as the show refers to them. Confirmed by Ryan
+ * 2026-09-13: ONE name per space, used everywhere - pages, admin dropdowns and
+ * the seeds. "Front Room", "VIP Lounge" and "Crown Ballroom" were earlier
+ * names for these same two spaces and must not come back. Three pages naming
+ * the same rooms differently is the shape that produced four-way drift on
+ * Collector's Choice and five wrong times on the pinup page.
+ *
+ *   Seminar Room - the seminars, and the Gold Star VIP Meet & Greet
+ *   Ballroom     - Strongest at the Sideshow (team strongman)
+ *
+ * The schedule_items and panels rows in Supabase carry the same strings. If a
+ * name changes, change it in BOTH places (supabase/seeds/rooms_2027_rename.sql
+ * is the pattern) or the schedule page and the event pages will disagree.
+ */
+export const ROOMS = {
+  seminarRoom: 'Seminar Room',
+  ballroom: 'Ballroom',
+} as const
+
+/** Every location the admin schedule and panel editors offer. */
+export const VENUE_LOCATIONS: readonly string[] = ['Main Stage', ROOMS.seminarRoom, ROOMS.ballroom, 'Contest Booth']
+
 export const CONTACT_EMAIL = 'info@allamericantattooconvention.com'
 export const CONTACT_PHONE = '(910) 850-2566'
 
