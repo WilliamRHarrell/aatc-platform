@@ -2,7 +2,8 @@ import type { Metadata } from 'next'
 import { getContent } from '@/content/getContent'
 import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
-import { TATTOO_BATTLE_PRESENTER, ROOMS } from '@/lib/event-config'
+import PresentedBy from '@/components/PresentedBy'
+import { getSchedule } from '@/lib/schedule-data'
 
 export const metadata: Metadata = {
   title: 'Buy Tickets | All American Tattoo Convention 2027 | Fayetteville NC',
@@ -10,45 +11,14 @@ export const metadata: Metadata = {
     'Tickets for AATC 2027, April 16-18 at the Crown Complex. Single-day, weekend, and VIP passes with military discounts. VIP includes swag bag and artist meet & greet.',
 }
 
-const SCHEDULE = [
-  {
-    day: 'Friday, April 16',
-    events: [
-      { time: '12:00 PM', title: 'All-Veteran Parachute Team jumps in' },
-      { time: '12:30 PM', title: 'Missing Man Table Ceremony - Main Stage' },
-      { time: '1:00 PM', title: 'The All American Tattoo Battle begins', presentedBy: TATTOO_BATTLE_PRESENTER },
-      { time: '1:00 PM', title: 'Tattoo contest registration opens' },
-      { time: '4:00 PM', title: 'Tattoo contests begin - Main Stage' },
-      { time: '9:30 PM', title: 'Tattoo of the Day - Main Stage' },
-      { time: '10:00 PM', title: 'Show close' },
-    ],
-  },
-  {
-    day: 'Saturday, April 17',
-    events: [
-      { time: '10:00 AM', title: `Gold Star VIP Meet & Greet - ${ROOMS.seminarRoom}` },
-      { time: '12:00 PM', title: 'Opening ceremonies - Main Stage' },
-      { time: '1:00 PM', title: 'Tattoo contest registration opens' },
-      { time: '1:30 PM', title: `Strongest at the Sideshow - ${ROOMS.ballroom}` },
-      { time: '2:00 PM', title: 'Miss All American Pin-Up Contest - Main Stage' },
-      { time: '4:00 PM', title: 'Tattoo contests begin - Main Stage' },
-      { time: '10:00 PM', title: 'Tattoo of the Day - Main Stage' },
-      { time: '11:00 PM', title: 'Show close' },
-    ],
-  },
-  {
-    day: 'Sunday, April 18',
-    events: [
-      { time: '12:00 PM', title: 'Opening ceremonies - Main Stage' },
-      { time: '1:00 PM', title: 'Tattoo contest registration opens' },
-      { time: '3:00 PM', title: 'Presentation to nonprofit' },
-      { time: '4:00 PM', title: 'Tattoo contests begin - Main Stage' },
-      { time: '6:00 PM', title: 'All American Tattoo Battle Champion crowned', presentedBy: TATTOO_BATTLE_PRESENTER },
-      { time: '7:00 PM', title: 'Tattoo of the Day & Best of Show' },
-      { time: '8:00 PM', title: 'Show close' },
-    ],
-  },
-]
+/* The weekend schedule used to be a hand-typed SCHEDULE const here - a
+   second copy of the whole programme, and the largest drift surface in the
+   project. It was wrong in three places when it was deleted (strongman 1:30,
+   Saturday's Tattoo of the Day at 10:00 PM, Saturday close at 11:00 PM) and
+   carried two items the 2027 spec does not list (an All-Veteran Parachute
+   Team jump and a Sunday nonprofit presentation). The programme now comes from
+   getSchedule, the same source as /events/schedule; add rows in
+   /admin/schedule, not here. */
 
 const CONTEST_CATEGORIES: Record<string, string[]> = {
   Friday: [
@@ -92,7 +62,7 @@ const CONTEST_CATEGORIES: Record<string, string[]> = {
 }
 
 export default async function TicketsPage() {
-  const c = await getContent('tickets')
+  const [c, schedule] = await Promise.all([getContent('tickets'), getSchedule()])
 
   const singleDay = [
     { id: 'friday', label: 'Friday Pass', date: 'Friday, April 16', desc: 'Single-day admission for Friday.' },
@@ -250,32 +220,40 @@ export default async function TicketsPage() {
             <span className="text-emboss">{c.schedule_subtitle}</span>
           </p>
 
-          <div className="grid gap-6 md:grid-cols-3">
-            {SCHEDULE.map(day => (
-              <div key={day.day} className="rounded-2xl p-6" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
-                <h3 className="mb-4 text-center text-sm font-bold uppercase tracking-wider text-white">{day.day}</h3>
-                <div className="space-y-3">
-                  {day.events.map((event, i) => (
-                    <div key={i} className="flex gap-3">
-                      <span className="w-20 shrink-0 text-right text-xs font-medium" style={{ color: '#C4A882' }}>
-                        {event.time}
-                      </span>
-                      <span className="text-xs" style={{ color: '#999' }}>
-                        {event.title}
-                        {/* Presentation credit, same source as the homepage and
-                            the kids contest page. See event-config.ts. */}
-                        {'presentedBy' in event && event.presentedBy && (
-                          <span className="block font-semibold" style={{ color: '#C4A882' }}>
-                            Presented by {event.presentedBy}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  ))}
+          {schedule.length === 0 ? (
+            <p className="py-6 text-center text-sm" style={{ color: '#666' }}>
+              The 2027 schedule is being finalised and will be published here shortly.
+            </p>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-3">
+              {schedule.map(day => (
+                <div key={day.day} className="rounded-2xl p-6" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+                  <h3 className="mb-4 text-center text-sm font-bold uppercase tracking-wider text-white">{day.day}</h3>
+                  <div className="space-y-3">
+                    {day.items.map(item => (
+                      <div key={item.key} className="flex gap-3">
+                        <span className="w-20 shrink-0 text-right text-xs font-medium" style={{ color: '#C4A882' }}>
+                          {item.time}
+                        </span>
+                        <span className="text-xs" style={{ color: '#999' }}>
+                          {item.isPanel ? `Seminar: ${item.title}` : item.title}
+                          {item.location && (
+                            <span style={{ color: '#666' }}> - {item.location}</span>
+                          )}
+                          <PresentedBy
+                            name={item.presentedBy}
+                            website={item.presentedByWebsite}
+                            linked={item.presentedByLinked}
+                            className="mt-0.5"
+                          />
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

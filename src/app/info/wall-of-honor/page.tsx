@@ -60,11 +60,18 @@ export default function WallOfHonorPage() {
               className="mx-auto mt-6 max-w-md rounded-xl p-4"
               style={{ backgroundColor: '#0a0a0a', border: '1px solid #8B7355' }}
             >
+              {/* Same facts, same words as the Gold Star section on
+                  /events/vip-meet-greet - keep the two in step. Corrected
+                  2026-09-13: the sentence credited the Crown Complex as
+                  co-donor (it is not - ATS donates the passes and the Crown
+                  still charges ATS the ticket fee), stated an exact 50, and
+                  gave a second sign-up path ("contact us directly") alongside
+                  the ACS route on the VIP page. Deliberately plain. */}
               <p className="text-sm font-semibold" style={{ color: '#C4A882' }}>
-                50 Gold Star family members receive complimentary VIP access to the convention, courtesy of American Tattoo Society and the Cumberland County Crown Complex.
+                American Tattoo Society donates around 50 VIP passes each year for Gold Star Family members.
               </p>
               <p className="mt-2 text-xs" style={{ color: '#999' }}>
-                Please contact us directly to arrange your passes. We are here to support you in every way we can.
+                To sign up, contact the Army Community Service Survivor Outreach Services Support Coordinator, USAG Fort Bragg. Passes are first come, first served.
               </p>
             </div>
           </div>
