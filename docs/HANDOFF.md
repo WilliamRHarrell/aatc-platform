@@ -7,6 +7,54 @@
 
 ## 0. START HERE - state as of 2026-08-31
 
+### ADDENDUM 2026-09-13 - content pass (rooms, schedule source, Gold Star passes)
+
+Three commits on develop, pushed: a8e47e6, 9b36b04, 75bdb7c. Verified by
+eslint + tsc + the three prebuild scripts + a local `next build` served and
+curl-grepped. There is no test framework in this repo.
+
+- **Rooms have ONE name each**, in `ROOMS` in `src/lib/event-config.ts`:
+  Seminar Room (seminars + Gold Star VIP Meet & Greet), Ballroom (Strongest at
+  the Sideshow). Confirmed by Ryan. "Front Room", "VIP Lounge" and "Crown
+  Ballroom" are retired names. Live rows renamed by Ryan
+  (`supabase/seeds/rooms_2027_rename.sql`), VERIFIED 2026-09-13 by reading
+  `panels_public` and `schedule_items_public`.
+- **The schedule has ONE loader**, `getSchedule` in `src/lib/schedule-data.ts`.
+  `/events/schedule`, `/tickets` and the homepage teaser all read it. The
+  hand-typed weekend array on `/tickets` is DELETED. See the rule "A fact gets
+  one home" below for why, with the strongman time as the worked example.
+- **Strongman time is 1:00 PM**, confirmed by Ryan. Live row corrected by Ryan
+  (`supabase/seeds/strongman_2027_time.sql`), VERIFIED 2026-09-13: homepage
+  card text and schedule teaser both render 1:00 PM; the only remaining
+  "1:30 PM" on any page is the Sunday Bookkeeping seminar, which is correct.
+- **Gold Star passes**: `/events/vip-meet-greet` and `/info/wall-of-honor` now
+  carry the same three sentences. ATS donates around 50 per year; the Crown
+  Complex is NOT a co-donor (Ryan: the Crown still charges ATS the ticket fee);
+  sign-up is ONLY via the ACS Survivor Outreach Services coordinator, USAG Fort
+  Bragg. The Wall of Honor sentence had credited the Crown as co-donor on a
+  live page - same class as naming an after-party venue without an agreement.
+  Keep the two pages identical.
+
+**UNVERIFIED - flag, do not assume:** the three-column layout of the schedule
+on `/tickets` after the data-source change. Text search confirmed the CONTENT
+(every row, every room, the presenter credit); nobody has looked at it in a
+browser. The database rows are longer than the old hand-typed titles and now
+carry a room suffix and a Presented-by line, so wrapping inside a
+`md:grid-cols-3` card at the narrow breakpoint is the thing to eyeball.
+
+**With Ryan, unchanged by this pass:**
+- Two items the old static tickets schedule carried that the 2027 spec and
+  seed do not: All-Veteran Parachute Team jump (Fri 12:00 PM) and a nonprofit
+  presentation (Sun 3:00 PM). If real for 2027, add via `/admin/schedule`.
+- Seminar Room planning target: `max_capacity` is still 150, which was the
+  Ballroom figure. Annotated in `panels_2027_signup_type.sql`, not guessed.
+  Real figure from Crown.
+- The three sponsors, still not entered (§3). Whole Life's Tattoo Battle
+  credit, still held for its own pass as the first real `presentation_credits`
+  row (§2).
+- Pre-existing eslint error in `src/app/admin/panels/page.tsx` (`loadData`
+  used in an effect before its declaration). Not touched.
+
 ### ⚠ 047 IS NOT APPLIED, AND "THROUGH 063" NEVER MEANT ALL OF THEM
 
 Read this before writing any migration that touches `panels_public`.
@@ -414,6 +462,7 @@ are about to do something in the left column, read the entry.
 | choosing a boundary value | **Encode for robustness over literalness**; let the comment carry the intent. |
 | adding a rule, fee, consent or restriction | **Grep for absolute statements** the change makes untrue - `never`, `always`, `all`, `only`, `free`, `public`. |
 | a repo-wide find and replace | **The exclusion category is DATA, not syntax** - any string literal compared against stored data. |
+| stating a time, room, price, count or name on a page | **A fact gets one home.** The strongman time had FIVE, each found only by fixing the one before it. Full entry below. |
 | an SQL Editor warning appears | **It parses without plpgsql context.** `select ... into v` reads as CREATE TABLE. Never accept a GRANT it suggests. |
 
 <!-- ============================================================ -->
@@ -464,6 +513,61 @@ reprice. A guard you no longer need cannot be disarmed.
 next section**: it fails loudly, or it is checked on a schedule, or it will
 quietly become permanent.
 
+
+## A FACT GETS ONE HOME
+
+**The worked example: the strongman start time, 2026-09-13.** Ryan confirmed
+1:00 PM. Here is where the fact lived, in the order each copy was found:
+
+| # | where | said | how it was found |
+|---|---|---|---|
+| 1 | `supabase/seeds/schedule_2027.sql` | 1:00 | the seed; assumed to be THE source |
+| 2 | `src/lib/homepage-content.ts` | 1:00 | a code comment claimed "the time now lives in exactly two places", this and the seed |
+| 3 | `src/app/tickets/page.tsx`, static `SCHEDULE` array | **1:30** | grepping room names for a different task |
+| 4 | the live `schedule_items` row | **13:30** | reading the public view to see what the schedule page ACTUALLY rendered, after #3 raised the question |
+| 5 | `docs/aatc-2027-schedule-spec.md` | **1:30** | checking whether two items dropped from #3 were in the spec, while fixing #3 |
+
+Three of five were wrong. Two of the wrong ones were the copies pages actually
+render from. The comment at #2 was sincere and false: it counted the copies
+its author knew about. **Nobody found copy N by looking for copies; each was
+found as a side effect of fixing copy N-1.** That is the signature of this
+pattern, and it is why "I grepped and there are only two" is not evidence -
+the Collector's Choice wording (four copies) and the pinup page (five wrong
+times) went the same way.
+
+The same day: the meet-and-greet room had three names across four surfaces
+("Front Room", "VIP Lounge", "Seminar Room", and the seed note put the
+seminars in a fourth room entirely), and the Gold Star passes had two donors,
+two counts and two sign-up paths across two pages.
+
+**The rule.** A fact that is rendered has exactly one home, and every surface
+that shows it reads from there:
+
+- a **time, day or room** lives in `schedule_items` / `panels` and reaches
+  pages through `getSchedule` in `src/lib/schedule-data.ts`;
+- a **room NAME** lives in `ROOMS` in `src/lib/event-config.ts`, and the
+  database rows carry the same string (rename both, see
+  `rooms_2027_rename.sql` for the pattern);
+- a **price, presenter, contact or venue** lives in `src/lib/event-config.ts`
+  or the content registry, never inline.
+
+**What "a different presentation" does and does not justify.** `/tickets`
+shows the weekend in three columns; `/events/schedule` shows it as one long
+list. That is a rendering difference, and it is served by one loader and two
+templates. It is NOT a reason to keep a second dataset. The tickets array was
+described as "a summary" and was in fact a full copy that had been wrong in
+three places since the spec changed Saturday's closing time.
+
+**Before deleting the old copy, diff it against the new source** (rule already
+above: confirm the new source matches the old BEFORE deleting the old). The
+diff is where the dropped items surface - the parachute team and the nonprofit
+presentation existed only in the static array, and whether they are real is a
+question for Ryan, not a reason to keep the array.
+
+**If you write "this now lives in exactly N places", you are about to be
+wrong.** Write where it lives (singular), and grep for the VALUE as well as the
+name - `13:30`, `1:30 PM`, `1:30` - across src, supabase, docs, and the live
+views, because the copies do not share a spelling.
 
 ## A FALLBACK ASSET IS GENERATED OR NEUTRAL, NEVER BORROWED
 
