@@ -1,6 +1,7 @@
 import { unstable_cache } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
 import { dayLabel, timeLabel, timeToMinutes } from './schedule-format'
+import { isPreConvention } from './venues'
 
 /**
  * The 2027 programme, read from Supabase. ONE loader for every page that
@@ -19,7 +20,8 @@ import { dayLabel, timeLabel, timeToMinutes } from './schedule-format'
 interface ScheduleRow {
   id: string
   day_date: string
-  start_time: string
+  /** Nullable since 070, but only UNPUBLISHED rows may be null and the public view carries published rows only. */
+  start_time: string | null
   sort_order: number
   title: string
   location: string
@@ -28,6 +30,7 @@ interface ScheduleRow {
   presented_by: string | null
   presented_by_website: string | null
   presented_by_linked: boolean
+  venue_id: string | null
 }
 
 interface PanelRow {
@@ -53,6 +56,11 @@ export interface Item {
   title: string
   location: string
   note: string
+  /** schedule_items.kind ('programme', 'contest', ..., 'after_party'); 'seminar' for panels. */
+  kind: string
+  /** ISO day the item belongs to; the day label is display only. */
+  dayDate: string
+  venueId: string | null
   isPanel: boolean
   panelId?: string
   isFree?: boolean
@@ -65,19 +73,19 @@ export interface Item {
 
 
 export const getSchedule = unstable_cache(
-  async (): Promise<{ day: string; items: Item[] }[]> => {
+  async (): Promise<{ day: string; dayDate: string; preConvention: boolean; items: Item[] }[]> => {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
 
-    const { data: event } = await supabase.from('events').select('id').eq('is_active', true).single()
+    const { data: event } = await supabase.from('events').select('id, start_date').eq('is_active', true).single()
     if (!event) return []
 
     const [{ data: rows, error: schedErr }, { data: panelRows, error: panelErr }] = await Promise.all([
       supabase
         .from('schedule_items_public')
-        .select('id, day_date, start_time, sort_order, title, location, note, kind, presented_by, presented_by_website, presented_by_linked')
+        .select('id, day_date, start_time, sort_order, title, location, note, kind, presented_by, presented_by_website, presented_by_linked, venue_id')
         .eq('event_id', event.id)
         .order('day_date')
         .order('start_time')
@@ -113,13 +121,18 @@ export const getSchedule = unstable_cache(
 
       const programme: Item[] = scheduleRows
         .filter(r => r.day_date === iso)
+        // A published row always has a time (070 check); the guard is for the type only.
+        .filter(r => r.start_time !== null)
         .map(r => ({
           key: r.id,
-          minutes: timeToMinutes(r.start_time) + r.sort_order / 100,
-          time: timeLabel(r.start_time),
+          minutes: timeToMinutes(r.start_time as string) + r.sort_order / 100,
+          time: timeLabel(r.start_time as string),
           title: r.title,
           location: r.location,
           note: r.note,
+          kind: r.kind,
+          dayDate: r.day_date,
+          venueId: r.venue_id,
           isPanel: false,
           presentedBy: r.presented_by,
           presentedByWebsite: r.presented_by_website,
@@ -140,6 +153,9 @@ export const getSchedule = unstable_cache(
           title: p.title,
           location: p.location,
           note: '',
+          kind: 'seminar',
+          dayDate: iso,
+          venueId: null,
           isPanel: true,
           panelId: p.id,
           isFree: p.is_free,
@@ -152,12 +168,16 @@ export const getSchedule = unstable_cache(
 
       return {
         day: label,
+        dayDate: iso,
+        // Thursday's kickoff is the night BEFORE doors: derived from the date,
+        // never from a weekday name, so a Wednesday kickoff would be right too.
+        preConvention: isPreConvention(iso, event.start_date),
         items: [...programme, ...seminars].sort((a, b) => a.minutes - b.minutes),
       }
     })
   },
   ['schedule-2027'],
-  { revalidate: 60, tags: ['schedule'] }
+  { revalidate: 60, tags: ['schedule', 'after-parties'] }
 )
 
-export type ScheduleDay = { day: string; items: Item[] }
+export type ScheduleDay = { day: string; dayDate: string; preConvention: boolean; items: Item[] }

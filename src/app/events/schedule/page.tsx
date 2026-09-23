@@ -84,6 +84,11 @@ export default async function SchedulePage() {
                     style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a', color: '#C4A882' }}
                   >
                     {day.day}
+                    {day.preConvention && (
+                      <span className="ml-3 rounded-full px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal" style={{ backgroundColor: 'rgba(196,168,130,0.15)', color: '#C4A882' }}>
+                        Before the convention opens
+                      </span>
+                    )}
                   </h2>
 
                   <div

@@ -15,13 +15,17 @@ import { createClient } from '@supabase/supabase-js'
  * correct response is to render nothing rather than to invent a description or
  * emit alt="".
  */
-interface PageImageRow {
+export interface PageImageRow {
   image_path: string | null
   alt: string | null
   caption: string | null
 }
 
-const getPageImage = unstable_cache(
+export function pageImageUrl(imagePath: string): string {
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/page-images/${imagePath}`
+}
+
+export const getPageImage = unstable_cache(
   async (slug: string): Promise<PageImageRow | null> => {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -63,7 +67,7 @@ export default async function PageImage({
   const row = await getPageImage(slug)
   if (!row?.image_path || !row.alt?.trim()) return null
 
-  const src = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/page-images/${row.image_path}`
+  const src = pageImageUrl(row.image_path)
 
   return (
     <figure className={className}>

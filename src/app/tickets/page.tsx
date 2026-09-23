@@ -228,7 +228,14 @@ export default async function TicketsPage() {
             <div className="grid gap-6 md:grid-cols-3">
               {schedule.map(day => (
                 <div key={day.day} className="rounded-2xl p-6" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
-                  <h3 className="mb-4 text-center text-sm font-bold uppercase tracking-wider text-white">{day.day}</h3>
+                  <h3 className="mb-4 text-center text-sm font-bold uppercase tracking-wider text-white">
+                    {day.day}
+                    {day.preConvention && (
+                      <span className="ml-2 rounded-full px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal" style={{ backgroundColor: 'rgba(196,168,130,0.15)', color: '#C4A882' }}>
+                        Before the convention opens
+                      </span>
+                    )}
+                  </h3>
                   <div className="space-y-3">
                     {day.items.map(item => (
                       <div key={item.key} className="flex gap-3">
