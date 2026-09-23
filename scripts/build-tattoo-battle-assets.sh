@@ -36,8 +36,13 @@ edge () {
 edge AATC-Tatto-battle-fay-1.png "1024:120:0:0"   splatter-top    1024x120
 edge AATC-Tatto-battle-fay-1.png "1024:90:0:800"  splatter-bottom 1024x90
 
-# 4. OG image: the presented-by graphic, at Ryan's direction. JPEG to keep it small.
-sips -s format jpeg -s formatOptions 85 "$SRC/AATC-27-EAST-SPONSOR-Wholelife-Aftercare.png" --out "$OUT/og.jpg" >/dev/null
+# 4. OG image: 1200x630 composite rendered from scripts/og/tattoo-battle-og.html
+#    (lockup + presenter + dates; fonts from Google). Needs Chrome and network.
+CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+HTML="$(cd "$(dirname "$0")" && pwd)/og/tattoo-battle-og.html"
+"$CHROME" --headless=new --disable-gpu --hide-scrollbars --window-size=1200,630 --virtual-time-budget=8000 \
+  --screenshot="$TMP/og.png" "file://$HTML" 2>/dev/null
+sips -s format jpeg -s formatOptions 88 "$TMP/og.png" --out "$OUT/og.jpg" >/dev/null
 
 rm -rf "$TMP"
 ls -la "$OUT"

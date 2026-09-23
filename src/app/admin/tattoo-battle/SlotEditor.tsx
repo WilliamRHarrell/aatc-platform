@@ -197,22 +197,23 @@ export default function SlotEditor({ eventId, bucket, row, hasChampion, onChange
         <>
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: '#999' }}>Media ({row.media.length})</p>
-            <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {row.media.map((m, i) => (
                 <li key={m.path} className="relative overflow-hidden rounded-lg" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={mediaPublicUrl(m.type === 'image' ? m.path : (m.poster_path ?? m.path))} alt={`${m.type} ${i + 1}`} className="aspect-square w-full object-cover" onError={e => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} />
                   <span className="absolute left-1 top-1 rounded px-1 text-[10px] font-bold uppercase text-black" style={{ backgroundColor: '#C4A882' }}>{m.type}</span>
-                  <div className="flex items-center justify-between p-1">
-                    <button type="button" aria-label="Move earlier" disabled={i === 0 || busy !== null} onClick={() => move(i, i - 1)} className="px-2 text-white disabled:opacity-30">←</button>
+                  {/* Every control is at least 44x44: this is thumbed on a show floor. */}
+                  <div className="flex items-center justify-between">
+                    <button type="button" aria-label="Move earlier" disabled={i === 0 || busy !== null} onClick={() => move(i, i - 1)} className="flex h-11 min-w-11 items-center justify-center px-2 text-lg text-white disabled:opacity-30">←</button>
                     {m.type === 'video' && (
-                      <label className="cursor-pointer px-1 text-[10px] font-semibold uppercase" style={{ color: '#C4A882' }}>
+                      <label className="flex h-11 cursor-pointer items-center px-2 text-xs font-semibold uppercase" style={{ color: '#C4A882' }}>
                         {m.poster_path ? 'Poster' : 'Set poster'}
                         <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) setPoster(i, f) }} />
                       </label>
                     )}
-                    <button type="button" aria-label="Remove" disabled={busy !== null} onClick={() => removeMedia(i)} className="px-2 text-red-400">✕</button>
-                    <button type="button" aria-label="Move later" disabled={i === row.media.length - 1 || busy !== null} onClick={() => move(i, i + 1)} className="px-2 text-white disabled:opacity-30">→</button>
+                    <button type="button" aria-label="Remove" disabled={busy !== null} onClick={() => removeMedia(i)} className="flex h-11 min-w-11 items-center justify-center px-2 text-lg text-red-400">✕</button>
+                    <button type="button" aria-label="Move later" disabled={i === row.media.length - 1 || busy !== null} onClick={() => move(i, i + 1)} className="flex h-11 min-w-11 items-center justify-center px-2 text-lg text-white disabled:opacity-30">→</button>
                   </div>
                 </li>
               ))}

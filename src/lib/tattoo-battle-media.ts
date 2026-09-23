@@ -113,7 +113,12 @@ export function capturePoster(file: File): Promise<Blob | null> {
     video.preload = 'auto'
     video.src = url
     video.onerror = () => done(null)
-    video.onloadedmetadata = () => { video.currentTime = Math.min(0.5, Math.max(0, video.duration / 10)) }
+    video.onloadedmetadata = () => {
+      // Some MOV streams report a non-finite duration; seeking to NaN throws
+      // and the admin would wait out the whole timeout.
+      const d = Number.isFinite(video.duration) ? video.duration : 5
+      video.currentTime = Math.min(0.5, Math.max(0, d / 10))
+    }
     video.onseeked = () => {
       try {
         const canvas = document.createElement('canvas')

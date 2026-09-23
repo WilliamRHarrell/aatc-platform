@@ -1,4 +1,5 @@
 import { EVENT_DATES_LABEL, EVENT_YEAR, TATTOO_BATTLE_PRESENTER, VENUE_CITY, VENUE_STATE } from './event-config'
+import { CANONICAL_ORIGIN } from './site'
 
 /**
  * The All American Tattoo Battle. Every value on /tattoo-battle that is not a
@@ -31,14 +32,14 @@ export const SIGNUP_COPY = `Sign up in person at the main stage on check-in day,
 export const WINNER_ANNOUNCED = 'Sunday, April 18, 2027'
 export const BUCKET_COUNT = 20 // CONFIRM - number of QR codes to print
 /** Physical codes must never depend on which host a build ran on. Fixed. */
-export const QR_BASE_URL = 'https://www.allamericantattooconvention.com'
+export const QR_BASE_URL = CANONICAL_ORIGIN
 
 export const WHOLELIFE_INSTAGRAM = 'https://instagram.com/wholelife.aftercare'
 
 export const VETERAN_INK = {
   name: 'Veteran Ink',
   url: 'https://veteranink.com',
-  donateUrl: 'https://veteranink.com/donation', // CONFIRM - path not yet verified against their site
+  donateUrl: 'https://veteranink.com/donation', // confirmed by Ryan 2026-09-23
   description:
     'Veteran Ink is a 501(c)(3) nonprofit that helps veterans heal and tell their military stories through tattoo therapy. Through its Ink Fund Program and a network of partner studios, it sponsors tattoos for veterans.',
 } as const

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { ROBOTS_META } from '@/lib/site'
+import { CANONICAL_ORIGIN, ROBOTS_META } from '@/lib/site'
 import { ASSETS } from '@/lib/event-config'
 import { Playfair_Display, Inter } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
@@ -20,6 +20,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
+  // Absolute OG and canonical URLs on the canonical host, whatever host built this.
+  metadataBase: new URL(CANONICAL_ORIGIN),
   // noindex on every non-production host so the preview deployment cannot
   // compete with the WordPress site at DNS cutover.
   robots: ROBOTS_META,

@@ -51,9 +51,9 @@ export default async function EntryPage({ params }: Params) {
           <Image src="/images/tattoo-battle/wordmark-wide.png" alt="The All American Tattoo Battle" width={1200} height={380} className="mx-auto h-auto w-64" priority />
         </Link>
 
-        <p className="mt-6 text-center font-battle-display text-6xl uppercase leading-none" style={{ color: '#C4A882' }}>
-          Bucket #{n}
-        </p>
+        <h1 className="mt-6 text-center font-battle-display text-6xl uppercase leading-none" style={{ color: '#C4A882' }}>
+          <span className="sr-only">Tattoo Battle: </span>Bucket #{n}
+        </h1>
         {entry?.is_champion && (
           <p className="mt-2 text-center font-battle-condensed text-sm font-bold uppercase tracking-[0.3em] text-black">
             <span className="inline-block rounded-md px-3 py-1" style={{ backgroundColor: '#C4A882' }}>{EVENT_YEAR} Champion</span>

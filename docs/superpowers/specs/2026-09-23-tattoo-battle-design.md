@@ -488,9 +488,10 @@ Assets in `/public/images/tattoo-battle/`, cropped from the vector master
 (already rasterised at 2400 px with transparency): `lockup-full.png`,
 `fist.png`, `wordmark-stacked.png`, `badge.png`, plus `splatter-top.png` and
 `splatter-bottom.png` cut from the carousel frames' edges (the edges only, no
-text). OG image: the presented-by graphic itself, as `og.jpg` (1024×1024),
-exactly as the brief directs ("Use the presented-by graphic for the OG
-image"); the carousel graphics 1-6 are never shipped.
+text). OG image `og.jpg` 1200×630, a composite of the lockup, "Presented by
+WholeLife Aftercare", the dates and the city, rendered from
+`scripts/og/tattoo-battle-og.html` (Ryan reversed the earlier as-is ruling
+2026-09-23); the carousel graphics 1-6 are never shipped.
 `ASSETS.tattooBattleOg` is added to `event-config.ts` so the OG URL has one
 home.
 

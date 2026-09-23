@@ -76,8 +76,9 @@ export const ASSETS = {
   introPhoto: `${STORAGE}/home-intro-mc.jpg`,
   /** Collector’s Choice script logo. White on transparent, 1467×941. */
   collectorsChoiceLogo: `${STORAGE}/collectors-choice-logo.png`,
-  /** Tattoo Battle share card: the presented-by graphic, at Ryan's direction.
-   *  Served from /public so the page and the QR print sheet share one file. */
+  /** Tattoo Battle share card, 1200x630, composed from the lockup and the
+   *  presenter/date facts by scripts/og/tattoo-battle-og.html. Served from
+   *  /public; absolute via metadataBase. */
   tattooBattleOg: '/images/tattoo-battle/og.jpg',
   /** OG share image. Falls back to the horizontal logo until a purpose-built
    *  1200×630 card exists - a fallback beats a broken share preview. */

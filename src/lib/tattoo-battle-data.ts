@@ -92,9 +92,12 @@ export interface PresenterRow {
  */
 export const getPresenter = unstable_cache(
   async (): Promise<PresenterRow | null> => {
+    const eventId = await activeEventId()
+    if (!eventId) return null
     const { data, error } = await anon()
       .from('sponsors_public')
       .select('sponsor_name, logo_url, website, instagram')
+      .eq('event_id', eventId)
       .eq('sponsor_name', TATTOO_BATTLE_PRESENTER)
       .limit(1)
     if (error) {

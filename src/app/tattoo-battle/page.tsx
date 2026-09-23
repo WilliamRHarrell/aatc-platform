@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   alternates: { canonical: canonical('/tattoo-battle') },
   openGraph: {
     title: TITLE, description: DESCRIPTION, siteName: EVENT_NAME, type: 'website',
-    images: [{ url: ASSETS.tattooBattleOg, width: 1024, height: 1024, alt: `${HERO.title} presented by ${TATTOO_BATTLE_PRESENTER}` }],
+    images: [{ url: ASSETS.tattooBattleOg, width: 1200, height: 630, alt: `${HERO.title} presented by ${TATTOO_BATTLE_PRESENTER}` }],
   },
   twitter: { card: 'summary_large_image', site: SOCIAL.xHandle, creator: SOCIAL.xHandle, title: TITLE, description: DESCRIPTION, images: [ASSETS.tattooBattleOg] },
 }
