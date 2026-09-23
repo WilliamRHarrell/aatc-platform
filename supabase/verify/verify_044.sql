@@ -141,6 +141,8 @@ select 'panels', p.title, p.presented_by_fallback
 
 -- ── G. Programme sanity ─────────────────────────────────────
 -- want: 3 rows - 2027-04-16 (10), 2027-04-17 (9), 2027-04-18 (6). Total 25.
+-- AFTER seeds/thursday_after_party.sql has run: 4 rows, with 2027-04-15 (1)
+-- first. Total 26. There is no other Thursday item on the programme.
 -- The two seminars are NOT counted here; they are panels rows by design.
 select day_date, count(*) as items,
        min(start_time) as first_item, max(start_time) as last_item
@@ -148,6 +150,40 @@ select day_date, count(*) as items,
  where event_id = (select id from events where is_active)
  group by day_date
  order by day_date;
+
+
+-- ── H. No "Whole Life" (two words) left anywhere live ───────
+-- Added 2026-09-23 with seeds/wholelife_spelling.sql. The spelling had four
+-- homes (sponsorships, schedule_items, presentation_credits,
+-- exclusivity_grants) and the seed's first run found the third by aborting.
+-- This block scans EVERY text/varchar/jsonb column of every table in public.
+-- want: one NOTICE "PASS". A FAIL lists table.column(rows); history tables
+-- (profile_edits, aatc_log, placement_check_runs) are reported, not failed.
+do $$
+declare r record; n int; v_left text := ''; v_hist text := '';
+begin
+  for r in
+    select c.table_name, c.column_name
+      from information_schema.columns c
+      join information_schema.tables t on t.table_schema = c.table_schema and t.table_name = c.table_name
+     where c.table_schema = 'public' and t.table_type = 'BASE TABLE'
+       and c.data_type in ('text', 'character varying', 'jsonb', 'json')
+  loop
+    execute format('select count(*) from public.%I where %I::text ilike %L', r.table_name, r.column_name, '%whole life%') into n;
+    if n > 0 then
+      if r.table_name in ('profile_edits', 'aatc_log', 'placement_check_runs') then
+        v_hist := v_hist || format(' %s.%s(%s)', r.table_name, r.column_name, n);
+      else
+        v_left := v_left || format(' %s.%s(%s)', r.table_name, r.column_name, n);
+      end if;
+    end if;
+  end loop;
+  if v_hist <> '' then raise notice 'history tables still carry the old spelling (expected, not live copy):%', v_hist; end if;
+  if v_left <> '' then
+    raise exception 'FAIL: "Whole Life" remains in live columns:% - run seeds/wholelife_spelling.sql (it lists and updates the known homes)', v_left;
+  end if;
+  raise notice 'PASS: no live column in public carries "Whole Life" (two words)';
+end $$;
 
 
 -- ============================================================

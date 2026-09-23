@@ -244,10 +244,14 @@ Routes: `/tattoo-battle`, `/tattoo-battle/entry/[bucket]` (1..20), `/admin/tatto
 `/admin/tattoo-battle/print`. Two independent security reviews were run (after
 the migration, after the admin) and every finding was folded in.
 
-**NOT APPLIED, individually:**
-- `supabase/migrations/069_tattoo_battle.sql` - not applied.
-- `supabase/verify/verify_069.sql` - not run (run after 069).
-- `supabase/seeds/wholelife_spelling.sql` - not run.
+**Status, individually (Ryan, 2026-09-23):**
+- `supabase/migrations/069_tattoo_battle.sql` - APPLIED.
+- `supabase/verify/verify_069.sql` - RUN, clean (fixtures_remaining = 0, no raise).
+- `supabase/seeds/wholelife_spelling.sql` - first run ABORTED by its own guard:
+  presentation_credits.buyer_name also carried the old spelling. The seed now
+  updates all four known homes and scans every text column; re-run pending.
+- `supabase/seeds/thursday_after_party.sql` - not run; refuses until v_start is
+  set (start_time is NOT NULL and no time is on record).
 
 Until 069 runs: `/tattoo-battle` renders with no entries (correct and inert),
 `/admin/tattoo-battle` shows "migration 069 has not been applied", and
