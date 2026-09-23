@@ -290,8 +290,22 @@ export default async function HomePage() {
           <h2 className="font-display text-2xl font-bold text-white sm:text-3xl">
             <span className="text-emboss">{c.intro_title}</span>
           </h2>
-          <div className="mt-4 space-y-4 text-sm leading-relaxed sm:text-base" style={{ color: '#999999' }}>
-            <Markdown>{c.intro_body}</Markdown>
+          {/* flow-root contains the float so the stats band below never wraps
+              around the photo. On phones the photo stacks full-width above the
+              copy; from sm up it floats left and the copy flows around it. */}
+          <div className="mt-4 flow-root text-sm leading-relaxed sm:text-base" style={{ color: '#999999' }}>
+            <Image
+              src={ASSETS.introPhoto}
+              alt="The host on the mic at the AATC show floor, pointing at the camera in front of the awards wall"
+              width={1200}
+              height={675}
+              sizes="(min-width: 640px) 320px, 100vw"
+              className="mb-4 w-full rounded-lg border-2 sm:float-left sm:mr-6 sm:w-80"
+              style={{ borderColor: '#C4A882' }}
+            />
+            <div className="space-y-4">
+              <Markdown>{c.intro_body}</Markdown>
+            </div>
           </div>
 
           <p className="mt-8 text-center text-xs font-bold uppercase tracking-[0.2em] sm:text-sm" style={{ color: '#C4A882' }}>
