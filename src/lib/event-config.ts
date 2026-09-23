@@ -74,6 +74,8 @@ export const ASSETS = {
   heroFlag: `${STORAGE}/AATC-2026-sitebg.png`,
   /** Homepage intro photo. 1200×675, floats beside the intro copy. */
   introPhoto: `${STORAGE}/home-intro-mc.jpg`,
+  /** Collector’s Choice script logo. White on transparent, 1467×941. */
+  collectorsChoiceLogo: `${STORAGE}/collectors-choice-logo.png`,
   /** OG share image. Falls back to the horizontal logo until a purpose-built
    *  1200×630 card exists - a fallback beats a broken share preview. */
   ogImage: `${STORAGE}/aatc-secondary-main-horizontal%202.png`,

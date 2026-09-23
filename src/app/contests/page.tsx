@@ -6,7 +6,8 @@ import { getContent } from '@/content/getContent'
 import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
 import VotingBoard, { type Contest, type Entry } from './VotingBoard'
-import { COLLECTORS_CHOICE_PRIZE } from '@/lib/event-config'
+import Image from 'next/image'
+import { ASSETS, COLLECTORS_CHOICE_PRIZE } from '@/lib/event-config'
 import VotePageSponsors from '@/components/VotePageSponsors'
 
 export const metadata: Metadata = {
@@ -117,9 +118,20 @@ export default async function ContestsPage() {
 
       {/* Header */}
       <div className="border-b px-4 pb-8 pt-10 text-center" style={{ borderColor: '#2a2a2a' }}>
-        <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">
-          <span className="text-emboss">{c.header_title}</span>
-        </h1>
+        {/* The script logo is the visible title. The h1 stays in the HTML for
+            crawlers and screen readers but is hidden so the page does not read
+            "Collectors Choice" twice in a row. */}
+        <Image
+          src={ASSETS.collectorsChoiceLogo}
+          alt=""
+          aria-hidden="true"
+          width={1467}
+          height={941}
+          priority
+          sizes="(min-width: 640px) 420px, 80vw"
+          className="mx-auto h-auto w-4/5 max-w-[420px]"
+        />
+        <h1 className="sr-only">{c.header_title}</h1>
         <p className="mt-2 text-sm" style={{ color: '#999' }}>
           <span className="text-emboss">{c.header_subtitle}</span>
         </p>
