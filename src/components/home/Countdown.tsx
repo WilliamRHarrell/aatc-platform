@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
-import { DOORS_OPEN_ISO, SHOW_CLOSE_ISO, EVENT_YEAR, showPhase, type ShowPhase } from '@/lib/event-config'
+import { DOORS_OPEN_ISO, SHOW_CLOSE_ISO, EVENT_YEAR, phaseBetween, type ShowPhase } from '@/lib/event-config'
 
 /**
  * Client island: the live countdown ticker.
@@ -48,50 +48,73 @@ function Separator() {
   )
 }
 
-export default function Countdown() {
-  const target = new Date(DOORS_OPEN_ISO).getTime()
-  const [phase, setPhase] = useState<ShowPhase>(() => showPhase())
-  const [timeLeft, setTimeLeft] = useState(() => remaining(target))
+interface CountdownProps {
+  /** ISO instant to count down to. Defaults to doors open. */
+  target?: string
+  /** ISO instant after which `after` renders. Defaults to show close. */
+  close?: string
+  /** Rendered while target <= now <= close. */
+  during?: ReactNode
+  /** Rendered after close. */
+  after?: ReactNode
+}
+
+function DefaultDuring() {
+  return (
+    <div className="text-center">
+      <p className="font-display text-3xl font-bold uppercase tracking-wide sm:text-4xl" style={{ color: '#C4A882' }}>
+        Happening Now
+      </p>
+      <Link
+        href="/events/schedule"
+        className="mt-3 inline-block text-sm font-semibold underline underline-offset-4 transition-colors hover:text-white"
+        style={{ color: '#C4A882' }}
+      >
+        See today’s schedule →
+      </Link>
+    </div>
+  )
+}
+
+function DefaultAfter() {
+  return (
+    <div className="text-center">
+      <p className="font-display text-2xl font-bold sm:text-3xl" style={{ color: '#C4A882' }}>
+        That’s a wrap on AATC {EVENT_YEAR}
+      </p>
+      <p className="mt-2 text-sm" style={{ color: '#999999' }}>
+        Dates for {EVENT_YEAR + 1} will be announced soon - follow us so you don’t miss it.
+      </p>
+    </div>
+  )
+}
+
+/**
+ * Defaults reproduce the homepage exactly; /tattoo-battle passes its own
+ * window and states. One ticker, two windows - not two tickers.
+ */
+export default function Countdown({
+  target = DOORS_OPEN_ISO,
+  close = SHOW_CLOSE_ISO,
+  during = <DefaultDuring />,
+  after = <DefaultAfter />,
+}: CountdownProps = {}) {
+  const targetMs = new Date(target).getTime()
+  const [phase, setPhase] = useState<ShowPhase>(() => phaseBetween(target, close))
+  const [timeLeft, setTimeLeft] = useState(() => remaining(targetMs))
 
   useEffect(() => {
     const tick = () => {
-      setPhase(showPhase())
-      setTimeLeft(remaining(target))
+      setPhase(phaseBetween(target, close))
+      setTimeLeft(remaining(targetMs))
     }
     tick()
     const id = setInterval(tick, 1000)
     return () => clearInterval(id)
-  }, [target])
+  }, [target, close, targetMs])
 
-  if (phase === 'during') {
-    return (
-      <div className="text-center">
-        <p className="font-display text-3xl font-bold uppercase tracking-wide sm:text-4xl" style={{ color: '#C4A882' }}>
-          Happening Now
-        </p>
-        <Link
-          href="/events/schedule"
-          className="mt-3 inline-block text-sm font-semibold underline underline-offset-4 transition-colors hover:text-white"
-          style={{ color: '#C4A882' }}
-        >
-          See today’s schedule →
-        </Link>
-      </div>
-    )
-  }
-
-  if (phase === 'after') {
-    return (
-      <div className="text-center">
-        <p className="font-display text-2xl font-bold sm:text-3xl" style={{ color: '#C4A882' }}>
-          That’s a wrap on AATC {EVENT_YEAR}
-        </p>
-        <p className="mt-2 text-sm" style={{ color: '#999999' }}>
-          Dates for {EVENT_YEAR + 1} will be announced soon - follow us so you don’t miss it.
-        </p>
-      </div>
-    )
-  }
+  if (phase === 'during') return <>{during}</>
+  if (phase === 'after') return <>{after}</>
 
   return (
     <div className="flex items-start justify-center gap-4 sm:gap-8">
