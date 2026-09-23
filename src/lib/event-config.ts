@@ -71,7 +71,7 @@ const STORAGE = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/publi
 
 export const ASSETS = {
   logoHorizontal: `${STORAGE}/aatc-secondary-main-horizontal%202.png`,
-  heroFlag: `${STORAGE}/AATC-large-bg-flag.png`,
+  heroFlag: `${STORAGE}/AATC-2026-sitebg.png`,
   /** OG share image. Falls back to the horizontal logo until a purpose-built
    *  1200×630 card exists - a fallback beats a broken share preview. */
   ogImage: `${STORAGE}/aatc-secondary-main-horizontal%202.png`,

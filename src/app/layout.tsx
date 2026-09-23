@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { ROBOTS_META } from '@/lib/site'
+import { ASSETS } from '@/lib/event-config'
 import { Playfair_Display, Inter } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 import SiteFooter from '@/components/SiteFooter'
@@ -48,7 +49,7 @@ export default function RootLayout({
           <div
             className="absolute inset-0 bg-cover bg-top bg-no-repeat"
             style={{
-              backgroundImage: `url(${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/site-assets/AATC-large-bg-flag.png)`,
+              backgroundImage: `url(${ASSETS.heroFlag})`,
               backgroundPosition: 'center top',
               opacity: 0.6,
             }}
