@@ -13,7 +13,7 @@ import toast from 'react-hot-toast'
 //
 // TWO THINGS THIS SCREEN HAS TO GET RIGHT:
 //
-// 1. A credit is ONE SALE ACROSS MANY ITEMS. Whole Life Aftercare presents the
+// 1. A credit is ONE SALE ACROSS MANY ITEMS. WholeLife Aftercare presents the
 //    Tattoo Battle, which is three schedule_items rows. If this UI presented
 //    those as three separable credits the join table would be pointless, so a
 //    credit is one card listing every item it covers, with one price.

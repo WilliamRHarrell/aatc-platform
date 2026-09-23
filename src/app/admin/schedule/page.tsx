@@ -450,7 +450,7 @@ export default function AdminSchedulePage() {
                          hint="Used ONLY when no sponsor is linked above. For a credit that is sold but has no sponsorship record yet - it renders as plain text, unlinked.">
                     <input type="text" value={form.presented_by_fallback}
                            onChange={e => setForm({ ...form, presented_by_fallback: e.target.value })}
-                           className={inputCls} style={inputStyle} placeholder="Whole Life Aftercare" />
+                           className={inputCls} style={inputStyle} placeholder="WholeLife Aftercare" />
                   </Field>
                 </div>
 
