@@ -1,6 +1,6 @@
 # The All American Tattoo Battle: design
 
-Date: 2026-09-23. Status: DRAFT, awaiting Ryan's review.
+Date: 2026-09-23. Status: APPROVED by Ryan 2026-09-23 with the amendments recorded inline (marked "Decided").
 
 Three deliverables: the public page at `/tattoo-battle`, the QR landing page at
 `/tattoo-battle/entry/[bucket]`, and the admin at `/admin/tattoo-battle`. Ryan's
@@ -218,10 +218,12 @@ component.
 - Print CSS: `@page { size: 4in 6in; margin: 0.25in }`, one label per page,
   `break-after: page`. Screen view shows the same cards in a grid.
 - "Download all as ZIP": `jszip` in the browser, one `bucket-NN.svg` per code.
-- Base URL: `SITE_URL` from `@/lib/site`. When `IS_PRODUCTION_HOST` is false
-  the page shows a red banner ("These codes point at the preview host. Do not
-  print until NEXT_PUBLIC_SITE_URL is the production domain.") and still
-  renders, so the layout can be checked. See decision §3.6.
+- Base URL: **`QR_BASE_URL = 'https://www.allamericantattooconvention.com'`**,
+  a fixed constant in `tattoo-battle-config.ts`, never the site URL env var
+  (Decided: codes are physical and must not depend on which host a build ran
+  on). While `IS_PRODUCTION_HOST` is false the page shows a warning banner:
+  "Domain not cut over to this project yet - scans will 404 until cutover."
+  Printing is never blocked. See §3.6 and the launch checklist in §11.
 
 ---
 
@@ -240,7 +242,7 @@ the three schedule rows' `presented_by_fallback`, `verify_044.sql`, the
 unapplied `three_sponsors_invoices_exclusivity.sql` seed, and the kids-contest
 page via the constant. Their own logo reads "Wholelife".
 
-Default: **change the constant to "WholeLife Aftercare"** and ship a
+Decided: **change the constant to "WholeLife Aftercare"** and ship a
 data-change seed `supabase/seeds/wholelife_spelling.sql` (guarded like
 `tattoo_battle_credit.sql`: asserts the before-count, updates
 `sponsorships.sponsor_name` and the three `presented_by_fallback` values,
@@ -249,8 +251,7 @@ string. Until the seed runs, the sponsor block would render the row's
 two-word name, so the page is consistent with the site either way, never
 mixed on one page.
 
-Alternative: keep "Whole Life Aftercare" everywhere and treat the brief's
-spelling as a typo. One line to say which.
+(Alternative rejected: keeping the two-word spelling.)
 
 ### 3.3 Battle times: one home
 The brief puts `BATTLE_START` in config and derives judging time from
@@ -271,8 +272,8 @@ satisfied like this:
   shows the schedule row's time, because the schedule is the programme.
 - `WINNER_ANNOUNCED_TIME` is therefore not a config value at all: the Sunday
   6:00 PM row already exists and the homepage card already says "crowned
-  Sunday at 6:00 PM". The brief's `// CONFIRM` on this item is answered by
-  existing data. The config keeps `WINNER_ANNOUNCED` as the date label only.
+  Sunday at 6:00 PM". Decided: 6:00 PM is correct. The config keeps
+  `WINNER_ANNOUNCED` as the date label only.
 
 ### 3.4 Sponsor block source
 The confirmed `sponsors_public` row carries logo, website and Instagram, so
@@ -283,37 +284,32 @@ link from config, never a borrowed logo. The Dropbox WholeLife PNGs are not
 needed. Nothing about tier, amount, exclusivity or invoices is read.
 
 ### 3.5 Veteran Ink logo
-Default: a `page_images` slot `tattoo-battle-veteran-ink`, seeded by the
+Decided: a `page_images` slot `tattoo-battle-veteran-ink`, seeded by the
 migration, filled from `/admin/page-images` once Ryan has the file. Renders
-nothing until then, and needs no deploy when the file arrives. The brief's
-"ask me for the asset" stands: **Ryan, please send the Veteran Ink logo** (SVG
-or PNG on transparent), or say to use a static file in
-`/public/images/tattoo-battle/` instead.
+nothing until then, and needs no deploy when the file arrives. The file is
+coming later; the slot ships empty.
 
 ### 3.6 QR base URL and the cutover
-Codes are physical; a wrong host is a reprint. `SITE_URL` is the preview host
-today and the domain is served by `aatc-landing`. Default: the print page
-uses `SITE_URL`, blocks nothing, but shows the red banner while
-`IS_PRODUCTION_HOST` is false. Ryan prints only after cutover. Also to
-decide: the canonical host is `www.` today (apex 308s to it), so when
-`NEXT_PUBLIC_SITE_URL` is flipped it should be
-`https://www.allamericantattooconvention.com` to avoid a redirect hop on every
-scan. Confirm which host you intend to be canonical.
+Decided: a fixed `QR_BASE_URL = 'https://www.allamericantattooconvention.com'`
+in config; the env var is not consulted for QR codes. `www.` is the canonical
+host. The print page warns (never blocks) while the build is not on the
+production host. Domain cutover is a launch-checklist item (§11).
 
 ### 3.7 Who can use the admin
-Default: `admin` and `content_editor`, the same as `/admin/contests` and
+Decided: `admin` and `content_editor`, the same as `/admin/contests` and
 `/admin/page-images`. That means the table policy and the bucket policies use
 `has_role(array['admin','content_editor'])`, `roles.ts` adds the path for
 `content_editor`, and the RPC checks the same. Reason: the person publishing
 entries on the show floor is more likely an editor than the one admin.
-Alternative: admin only, one word to say so.
+(Alternative rejected: admin only.)
 
 ### 3.8 HEIC and HEVC from iPhones
 Browsers cannot display HEIC, and Chrome cannot play HEVC `.mov`. iOS Safari
 transcodes to JPEG and H.264 automatically **when the file input's `accept`
-list does not include the HEIC/HEVC types**. Default: the bucket allows
-`image/heic` and `video/quicktime` as the brief says (harmless), but the admin
-file input's `accept` lists only jpeg, png, webp, mp4 and quicktime, and the
+list does not include the HEIC/HEVC types**. Decided: the bucket's allowed
+types are **jpeg, png, webp, mp4 and quicktime only**, matching the admin file
+input's `accept` list exactly (HEIC removed from the bucket at Ryan's
+direction; `.mov` stays because iOS emits H.264 in a `.mov` container). The
 client rejects a HEIC file that arrives anyway with: "That photo is HEIC. On
 iPhone, set Camera → Formats → Most Compatible, or share it as JPEG." Same
 message shape for a video the browser cannot decode.
@@ -326,26 +322,25 @@ accepts an image. Public pages render a video without a poster as a dark
 frame with the play control, never a broken image.
 
 ### 3.10 Size limits
-Bucket limit **50 MB** (matches the largest existing bucket; safe under any
-plan). H.264 1080p from an iPhone runs roughly 1.5 MB per second, so 50 MB is
-about 30 seconds. The admin warning says so. If the project is on Pro and the
-global limit is raised, the bucket limit is one number in the migration.
-**CONFIRM** the global limit and whether 50 MB is enough.
+Decided: bucket limit **50 MB**. H.264 1080p from an iPhone runs roughly
+1.5 MB per second, so 50 MB is about 30 seconds; the admin warning says so.
+The project's global limit was not confirmed; 50 MB is at or below the
+largest existing bucket, so it is safe under any plan.
 
 ### 3.11 Tests
-Default: add `vitest` as a dev dependency and a `test` script, for the pure
+Decided: add `vitest` as a dev dependency and a `test` script, for the pure
 helpers only (bucket validation, judging-time derivation, entry URL, alt
 text, media-array reorder). DB behaviour is verified by
 `supabase/verify/verify_069.sql` (run in the SQL editor) and by
 `scripts/verify-tattoo-battle-anon.mjs` (anon-key assertions with a
 service-role positive control, modelled on `verify-sponsor-visibility.mjs`).
-Nothing DB-touching runs in CI, matching the repo. This is the first test
-runner in the repo, so say if you would rather not add one.
+Nothing DB-touching runs in CI, matching the repo.
 
 ### 3.12 Old URL redirect
-Held until Ryan confirms (brief). Proposed: `next.config.ts` `redirects()`
-entry `/all-american-tattoo-battle-rules-signup/:path*` → `/tattoo-battle`,
-permanent. The two attachment sub-URLs are covered by the wildcard.
+Decided: approved. `next.config.ts` `redirects()` entry
+`/all-american-tattoo-battle-rules-signup/:path*` → `/tattoo-battle`,
+`permanent: true` (301). The two attachment sub-URLs are covered by the
+wildcard.
 
 ---
 
@@ -408,7 +403,7 @@ the live project.
 ```
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('tattoo-battle-media', 'tattoo-battle-media', true, 52428800,
-        array['image/jpeg','image/png','image/webp','image/heic','video/mp4','video/quicktime'])
+        array['image/jpeg','image/png','image/webp','video/mp4','video/quicktime'])
 on conflict (id) do nothing;
 policies: public read; editorial insert/update/delete (has_role) - same four-policy shape as page-images after 054
 ```
@@ -485,10 +480,9 @@ Added to `@theme` in `globals.css`, never inline:
 ```
 
 Fonts via `next/font/google` in the battle page's own layout segment so the
-rest of the site does not download them. Ryan's graphics use two licensed
-faces (a Tuscan slab for "TATTOO", a dry brush for "BATTLE"); if the webfont
-files and licence exist, they replace Rubik Dirt and Rye and the tokens do not
-change. **Ask: do you have the webfonts?**
+rest of the site does not download them. Decided: Rubik Dirt, Rye and Oswald
+from Google Fonts. If licensed webfonts for the lockup's faces arrive later
+they replace these behind the same tokens.
 
 Assets in `/public/images/tattoo-battle/`, cropped from the vector master
 (already rasterised at 2400 px with transparency): `lockup-full.png`,
@@ -564,7 +558,23 @@ into `presentation_credits` (HANDOFF §3, unrelated).
 
 ---
 
-## 11. Report-back checklist (from the brief)
+## 11. Launch checklist (added at Ryan's direction)
+
+Before the printed QR codes are put on buckets:
+
+1. **Domain cutover**: point `www.allamericantattooconvention.com` at the
+   `aatc-platform` Vercel project (it is on `aatc-landing` today), keep the apex
+   308 to `www.`, and set production `NEXT_PUBLIC_SITE_URL` to
+   `https://www.allamericantattooconvention.com`. Until then every scan of a
+   printed code 404s on the landing project.
+2. Apply migration 069 and run `verify_069.sql`; run
+   `scripts/verify-tattoo-battle-anon.mjs` against production.
+3. Run the WholeLife spelling seed; re-run `verify_044.sql`.
+4. Fill the `tattoo-battle-veteran-ink` page-image slot.
+5. Scan one printed code from a phone on the live site and confirm the holding
+   state renders for that bucket.
+
+## 12. Report-back checklist (from the brief)
 
 1. Files changed and created: §2.
 2. Migration file, not applied: §4.
@@ -572,6 +582,6 @@ into `presentation_credits` (HANDOFF §3, unrelated).
 4. Every `// CONFIRM`: §6, §3.3, §3.10.
 5. Candidate old URLs: §1.1.
 6. Upload limit and video concerns: §1.3, §3.8, §3.10, §5.2.
-7. Issues discovered: the domain is served by `aatc-landing` (§1.1, §3.6);
+7. Issues discovered: the domain is served by `aatc-landing` (§1.1, §3.6, §11);
    the spelling split (§3.2); `robots.txt` on the preview host is correct but
    the production domain has no `sitemap.xml` at all (§10).
