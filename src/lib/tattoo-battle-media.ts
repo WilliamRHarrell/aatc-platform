@@ -7,7 +7,13 @@ export const MAX_BYTES = 50 * 1024 * 1024
 
 const IPHONE_HINT = 'That photo is HEIC. On iPhone, set Camera > Formats > Most Compatible, or share it as JPEG.'
 
-export type Validation = { ok: true; kind: 'image' | 'video' } | { ok: false; reason: string }
+/** Extension comes from the MIME type, never from the file name: names carry
+ *  query strings, dots and path characters that would end up in an object key. */
+const EXT: Record<(typeof ACCEPT_TYPES)[number], string> = {
+  'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/quicktime': 'mov',
+}
+
+export type Validation = { ok: true; kind: 'image' | 'video'; ext: string } | { ok: false; reason: string }
 
 export function validateFile(f: { type: string; size: number; name: string }): Validation {
   const lower = f.name.toLowerCase()
@@ -21,11 +27,21 @@ export function validateFile(f: { type: string; size: number; name: string }): V
     const mb = (f.size / 1024 / 1024).toFixed(1)
     return { ok: false, reason: `That file is ${mb} MB. The limit is 50 MB - about 30 seconds of 1080p video.` }
   }
-  return { ok: true, kind: f.type.startsWith('video/') ? 'video' : 'image' }
+  const type = f.type as (typeof ACCEPT_TYPES)[number]
+  return { ok: true, kind: type.startsWith('video/') ? 'video' : 'image', ext: EXT[type] }
 }
 
-export function objectPath(eventId: string, bucket: number, kind: 'image' | 'video', ext: string, now: number = Date.now()): string {
-  return `${eventId}/bucket-${String(bucket).padStart(2, '0')}/${now}-${kind}.${ext.toLowerCase()}`
+/** 8 lowercase alphanumerics. Makes a draft's public-bucket URL unguessable (the timestamp alone is bounded by the show's hours). */
+function nonce(): string {
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789'
+  const bytes = new Uint8Array(8)
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) crypto.getRandomValues(bytes)
+  else for (let i = 0; i < 8; i++) bytes[i] = Math.floor(Math.random() * 256)
+  return Array.from(bytes, b => alphabet[b % alphabet.length]).join('')
+}
+
+export function objectPath(eventId: string, bucket: number, kind: 'image' | 'video', ext: string, now: number = Date.now(), rand: string = nonce()): string {
+  return `${eventId}/bucket-${String(bucket).padStart(2, '0')}/${now}-${rand}-${kind}.${ext.toLowerCase()}`
 }
 
 export function posterPath(mediaPath: string): string {
@@ -70,6 +86,9 @@ export function uploadWithProgress(opts: {
       }
     }
     xhr.onerror = () => reject(new Error('Network error during upload'))
+    xhr.ontimeout = () => reject(new Error('Upload timed out. Check the signal and try again.'))
+    xhr.onabort = () => reject(new Error('Upload was cancelled'))
+    xhr.timeout = 5 * 60 * 1000
     xhr.send(opts.file)
   })
 }

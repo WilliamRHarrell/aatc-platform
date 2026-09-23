@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase'
 import { guardedWrite } from '@/lib/db-write'
 import { requestRevalidate } from '@/lib/revalidate'
-import { entryPath, mediaPublicUrl, type MediaItem } from '@/lib/tattoo-battle'
+import { entryPath, mediaPublicUrl, normalizeInstagram, type MediaItem } from '@/lib/tattoo-battle'
 import { ACCEPT_ATTR, capturePoster, manualPosterPath, moveItem, objectPath, posterPath, uploadWithProgress, validateFile } from '@/lib/tattoo-battle-media'
 
 export interface Row {
@@ -19,13 +19,16 @@ export interface Row {
   media: MediaItem[]
   is_published: boolean
   is_champion: boolean
+  /** Optimistic-concurrency token: every update is conditioned on it, so two
+   *  phones editing one bucket cannot silently overwrite each other's media. */
+  updated_at: string
 }
 
 const TABLE = 'tattoo_battle_entries'
 const BUCKET = 'tattoo-battle-media'
 
 function trim(f: { artist_name: string; shop_name: string; city_state: string; instagram: string }) {
-  return { artist_name: f.artist_name.trim(), shop_name: f.shop_name.trim(), city_state: f.city_state.trim(), instagram: f.instagram.trim().replace(/^@/, '') }
+  return { artist_name: f.artist_name.trim(), shop_name: f.shop_name.trim(), city_state: f.city_state.trim(), instagram: normalizeInstagram(f.instagram) }
 }
 
 export default function SlotEditor({ eventId, bucket, row, hasChampion, onChanged }: {
@@ -46,10 +49,10 @@ export default function SlotEditor({ eventId, bucket, row, hasChampion, onChange
   const saveDetails = async () => {
     setBusy('save')
     const res = row
-      ? await guardedWrite(supabase.from(TABLE).update(trim(form)).eq('id', row.id).select('id'), 'Details not saved', `admin/tattoo-battle save bucket=${bucket}`)
+      ? await guardedWrite(supabase.from(TABLE).update(trim(form)).eq('id', row.id).eq('updated_at', row.updated_at).select('id'), 'Details not saved (someone else may have edited this bucket - it has been reloaded)', `admin/tattoo-battle save bucket=${bucket}`)
       : await guardedWrite(supabase.from(TABLE).insert({ event_id: eventId, bucket_number: bucket, ...trim(form) }).select('id'), 'Slot not created', `admin/tattoo-battle create bucket=${bucket}`)
     setBusy(null)
-    if (!res.ok) { toast.error(res.error); return }
+    if (!res.ok) { toast.error(res.error); await onChanged(); return }
     toast.success('Saved')
     if (row?.is_published) await revalidate()
     await onChanged()
@@ -57,8 +60,10 @@ export default function SlotEditor({ eventId, bucket, row, hasChampion, onChange
 
   const setMedia = async (media: MediaItem[], label: string) => {
     if (!row) return false
-    const res = await guardedWrite(supabase.from(TABLE).update({ media }).eq('id', row.id).select('id'), `${label} not saved`, `admin/tattoo-battle media bucket=${bucket}`)
-    if (!res.ok) { toast.error(res.error); return false }
+    // Conditioned on updated_at: a stale phone gets "0 rows" from guardedWrite,
+    // its upload is rolled back by the caller, and the slot reloads.
+    const res = await guardedWrite(supabase.from(TABLE).update({ media }).eq('id', row.id).eq('updated_at', row.updated_at).select('id'), `${label} not saved (someone else may have edited this bucket - it has been reloaded)`, `admin/tattoo-battle media bucket=${bucket}`)
+    if (!res.ok) { toast.error(res.error); await onChanged(); return false }
     if (row.is_published) await revalidate()
     await onChanged()
     return true
@@ -71,8 +76,7 @@ export default function SlotEditor({ eventId, bucket, row, hasChampion, onChange
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { toast.error('Signed out. Sign in again.'); return }
     setBusy('upload')
-    const ext = file.name.split('.').pop() ?? (v.kind === 'video' ? 'mp4' : 'jpg')
-    const path = objectPath(eventId, bucket, v.kind, ext)
+    const path = objectPath(eventId, bucket, v.kind, v.ext)
     const item: MediaItem = { type: v.kind, path }
     try {
       await uploadWithProgress({ ...env, token: session.access_token, path, file, contentType: file.type, onProgress: pct => setProgress({ name: file.name, pct }) })
@@ -107,8 +111,7 @@ export default function SlotEditor({ eventId, bucket, row, hasChampion, onChange
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { toast.error('Signed out. Sign in again.'); return }
     setBusy('poster')
-    const ext = file.name.split('.').pop() ?? 'jpg'
-    const pp = manualPosterPath(row.media[index].path, ext)
+    const pp = manualPosterPath(row.media[index].path, v.ext)
     try {
       await uploadWithProgress({ ...env, token: session.access_token, path: pp, file, contentType: file.type, onProgress: () => {} })
     } catch (e) { setBusy(null); toast.error(`Upload failed: ${(e as Error).message}`); return }

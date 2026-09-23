@@ -2,10 +2,12 @@ import { describe, it, expect } from 'vitest'
 import { validateFile, objectPath, posterPath, manualPosterPath, moveItem, MAX_BYTES, ACCEPT_ATTR } from '@/lib/tattoo-battle-media'
 
 describe('validateFile', () => {
-  it('accepts each allowed type and classifies it', () => {
-    expect(validateFile({ type: 'image/jpeg', size: 10, name: 'a.jpg' })).toEqual({ ok: true, kind: 'image' })
-    expect(validateFile({ type: 'video/quicktime', size: 10, name: 'a.mov' })).toEqual({ ok: true, kind: 'video' })
-    expect(validateFile({ type: 'video/mp4', size: 10, name: 'a.mp4' })).toEqual({ ok: true, kind: 'video' })
+  it('accepts each allowed type, classifies it, and derives the extension from the MIME type not the name', () => {
+    expect(validateFile({ type: 'image/jpeg', size: 10, name: 'a.jpg?x=1' })).toEqual({ ok: true, kind: 'image', ext: 'jpg' })
+    expect(validateFile({ type: 'image/png', size: 10, name: 'photo' })).toEqual({ ok: true, kind: 'image', ext: 'png' })
+    expect(validateFile({ type: 'image/webp', size: 10, name: '../../x.webp' })).toEqual({ ok: true, kind: 'image', ext: 'webp' })
+    expect(validateFile({ type: 'video/quicktime', size: 10, name: 'a.mov' })).toEqual({ ok: true, kind: 'video', ext: 'mov' })
+    expect(validateFile({ type: 'video/mp4', size: 10, name: 'a.mp4' })).toEqual({ ok: true, kind: 'video', ext: 'mp4' })
   })
   it('rejects HEIC with the iPhone hint', () => {
     const r = validateFile({ type: 'image/heic', size: 10, name: 'IMG_1.HEIC' })
@@ -31,11 +33,17 @@ describe('validateFile', () => {
 })
 
 describe('paths', () => {
-  it('nests by event and zero-padded bucket, with a timestamp', () => {
-    expect(objectPath('ev1', 3, 'image', 'jpg', 1700000000000)).toBe('ev1/bucket-03/1700000000000-image.jpg')
+  it('nests by event and zero-padded bucket, with a timestamp and a nonce', () => {
+    expect(objectPath('ev1', 3, 'image', 'jpg', 1700000000000, 'abcd1234')).toBe('ev1/bucket-03/1700000000000-abcd1234-image.jpg')
+  })
+  it('generates an 8-char lowercase alphanumeric nonce by default, different each call', () => {
+    const a = objectPath('ev1', 3, 'image', 'jpg', 1700000000000)
+    const b = objectPath('ev1', 3, 'image', 'jpg', 1700000000000)
+    expect(a).toMatch(/^ev1\/bucket-03\/1700000000000-[a-z0-9]{8}-image\.jpg$/)
+    expect(a).not.toBe(b)
   })
   it('poster sits beside its video', () => {
-    expect(posterPath('ev1/bucket-03/1700000000000-video.mov')).toBe('ev1/bucket-03/1700000000000-video-poster.jpg')
+    expect(posterPath('ev1/bucket-03/1700000000000-abcd1234-video.mov')).toBe('ev1/bucket-03/1700000000000-abcd1234-video-poster.jpg')
   })
   it('a hand-picked poster gets its own timestamp and extension', () => {
     expect(manualPosterPath('ev1/bucket-03/1700000000000-video.mov', 'png', 1700000009999)).toBe('ev1/bucket-03/1700000000000-video-poster-1700000009999.png')

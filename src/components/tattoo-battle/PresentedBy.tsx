@@ -1,6 +1,7 @@
 import { TATTOO_BATTLE_PRESENTER } from '@/lib/event-config'
 import { WHOLELIFE_INSTAGRAM } from '@/lib/tattoo-battle-config'
 import type { PresenterRow } from '@/lib/tattoo-battle-data'
+import { normalizeInstagram, safeHttpUrl } from '@/lib/tattoo-battle'
 
 /**
  * "Presented by WholeLife Aftercare". Logo and link come from the confirmed
@@ -9,10 +10,10 @@ import type { PresenterRow } from '@/lib/tattoo-battle-data'
  */
 export default function PresentedBy({ presenter, size = 'block' }: { presenter: PresenterRow | null; size?: 'hero' | 'block' }) {
   const name = TATTOO_BATTLE_PRESENTER
-  const site = presenter?.website ?? null
-  const ig = presenter?.instagram
-    ? `https://instagram.com/${presenter.instagram.replace(/^@/, '')}`
-    : WHOLELIFE_INSTAGRAM
+  // The website column is sponsor-editable from the portal; only http(s) reaches an href.
+  const site = safeHttpUrl(presenter?.website)
+  const handle = normalizeInstagram(presenter?.instagram)
+  const ig = handle ? `https://instagram.com/${handle}` : WHOLELIFE_INSTAGRAM
   const logoH = size === 'hero' ? 'h-14 sm:h-20' : 'h-16 sm:h-24'
   return (
     <div className="flex flex-col items-center gap-3 text-center">
@@ -28,7 +29,7 @@ export default function PresentedBy({ presenter, size = 'block' }: { presenter: 
         <p className="font-battle-slab text-2xl text-white">{name}</p>
       )}
       <a href={ig} target="_blank" rel="noopener noreferrer" className="text-sm underline underline-offset-4" style={{ color: '#C4A882' }}>
-        {presenter?.instagram ?? '@wholelife.aftercare'} on Instagram
+        @{handle || 'wholelife.aftercare'} on Instagram
       </a>
     </div>
   )

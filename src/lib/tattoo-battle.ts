@@ -72,6 +72,17 @@ export function buildTimeline(
   return { steps, mismatch }
 }
 
+/** Instagram handles: letters, digits, dot, underscore, max 30. Leading @ and stray path/query characters are dropped. */
+export function normalizeInstagram(raw: string | null | undefined): string {
+  return (raw ?? '').trim().replace(/^@/, '').replace(/[^A-Za-z0-9._]/g, '').slice(0, 30)
+}
+
+/** Only http(s) URLs are ever rendered into an href; anything else (javascript:, data:) becomes null. */
+export function safeHttpUrl(raw: string | null | undefined): string | null {
+  const v = (raw ?? '').trim()
+  return /^https?:\/\//i.test(v) ? v : null
+}
+
 export function entryAlt(bucket: number, artist: string): string {
   return `Tattoo Battle entry, Bucket #${bucket}, by ${artist}`
 }

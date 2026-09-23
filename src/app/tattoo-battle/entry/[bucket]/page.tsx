@@ -7,7 +7,7 @@ import MediaCarousel from '@/components/tattoo-battle/MediaCarousel'
 import { ASSETS, EVENT_YEAR, TATTOO_BATTLE_PRESENTER } from '@/lib/event-config'
 import { canonical } from '@/lib/site'
 import { BUCKETS_ONLY_COPY, ONLINE_DONATIONS_COUNT_AS_VOTES, VETERAN_INK } from '@/lib/tattoo-battle-config'
-import { entryAlt, ogImageFor, parseBucket } from '@/lib/tattoo-battle'
+import { entryAlt, normalizeInstagram, ogImageFor, parseBucket } from '@/lib/tattoo-battle'
 import { getEntryByBucket } from '@/lib/tattoo-battle-data'
 
 export const revalidate = 60
@@ -74,9 +74,9 @@ export default async function EntryPage({ params }: Params) {
             <div className="mt-6 text-center">
               <p className="font-battle-slab text-2xl text-white">{entry.artist_name}</p>
               {entry.shop_name && <p className="text-sm" style={{ color: '#bbb' }}>{entry.shop_name}{entry.city_state ? ` · ${entry.city_state}` : ''}</p>}
-              {entry.instagram && (
-                <a href={`https://instagram.com/${entry.instagram.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-sm underline underline-offset-4" style={{ color: '#C4A882' }}>
-                  @{entry.instagram.replace(/^@/, '')}
+              {normalizeInstagram(entry.instagram) && (
+                <a href={`https://instagram.com/${normalizeInstagram(entry.instagram)}`} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-sm underline underline-offset-4" style={{ color: '#C4A882' }}>
+                  @{normalizeInstagram(entry.instagram)}
                 </a>
               )}
             </div>

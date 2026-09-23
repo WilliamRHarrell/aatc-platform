@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   parseBucket, entryPath, entryUrl, judgingIso, buildTimeline, entryAlt, ogImageFor, mediaPublicUrl,
+  normalizeInstagram, safeHttpUrl,
 } from '@/lib/tattoo-battle'
 import { BUCKET_COUNT, QR_BASE_URL } from '@/lib/tattoo-battle-config'
 
@@ -78,5 +79,26 @@ describe('ogImageFor', () => {
   it('uses the fallback when there is no image item', () => {
     expect(ogImageFor([{ type: 'video', path: 'x.mp4' }], 'FALLBACK')).toBe('FALLBACK')
     expect(ogImageFor([], 'FALLBACK')).toBe('FALLBACK')
+  })
+})
+
+describe('normalizeInstagram', () => {
+  it('strips @, whitespace and anything outside the handle alphabet, capped at 30', () => {
+    expect(normalizeInstagram('@some.artist_1')).toBe('some.artist_1')
+    expect(normalizeInstagram(' @Some.Artist ')).toBe('Some.Artist')
+    expect(normalizeInstagram('explore/tags/x?y#z')).toBe('exploretagsxyz')
+    expect(normalizeInstagram('a'.repeat(40))).toHaveLength(30)
+    expect(normalizeInstagram('')).toBe('')
+  })
+})
+
+describe('safeHttpUrl', () => {
+  it('passes http(s) URLs and refuses anything else', () => {
+    expect(safeHttpUrl('https://wholelifeaftercare.com/')).toBe('https://wholelifeaftercare.com/')
+    expect(safeHttpUrl('http://example.com')).toBe('http://example.com')
+    expect(safeHttpUrl('javascript:alert(1)')).toBeNull()
+    expect(safeHttpUrl('  HTTPS://x.y ')).toBe('HTTPS://x.y')
+    expect(safeHttpUrl(null)).toBeNull()
+    expect(safeHttpUrl('')).toBeNull()
   })
 })

@@ -21,7 +21,7 @@ export default function AdminTattooBattlePage() {
     setEventId(ev.id)
     const { data, error } = await supabase
       .from('tattoo_battle_entries')
-      .select('id, bucket_number, artist_name, shop_name, city_state, instagram, media, is_published, is_champion')
+      .select('id, bucket_number, artist_name, shop_name, city_state, instagram, media, is_published, is_champion, updated_at')
       .eq('event_id', ev.id)
       .order('bucket_number')
     if (error) {

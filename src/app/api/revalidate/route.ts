@@ -48,8 +48,10 @@ export async function POST(request: Request) {
     // No body - fall through to defaults below.
   }
 
-  const paths = (body.paths ?? ['/']).filter(p => ALLOWED_PATHS.has(p) || ALLOWED_PATH_PATTERNS.some(re => re.test(p)))
-  const tags = (body.tags ?? []).filter(t => ALLOWED_TAGS.has(t))
+  const rawPaths = Array.isArray(body.paths) ? body.paths : ['/']
+  const rawTags = Array.isArray(body.tags) ? body.tags : []
+  const paths = rawPaths.filter((p): p is string => typeof p === 'string' && (ALLOWED_PATHS.has(p) || ALLOWED_PATH_PATTERNS.some(re => re.test(p))))
+  const tags = rawTags.filter((t): t is string => typeof t === 'string' && ALLOWED_TAGS.has(t))
 
   paths.forEach(p => revalidatePath(p))
   // Next.js 16 requires a cache-life profile; expire: 0 purges immediately.
