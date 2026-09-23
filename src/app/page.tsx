@@ -11,7 +11,10 @@ import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
 import Countdown from '@/components/home/Countdown'
 import VideoFacade from '@/components/home/VideoFacade'
-import { HOME_EVENTS, AFTER_PARTIES, mapsUrl } from '@/lib/homepage-content'
+import { HOME_EVENTS } from '@/lib/homepage-content'
+import { getAfterParties } from '@/lib/after-parties-data'
+import { mapsUrl, nightLabel } from '@/lib/venues'
+import { timeLabel } from '@/lib/schedule-format'
 import PresentedBy from '@/components/PresentedBy'
 import { dayLabel as panelDayLabel, timeLabel as panelTimeLabel } from '@/lib/schedule-format'
 import {
@@ -163,7 +166,7 @@ const getHomepageData = unstable_cache(
 )
 
 export default async function HomePage() {
-  const [c, { sponsors, panels }] = await Promise.all([getContent('homepage'), getHomepageData()])
+  const [c, { sponsors, panels }, afterParties] = await Promise.all([getContent('homepage'), getHomepageData(), getAfterParties()])
 
   const ticketsLive = isTrue(c.ticket_sales_live) && !!c.ticket_url
   const winners = BEST_IN_SHOW[BEST_IN_SHOW_YEAR] ?? []
@@ -200,6 +203,23 @@ export default async function HomePage() {
       availability: ticketsLive ? 'https://schema.org/InStock' : 'https://schema.org/PreOrder',
       priceCurrency: 'USD',
     },
+    // Published after parties only (the loader reads the public view). Venue
+    // becomes the Place; a venue with no address is a Place with a name only.
+    ...(afterParties.length > 0 && {
+      subEvent: afterParties.map(p => ({
+        '@type': 'Event',
+        name: p.venue ? `${p.title} at ${p.venue.name}` : p.title,
+        startDate: `${p.day_date}T${p.start_time.slice(0, 8)}-04:00`,
+        eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+        ...(p.venue && {
+          location: {
+            '@type': 'Place',
+            name: p.venue.name,
+            ...(p.venue.address && { address: p.venue.address }),
+          },
+        }),
+      })),
+    }),
   }
 
   return (
@@ -572,32 +592,33 @@ export default async function HomePage() {
             <Markdown inline>{c.afterparty_intro}</Markdown>
           </div>
 
-          <div className="mt-7 grid gap-4 sm:grid-cols-3">
-            {AFTER_PARTIES.map(p => (
-              <div key={p.night} className="rounded-2xl border border-[#2a2a2a] bg-[#1a1a1a] p-5">
-                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#8B7355' }}>{p.night}</p>
-                {p.venue ? (
-                  <>
-                    <h3 className="mt-2 text-base font-bold text-white">{p.venue}</h3>
-                    {/* No time. The venues are already open when the show lets
-                        out, so a stated start time would be inaccurate. */}
-                    {p.address && (
+          {/* Published after_party rows (migration 070). A night with no row
+              renders nothing; a row with no venue renders the night and title. */}
+          {afterParties.length > 0 && (
+            <div className="mt-7 grid gap-4 sm:grid-cols-3">
+              {afterParties.map(p => {
+                const { night, date } = nightLabel(p.day_date)
+                return (
+                  <div key={p.id} className="rounded-2xl border border-[#2a2a2a] bg-[#1a1a1a] p-5">
+                    <p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#8B7355' }}>
+                      {night} · {date} · {timeLabel(p.start_time)}
+                    </p>
+                    <h3 className="mt-2 text-base font-bold text-white">{p.venue?.name ?? p.title}</h3>
+                    {p.venue?.address && (
                       <a
-                        href={mapsUrl(p.address)}
+                        href={mapsUrl(p.venue.address)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="mt-2 inline-block text-sm text-[#C4A882] underline underline-offset-2 transition-colors hover:text-white"
                       >
-                        {p.address}
+                        {p.venue.address}
                       </a>
                     )}
-                  </>
-                ) : (
-                  <p className="mt-2 text-base font-bold" style={{ color: '#666' }}>Venue TBA</p>
-                )}
-              </div>
-            ))}
-          </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           <p className="mt-4 text-xs" style={{ color: '#666' }}>{c.afterparty_note}</p>
         </div>

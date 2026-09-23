@@ -95,40 +95,6 @@ export const HOME_EVENTS: HomeEvent[] = [
   },
 ]
 
-export interface AfterParty {
-  night: string
-  /** Calendar date, so travel planning does not depend on knowing the weekday. */
-  date: string
-  /** True for nights that fall BEFORE the convention opens. */
-  preConvention: boolean
-  /** page_images slug for this night. Renders nothing until an image is uploaded. */
-  imageSlug: string
-  venue: string | null
-  address: string | null
-}
-
-/**
- * Three nights, always all three rendered. A "Venue TBA" card communicates that
- * something happens every night - dropping the card loses that.
- *
- * NO TIME FIELD, DELIBERATELY. The venues are already open when the show lets
- * out, so any stated start time would be inaccurate - people arrive when they
- * arrive. Venue, address and a map link are the whole card. Do not add a time
- * back without checking, and do not render an empty slot in its place.
- */
-export const AFTER_PARTIES: AfterParty[] = [
-  // THURSDAY IS PRE-CONVENTION. The show runs Friday to Sunday, April 16-18, so
-  // the Thursday night is a kickoff before the doors ever open. Someone booking
-  // travel around the show dates would otherwise arrive a day after it. That is
-  // why the flag exists rather than the nights being listed flat.
-  { night: 'Thursday', date: 'April 15', preConvention: true,  imageSlug: 'after-party-thursday', venue: null, address: null },
-  { night: 'Friday',   date: 'April 16', preConvention: false, imageSlug: 'after-party-friday',   venue: null, address: null },
-  { night: 'Saturday', date: 'April 17', preConvention: false, imageSlug: 'after-party-saturday', venue: null, address: null },
-  // NO SUNDAY NIGHT. The convention's last day is Sunday; there is no after
-  // party for it. An earlier version of /events/after-parties listed
-  // Friday/Saturday/Sunday with invented venues - all of it removed.
-]
-
-export function mapsUrl(address: string): string {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
-}
+// AFTER_PARTIES and mapsUrl retired with migration 070 (2026-09-23): after
+// parties are schedule_items rows with kind 'after_party' joined to `venues`,
+// read by src/lib/after-parties-data.ts. mapsUrl lives in src/lib/venues.ts.
