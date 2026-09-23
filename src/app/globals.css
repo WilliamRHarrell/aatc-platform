@@ -13,6 +13,15 @@
   /* Fonts */
   --font-display: var(--font-playfair);
   --font-sans: var(--font-inter);
+
+  /* Tattoo Battle. Colours reuse the site gold; fonts resolve to the variables
+     set by src/app/tattoo-battle/layout.tsx (and the admin print page). */
+  --color-battle-gold: #8B7355;
+  --color-battle-khaki: #C4A882;
+  --color-battle-charcoal: #2b2b2b;
+  --font-battle-display: var(--font-rubik-dirt), Impact, sans-serif;
+  --font-battle-slab: var(--font-rye), Georgia, serif;
+  --font-battle-condensed: var(--font-oswald), 'Arial Narrow', sans-serif;
 }
 
 *,
