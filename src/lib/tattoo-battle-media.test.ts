@@ -1,0 +1,53 @@
+import { describe, it, expect } from 'vitest'
+import { validateFile, objectPath, posterPath, moveItem, MAX_BYTES, ACCEPT_ATTR } from '@/lib/tattoo-battle-media'
+
+describe('validateFile', () => {
+  it('accepts each allowed type and classifies it', () => {
+    expect(validateFile({ type: 'image/jpeg', size: 10, name: 'a.jpg' })).toEqual({ ok: true, kind: 'image' })
+    expect(validateFile({ type: 'video/quicktime', size: 10, name: 'a.mov' })).toEqual({ ok: true, kind: 'video' })
+    expect(validateFile({ type: 'video/mp4', size: 10, name: 'a.mp4' })).toEqual({ ok: true, kind: 'video' })
+  })
+  it('rejects HEIC with the iPhone hint', () => {
+    const r = validateFile({ type: 'image/heic', size: 10, name: 'IMG_1.HEIC' })
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.reason).toMatch(/Most Compatible/)
+  })
+  it('rejects a HEIC that arrives with an empty type but a .heic name', () => {
+    const r = validateFile({ type: '', size: 10, name: 'IMG_2.heic' })
+    expect(r.ok).toBe(false)
+  })
+  it('rejects exactly one byte over the cap and accepts the cap itself', () => {
+    expect(validateFile({ type: 'video/mp4', size: MAX_BYTES, name: 'a.mp4' }).ok).toBe(true)
+    const r = validateFile({ type: 'video/mp4', size: MAX_BYTES + 1, name: 'a.mp4' })
+    expect(r.ok).toBe(false)
+    if (!r.ok) expect(r.reason).toMatch(/50 MB/)
+  })
+  it('rejects unknown types', () => {
+    expect(validateFile({ type: 'application/pdf', size: 10, name: 'a.pdf' }).ok).toBe(false)
+  })
+  it('ACCEPT_ATTR is the exact bucket list', () => {
+    expect(ACCEPT_ATTR).toBe('image/jpeg,image/png,image/webp,video/mp4,video/quicktime')
+  })
+})
+
+describe('paths', () => {
+  it('nests by event and zero-padded bucket, with a timestamp', () => {
+    expect(objectPath('ev1', 3, 'image', 'jpg', 1700000000000)).toBe('ev1/bucket-03/1700000000000-image.jpg')
+  })
+  it('poster sits beside its video', () => {
+    expect(posterPath('ev1/bucket-03/1700000000000-video.mov')).toBe('ev1/bucket-03/1700000000000-video-poster.jpg')
+  })
+})
+
+describe('moveItem', () => {
+  it('moves without mutating', () => {
+    const a = [1, 2, 3, 4]
+    expect(moveItem(a, 3, 0)).toEqual([4, 1, 2, 3])
+    expect(moveItem(a, 0, 2)).toEqual([2, 3, 1, 4])
+    expect(a).toEqual([1, 2, 3, 4])
+  })
+  it('clamps out-of-range targets', () => {
+    expect(moveItem([1, 2, 3], 0, 9)).toEqual([2, 3, 1])
+    expect(moveItem([1, 2, 3], 2, -5)).toEqual([3, 1, 2])
+  })
+})
