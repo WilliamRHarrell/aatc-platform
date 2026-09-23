@@ -1,5 +1,5 @@
 import { dayLabel, timeLabel } from './schedule-format'
-import { BUCKET_COUNT, QR_BASE_URL } from './tattoo-battle-config'
+import { BUCKET_COUNT, QR_BASE_URL, BATTLE_START_LABEL } from './tattoo-battle-config'
 
 export const MEDIA_BUCKET = 'tattoo-battle-media'
 
@@ -63,7 +63,7 @@ export function buildTimeline(
 
   const steps: TimelineStep[] = [
     { key: 'setup', when: 'Before Friday opening', text: 'Booth set up, station inspected and approved.' },
-    { key: 'signup', when: 'Check-in day, up to 1 PM Friday', text: 'Sign up at the stage.' },
+    { key: 'signup', when: `Check-in day, up to ${BATTLE_START_LABEL} Friday`, text: 'Sign up at the stage.' },
     { key: 'start', when: when(startRow), text: 'Stencil revealed; the clock starts.' },
     { key: 'judging', when: when(judging), text: 'Clients to the stage for judging.' },
     { key: 'buckets', when: 'Friday afternoon through Sunday', text: 'Buckets out. Scan, look, and vote with your dollars.' },

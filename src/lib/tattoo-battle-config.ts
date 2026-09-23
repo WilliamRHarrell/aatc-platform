@@ -13,7 +13,21 @@ import { EVENT_DATES_LABEL, EVENT_YEAR, TATTOO_BATTLE_PRESENTER, VENUE_CITY, VEN
 export const BATTLE_EDITION = 3
 export const BATTLE_START = '2027-04-16T13:00:00-04:00'
 export const BATTLE_DURATION_HOURS = 4
-export const SIGNUP_COPY = 'Sign up in person at the main stage on check-in day, any time up until the 1 PM Friday start.'
+
+/**
+ * The start time as people say it, derived from BATTLE_START in Eastern time:
+ * hour and period alone when on the hour, hour:minute otherwise. Every sentence
+ * that names the start is built from this, so the time has ONE home
+ * (src/lib/tattoo-battle-copy.test.ts fails if anyone types it by hand).
+ */
+export function battleStartLabel(iso: string = BATTLE_START): string {
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true }).formatToParts(new Date(iso))
+  const get = (t: string) => parts.find(p => p.type === t)?.value ?? ''
+  const minute = get('minute')
+  return minute === '00' ? `${get('hour')} ${get('dayPeriod')}` : `${get('hour')}:${minute} ${get('dayPeriod')}`
+}
+export const BATTLE_START_LABEL = battleStartLabel()
+export const SIGNUP_COPY = `Sign up in person at the main stage on check-in day, any time up until the ${BATTLE_START_LABEL} Friday start.`
 export const WINNER_ANNOUNCED = 'Sunday, April 18, 2027'
 export const BUCKET_COUNT = 20 // CONFIRM - number of QR codes to print
 /** Physical codes must never depend on which host a build ran on. Fixed. */
@@ -65,7 +79,7 @@ export const RULES: Rule[] = [
   { title: 'Surprise design', text: 'The stencil (linework) is revealed when the contest begins.' },
   { title: 'Flash design', text: 'A 6x6-inch standard flash design. Creative liberties are allowed, but the tattoo must stay true to the overall structure.' },
   { title: 'Lower extremity', text: 'The tattoo goes on the lower extremity of a client the artist brings.' },
-  { title: `${BATTLE_DURATION_HOURS}-hour limit`, text: `Starts 1 PM Friday. At the ${BATTLE_DURATION_HOURS}-hour mark, clients come to the stage for photo, video, and judging. Late tattoos are not judged.` },
+  { title: `${BATTLE_DURATION_HOURS}-hour limit`, text: `Starts ${BATTLE_START_LABEL} Friday. At the ${BATTLE_DURATION_HOURS}-hour mark, clients come to the stage for photo, video, and judging. Late tattoos are not judged.` },
   { title: 'Breaks', text: 'Unlimited, as long as the artist finishes on time.' },
   { title: 'Supplies', text: 'None provided.' },
 ]

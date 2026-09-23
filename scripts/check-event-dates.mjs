@@ -105,7 +105,15 @@ const { data: beginsRow, error: beginsErr } = await supabase
   .ilike('title', '%Tattoo Battle Begins%')
   .maybeSingle()
 if (beginsErr || !beginsRow) {
-  console.warn(`[check-event-dates] Could not read the Battle Begins schedule row (${beginsErr?.message ?? 'no row'}) - skipping.`)
+  // The events row was read a moment ago, so the database IS reachable: a
+  // missing or ambiguous row means it was renamed, deleted or duplicated.
+  // That is a real disagreement, not a network blip - fail the build.
+  console.error(
+    `\n[check-event-dates] FAIL - could not find exactly one "Tattoo Battle Begins" row on the\n` +
+    `active event (${beginsErr?.message ?? 'no row'}). BATTLE_START cannot be checked against the\n` +
+    `schedule. Restore the row (or fix its title) before deploying.\n`
+  )
+  process.exit(1)
 } else if (beginsRow.day_date !== battleDate || beginsRow.start_time.slice(0, 5) !== battleTime) {
   console.error(
     `\n[check-event-dates] FAIL - BATTLE_START (${battleDate} ${battleTime} ET) disagrees with the\n` +

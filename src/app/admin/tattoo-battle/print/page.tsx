@@ -48,6 +48,7 @@ export default function PrintQrPage() {
           .no-print { display: none !important; }
           .label-grid { display: block !important; padding: 0 !important; }
           .label { break-after: page; page-break-after: always; width: 3.5in; height: 5.5in; margin: 0; border: 0 !important; border-radius: 0 !important; }
+          .label:last-child { break-after: auto; page-break-after: auto; }
           body { background: #fff !important; }
         }
       `}</style>

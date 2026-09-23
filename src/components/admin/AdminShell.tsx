@@ -324,7 +324,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile header */}
         <div
-          className="flex items-center gap-3 px-4 py-3 lg:hidden"
+          className="flex items-center gap-3 px-4 py-3 lg:hidden print:hidden"
           style={{ backgroundColor: '#111111', borderBottom: '1px solid #2a2a2a' }}
         >
           <button
@@ -340,7 +340,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           <p className="font-display text-sm font-bold text-white">AATC Admin</p>
         </div>
 
-        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 print:overflow-visible print:p-0">
           {children}
         </main>
       </div>

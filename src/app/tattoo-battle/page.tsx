@@ -8,7 +8,7 @@ import PresentedBy from '@/components/tattoo-battle/PresentedBy'
 import EntryCard from '@/components/tattoo-battle/EntryCard'
 import ChampionBanner from '@/components/tattoo-battle/ChampionBanner'
 import BattleCountdown from '@/components/tattoo-battle/BattleCountdown'
-import { canonical } from '@/lib/site'
+import { canonical, SITE_URL } from '@/lib/site'
 import {
   ASSETS, EVENT_NAME, EVENT_YEAR, TATTOO_BATTLE_PRESENTER,
   VENUE_NAME, VENUE_STREET, VENUE_CITY, VENUE_STATE, VENUE_POSTAL, SOCIAL,
@@ -16,7 +16,6 @@ import {
 import {
   BATTLE_START, BATTLE_DURATION_HOURS, HERO, ELIGIBILITY, RULES, HOW_IT_WORKS, BUCKETS_ONLY_COPY,
   ONLINE_DONATIONS_COUNT_AS_VOTES, VETERAN_INK, PRIZES, PAST_CHAMPIONS, ATTENDEE_TIPS, FAQ, WINNER_ANNOUNCED,
-  QR_BASE_URL,
 } from '@/lib/tattoo-battle-config'
 import { buildTimeline } from '@/lib/tattoo-battle'
 import { getPublishedEntries, getPresenter, getBattleScheduleRows } from '@/lib/tattoo-battle-data'
@@ -52,13 +51,13 @@ export default async function TattooBattlePage() {
     startDate: BATTLE_START,
     eventStatus: 'https://schema.org/EventScheduled',
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    image: [`${QR_BASE_URL}${ASSETS.tattooBattleOg}`],
+    image: [`${SITE_URL.replace(/\/$/, '')}${ASSETS.tattooBattleOg}`],
     location: {
       '@type': 'Place', name: VENUE_NAME,
       address: { '@type': 'PostalAddress', streetAddress: VENUE_STREET, addressLocality: VENUE_CITY, addressRegion: VENUE_STATE, postalCode: VENUE_POSTAL, addressCountry: 'US' },
     },
-    organizer: { '@type': 'Organization', name: `${EVENT_NAME} LLC`, url: QR_BASE_URL },
-    superEvent: { '@type': 'Event', name: `${EVENT_NAME} ${EVENT_YEAR}`, url: QR_BASE_URL },
+    organizer: { '@type': 'Organization', name: `${EVENT_NAME} LLC`, url: SITE_URL },
+    superEvent: { '@type': 'Event', name: `${EVENT_NAME} ${EVENT_YEAR}`, url: SITE_URL },
     sponsor: { '@type': 'Organization', name: TATTOO_BATTLE_PRESENTER },
   }
   const faqJsonLd = {

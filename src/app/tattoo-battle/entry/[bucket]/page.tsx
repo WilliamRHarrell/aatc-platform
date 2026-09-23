@@ -88,7 +88,8 @@ export default async function EntryPage({ params }: Params) {
             </div>
 
             <div className="mt-6 text-center text-sm" style={{ color: '#bbb' }}>
-              <p>Every dollar supports <a href={VETERAN_INK.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4" style={{ color: '#C4A882' }}>{VETERAN_INK.name}</a>, a 501(c)(3) nonprofit that helps veterans heal through tattoo therapy.</p>
+              <p>Every dollar supports <a href={VETERAN_INK.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4" style={{ color: '#C4A882' }}>{VETERAN_INK.name}</a>.</p>
+              <p className="mt-2">{VETERAN_INK.description}</p>
             </div>
 
             <div className="mt-8 text-center">

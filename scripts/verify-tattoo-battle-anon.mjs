@@ -95,7 +95,8 @@ if (probe.error?.code === '42P01' || probe.error?.code === 'PGRST205') {
 }
 
 // ── storage as anon ──
-const up = await anon.storage.from('tattoo-battle-media').upload(`zz-anon-${Date.now()}.txt`, new Blob(['x']), { contentType: 'text/plain' })
+// image/jpeg so the mime allow-list cannot be what refuses it: only RLS can.
+const up = await anon.storage.from('tattoo-battle-media').upload(`zz-anon-${Date.now()}.jpg`, new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])]), { contentType: 'image/jpeg' })
 if (up.error && /bucket not found/i.test(up.error.message)) skip('anon storage upload', 'bucket missing - migration 069 not applied')
 else if (up.error) pass('anon storage upload refused', up.error.message)
 else { fail('anon storage upload refused', `UPLOADED ${up.data.path}`); if (svc) await svc.storage.from('tattoo-battle-media').remove([up.data.path]) }
