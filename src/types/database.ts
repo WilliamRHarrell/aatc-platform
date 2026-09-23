@@ -352,6 +352,7 @@ export type Database = {
           active: boolean
           order: number
           scheduled_time: string | null
+          sponsor_id: string | null
           updated_at: string
         }
         Insert: {
@@ -362,6 +363,7 @@ export type Database = {
           name: string
           order?: number
           scheduled_time?: string | null
+          sponsor_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -374,6 +376,7 @@ export type Database = {
           active?: boolean
           order?: number
           scheduled_time?: string | null
+          sponsor_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -737,8 +740,9 @@ export type Database = {
           id: string
           event_id: string
           day_date: string
-          start_time: string
+          start_time: string | null
           sort_order: number
+          venue_id: string | null
           title: string
           location: string
           note: string
@@ -753,8 +757,9 @@ export type Database = {
           id?: string
           event_id: string
           day_date: string
-          start_time: string
+          start_time?: string | null
           sort_order?: number
+          venue_id?: string | null
           title: string
           location?: string
           note?: string
@@ -769,8 +774,9 @@ export type Database = {
           id?: string
           event_id?: string
           day_date?: string
-          start_time?: string
+          start_time?: string | null
           sort_order?: number
+          venue_id?: string | null
           title?: string
           location?: string
           note?: string
@@ -1358,6 +1364,61 @@ export type Database = {
           },
         ]
       }
+      /** Migration 070 - after-party venues. Public read; logo_slot names a page_images slug. */
+      venues: {
+        Row: {
+          id: string
+          event_id: string | null
+          name: string
+          slug: string
+          blurb: string
+          address: string | null
+          phone: string | null
+          website_url: string | null
+          instagram_url: string | null
+          instagram_label: string | null
+          facebook_url: string | null
+          tiktok_url: string | null
+          logo_slot: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          event_id?: string | null
+          name: string
+          slug: string
+          blurb?: string
+          address?: string | null
+          phone?: string | null
+          website_url?: string | null
+          instagram_url?: string | null
+          instagram_label?: string | null
+          facebook_url?: string | null
+          tiktok_url?: string | null
+          logo_slot?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string | null
+          name?: string
+          slug?: string
+          blurb?: string
+          address?: string | null
+          phone?: string | null
+          website_url?: string | null
+          instagram_url?: string | null
+          instagram_label?: string | null
+          facebook_url?: string | null
+          tiktok_url?: string | null
+          logo_slot?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       sponsors_public: {
@@ -1451,6 +1512,7 @@ export type Database = {
           presented_by_website: string | null
           presented_by_logo_url: string | null
           presented_by_linked: boolean
+          venue_id: string | null
         }
         Relationships: []
       }
