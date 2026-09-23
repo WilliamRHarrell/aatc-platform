@@ -1,11 +1,12 @@
 -- ============================================================
+-- SPELLING: 'WholeLife Aftercare' (one word) since 2026-09-23; run supabase/seeds/wholelife_spelling.sql first if the sponsorships row still carries the old spelling.
 -- The three 2027 sponsors: INVOICES and EXCLUSIVITY GRANTS.
 --
 -- RUN THIS AFTER the three `sponsorships` rows exist, and after migration 068.
 -- Ryan creates the sponsorships himself in /admin/sponsorships; this file adds
 -- the two rows each one needs that the admin screen does not create.
 --
--- ⚠  WHAT IS DELIBERATELY NOT HERE: Whole Life Aftercare's Tattoo Battle
+-- ⚠  WHAT IS DELIBERATELY NOT HERE: WholeLife Aftercare's Tattoo Battle
 -- presentation credit. That is the first real `presentation_credits` row and the
 -- first time migration 065's coalesce takes its credit branch on live data. It
 -- is kept separate so that if anything goes wrong there, the failure is
@@ -27,7 +28,7 @@
 --   sponsor                      invoiced   paid via Square   balance left
 --   Nomadica                     $7,500     $1,875            $5,625
 --   All American Tattoo Supply   $5,000     $2,500            $2,500
---   Whole Life Aftercare         $7,500       $750            $6,750
+--   WholeLife Aftercare         $7,500       $750            $6,750
 --
 -- The balance is not stored. `create-checkout` computes amount - amount_paid, so
 -- recording the Square money is what leaves the portal offering the remainder.
@@ -52,7 +53,7 @@ begin
   v_before := (select count(*) from public.invoices i
                  join public.sponsorships s on s.id = i.sponsorship_id
                 where s.event_id = v_event
-                  and s.sponsor_name in ('Nomadica','All American Tattoo Supply','Whole Life Aftercare'));
+                  and s.sponsor_name in ('Nomadica','All American Tattoo Supply','WholeLife Aftercare'));
   if v_before <> 0 then
     raise exception
       'ABORT: % invoice(s) already exist for these three sponsors. This file has already been run, or they were invoiced by hand. Creating more would bill them twice.', v_before;
@@ -62,7 +63,7 @@ begin
     select * from (values
       ('Nomadica',                   750000, 187500, 'accounting_presentation'),
       ('All American Tattoo Supply', 500000, 250000, 'on_site_supplier'),
-      ('Whole Life Aftercare',       750000,  75000, 'tattoo_battle')
+      ('WholeLife Aftercare',       750000,  75000, 'tattoo_battle')
     ) as v(sponsor_name, amount, paid, category)
   loop
     v_spon := (select id from public.sponsorships
@@ -106,7 +107,7 @@ begin
   v_after := (select count(*) from public.invoices i
                 join public.sponsorships s on s.id = i.sponsorship_id
                where s.event_id = v_event
-                 and s.sponsor_name in ('Nomadica','All American Tattoo Supply','Whole Life Aftercare'));
+                 and s.sponsor_name in ('Nomadica','All American Tattoo Supply','WholeLife Aftercare'));
   if v_after <> 3 then
     raise exception 'ABORT: expected 3 invoices after this run, found %.', v_after;
   end if;
@@ -139,5 +140,5 @@ select s.sponsor_name,
   join public.invoices i           on i.sponsorship_id = s.id
   left join public.exclusivity_grants g on g.sponsorship_id = s.id
  where s.event_id = (select id from public.events where is_active)
-   and s.sponsor_name in ('Nomadica','All American Tattoo Supply','Whole Life Aftercare')
+   and s.sponsor_name in ('Nomadica','All American Tattoo Supply','WholeLife Aftercare')
  order by s.sponsor_name;

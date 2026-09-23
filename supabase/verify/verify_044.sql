@@ -121,7 +121,7 @@ select 'panels', p.title, sp.sponsor_name, sp.status
 
 
 -- ── F. Credits still carried as plain text - the to-do list ─
--- Expected today: 'Whole Life Aftercare' (Tattoo Battle, schedule_items) and
+-- Expected today: 'WholeLife Aftercare' (Tattoo Battle, schedule_items) and
 -- 'Nomadica' (Bookkeeping seminar, panels). Both render as unlinked text until
 -- a confirmed sponsorship row exists and is linked.
 --

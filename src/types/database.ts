@@ -863,6 +863,52 @@ export type Database = {
           },
         ]
       }
+      /** Migration 069 - one row per Tattoo Battle bucket. Public reads see published rows only. */
+      tattoo_battle_entries: {
+        Row: {
+          id: string
+          event_id: string
+          bucket_number: number
+          artist_name: string
+          shop_name: string
+          city_state: string
+          instagram: string
+          media: { type: 'image' | 'video'; path: string; poster_path?: string }[]
+          is_published: boolean
+          is_champion: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          event_id: string
+          bucket_number: number
+          artist_name?: string
+          shop_name?: string
+          city_state?: string
+          instagram?: string
+          media?: { type: 'image' | 'video'; path: string; poster_path?: string }[]
+          is_published?: boolean
+          is_champion?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          event_id?: string
+          bucket_number?: number
+          artist_name?: string
+          shop_name?: string
+          city_state?: string
+          instagram?: string
+          media?: { type: 'image' | 'video'; path: string; poster_path?: string }[]
+          is_published?: boolean
+          is_champion?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       team_members: {
         Row: {
           bio: string | null
@@ -1426,6 +1472,11 @@ export type Database = {
       }
       /** Migration 039 - true when the caller holds any of the given roles. */
       has_role: { Args: { p_roles: string[] }; Returns: boolean }
+      /** Migration 069 - atomic champion switch; null clears. Returns the changed rows. */
+      set_tattoo_battle_champion: {
+        Args: { p_entry_id: string | null }
+        Returns: Database["public"]["Tables"]["tattoo_battle_entries"]["Row"][]
+      }
       /** Migration 035 - atomic lifecycle transitions (service_role only). */
       expire_application: { Args: { p_application_id: string }; Returns: undefined }
       cancel_application: { Args: { p_application_id: string }; Returns: undefined }
