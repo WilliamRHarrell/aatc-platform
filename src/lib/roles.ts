@@ -53,6 +53,9 @@ const PATHS: Record<AdminRole, string[] | '*'> = {
     '/admin/schedule',
     '/admin/panels',
     '/admin/contests',
+    // Tattoo Battle entries are show-floor editorial work; table and bucket
+    // policies grant content_editor (069), all writes go through guardedWrite().
+    '/admin/tattoo-battle',
     '/admin/food-trucks',
     '/admin/aatc-queue',
     '/admin/aatc-generator',

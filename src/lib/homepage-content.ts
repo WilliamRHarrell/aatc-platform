@@ -42,7 +42,7 @@ export const HOME_EVENTS: HomeEvent[] = [
     // Fri 1:00 PM start, 5:00 PM voting opens; champion crowned Sun 6:00 PM.
     description:
       'Artists battle live on the main stage from Friday afternoon. Voting opens Friday evening and the champion is crowned Sunday at 6:00 PM.',
-    href: '/events/tattoo-contests',
+    href: '/tattoo-battle',
   },
   {
     name: 'Miss All American Pin-Up Contest',

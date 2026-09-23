@@ -33,6 +33,7 @@ const DROPDOWNS: DropdownConfig[] = [
     label: 'Events',
     prefix: '/events',
     links: [
+      { href: '/tattoo-battle', label: 'Tattoo Battle' },
       { href: '/events/tattoo-contests', label: 'Tattoo Contests' },
       { href: '/events/kids-contest', label: 'Kids Temp Tattoo Contest' },
       { href: '/events/tattoo-panels', label: 'Tattoo Panels' },

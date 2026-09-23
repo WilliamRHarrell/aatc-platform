@@ -99,6 +99,15 @@ const NAV = [
     ),
   },
   {
+    href: '/admin/tattoo-battle',
+    label: 'Tattoo Battle',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 3v7a6 6 0 0 0 12 0V3"/><path d="M6 3h12"/><path d="M12 16v5"/><path d="M8 21h8"/>
+      </svg>
+    ),
+  },
+  {
     href: '/admin/print',
     label: 'Booth Packets',
     icon: (
