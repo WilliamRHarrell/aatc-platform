@@ -24,6 +24,25 @@
 
 begin;
 
+-- Element-shape check for the media array. Subqueries cannot appear in a
+-- CHECK directly, so the iteration lives in an IMMUTABLE helper.
+create or replace function public.tattoo_battle_media_ok(p jsonb)
+returns boolean
+language sql
+immutable
+set search_path = public, pg_catalog, pg_temp
+as $$
+  select jsonb_typeof(p) = 'array'
+     and coalesce((
+       select bool_and(
+         jsonb_typeof(e) = 'object'
+         and (e->>'type') in ('image', 'video')
+         and coalesce(e->>'path', '') <> ''
+       )
+       from jsonb_array_elements(p) e
+     ), true);
+$$;
+
 create table if not exists public.tattoo_battle_entries (
   id            uuid primary key default gen_random_uuid(),
   event_id      uuid not null references public.events(id) on delete cascade,
@@ -33,7 +52,7 @@ create table if not exists public.tattoo_battle_entries (
   city_state    text not null default '',
   instagram     text not null default '',
   -- [{ type: 'image'|'video', path, poster_path? }], paths relative to the bucket
-  media         jsonb not null default '[]'::jsonb check (jsonb_typeof(media) = 'array'),
+  media         jsonb not null default '[]'::jsonb check (public.tattoo_battle_media_ok(media)),
   is_published  boolean not null default false,
   is_champion   boolean not null default false,
   created_at    timestamptz not null default now(),
@@ -73,7 +92,11 @@ create policy "tattoo_battle: editorial write"
   using (public.has_role(array['admin','content_editor']))
   with check (public.has_role(array['admin','content_editor']));
 
+-- Supabase default privileges grant ALL to anon at creation; RLS is the gate,
+-- but the grant is revoked too so a future permissive policy cannot expose
+-- writes by itself (062's belt-and-braces shape).
 grant select on public.tattoo_battle_entries to anon, authenticated;
+revoke insert, update, delete on public.tattoo_battle_entries from anon;
 grant insert, update, delete on public.tattoo_battle_entries to authenticated;
 
 -- ── champion RPC ─────────────────────────────────────────────
@@ -83,10 +106,11 @@ create or replace function public.set_tattoo_battle_champion(p_entry_id uuid)
 returns setof public.tattoo_battle_entries
 language plpgsql
 security definer
-set search_path = public, pg_catalog
+set search_path = public, pg_catalog, pg_temp
 as $$
 declare
   v_event uuid;
+  n int;
 begin
   if not public.has_role(array['admin','content_editor']) then
     raise exception 'not allowed' using errcode = '42501';
@@ -94,6 +118,15 @@ begin
 
   if p_entry_id is null then
     v_event := (select id from public.events where is_active limit 1);
+    if v_event is null then
+      raise exception 'no active event' using errcode = 'P0002';
+    end if;
+    perform pg_advisory_xact_lock(hashtext('tattoo_battle_champion:' || v_event::text));
+    n := (select count(*) from public.tattoo_battle_entries where event_id = v_event and is_champion);
+    if n = 0 then
+      -- Zero rows would read as "nothing saved" to guardedWrite(); say why.
+      raise exception 'no champion to clear' using errcode = 'P0002';
+    end if;
     return query
       update public.tattoo_battle_entries
          set is_champion = false
@@ -106,6 +139,9 @@ begin
   if v_event is null then
     raise exception 'entry not found' using errcode = 'P0002';
   end if;
+  -- Serialises concurrent crownings on one event so the second caller gets a
+  -- clean result rather than a unique_violation from the partial index.
+  perform pg_advisory_xact_lock(hashtext('tattoo_battle_champion:' || v_event::text));
 
   update public.tattoo_battle_entries
      set is_champion = false
@@ -119,8 +155,13 @@ begin
 end;
 $$;
 
+-- `from public` alone does NOT strip anon here: Supabase default privileges
+-- grant anon execute explicitly at creation. Revoke it by name.
 revoke all on function public.set_tattoo_battle_champion(uuid) from public;
+revoke execute on function public.set_tattoo_battle_champion(uuid) from anon;
 grant execute on function public.set_tattoo_battle_champion(uuid) to authenticated;
+revoke all on function public.tattoo_battle_media_ok(jsonb) from public;
+grant execute on function public.tattoo_battle_media_ok(jsonb) to anon, authenticated;
 
 -- ── storage ──────────────────────────────────────────────────
 -- Mime list matches the admin file input EXACTLY (spec §3.8). HEIC is not
@@ -130,10 +171,16 @@ values ('tattoo-battle-media', 'tattoo-battle-media', true, 52428800,
         array['image/jpeg','image/png','image/webp','video/mp4','video/quicktime'])
 on conflict (id) do nothing;
 
+-- A PUBLIC bucket serves /object/public/... with no policy check, so the
+-- select policy only governs list/download/signed-URL calls. Limiting it to
+-- editors stops anon from LISTING the bucket and fetching a draft's photos
+-- before its row is published. (page-images allows anon list; deliberate
+-- difference here because drafts exist on this bucket.)
 drop policy if exists "Public can read tattoo battle media" on storage.objects;
-create policy "Public can read tattoo battle media"
-  on storage.objects for select
-  using (bucket_id = 'tattoo-battle-media');
+drop policy if exists "Editorial can list tattoo battle media" on storage.objects;
+create policy "Editorial can list tattoo battle media"
+  on storage.objects for select to authenticated
+  using (bucket_id = 'tattoo-battle-media' and public.has_role(array['admin','content_editor']));
 
 drop policy if exists "Editorial can insert tattoo battle media" on storage.objects;
 create policy "Editorial can insert tattoo battle media"

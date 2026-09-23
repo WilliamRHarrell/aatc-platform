@@ -35,8 +35,10 @@ begin
   if n_sp <> 1 or n_sched <> 3 then
     raise exception 'ABORT: after update expected 1 and 3, found % and %.', n_sp, n_sched;
   end if;
+  -- A confirmed credit with the old spelling would win the schedule view's
+  -- coalesce (065) and keep the old name on the page. Abort so it is seen.
   if exists (select 1 from public.presentation_credits where buyer_name = v_old) then
-    raise notice 'NOTE: presentation_credits also carries the old spelling - not touched here, report it.';
+    raise exception 'ABORT: presentation_credits carries % - update buyer_name there too, then re-run.', v_old;
   end if;
   raise notice 'PASS: sponsorships and 3 schedule rows now read %', v_new;
 end $$;
