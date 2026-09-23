@@ -34,7 +34,7 @@ export const REGISTRY: PageDef[] = [
       countdown_heading: { label: 'Countdown heading', type: 'text', default: 'Doors Open In' },
 
       // ── Primary CTA pair ──
-      cta_booth: { label: 'CTA - Reserve a Booth', type: 'text', default: 'Reserve a Booth' },
+      cta_booth: { label: 'CTA - Apply for a Booth', type: 'text', default: 'Apply for a Booth' },
       cta_tickets: { label: 'CTA - Get Your Tickets', type: 'text', default: 'Get Your Tickets' },
       ticket_sales_live: {
         label: 'Ticket sales are live',
