@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { validateFile, objectPath, posterPath, moveItem, MAX_BYTES, ACCEPT_ATTR } from '@/lib/tattoo-battle-media'
+import { validateFile, objectPath, posterPath, manualPosterPath, moveItem, MAX_BYTES, ACCEPT_ATTR } from '@/lib/tattoo-battle-media'
 
 describe('validateFile', () => {
   it('accepts each allowed type and classifies it', () => {
@@ -36,6 +36,9 @@ describe('paths', () => {
   })
   it('poster sits beside its video', () => {
     expect(posterPath('ev1/bucket-03/1700000000000-video.mov')).toBe('ev1/bucket-03/1700000000000-video-poster.jpg')
+  })
+  it('a hand-picked poster gets its own timestamp and extension', () => {
+    expect(manualPosterPath('ev1/bucket-03/1700000000000-video.mov', 'png', 1700000009999)).toBe('ev1/bucket-03/1700000000000-video-poster-1700000009999.png')
   })
 })
 

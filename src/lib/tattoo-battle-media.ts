@@ -32,6 +32,11 @@ export function posterPath(mediaPath: string): string {
   return mediaPath.replace(/\.[^.]+$/, '') + '-poster.jpg'
 }
 
+/** A poster the admin picked by hand: its own timestamp so a replacement never collides. */
+export function manualPosterPath(mediaPath: string, ext: string, now: number = Date.now()): string {
+  return `${mediaPath.replace(/\.[^.]+$/, '')}-poster-${now}.${ext.toLowerCase()}`
+}
+
 export function moveItem<T>(list: T[], from: number, to: number): T[] {
   const next = list.slice()
   if (from < 0 || from >= next.length) return next
