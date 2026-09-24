@@ -107,6 +107,7 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **065** | **APPLIED + VERIFIED** 2026-08-31 | dual-read. Rejected on its FIRST run with `42P16` because its column list came from unapplied 047; fixed to the live shape and re-run. Verified by Ryan via `verify_065.sql` (four credits, all `source = 'fallback'`) and by re-fetching the three pages against a pre-064 baseline. |
 | 066-068 | present on develop before 2026-09-23 | `sponsorship_is_custom`, `placement_check_runs`, `payment_method_square`. Not re-audited in the 2026-09-23 sessions; their tables/columns are read by live code. |
 | **069** | **APPLIED + VERIFIED** 2026-09-23 | Tattoo Battle: `tattoo_battle_entries`, bucket `tattoo-battle-media`, `set_tattoo_battle_champion()`, slot `tattoo-battle-veteran-ink`. Ryan ran `verify_069.sql`: fixtures_remaining = 0, no raise. |
+| **071** | **NOT APPLIED** (delivered 2026-09-24) | application-docs policies (drop unscoped upload + own read; own folder insert, admin insert, admin read), `applications.veteran_doc_verified_at/by`, clamp + reset on `veteran_id_url` change. Run `verify_071.sql` after; block D needs the RLS harness user. |
 | **070** | **APPLIED** 2026-09-23 | `venues`, `schedule_items.venue_id`, kind `after_party`, `start_time` nullable only while unpublished, `contests.sponsor_id`, slot `after-party-sunday`; `schedule_items_public` recreated with `venue_id` last (14 columns). `verify_070.sql` run status NOT reported by Ryan - run it if unsure. |
 
 **What this audit could and could not see.** It reads the live schema through
@@ -245,6 +246,13 @@ promise right instead.
 
 ### 2026-09-24 START HERE: which branch has what
 
+**Later the same day (16:10 UTC): PR #3 MERGED into develop** (merge commit
+98edab1, verified with `git log origin/develop`). `feat/tattoo-battle`,
+`feat/after-parties` and the local `feat/page-content-cms` were deleted after a
+patch-id comparison showed zero unmerged changes on each. Everything below in
+this section is now history; develop has all of it. The next branch is
+`feat/application-documents` (section "2026-09-24 Application documents").
+
 - `develop` (remote) = the Tattoo Battle only (PR #1, merged 2026-09-24 08:30).
 - PR #2 (after parties) was based on `feat/tattoo-battle` and merged INTO THAT
   BRANCH at 09:08, after #1 had already gone to develop. **develop never got
@@ -259,6 +267,93 @@ promise right instead.
   under older hashes.
 - Until #3 merges, anything below that says "on develop" about after parties,
   venues, Part A, the About CMS or the lockup is on `feat/post-launch-fixes`.
+
+### 2026-09-24 Application documents (plan: docs/superpowers/plans/2026-09-24-application-documents.md)
+
+Branch `feat/application-documents` -> develop. Ryan's decisions D1-D4 and the
+plan's D5-D10 are recorded in the plan file.
+
+**What was found (verified live 2026-09-24 through the Storage API and
+PostgREST with the service role, read-only):**
+- Bucket `application-docs`: `public = false`, 50 MB, jpeg/png/webp/pdf.
+  Uploads DO store and DO link: Ryan's test vendor application 13c265d7 has
+  `id_doc_url = b98ac442-.../1790266751197-id.jpg` and the object exists
+  (4.08 MB, image/jpeg). Neither of the two live test applications claims the
+  veteran discount, so no veteran document has been exercised end to end yet.
+- The drawer FETCHED a vendor's ID signed URL and NEVER RENDERED it: the render
+  loop walked `app.artists` only, which is null for vendors. Artist and veteran
+  links did render, as one-hour URLs minted in the browser.
+- Policies on the bucket, all from 004: "authenticated upload" was UNSCOPED
+  (any signed-in user could write into any folder, including admin/); "own
+  read" was unused by any applicant flow; "admin read" was is_admin() (role =
+  'admin' only, which is what src/lib/roles.ts promises).
+- `veteran_id_url` is not in the 041/043 clamp, so an applicant could swap the
+  document after verification. 071 clears verification on any change.
+- 51 unreferenced files in the bucket (26 in two applicant folders, 25 under
+  four `admin/<application id>/` folders), all from test applications torn
+  down March-June 2026. Two files are referenced. Listing:
+  `node scripts/cleanup-application-docs-orphans.mjs` (dry run).
+
+**Delivered, NOT APPLIED (Ryan runs the SQL):**
+- `supabase/migrations/071_application_docs_private_and_verification.sql`:
+  drops "authenticated upload" and "own read"; adds "own folder insert"
+  (folder[1] = auth.uid()) and "admin insert" (is_admin(), for the booth
+  page's admin/ uploads); re-creates "admin read" verbatim; adds
+  `applications.veteran_doc_verified_at` / `veteran_doc_verified_by` (one fact:
+  verified = at is not null); clamps both for owners inside the 043 function
+  and clears both for EVERY writer when `veteran_id_url` changes.
+- `supabase/verify/verify_071.sql`: A exact policy set, B columns + FK, C
+  function body, D owner-clamp and reset-on-change with a ZZ fixture owned by
+  the RLS harness user (aborts if that user is missing), E bucket private, Z
+  residue. Until 071 is applied, ticking "Document verified" in the drawer
+  fails loudly through guardedWrite (unknown column), and the two new insert
+  policies do not exist - uploads still work under the old unscoped policy.
+
+**Code (on the branch):**
+- `POST /api/admin/application-docs` is the ONE home for signing this bucket
+  (`application-docs.test.ts` fails if a second `createSignedUrl(` caller
+  appears). Session cookie, `profile.role === 'admin'`, paths resolved from the
+  row, storage metadata via `list()`, 300 s URLs. The drawer, the booth detail
+  page and the booth packet all go through it. A content_editor on /admin/print
+  gets 403 and a packet without ID images, which matches the RLS outcome.
+- Drawer: Documents section lists vendor ID, per-artist IDs and the veteran
+  document with thumbnail, file name, type, size, upload date and View (re-signs,
+  new tab). "Veteran discount: Claimed / Not claimed" with a "Document verified"
+  checkbox (who + when). Approve and Comp on an unverified veteran claim show
+  an inline warning and need a second click; the button then reads "Approve
+  without verified document". No `window.confirm`.
+- Registry `applyForms` (`/admin/content` -> "Booth application forms"):
+  `veteran_doc_label` (default unchanged, "Veteran ID / proof of service") and
+  `veteran_doc_help` (Ryan's DD-214 / VA ID / driver's license text, CAC
+  excluded). The apply pages are server wrappers around the client forms
+  (`ArtistApplyForm.tsx`, `VendorApplyForm.tsx`, moved with git mv).
+  `PAGE_ROUTE` accepts arrays; `routesFor()` feeds the purge; the purge
+  allow-list moved to `src/lib/revalidate-paths.ts` and `registry.test.ts`
+  asserts every registry route is in it.
+- NOT verified in a browser by the implementer: the rendered drawer, the
+  thumbnails, and the apply-page help text (those routes redirect anonymous
+  curl to login). Verified: `npm test` 67 passing, `tsc` clean, lint error
+  count unchanged at 23 (all pre-existing), production build green,
+  `/apply/artist` and `/apply/vendor` prerendered with the 60 s window, the
+  route answers 401 to an anonymous POST.
+
+**RETENTION PLAN for ID documents (NOT BUILT - design only, Ryan's call):**
+1. Post-event: 30 days after `events.end_date`, delete every
+   `application-docs` object referenced by that event's applications and NULL
+   the referencing columns (`id_doc_url`, `veteran_id_url`, `artists[].id_url`)
+   in the same pass, so a row never points at a deleted file. Keep
+   `veteran_doc_verified_at/by` (the fact that it was verified outlives the
+   file).
+2. Post-decision: rejected, expired or canceled applications lose their files
+   30 days after that status change (same column NULLing).
+3. Orphans: unreferenced files older than 7 days -
+   `scripts/cleanup-application-docs-orphans.mjs` exists now, dry-run by
+   default; Ryan reviews the list and runs `--delete` himself.
+   Implementation home when built: a branch of the lifecycle sweep behind its
+   own flag (`DOCS_RETENTION_ENABLED`), service role, counts logged per run,
+   and a "last run" timestamp shown on the dashboard (a check that stops
+   running reads all-clear forever). Deletion is irreversible; the first run
+   must be a dry run reviewed by Ryan.
 
 ### 2026-09-24 About page CMS, route-map fix, Battle lockup
 
@@ -357,6 +452,13 @@ codes 404 until cutover.
 
 ### OPEN ITEMS (one line each, with the owner)
 
+- **Apply 071 and run verify_071**, then tick "Document verified" on a veteran
+  test application (neither live test application claims the discount yet).
+  Owner: Ryan.
+- **ID document retention** - decide the windows in the plan above, then build
+  it as a sweep branch. Owner: Ryan (decision), unassigned (build).
+- **Orphan cleanup** - review the dry-run list, then
+  `node scripts/cleanup-application-docs-orphans.mjs --delete`. Owner: Ryan.
 - **Domain cutover** from `aatc-landing` to this project, and production
   `NEXT_PUBLIC_SITE_URL` = `https://www.allamericantattooconvention.com`.
   Blocks printing the Tattoo Battle QR codes. Owner: Ryan.
