@@ -107,7 +107,8 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **065** | **APPLIED + VERIFIED** 2026-08-31 | dual-read. Rejected on its FIRST run with `42P16` because its column list came from unapplied 047; fixed to the live shape and re-run. Verified by Ryan via `verify_065.sql` (four credits, all `source = 'fallback'`) and by re-fetching the three pages against a pre-064 baseline. |
 | 066-068 | present on develop before 2026-09-23 | `sponsorship_is_custom`, `placement_check_runs`, `payment_method_square`. Not re-audited in the 2026-09-23 sessions; their tables/columns are read by live code. |
 | **069** | **APPLIED + VERIFIED** 2026-09-23 | Tattoo Battle: `tattoo_battle_entries`, bucket `tattoo-battle-media`, `set_tattoo_battle_champion()`, slot `tattoo-battle-veteran-ink`. Ryan ran `verify_069.sql`: fixtures_remaining = 0, no raise. |
-| **071** | **NOT APPLIED** (delivered 2026-09-24) | application-docs policies (drop unscoped upload + own read; own folder insert, admin insert, admin read), `applications.veteran_doc_verified_at/by`, clamp + reset on `veteran_id_url` change. Run `verify_071.sql` after; block D needs the RLS harness user. |
+| **072** | **NOT APPLIED** (delivered 2026-09-24) | `applications.comped_at/by`, clamps extended, `comp_application()` / `uncomp_application()`. Then `seeds/comp_2026_09_24.sql`, then `verify_072.sql`. |
+| **071** | **APPLIED** 2026-09-24 (Ryan; verify_071 block A showed exactly the three policies) | application-docs policies (drop unscoped upload + own read; own folder insert, admin insert, admin read), `applications.veteran_doc_verified_at/by`, clamp + reset on `veteran_id_url` change. Run `verify_071.sql` after; block D needs the RLS harness user. |
 | **070** | **APPLIED** 2026-09-23 | `venues`, `schedule_items.venue_id`, kind `after_party`, `start_time` nullable only while unpublished, `contests.sponsor_id`, slot `after-party-sunday`; `schedule_items_public` recreated with `venue_id` last (14 columns). `verify_070.sql` run status NOT reported by Ryan - run it if unsure. |
 
 **What this audit could and could not see.** It reads the live schema through
@@ -267,6 +268,91 @@ this section is now history; develop has all of it. The next branch is
   under older hashes.
 - Until #3 merges, anything below that says "on develop" about after parties,
   venues, Part A, the About CMS or the lockup is on `feat/post-launch-fixes`.
+
+### 2026-09-24 Comp flow (plan: docs/superpowers/plans/2026-09-24-comp-flow.md)
+
+Branch `feat/comp-flow` -> develop. PR #4 (application documents) MERGED
+2026-09-24 (merge 964b245); 071 APPLIED and verify_071 block A confirmed the
+three bucket policies (Ryan).
+
+**The defect, traced 2026-09-24 (read-only):** "Comp Booth" was a checkbox
+whose only effect was the invoice INSERT on Approve, which ran only when no
+invoice existed. Approve, send back, comp, approve therefore lost the comp
+silently (13c265d7). Approve never re-priced (total_amount untouched) but
+always reset both due dates and re-sent the priced approval email. Send back
+changed status only and left approved_at, both due dates and the invoice.
+Assign Booth inner-joined on invoices.deposit_paid_at, which a comped invoice
+never received, so a correctly comped exhibitor was unassignable and
+invisible to /directory (44c185e8, a REAL vendor, The Pinback Button Club;
+its approval email quoted $550 and the October 24 deposit). Nothing could
+charge it: no Stripe ids, portal shows "Paid in full" $0, create-checkout
+refuses paid invoices, and the sweep is OFF.
+
+**Delivered, NOT APPLIED (Ryan runs the SQL, in this order):**
+- `supabase/migrations/072_comp_flow.sql`: `applications.comped_at/by`
+  (one fact: comped = comped_at not null), both clamps extended (nulled on
+  every INSERT, restored from OLD for owners on UPDATE), and two admin-only
+  SECURITY DEFINER RPCs. `comp_application` sets comped_at/by, nulls both due
+  dates, settles the invoice (amount 0, status paid, paid_at + both
+  milestones), creates one if absent, refuses when two exist or when any
+  payment is recorded (security review note: a comp over a payment would be
+  inconsistent and one-way; refund in Invoices first). `uncomp_application`
+  is refused when amount_paid > 0 or two invoices; otherwise restores amount =
+  total_amount, pending, milestones and paid_at null. Neither touches
+  `status`. Header enumerates the 5 applications + 2 invoices policies; none change.
+- `supabase/verify/verify_072.sql`: A policies unchanged, B columns/FK/grants
+  (anon cannot execute), C clamp + RPC bodies (no `set status`), D nine
+  behaviour checks with ZZ fixtures (owner clamp, non-admin refused, comp
+  before approve, approve after comp, comp after approve, approve/send
+  back/comp/approve, uncomp refused with payment, restore, comp refused with
+  payment, two invoices, owner insert arrives uncomped), Z residue.
+  Security review (2026-09-24): no findings at the bar; noted, deferred:
+  `comped_by` is readable through the pre-existing anon "public read
+  deposit-paid" policy for directory-visible rows (the role-split part 2
+  column-exposure item, not new), and neither RPC checks `status`, so an
+  admin can comp an expired/canceled row (harmless: 032 still requires
+  approved for public reads). Needs the RLS harness user and one admin profile.
+- `supabase/seeds/comp_2026_09_24.sql`: guarded data fix. Aborts unless 072 is
+  applied and both rows match the recorded pre-state. 13c265d7 gets the full
+  comp; 44c185e8 gets comped_at/by, both milestones on invoice 70396b61 and
+  cleared due dates, amount and status untouched. **Then send 44c185e8 the
+  comp notice from the drawer ("Send comp notice"); nothing sends automatically.**
+
+**Code (on the branch):**
+- Drawer: Comp / Remove comp are their own actions in every status
+  (`CompControls`), through the RPCs; the RPC's refusal text is the toast.
+  Banner "Comped by X on date · Balance $0". Comping an already-approved
+  application sends the comp notice; comping a pending one sends nothing
+  extra (the comped approval variant covers it). Approve writes
+  `approvePayload()`: no due dates when comped; invoice insert skipped when
+  comped. Send back writes `SEND_BACK_PAYLOAD` (status pending, approved_at
+  and both due dates null). Discount Booth had the same ordering bug and now
+  re-prices an existing UNPAID invoice (`discountedInvoiceUpdate`), refused
+  once any payment exists or the invoice is paid/cancelled.
+- Remove comp on an approved application restores deposit_due_at = the LATER
+  of approved_at + 30 days and now + 14 days (never already overdue), and the
+  fixed final date. `restoredDepositDueAt`, tested with a 30-day-old approval.
+- Emails: `approvedCompedEmail` (no invoice total, no deposit paragraph,
+  "$0.00 - comped") chosen by `comped_at` on `kind: 'approved'`;
+  `kind: 'comp_notice'` (400 unless comped).
+- Sweep: `.is('comped_at', null)` on all four branches. `?dry_run=1` with
+  the Bearer CRON_SECRET returns what a full run would do NOW, reads only,
+  even while the kill switch is off; `scripts/sweep-dry-run.mjs [baseUrl]`
+  prints it (would expire / cancel / remind, to whom, plus a watchlist of
+  every approved un-comped application with its milestone state).
+- Assign Booth: left join, `partitionAssignable()` with reasons, header
+  "N not yet assignable" (hover for reasons), empty state "1 approved
+  application has no deposit recorded", COMP badge.
+- Verified: `npm test` 90 passing, `tsc` clean, lint warnings all
+  pre-existing, production build green. NOT verified by the implementer: the
+  drawer, booths page and emails in a browser; the RPCs against the live
+  database (verify_072 does that when Ryan runs it).
+
+**LIFECYCLE_SWEEP_ENABLED stays OFF in production** (confirmed 2026-09-24:
+only CRON_SECRET is set). Enable only after: 072 applied, the data SQL run,
+this PR merged and deployed, and Ryan has reviewed
+`node scripts/sweep-dry-run.mjs` against production. Then reminders-only for
+a full cycle before LIFECYCLE_SWEEP_DESTRUCTIVE.
 
 ### 2026-09-24 Application documents (plan: docs/superpowers/plans/2026-09-24-application-documents.md)
 
@@ -455,9 +541,12 @@ codes 404 until cutover.
 
 ### OPEN ITEMS (one line each, with the owner)
 
-- **Apply 071 and run verify_071**, then tick "Document verified" on a veteran
-  test application (neither live test application claims the discount yet).
-  Owner: Ryan.
+- **Apply 072, run comp_2026_09_24.sql, run verify_072**, then send the comp
+  notice to 44c185e8 from the drawer. Owner: Ryan.
+- **Sweep**: review `scripts/sweep-dry-run.mjs` output before setting
+  LIFECYCLE_SWEEP_ENABLED. Owner: Ryan.
+- **Tick "Document verified"** on a veteran test application (neither live
+  application claims the discount yet). Owner: Ryan.
 - **ID document retention** - decide the windows in the plan above, then build
   it as a sweep branch. Owner: Ryan (decision), unassigned (build).
 - **Orphan cleanup** - review the dry-run list, then

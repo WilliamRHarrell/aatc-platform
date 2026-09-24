@@ -104,6 +104,8 @@ export type Database = {
           veteran_id_url: string | null
           veteran_doc_verified_at: string | null
           veteran_doc_verified_by: string | null
+          comped_at: string | null
+          comped_by: string | null
           website: string | null
         }
         Insert: {
@@ -147,6 +149,8 @@ export type Database = {
           veteran_id_url?: string | null
           veteran_doc_verified_at?: string | null
           veteran_doc_verified_by?: string | null
+          comped_at?: string | null
+          comped_by?: string | null
           website?: string | null
         }
         Update: {
@@ -190,6 +194,8 @@ export type Database = {
           veteran_id_url?: string | null
           veteran_doc_verified_at?: string | null
           veteran_doc_verified_by?: string | null
+          comped_at?: string | null
+          comped_by?: string | null
           website?: string | null
         }
         Relationships: [
@@ -1548,6 +1554,9 @@ export type Database = {
       /** Migration 035 - atomic lifecycle transitions (service_role only). */
       expire_application: { Args: { p_application_id: string }; Returns: undefined }
       cancel_application: { Args: { p_application_id: string }; Returns: undefined }
+      /** Migration 072 - admin only, atomic across application + invoice. */
+      comp_application: { Args: { p_application_id: string }; Returns: undefined }
+      uncomp_application: { Args: { p_application_id: string }; Returns: undefined }
       /** Migration 030 - aggregate tier counts without exposing pending rows. */
       sponsor_tier_counts: {
         Args: { p_event_id: string }

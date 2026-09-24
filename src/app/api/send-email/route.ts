@@ -148,6 +148,89 @@ function approvedEmail(businessName: string, exhibitorType: string, boothSize: s
   `)
 }
 
+/**
+ * Comped approval: no invoice total, no deposit paragraph, no payment ask.
+ * The list price is deliberately absent - a comped exhibitor is told what
+ * they owe, which is nothing.
+ */
+function approvedCompedEmail(businessName: string, exhibitorType: string, boothSize: string) {
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#4ade80;">
+      Application Approved
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      You're In, ${businessName}!
+    </h2>
+
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Congratulations - your <strong style="color:#ffffff;">${exhibitorType}</strong> application for AATC 2027 has been approved.
+      We're excited to have you at the Crown Complex Event Center this April.
+    </p>
+
+    <div style="background:#0a0a0a; border:1px solid #2a2a2a; border-radius:12px; padding:20px 24px; margin:20px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-size:13px; color:#999999; padding-bottom:8px;">Booth size</td>
+          <td align="right" style="font-size:13px; font-weight:600; color:#ffffff; padding-bottom:8px; text-transform:capitalize;">${boothSize} (10×10 ft)</td>
+        </tr>
+        <tr>
+          <td style="font-size:13px; color:#999999; border-top:1px solid #2a2a2a; padding-top:8px;">Balance due</td>
+          <td align="right" style="font-size:16px; font-weight:700; color:#4ade80; border-top:1px solid #2a2a2a; padding-top:8px;">$0.00 - comped</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="margin:16px 0; font-size:15px; line-height:1.7; color:#cccccc;">
+      Your booth is <strong style="color:#ffffff;">comped</strong>: there is no balance due and nothing to pay.
+      Booth assignments will follow from our team.
+    </p>
+
+    <p style="margin:24px 0 0; text-align:center;">
+      <a href="${SITE_URL}/portal"
+         style="display:inline-block; background:#8B7355; color:#ffffff; text-decoration:none;
+                font-size:14px; font-weight:700; letter-spacing:1px; padding:14px 32px;
+                border-radius:10px;">
+        View My Portal →
+      </a>
+    </p>
+  `)
+}
+
+/** Sent when a comp is applied to an application that already received its approval email. */
+function compNoticeEmail(businessName: string) {
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#4ade80;">
+      Booth Comped
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      No balance due, ${businessName}
+    </h2>
+
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Your AATC 2027 booth has been <strong style="color:#ffffff;">comped</strong>. Please disregard the invoice total and
+      deposit deadline in your approval email: there is no balance due and nothing to pay.
+    </p>
+
+    <div style="background:#0a0a0a; border:1px solid #2a2a2a; border-radius:12px; padding:20px 24px; margin:20px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-size:13px; color:#999999;">Balance due</td>
+          <td align="right" style="font-size:16px; font-weight:700; color:#4ade80;">$0.00</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="margin:24px 0 0; text-align:center;">
+      <a href="${SITE_URL}/portal"
+         style="display:inline-block; background:#8B7355; color:#ffffff; text-decoration:none;
+                font-size:14px; font-weight:700; letter-spacing:1px; padding:14px 32px;
+                border-radius:10px;">
+        View My Portal →
+      </a>
+    </p>
+  `)
+}
+
 function rejectedEmail(businessName: string, exhibitorType: string) {
   return emailWrapper(`
     <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#f87171;">
@@ -452,7 +535,7 @@ export async function POST(req: Request) {
       applicationId?: string
       sponsorshipId?: string
       status?: 'approved' | 'rejected' | 'waitlisted'
-      kind?: 'approved' | 'rejected' | 'waitlisted' | 'deposit_reminder' | 'final_reminder' | 'expiration' | 'cancellation' | 'returner_invite'
+      kind?: 'approved' | 'rejected' | 'waitlisted' | 'deposit_reminder' | 'final_reminder' | 'expiration' | 'cancellation' | 'returner_invite' | 'comp_notice'
       daysRemaining?: number
       depositForfeited?: number
     }
@@ -505,7 +588,7 @@ export async function POST(req: Request) {
     // and this returns nothing.
     const { data: app } = await adminFetchClient
       .from('applications')
-      .select('business_name, email, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, total_amount, deposit_due_at')
+      .select('business_name, email, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, total_amount, deposit_due_at, comped_at')
       .eq('id', applicationId)
       .single()
 
@@ -519,7 +602,17 @@ export async function POST(req: Request) {
 
     if (resolvedKind === 'approved') {
       subject = `🎉 Your AATC 2027 application is approved - ${app.business_name}`
-      html = approvedEmail(app.business_name, app.exhibitor_type, describeBooths(app), app.total_amount, app.deposit_due_at)
+      // A comped application is told it owes nothing; the priced variant would
+      // quote the list price and a deposit deadline that do not apply.
+      html = app.comped_at
+        ? approvedCompedEmail(app.business_name, app.exhibitor_type, describeBooths(app))
+        : approvedEmail(app.business_name, app.exhibitor_type, describeBooths(app), app.total_amount, app.deposit_due_at)
+    } else if (resolvedKind === 'comp_notice') {
+      if (!app.comped_at) {
+        return NextResponse.json({ error: 'Application is not comped' }, { status: 400 })
+      }
+      subject = `Your AATC 2027 booth is comped - no balance due - ${app.business_name}`
+      html = compNoticeEmail(app.business_name)
     } else if (resolvedKind === 'rejected') {
       subject = `Update on your AATC 2027 application - ${app.business_name}`
       html = rejectedEmail(app.business_name, app.exhibitor_type)
