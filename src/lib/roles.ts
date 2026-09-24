@@ -51,6 +51,8 @@ const PATHS: Record<AdminRole, string[] | '*'> = {
     // already go through guardedWrite(), so both halves of the old objection are
     // resolved - the role can read it, write it, and be told when it cannot.
     '/admin/schedule',
+    // Venues are after-party facts (070); same editorial policy as schedule_items.
+    '/admin/venues',
     '/admin/panels',
     '/admin/contests',
     // Tattoo Battle entries are show-floor editorial work; table and bucket
