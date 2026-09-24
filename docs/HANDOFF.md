@@ -237,6 +237,45 @@ promise right instead.
 
 ## 2. IN FLIGHT / NEXT
 
+### 2026-09-23 After parties, venues, per-contest sponsor, Part A fixes (plan: docs/superpowers/plans/2026-09-23-after-parties.md)
+
+Branch `feat/after-parties`, stacked on `feat/tattoo-battle` (PR #2 after PR #1).
+
+**Status, individually:**
+- `supabase/migrations/070_after_parties_venues_contest_sponsor.sql` - not applied.
+- `supabase/verify/verify_070.sql` - not run (after 070).
+- `supabase/seeds/070_after_parties_data.sql` - not run (after 070): 3 venues,
+  renames the 3 uploaded logos into `venue-*` slots, 4 night-flyer slots,
+  4 after_party rows (Thursday 18:00 published; Fri/Sat/Sun unpublished, no time).
+- `supabase/seeds/contact_email_scan.sql` - not run; scan only, expects PASS.
+- `supabase/seeds/thursday_after_party.sql` - DELETED, superseded by the 070 data.
+
+Until 070 + its data run: /events/after-parties renders zero nights (no "to
+be announced" copy anywhere any more), the homepage after-parties grid is
+absent, /admin/venues shows the "migration 070 not applied" message.
+
+**A fact now has one home:** after parties are schedule_items rows (kind
+`after_party`) joined to `venues`; `AFTER_PARTIES` and `mapsUrl` left
+`homepage-content.ts`. `start_time` is nullable for UNPUBLISHED rows only
+(check constraint `schedule_items_time_required_when_published`); the admin
+refuses to publish without a time before the database does.
+
+**Battle credit** renders on /tattoo-battle, the homepage Battle card and the
+Battle's three schedule rows only (Ryan, 2026-09-23). It was removed from
+/events/kids-contest (A4). Per-contest sponsors live on `contests.sponsor_id`.
+
+**FOLLOW-UP (Ryan, 2026-09-23):** /events/tattoo-contests lists its 49
+categories from a hardcoded constant in `TattooContestsClient.tsx`, not from
+the `contests` table, so a per-contest sponsor cannot render there. Migrate
+that list to the table (the rows already exist: 49 contests on the active
+event) so the credit and any future per-category data have one home.
+
+**Part A:** A1 booth button "Apply for a Booth" (registry default; only
+instance). A2 Miss AATC Pinup logo at the top of the pinup page, same pattern
+as /contests, file copied from ~/Downloads/aatc-miss-aatc-pinup.png. A3 the
+wrong contact domain: one repo hit fixed to CONTACT_EMAIL, zero database hits
+(every readable table swept 2026-09-23), no email template/from/reply-to hit.
+
 ### 2026-09-23 Tattoo Battle (spec: docs/superpowers/specs/2026-09-23-tattoo-battle-design.md)
 
 Code on branch `feat/tattoo-battle`, merging to develop after Ryan's approval.

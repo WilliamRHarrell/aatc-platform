@@ -61,7 +61,7 @@ export default async function AfterPartiesPage() {
       <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
         <div className="mx-auto max-w-3xl">
           <div className="rounded-2xl p-6" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
-            <h3 className="mb-3 text-sm font-bold text-white">Important Information</h3>
+            <h2 className="mb-3 text-sm font-bold text-white">Important Information</h2>
             <ul className="space-y-2">
               {[
                 'All after party venues are 21+ only. Valid government-issued ID is required at the door.',
