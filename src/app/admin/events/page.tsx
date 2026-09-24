@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase'
 import { guardedWrite } from '@/lib/db-write'
@@ -30,26 +30,29 @@ export default function AdminEventsPage() {
   const [capacity, setCapacity] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const load = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('events')
-      .select('id, name, start_date, end_date, venue, city, state, pinup_capacity')
-      .eq('is_active', true)
-      .maybeSingle()
-    if (error) {
-      console.error(`[admin/events] ${error.code}: ${error.message}`)
-      setFailed(error.code === '42703'
-        ? 'events.pinup_capacity does not exist yet - migration 074 has not been applied.'
-        : `Could not load the active event (${error.code}).`)
-      return
-    }
-    if (!data) { setFailed('No active event.'); return }
-    const row = data as EventRow
-    setEvent(row)
-    setCapacity(row.pinup_capacity == null ? '' : String(row.pinup_capacity))
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('id, name, start_date, end_date, venue, city, state, pinup_capacity')
+        .eq('is_active', true)
+        .maybeSingle()
+      if (cancelled) return
+      if (error) {
+        console.error(`[admin/events] ${error.code}: ${error.message}`)
+        setFailed(error.code === '42703'
+          ? 'events.pinup_capacity does not exist yet - migration 074 has not been applied.'
+          : `Could not load the active event (${error.code}).`)
+        return
+      }
+      if (!data) { setFailed('No active event.'); return }
+      const row = data as EventRow
+      setEvent(row)
+      setCapacity(row.pinup_capacity == null ? '' : String(row.pinup_capacity))
+    })()
+    return () => { cancelled = true }
   }, [supabase])
-
-  useEffect(() => { void load() }, [load])
 
   const save = async () => {
     if (!event) return
