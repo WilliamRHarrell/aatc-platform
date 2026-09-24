@@ -12,6 +12,8 @@ import { guardedWrite } from '@/lib/db-write'
 import { veteranNeedsVerification } from '@/lib/application-docs'
 import ApplicationDocuments from '@/components/admin/ApplicationDocuments'
 import VeteranVerification, { type VerificationState } from '@/components/admin/VeteranVerification'
+import CompControls, { type CompPatch } from '@/components/admin/CompControls'
+import { approvePayload, SEND_BACK_PAYLOAD, isComped, discountedInvoiceUpdate } from '@/lib/comp'
 
 // The `artists` column is stored as JSON; describe its real shape here so the
 // regenerated Json type doesn't break array access throughout this file.
@@ -114,13 +116,15 @@ function DetailDrawer({
   const unverified = veteranNeedsVerification(app)
   const [discountEnabled, setDiscountEnabled]   = useState(false)
   const [discountDollars, setDiscountDollars]   = useState('')
-  const [compEnabled, setCompEnabled]           = useState(false)
+  // Comp is no longer a checkbox on Approve: it is its own action (CompControls,
+  // 072) so it holds in any order of approve / send back / comp.
+  const comped = isComped(app)
 
   // Computed invoice amount (cents)
   const discountCents = discountEnabled && discountDollars
     ? Math.round(Math.max(0, parseFloat(discountDollars) || 0) * 100)
     : 0
-  const invoiceAmount = compEnabled ? 0 : Math.max(0, app.total_amount - discountCents)
+  const invoiceAmount = comped ? 0 : Math.max(0, app.total_amount - discountCents)
 
 
 
@@ -151,17 +155,13 @@ function DetailDrawer({
     setWorking(true)
 
     if (newStatus === 'approved') {
-      const now = new Date()
-      const depositDueAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+      // A comped application gets no due dates, on the first approval or any
+      // re-approval; the comp itself is on the row (072), not in this click.
+      const payload = approvePayload(app, new Date(), FINAL_DUE_AT)
 
       const { data: updatedApp, error: appErr } = await supabase
         .from('applications')
-        .update({
-          status: 'approved',
-          approved_at: now.toISOString(),
-          deposit_due_at: depositDueAt.toISOString(),
-          final_due_at: FINAL_DUE_AT,
-        })
+        .update(payload)
         .eq('id', app.id)
         .select('id, total_amount')
         .single()
@@ -171,24 +171,28 @@ function DetailDrawer({
         setWorking(false)
         return
       }
+      onPatch(app.id, payload)
 
-      // Create invoice if not present
+      // Invoice: create if absent; re-price an existing unpaid one when a
+      // discount was entered (approve, send back, discount, approve used to
+      // drop the discount silently). A comped row's invoice is already settled
+      // by comp_application() and is left alone.
       const { data: existing } = await supabase
         .from('invoices')
-        .select('id')
+        .select('id, amount, amount_paid, status')
         .eq('application_id', app.id)
         .maybeSingle()
 
-      if (!existing) {
+      if (!existing && !comped) {
         // Guarded too: an invoice that silently fails to insert leaves an
         // APPROVED application with no invoice, which reads as paid-in-full
         // nowhere and simply never gets billed.
         const invRes = await guardedWrite(
           supabase.from('invoices').insert({
             application_id: app.id,
-            amount: compEnabled ? 0 : invoiceAmount,
+            amount: invoiceAmount,
             amount_paid: 0,
-            status: compEnabled ? 'paid' : 'pending',
+            status: 'pending',
           }).select('id'),
           'Approved, but the invoice was not created',
           `admin/applications invoice app=${app.id}`,
@@ -198,6 +202,18 @@ function DetailDrawer({
           setWorking(false)
           return
         }
+      } else if (existing && !comped && discountCents > 0) {
+        const change = discountedInvoiceUpdate(existing, app.total_amount, discountCents)
+        if ('refused' in change) {
+          toast.error(`Approved, but the discount was not applied: ${change.refused}`)
+        } else {
+          const res = await guardedWrite(
+            supabase.from('invoices').update({ amount: change.amount }).eq('id', existing.id).select('id'),
+            'Approved, but the discount was not applied',
+            `admin/applications discount app=${app.id}`,
+          )
+          if (!res.ok) toast.error(res.error)
+        }
       }
     } else {
       // This is the REJECT and WAITLIST path, and it was the silent one. An
@@ -205,10 +221,13 @@ function DetailDrawer({
       // row, returns error: null and zero rows - so the reviewer saw the status
       // change, the list reloaded, and the application came straight back into
       // the queue with no explanation. .select() is what makes that visible.
+      // Send back to pending also clears everything the approval set, so a
+      // later re-approval starts clean instead of inheriting stale deadlines.
+      const patch = newStatus === 'pending' ? SEND_BACK_PAYLOAD : { status: newStatus }
       const res = await guardedWrite(
         supabase
           .from('applications')
-          .update({ status: newStatus })
+          .update(patch)
           .eq('id', app.id)
           .select('id'),
         'Status not updated',
@@ -220,6 +239,7 @@ function DetailDrawer({
         setWorking(false)
         return
       }
+      if (newStatus === 'pending') onPatch(app.id, SEND_BACK_PAYLOAD)
     }
 
     // Send email notification for terminal status changes
@@ -365,8 +385,10 @@ function DetailDrawer({
         {app.status === 'pending' && (
           <div className="px-6 py-5 space-y-4" style={{ borderTop: '1px solid #2a2a2a' }}>
 
-            {/* Discount / Comp options */}
-            <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
+            <CompControls app={app} unverified={unverified} onPatch={(patch: CompPatch) => onPatch(app.id, patch)} />
+
+            {/* Discount option (hidden while comped: the invoice is already $0) */}
+            {!comped && <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
               {/* Discount row */}
               <div className="flex items-center gap-3">
                 <input
@@ -375,7 +397,6 @@ function DetailDrawer({
                   checked={discountEnabled}
                   onChange={e => {
                     setDiscountEnabled(e.target.checked)
-                    if (e.target.checked) setCompEnabled(false)
                   }}
                   className="h-4 w-4 cursor-pointer rounded"
                   style={{ accentColor: '#8B7355' }}
@@ -401,37 +422,16 @@ function DetailDrawer({
                 )}
               </div>
 
-              {/* Comp row */}
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="comp-check"
-                  checked={compEnabled}
-                  onChange={e => {
-                    setCompEnabled(e.target.checked)
-                    if (e.target.checked) { setDiscountEnabled(false); setDiscountDollars('') }
-                  }}
-                  className="h-4 w-4 cursor-pointer rounded"
-                  style={{ accentColor: '#8B7355' }}
-                />
-                <label htmlFor="comp-check" className="cursor-pointer text-sm font-semibold text-white">
-                  Comp Booth
-                </label>
-                <span className="text-xs" style={{ color: '#555' }}>waives full amount - auto-marks invoice paid</span>
-              </div>
-
               {/* Running total */}
-              {(discountEnabled || compEnabled) && (
+              {discountEnabled && (
                 <div className="flex items-center justify-between pt-1" style={{ borderTop: '1px solid #2a2a2a' }}>
-                  <span className="text-xs" style={{ color: '#999' }}>Invoice total after adjustment</span>
-                  <span className="text-sm font-bold" style={{ color: invoiceAmount === 0 ? '#4ade80' : '#C4A882' }}>
-                    {invoiceAmount === 0 ? 'COMPED' : formatCurrency(invoiceAmount)}
-                  </span>
+                  <span className="text-xs" style={{ color: '#999' }}>Invoice total after discount</span>
+                  <span className="text-sm font-bold" style={{ color: '#C4A882' }}>{formatCurrency(invoiceAmount)}</span>
                 </div>
               )}
-            </div>
+            </div>}
 
-            {unverified && (ackUnverified || compEnabled) && (
+            {unverified && ackUnverified && (
               <div className="rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.4)', color: '#eab308' }}>
                 This application claims the veteran discount and its document is not marked verified.
                 Verify it in the Veteran discount section above, or continue anyway.
@@ -464,7 +464,7 @@ function DetailDrawer({
               >
                 {working
                   ? 'Saving…'
-                  : `${compEnabled ? 'Comp & Approve' : 'Approve'}${unverified && ackUnverified ? ' without verified document' : ''}`}
+                  : `Approve${unverified && ackUnverified ? ' without verified document' : ''}`}
               </button>
             </div>
             <button
@@ -482,6 +482,9 @@ function DetailDrawer({
 
         {app.status !== 'pending' && (
           <div className="flex flex-col gap-2 px-6 py-5" style={{ borderTop: '1px solid #2a2a2a' }}>
+            <div className="mb-2">
+              <CompControls app={app} unverified={unverified} onPatch={(patch: CompPatch) => onPatch(app.id, patch)} />
+            </div>
             {app.status === 'approved' && (
               <Link
                 href="/admin/booths"
