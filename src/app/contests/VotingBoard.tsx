@@ -1,5 +1,8 @@
 'use client'
 
+import ContestPresentedBy from '@/components/ContestPresentedBy'
+import type { ContestSponsor } from '@/lib/after-parties-data'
+
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase'
@@ -96,10 +99,13 @@ export default function VotingBoard({
   contests,
   voteHint,
   thankYou,
+  sponsors,
 }: {
   contests: Contest[]
   voteHint: ReactNode
   thankYou: ReactNode
+  /** Per-contest presenting sponsor by contest id (070). Optional; nothing renders without it. */
+  sponsors?: Record<string, ContestSponsor>
 }) {
   const supabase = createClient()
   const [choices, setChoices] = useState<Record<string, string>>({})
@@ -239,6 +245,8 @@ export default function VotingBoard({
                     <span className="text-emboss">{contest.description}</span>
                   </p>
                 )}
+                {/* Per-contest presenting sponsor (070). Nothing when unset. */}
+                <ContestPresentedBy contestName={contest.name} sponsor={sponsors?.[contest.id]} className="mt-2 justify-start" />
                 {!hasVoted && (
                   <div className="mt-1 text-xs" style={{ color: '#555' }}>
                     <span className="text-emboss">{voteHint}</span>

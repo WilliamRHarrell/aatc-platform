@@ -140,9 +140,12 @@ select 'panels', p.title, p.presented_by_fallback
 
 
 -- ── G. Programme sanity ─────────────────────────────────────
--- want: 3 rows - 2027-04-16 (10), 2027-04-17 (9), 2027-04-18 (6). Total 25.
--- AFTER seeds/thursday_after_party.sql has run: 4 rows, with 2027-04-15 (1)
--- first. Total 26. There is no other Thursday item on the programme.
+-- want (base table, this query): 3 rows - 2027-04-16 (10), 2027-04-17 (9),
+-- 2027-04-18 (6). Total 25.
+-- AFTER seeds/070_after_parties_data.sql: 4 rows - 2027-04-15 (1), 04-16 (11),
+-- 04-17 (10), 04-18 (7). Total 29. The three extra Fri/Sat/Sun rows are the
+-- UNPUBLISHED after parties (no time yet); the public view still shows
+-- 1/10/9/6 until Ryan times and publishes them. No other Thursday item exists.
 -- The two seminars are NOT counted here; they are panels rows by design.
 select day_date, count(*) as items,
        min(start_time) as first_item, max(start_time) as last_item
@@ -150,6 +153,23 @@ select day_date, count(*) as items,
  where event_id = (select id from events where is_active)
  group by day_date
  order by day_date;
+
+
+-- ── I. Every published schedule row has a time ─────────────
+-- Added with migration 070, which made start_time nullable for UNPUBLISHED
+-- rows only. The check constraint enforces it; this proves the constraint is
+-- still there and holding.
+-- want: PASS notice.
+do $$
+declare n int;
+begin
+  n := (select count(*) from public.schedule_items where is_published and start_time is null);
+  if n <> 0 then raise exception 'FAIL: % published schedule row(s) have no start_time', n; end if;
+  if not exists (select 1 from pg_constraint where conname = 'schedule_items_time_required_when_published') then
+    raise exception 'FAIL: constraint schedule_items_time_required_when_published is missing';
+  end if;
+  raise notice 'PASS: every published schedule row has a start_time; the constraint is in place';
+end $$;
 
 
 -- ── H. No "Whole Life" (two words) left anywhere live ───────

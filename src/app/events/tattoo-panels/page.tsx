@@ -1,5 +1,6 @@
 'use client'
 
+import { CONTACT_EMAIL } from '@/lib/event-config'
 import { useEffect, useState, Suspense } from 'react'
 import HoneypotField from '@/components/HoneypotField'
 import { useSearchParams } from 'next/navigation'
@@ -347,8 +348,8 @@ function TattooPanelsContent() {
       <div className="border-t px-4 py-10 text-center" style={{ borderColor: '#2a2a2a' }}>
         <p className="text-sm" style={{ color: '#999' }}>
           <span className="text-emboss">Questions? Contact us at{' '}
-          <a href="mailto:info@armoredarmadillotattooconvention.com" style={{ color: '#C4A882' }}>
-            info@armoredarmadillotattooconvention.com
+          <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#C4A882' }}>
+            {CONTACT_EMAIL}
           </a></span>
         </p>
       </div>

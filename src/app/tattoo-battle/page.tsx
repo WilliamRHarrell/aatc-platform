@@ -80,7 +80,9 @@ export default async function TattooBattlePage() {
         <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-repeat-x opacity-70"
              style={{ backgroundImage: 'url(/images/tattoo-battle/splatter-top.png)', backgroundSize: 'auto 100%' }} />
         <div className="relative mx-auto max-w-3xl">
-          <Image src="/images/tattoo-battle/lockup-full.png" alt="" aria-hidden="true" width={1100} height={690} priority
+          {/* White-and-gold lockup for the dark background, supplied by Ryan
+              2026-09-24 (the charcoal cut from the vector master read too dark). */}
+          <Image src="/images/tattoo-battle/lockup-full-dark.png" alt="" aria-hidden="true" width={1100} height={690} priority
                  className="mx-auto h-auto w-full max-w-xl" />
           <h1 className="sr-only">{HERO.title}</h1>
           <p className="mt-2 font-battle-condensed text-xs font-bold uppercase tracking-[0.3em] sm:text-sm" style={{ color: '#C4A882' }}>

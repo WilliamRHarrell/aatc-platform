@@ -34,7 +34,7 @@ export const REGISTRY: PageDef[] = [
       countdown_heading: { label: 'Countdown heading', type: 'text', default: 'Doors Open In' },
 
       // ── Primary CTA pair ──
-      cta_booth: { label: 'CTA - Reserve a Booth', type: 'text', default: 'Reserve a Booth' },
+      cta_booth: { label: 'CTA - Apply for a Booth', type: 'text', default: 'Apply for a Booth' },
       cta_tickets: { label: 'CTA - Get Your Tickets', type: 'text', default: 'Get Your Tickets' },
       ticket_sales_live: {
         label: 'Ticket sales are live',
@@ -94,9 +94,9 @@ export const REGISTRY: PageDef[] = [
       afterparty_intro: {
         label: 'After party intro',
         type: 'markdown',
-        default: 'The show doesn’t stop when the doors close. Official AATC after parties run Thursday through Saturday night at bars around Fayetteville.',
+        default: 'The show doesn’t stop when the doors close. Official AATC after parties run every night of the show at venues around Fayetteville, starting with a kickoff the night before doors open.',
       },
-      afterparty_note: { label: 'After party note', type: 'text', default: '21+ · Venues announced closer to the show' },
+      afterparty_note: { label: 'After party note', type: 'text', default: 'The three after parties are 21+ · Valid ID required at the door' },
 
       // ── Fayetteville / Fort Bragg ──
       local_title: { label: 'Fayetteville section title', type: 'text', default: 'Fayetteville & Fort Bragg' },
@@ -424,7 +424,80 @@ export const REGISTRY: PageDef[] = [
       cta_button: { label: 'CTA button label', type: 'text', default: 'Become a Sponsor' },
     },
   },
+  {
+    key: 'about',
+    title: 'About AATC',
+    sections: {
+      // ── Header ──
+      hero_kicker: { label: 'Header kicker', type: 'text', default: 'Our Mission' },
+      hero_title: { label: 'Header title', type: 'text', default: 'About AATC' },
+      hero_intro: {
+        label: 'Header intro',
+        type: 'markdown',
+        default: 'The All American Tattoo Convention celebrates the intersection of tattoo culture and military service. Founded to honor our tattooed service members and veterans, AATC is more than a convention - it is a gathering of community, respect, and artistry.',
+      },
+
+      // ── What makes AATC different (four cards) ──
+      different_title: { label: '"Different" section title', type: 'text', default: 'What Makes AATC Different' },
+      diff_1_title: { label: 'Card 1 title', type: 'text', default: 'Military-Focused' },
+      diff_1_body: { label: 'Card 1 body', type: 'markdown', default: 'Every aspect of AATC is designed with service members and veterans in mind, from discounted admission for active duty and veterans to dedicated programming that honors military culture.' },
+      // FACTUAL CORRECTION carried over from the page (spec §3.1): AATC is not
+      // veteran-owned - Ryan Harrell is not a veteran. What is true is that the
+      // show platforms veteran-owned businesses. Do not reword this back toward
+      // the original claim, in code or in the admin.
+      diff_2_title: { label: 'Card 2 title', type: 'text', default: 'Highlighting Veteran-Owned & Operated Businesses' },
+      diff_2_body: { label: 'Card 2 body', type: 'markdown', default: 'AATC gives veteran-owned shops and businesses a place at the front of the show, and the founding family has deep roots in the Fort Bragg community.' },
+      diff_3_title: { label: 'Card 3 title', type: 'text', default: 'Supporting Veteran Causes' },
+      diff_3_body: { label: 'Card 3 body', type: 'markdown', default: 'A portion of every ticket sold goes directly to veteran support organizations. Our Wall of Honor provides a space for remembrance and healing.' },
+      diff_4_title: { label: 'Card 4 title', type: 'text', default: 'World-Class Artists' },
+      diff_4_body: { label: 'Card 4 body', type: 'markdown', default: 'We bring together elite tattoo artists from across the country, many of whom are veterans themselves, creating an unmatched experience for collectors.' },
+
+      // ── Our story (multi-paragraph: separate paragraphs with a blank line) ──
+      story_title: { label: 'Story section title', type: 'text', default: 'Our Story' },
+      story_subtitle: { label: 'Story subtitle', type: 'text', default: 'From a bold idea to a movement' },
+      story_body: {
+        label: 'Story body',
+        help: 'Long-form. Separate paragraphs with a blank line.',
+        type: 'markdown',
+        default:
+          'The All American Tattoo Convention was founded in 2025 with a clear purpose: to create a tattoo event that genuinely reflects the values, culture, and camaraderie of military life. What began as a vision shared among a small group of veterans and tattoo artists has grown into one of the most anticipated tattoo events in the Southeast.\n\nFrom its inaugural year, AATC has drawn thousands of attendees, hundreds of elite tattoo artists, and widespread support from veteran organizations across the country. The convention has raised funds for veteran mental health programs, supported Gold Star families, and provided a platform for service members to share their stories through ink.\n\nAs we prepare for our 2027 convention, AATC continues to grow - not just in size, but in impact. Every year, we deepen our commitment to the military community and push the boundaries of what a tattoo convention can be.',
+      },
+
+      // ── Why Fayetteville (multi-paragraph) ──
+      fayetteville_title: { label: 'Fayetteville section title', type: 'text', default: 'Why Fayetteville?' },
+      fayetteville_subtitle: { label: 'Fayetteville subtitle', type: 'text', default: 'The heart of the military community' },
+      fayetteville_body: {
+        label: 'Fayetteville body',
+        help: 'Long-form. Separate paragraphs with a blank line.',
+        type: 'markdown',
+        default:
+          'Fayetteville, North Carolina is home to Fort Bragg - the largest military installation in the world by population. With over 50,000 active-duty soldiers and tens of thousands of veterans and military families calling the region home, there is no better place for a convention that honors the bond between tattoo culture and military service.\n\nThe city\'s deep connection to the military runs through every neighborhood, business, and community organization. Fayetteville understands service, sacrifice, and the pride that comes with wearing your story on your skin. The Crown Complex Event Center provides a world-class venue just minutes from post, making it accessible to the massive military population in the region.\n\nBeyond the military connection, Fayetteville offers a thriving local tattoo scene, Southern hospitality, and easy access from major cities along the East Coast. It is, quite simply, where AATC belongs.',
+      },
+
+      // ── Gallery + footer CTA ──
+      gallery_title: { label: 'Gallery title', type: 'text', default: 'Around the Convention' },
+      cta_title: { label: 'Footer CTA title', type: 'text', default: 'Want to learn more?' },
+      cta_lead: { label: 'Footer CTA lead-in (the email address follows it automatically)', type: 'text', default: 'Contact us at' },
+    },
+  },
 ]
+
+/**
+ * The public path each registry page renders on. The content editor purges
+ * this path after a save (via /api/revalidate, whose allow-list must contain
+ * it). A key missing here purged the HOMEPAGE instead: the apply hub sat under
+ * a stale 'home' key from before its registry key became 'applyHub', so its
+ * edits took up to a minute to show. registry.test.ts checks every key.
+ */
+export const PAGE_ROUTE: Record<string, string> = {
+  homepage: '/',
+  applyHub: '/apply',
+  tickets: '/tickets',
+  contests: '/contests',
+  kidsContest: '/events/kids-contest',
+  sponsors: '/sponsors',
+  about: '/info/about',
+}
 
 export function getPageDef(pageKey: string): PageDef | undefined {
   return REGISTRY.find(p => p.key === pageKey)

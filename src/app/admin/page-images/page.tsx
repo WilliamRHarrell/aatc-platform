@@ -22,9 +22,16 @@ const WHERE: Record<string, { page: string; position: string; href: string }> = 
   'pinup-entry':    { page: 'Pinup Contest',   position: 'above the entry form',               href: '/events/pinup-contest' },
   'contest-prizes': { page: 'Tattoo Contests', position: 'in the prizes section',              href: '/events/tattoo-contests' },
   'after-parties-hero':   { page: 'After Parties', position: 'under the header',        href: '/events/after-parties' },
-  'after-party-thursday': { page: 'After Parties', position: 'Thursday card (April 15, before the convention opens)', href: '/events/after-parties' },
-  'after-party-friday':   { page: 'After Parties', position: 'Friday card (April 16)',   href: '/events/after-parties' },
-  'after-party-saturday': { page: 'After Parties', position: 'Saturday card (April 17)', href: '/events/after-parties' },
+  // 070: the venue LOGO renders as the card thumbnail from the venue's slot;
+  // the four night slots are optional flyers under each night's card.
+  'venue-uptowns':        { page: 'After Parties', position: 'Uptown\'s logo, card thumbnail (Thursday and Sunday)', href: '/events/after-parties' },
+  'venue-group-therapy':  { page: 'After Parties', position: 'Group Therapy logo, card thumbnail (Friday)',        href: '/events/after-parties' },
+  'venue-club-luna':      { page: 'After Parties', position: 'Club Luna logo, card thumbnail (Saturday)',          href: '/events/after-parties' },
+  'after-party-thursday': { page: 'After Parties', position: 'optional flyer under the Thursday card', href: '/events/after-parties' },
+  'after-party-friday':   { page: 'After Parties', position: 'optional flyer under the Friday card',   href: '/events/after-parties' },
+  'after-party-saturday': { page: 'After Parties', position: 'optional flyer under the Saturday card', href: '/events/after-parties' },
+  'after-party-sunday':   { page: 'After Parties', position: 'optional flyer under the Sunday brunch card', href: '/events/after-parties' },
+  'tattoo-battle-veteran-ink': { page: 'Tattoo Battle', position: 'About Veteran Ink section', href: '/tattoo-battle' },
 }
 
 interface Row {

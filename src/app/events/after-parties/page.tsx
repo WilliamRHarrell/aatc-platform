@@ -1,20 +1,30 @@
-'use client'
-
+import type { Metadata } from 'next'
 import PublicNav from '@/components/PublicNav'
 import PageImage from '@/components/PageImage'
-import { AFTER_PARTIES } from '@/lib/homepage-content'
+import VenueCard from '@/components/VenueCard'
+import { getAfterParties } from '@/lib/after-parties-data'
+import { brunchBullet, weekdaySlug } from '@/lib/venues'
+import { CONTACT_EMAIL, EVENT_DATES_LABEL, EVENT_YEAR } from '@/lib/event-config'
 
-// REMOVED 2026-08-27: this held three invented venues (one of which names a
-// real Fayetteville business that has not agreed to host), invented DJ and band
-// names, and door prices - "$10 at the door / Free with VIP Pass" is a pricing
-// promise the show would have had to honor, the same class of error as the
-// fabricated hotel rates.
+// After parties are schedule_items rows (kind 'after_party', migration 070)
+// joined to `venues`. Nights come from the data: a night with no published
+// row does not render, a night whose row has no venue renders without venue
+// details, and nothing on this page says "to be announced".
 //
-// Venues are not confirmed. Per §3.4 there is no hardcoded day list here or on
-// the homepage: both render whatever published rows exist, grouped by day, and
-// a day with no rows does not render at all.
+// History: until 2026-08-27 this page held invented venues, acts and door
+// prices; then a hardcoded night list with "Venue and details to be
+// announced". Both are gone. Venue facts live on the venues table and are
+// edited at /admin/venues; times and publish state at /admin/schedule.
 
-export default function AfterPartiesPage() {
+export const metadata: Metadata = {
+  title: `After Parties | AATC ${EVENT_YEAR} | Fayetteville NC`,
+  description: `Where the AATC ${EVENT_YEAR} crowd goes when the floor closes, ${EVENT_DATES_LABEL}: venues across Fayetteville, with the Thursday kickoff the night before doors open.`,
+}
+
+export default async function AfterPartiesPage() {
+  const parties = await getAfterParties()
+  const brunch = brunchBullet(parties)
+
   return (
     <div className="min-h-screen">
       <PublicNav />
@@ -28,75 +38,41 @@ export default function AfterPartiesPage() {
           <span className="text-emboss">After Parties</span>
         </h1>
         <p className="mx-auto mt-0 max-w-xl text-sm" style={{ color: '#999' }}>
-          <span className="text-emboss">When the convention floor closes, the night is just getting started. Join us at venues across downtown Fayetteville for live music, drinks, and late-night celebrations with fellow tattoo lovers.</span>
+          <span className="text-emboss">When the convention floor closes, the night is just getting started. Join us at venues across Fayetteville for live music, drinks, and late-night celebrations with fellow tattoo lovers.</span>
         </p>
       </div>
 
       {/* Slot 'after-parties-hero'. Renders nothing until an admin uploads. */}
       <PageImage slug="after-parties-hero" className="mx-auto mt-8 max-w-3xl px-4" />
 
-      {/* Party Cards - NIGHTS ONLY.
-          Thursday, Friday and Saturday are confirmed. Venue, act, door price and
-          start time are NOT: the last set of those on this page was invented and
-          was removed, so nothing goes back until Ryan confirms it. Read from the
-          same AFTER_PARTIES constant the homepage uses, so the two cannot drift.
-      */}
-      <section className="px-4 py-12">
+      {/* One card per published night. The per-night flyer slot (after-party-<weekday>)
+          renders under the card when an admin has uploaded one. */}
+      <main className="px-4 py-12">
         <div className="mx-auto max-w-4xl space-y-6">
-          {AFTER_PARTIES.map(party => (
-            <div
-              key={party.night}
-              className="rounded-2xl p-6"
-              style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
-            >
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <h2 className="font-display text-xl font-bold text-white">
-                  <span className="text-emboss">{party.night}</span>
-                </h2>
-                <span className="text-sm" style={{ color: '#C4A882' }}>{party.date}</span>
-                {party.preConvention && (
-                  <span
-                    className="rounded-full px-2 py-0.5 text-xs font-semibold"
-                    style={{ backgroundColor: 'rgba(196,168,130,0.15)', color: '#C4A882' }}
-                  >
-                    Before the convention opens
-                  </span>
-                )}
-              </div>
-
-              {party.preConvention && (
-                <p className="mt-2 text-xs leading-relaxed" style={{ color: '#999' }}>
-                  The convention itself runs Friday to Sunday, April 16-18. This night is a
-                  kickoff the evening before the doors open, so plan your travel accordingly
-                  if you want to be there.
-                </p>
-              )}
-
-              <PageImage slug={party.imageSlug} className="mt-4" />
-
-              <p className="mt-3 text-xs" style={{ color: '#666' }}>
-                Venue and details to be announced.
-              </p>
+          {parties.map(party => (
+            <div key={party.id}>
+              <VenueCard party={party} />
+              <PageImage slug={weekdaySlug(party.day_date)} className="mt-3" />
             </div>
           ))}
         </div>
-      </section>
+      </main>
 
       {/* Important Info */}
       <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
         <div className="mx-auto max-w-3xl">
-          <div
-            className="rounded-2xl p-6"
-            style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
-          >
-            <h3 className="mb-3 text-sm font-bold text-white">Important Information</h3>
+          <div className="rounded-2xl p-6" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+            <h2 className="mb-3 text-sm font-bold text-white">Important Information</h2>
             <ul className="space-y-2">
+              {/* 21+ is scoped to the three after-party NIGHTS; the Sunday brunch
+                  carries no age statement (Ryan, 2026-09-23). Its line appears only
+                  while that row is published. */}
               {[
-                'All after party venues are 21+ only. Valid government-issued ID is required at the door.',
-                'After party venues are located in downtown Fayetteville, approximately 10-15 minutes from the Crown Complex.',
+                'All three after parties (Thursday, Friday and Saturday nights) are 21+. Valid government-issued ID is required at the door.',
+                'After party venues are located around Fayetteville, approximately 10-15 minutes from the Crown Complex.',
                 'Rideshare services are strongly encouraged. Please do not drink and drive.',
                 'VIP 3-Day Pass holders receive complimentary entry to all three after parties.',
-                'Venue details and addresses will be announced closer to the event date.',
+                ...(brunch ? [brunch] : []),
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-xs" style={{ color: '#999' }}>
                   <span className="mt-1 h-1 w-1 shrink-0 rounded-full" style={{ backgroundColor: '#8B7355' }} />
@@ -115,8 +91,8 @@ export default function AfterPartiesPage() {
         </p>
         <p className="text-sm" style={{ color: '#999' }}>
           <span className="text-emboss">Contact us at{' '}
-          <a href="mailto:info@allamericantattooconvention.com" style={{ color: '#C4A882' }}>
-            info@allamericantattooconvention.com
+          <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#C4A882' }}>
+            {CONTACT_EMAIL}
           </a></span>
         </p>
       </div>

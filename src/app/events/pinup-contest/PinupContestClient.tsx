@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import {
+  ASSETS,
   PINUP_REGISTRATION_OPEN,
   PINUP_PRIZES,
   PINUP_PRIZE_SPONSORS,
@@ -108,12 +110,23 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
 
       {/* Header */}
       <div className="border-b px-4 pb-10 pt-8 text-center" style={{ borderColor: '#2a2a2a' }}>
-        <p className="mb-2 text-xs font-bold uppercase tracking-[0.3em]" style={{ color: '#8B7355' }}>
+        {/* The script logo is the visible title, exactly as /contests does it.
+            The h1 stays in the HTML for crawlers and screen readers but is
+            hidden so the page does not read the title twice in a row. */}
+        <Image
+          src={ASSETS.missAatcPinupLogo}
+          alt=""
+          aria-hidden="true"
+          width={1467}
+          height={477}
+          priority
+          sizes="(min-width: 640px) 420px, 80vw"
+          className="mx-auto h-auto w-4/5 max-w-[420px]"
+        />
+        <h1 className="sr-only">Miss AATC Pinup</h1>
+        <p className="mt-2 text-xs font-bold uppercase tracking-[0.3em]" style={{ color: '#8B7355' }}>
           <span className="text-emboss">Vintage Glamour Meets Modern Ink</span>
         </p>
-        <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">
-          <span className="text-emboss">Miss AATC Pinup Contest</span>
-        </h1>
         <p className="mx-auto mt-0 max-w-xl text-sm" style={{ color: '#999' }}>
           <span className="text-emboss">Celebrating beauty, confidence, and tattoo culture. The Miss AATC Pinup Contest is one of Saturday&apos;s marquee events, bringing vintage glamour and modern ink together on the main stage.</span>
         </p>

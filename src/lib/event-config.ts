@@ -76,6 +76,9 @@ export const ASSETS = {
   introPhoto: `${STORAGE}/home-intro-mc.jpg`,
   /** Collector’s Choice script logo. White on transparent, 1467×941. */
   collectorsChoiceLogo: `${STORAGE}/collectors-choice-logo.png`,
+  /** Miss AATC Pinup script logo, white on transparent, 1467x477. Same header
+   *  pattern as collectorsChoiceLogo on /contests. */
+  missAatcPinupLogo: '/images/miss-aatc-pinup/logo.png',
   /** Tattoo Battle share card, 1200x630, composed from the lockup and the
    *  presenter/date facts by scripts/og/tattoo-battle-og.html. Served from
    *  /public; absolute via metadataBase. */

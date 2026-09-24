@@ -3,19 +3,12 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase'
-import { REGISTRY, getPageDef } from '@/content/registry'
+import { REGISTRY, PAGE_ROUTE, getPageDef } from '@/content/registry'
 import Markdown from '@/components/Markdown'
 import { requestRevalidate } from '@/lib/revalidate'
 import { guardedWrite } from '@/lib/db-write'
 
 /** page_content page_key -> the public route it drives. */
-const PAGE_ROUTE: Record<string, string> = {
-  homepage: '/',
-  home: '/apply',
-  tickets: '/tickets',
-  contests: '/contests',
-  sponsors: '/sponsors',
-}
 
 export default function AdminContentPage() {
   const supabase = createClient()
