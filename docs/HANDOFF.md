@@ -300,12 +300,15 @@ PostgREST with the service role, read-only):**
   (folder[1] = auth.uid()) and "admin insert" (is_admin(), for the booth
   page's admin/ uploads); re-creates "admin read" verbatim; adds
   `applications.veteran_doc_verified_at` / `veteran_doc_verified_by` (one fact:
-  verified = at is not null); clamps both for owners inside the 043 function
-  and clears both for EVERY writer when `veteran_id_url` changes.
+  verified = at is not null); clamps both for owners inside the 043 update
+  function, clears both for EVERY writer when `veteran_id_url` changes, and
+  NULLs both on every INSERT (the update clamp never fires on insert, so an
+  applicant could otherwise POST a row already verified - security review
+  finding, folded in).
 - `supabase/verify/verify_071.sql`: A exact policy set, B columns + FK, C
-  function body, D owner-clamp and reset-on-change with a ZZ fixture owned by
-  the RLS harness user (aborts if that user is missing), E bucket private, Z
-  residue. Until 071 is applied, ticking "Document verified" in the drawer
+  both function bodies, D owner INSERT arrives unverified (D0), owner UPDATE
+  clamped (D1), reset-on-change (D2/D3), all with a ZZ fixture owned by the RLS
+  harness user (aborts if that user is missing), E bucket private, Z residue. Until 071 is applied, ticking "Document verified" in the drawer
   fails loudly through guardedWrite (unknown column), and the two new insert
   policies do not exist - uploads still work under the old unscoped policy.
 
@@ -458,7 +461,9 @@ codes 404 until cutover.
 - **ID document retention** - decide the windows in the plan above, then build
   it as a sweep branch. Owner: Ryan (decision), unassigned (build).
 - **Orphan cleanup** - review the dry-run list, then
-  `node scripts/cleanup-application-docs-orphans.mjs --delete`. Owner: Ryan.
+  `node scripts/cleanup-application-docs-orphans.mjs --delete --allow-mass-delete`
+  (the flag is needed this once: 51 of 53 files are candidates, above the
+  script's half-bucket guard). Owner: Ryan.
 - **Domain cutover** from `aatc-landing` to this project, and production
   `NEXT_PUBLIC_SITE_URL` = `https://www.allamericantattooconvention.com`.
   Blocks printing the Tattoo Battle QR codes. Owner: Ryan.

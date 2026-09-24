@@ -79,6 +79,13 @@ begin
   if position('auth.uid() is null' in body) = 0 then
     raise exception 'FAIL: the 043 service-role exemption was lost';
   end if;
+  body := pg_get_functiondef('public.applications_force_safe_insert'::regproc);
+  if position('new.veteran_doc_verified_at := null' in body) = 0 then
+    raise exception 'FAIL: insert clamp does not null veteran_doc_verified_at';
+  end if;
+  if not exists (select 1 from pg_trigger where tgname = 'applications_force_safe_insert_trg' and tgrelid = 'public.applications'::regclass) then
+    raise exception 'FAIL: applications_force_safe_insert_trg is missing';
+  end if;
   if not exists (select 1 from pg_trigger where tgname = 'applications_protect_staff_columns_trg' and tgrelid = 'public.applications'::regclass) then
     raise exception 'FAIL: applications_protect_staff_columns_trg is missing';
   end if;
@@ -96,13 +103,28 @@ begin
   v_event := (select id from public.events where is_active order by start_date limit 1);
   if v_event is null then raise exception 'ABORT: no active event'; end if;
 
+  -- D0. An OWNER inserting a row cannot arrive verified (insert clamp). The
+  --     insert itself is the positive control: it must land.
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_uid, 'role', 'authenticated')::text, true);
   insert into public.applications
     (event_id, user_id, exhibitor_type, business_name, contact_name, email, total_amount, status,
-     is_veteran, veteran_id_url, vendor_single_qty, artist_count)
+     is_veteran, veteran_id_url, vendor_single_qty, artist_count,
+     veteran_doc_verified_at, veteran_doc_verified_by)
   values
     (v_event, v_uid, 'vendor', 'ZZ VERIFY 071 (DELETE ME)', 'ZZ', 'zz-verify-071@example.com', 0, 'pending',
-     true, 'zz/verify-071-veteran-id.png', 1, 0)
-  returning id into v_app;
+     true, 'zz/verify-071-veteran-id.png', 1, 0,
+     now(), v_uid);
+  reset role;
+  perform set_config('request.jwt.claims', '', true);
+  v_app := (select id from public.applications where business_name = 'ZZ VERIFY 071 (DELETE ME)' and user_id = v_uid);
+  if v_app is null then raise exception 'FAIL D0 control: the owner insert did not land'; end if;
+  v_at := (select veteran_doc_verified_at from public.applications where id = v_app);
+  v_by := (select veteran_doc_verified_by from public.applications where id = v_app);
+  if v_at is not null or v_by is not null then
+    raise exception 'FAIL D0: an owner inserted a row already verified (at=%, by=%)', v_at, v_by;
+  end if;
+  raise notice 'PASS D0: owner insert landed and arrived unverified';
 
   -- D1. An OWNER cannot verify their own document (clamp), but the same update
   --     lands on a column they may edit (positive control that the update ran).

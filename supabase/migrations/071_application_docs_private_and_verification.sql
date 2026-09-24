@@ -26,13 +26,19 @@
 -- sponsorship_manager are excluded on purpose; is_admin() is exactly that test.
 --
 -- VERIFICATION is two columns on applications and ONE fact: verified means
--- veteran_doc_verified_at is not null. There is no boolean twin. Both columns
--- are clamped for owners (041/043 shape; service role and admins exempt), and
--- BOTH are cleared for EVERY writer when veteran_id_url changes: a replaced
--- document is an unverified document. The reset lives INSIDE the clamp
--- function, after the owner clamp. A separate BEFORE trigger sorted ahead of
--- the clamp would reset and then have the clamp restore OLD over it, letting
+-- veteran_doc_verified_at is not null. There is no boolean twin. On UPDATE both
+-- columns are clamped for owners (041/043 shape; service role and admins
+-- exempt), and BOTH are cleared for EVERY writer when veteran_id_url changes:
+-- a replaced document is an unverified document. The reset lives INSIDE the
+-- clamp function, after the owner clamp. A separate BEFORE trigger sorted ahead
+-- of the clamp would reset and then have the clamp restore OLD over it, letting
 -- an owner's document swap keep the old verification.
+--
+-- On INSERT both columns are NULLED FOR EVERY WRITER in
+-- applications_force_safe_insert() (031/043). A new row cannot have been
+-- viewed by anyone, so it cannot be verified; and the update clamp never
+-- fires on insert, so without this an applicant could POST a row to PostgREST
+-- with verified_at already set (security review finding, 2026-09-24).
 -- ============================================================
 begin;
 
@@ -69,7 +75,28 @@ comment on column public.applications.veteran_doc_verified_at is
 comment on column public.applications.veteran_doc_verified_by is
   'profiles.id of the admin who verified. NULL whenever veteran_doc_verified_at is NULL.';
 
--- ── 3. Clamp (043 body) + verification clamp + reset on document change ──
+-- ── 3a. Insert clamp (043 body) + verification never arrives on a new row ──
+create or replace function public.applications_force_safe_insert()
+returns trigger language plpgsql security definer
+set search_path = public, pg_catalog as $$
+begin
+  -- 071: EVERY writer. A row nobody has seen cannot be verified.
+  new.veteran_doc_verified_at := null;
+  new.veteran_doc_verified_by := null;
+  -- auth.uid() is null only for service_role / trusted server contexts; a real
+  -- applicant always presents a JWT. Do not widen this further - the clamp is
+  -- what stops an applicant self-approving (043).
+  if public.is_admin() or auth.uid() is null then return new; end if;
+  new.status := 'pending';
+  new.needs_roster := coalesce(new.needs_roster, false);
+  new.directory_override := false;
+  new.approved_at := null;
+  new.deposit_due_at := null;
+  new.final_due_at := null;
+  return new;
+end $$;
+
+-- ── 3b. Update clamp (043 body) + verification clamp + reset on document change ──
 create or replace function public.applications_protect_staff_columns()
 returns trigger language plpgsql security definer
 set search_path = public, pg_catalog as $$

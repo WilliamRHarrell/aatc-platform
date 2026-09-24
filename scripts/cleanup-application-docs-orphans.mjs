@@ -12,9 +12,11 @@
  *   2. it was uploaded more than --days days ago (default 7), so a file whose
  *      row is still being written is never touched.
  *
- * Positive control: if the applications read errors, or returns ZERO rows
- * without --allow-empty-applications, the script ABORTS. A broken read would
- * otherwise look like "nothing is referenced" and delete everything.
+ * Positive controls: the applications read is paged and checked against an
+ * exact count, and the script ABORTS on an error, on a count mismatch (a
+ * truncated read would make every file past the cut look unreferenced), and
+ * on ZERO rows unless --allow-empty-applications is passed. It also refuses
+ * to delete more than half the bucket in one run.
  *
  * Every candidate is printed with path, size, upload date and reason. Deletes
  * use the service role (nobody else holds DELETE on this bucket, migration
@@ -58,8 +60,24 @@ async function walk(prefix) {
   return out
 }
 
-const { data: apps, error: appErr } = await sb.from('applications').select('id, business_name, id_doc_url, veteran_id_url, artists')
-if (appErr) { console.error(`ABORT: applications read failed: ${appErr.message}`); process.exit(2) }
+// Paged, because PostgREST caps a single read (1000 rows by default) and returns
+// the first page with error: null. The exact count is the control.
+const PAGE = 500
+const apps = []
+let expected = null
+for (let from = 0; ; from += PAGE) {
+  const { data, error, count } = await sb.from('applications')
+    .select('id, business_name, id_doc_url, veteran_id_url, artists', { count: 'exact' })
+    .order('id').range(from, from + PAGE - 1)
+  if (error) { console.error(`ABORT: applications read failed: ${error.message}`); process.exit(2) }
+  if (expected === null) expected = count
+  apps.push(...(data ?? []))
+  if (!data || data.length < PAGE) break
+}
+if (expected === null || apps.length !== expected) {
+  console.error(`ABORT: applications read returned ${apps.length} rows but the exact count is ${expected}`)
+  process.exit(2)
+}
 if (apps.length === 0 && !ALLOW_EMPTY) {
   console.error('ABORT: applications returned 0 rows. If that is truly the state, re-run with --allow-empty-applications.')
   process.exit(2)
@@ -90,6 +108,10 @@ for (const f of candidates) console.log(`${f.path} | ${f.size} | ${f.created_at.
 if (!DELETE) {
   console.log(`DRY RUN - nothing deleted. Re-run with --delete to remove the ${candidates.length} file(s) above.`)
   process.exit(0)
+}
+if (candidates.length > files.length / 2 && !args.includes('--allow-mass-delete')) {
+  console.error(`ABORT: ${candidates.length} of ${files.length} files are candidates (more than half). Re-run with --allow-mass-delete if that is really the state.`)
+  process.exit(2)
 }
 
 let deleted = 0, failed = 0
