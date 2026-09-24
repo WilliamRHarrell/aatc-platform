@@ -107,7 +107,8 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **065** | **APPLIED + VERIFIED** 2026-08-31 | dual-read. Rejected on its FIRST run with `42P16` because its column list came from unapplied 047; fixed to the live shape and re-run. Verified by Ryan via `verify_065.sql` (four credits, all `source = 'fallback'`) and by re-fetching the three pages against a pre-064 baseline. |
 | 066-068 | present on develop before 2026-09-23 | `sponsorship_is_custom`, `placement_check_runs`, `payment_method_square`. Not re-audited in the 2026-09-23 sessions; their tables/columns are read by live code. |
 | **069** | **APPLIED + VERIFIED** 2026-09-23 | Tattoo Battle: `tattoo_battle_entries`, bucket `tattoo-battle-media`, `set_tattoo_battle_champion()`, slot `tattoo-battle-veteran-ink`. Ryan ran `verify_069.sql`: fixtures_remaining = 0, no raise. |
-| **072** | **NOT APPLIED** (delivered 2026-09-24) | `applications.comped_at/by`, clamps extended, `comp_application()` / `uncomp_application()`. Then `seeds/comp_2026_09_24.sql`, then `verify_072.sql`. |
+| **073** | **NOT APPLIED** (delivered 2026-09-24) | anon/PUBLIC EXECUTE revoked on the seven non-anon functions; expire/cancel gain an internal guard. Run `verify_073.sql`, then re-run `verify_072.sql`. |
+| **072** | **APPLIED** 2026-09-24 (Ryan) | `comp_2026_09_24.sql` RUN, both rows correct. `verify_072` ABORTED at block B (anon grant; see 073) - re-run after 073. |
 | **071** | **APPLIED** 2026-09-24 (Ryan; verify_071 block A showed exactly the three policies) | application-docs policies (drop unscoped upload + own read; own folder insert, admin insert, admin read), `applications.veteran_doc_verified_at/by`, clamp + reset on `veteran_id_url` change. Run `verify_071.sql` after; block D needs the RLS harness user. |
 | **070** | **APPLIED** 2026-09-23 | `venues`, `schedule_items.venue_id`, kind `after_party`, `start_time` nullable only while unpublished, `contests.sponsor_id`, slot `after-party-sunday`; `schedule_items_public` recreated with `venue_id` last (14 columns). `verify_070.sql` run status NOT reported by Ryan - run it if unsure. |
 
@@ -268,6 +269,49 @@ this section is now history; develop has all of it. The next branch is
   under older hashes.
 - Until #3 merges, anything below that says "on develop" about after parties,
   venues, Part A, the About CMS or the lockup is on `feat/post-launch-fixes`.
+
+### 2026-09-24 Function grants: anon could execute expire/cancel (migration 073)
+
+PR #5 merged and deployed; 072 APPLIED; the comp data SQL RUN (both rows
+correct); comp notice sent to The Pinback Button Club; both comped
+applications show in Assign Booth with the COMP badge (Ryan, 2026-09-24).
+
+**verify_072 block B FAILED**: "anon can execute comp_application". Cause:
+Supabase's ALTER DEFAULT PRIVILEGES grants EXECUTE on every new `public`
+function to anon, authenticated and service_role; `revoke all ... from
+public` removes only PUBLIC's grant, so anon kept it. 069 had the right shape
+(`revoke execute ... from anon` too); 035, 039 and 072 did not. HANDOFF rule:
+a pattern applied once does not extend to the next branch.
+
+**Probed live with the anon key (nil UUID, no matching row, no effect):**
+comp_application refused at the grant (Ryan's stopgap revoke landed);
+uncomp_application executable but refused by is_admin() inside; has_role and
+owns_invoice executable (return false); **expire_application and
+cancel_application returned 204 - executable by anon with NO internal
+guard**, since 035. Application ids are public on /directory/[id]. Live data
+the same day: 0 expired/canceled rows, all 267 booths available, the only
+comps are the two the seed wrote (comped_by Ryan, one timestamp). API logs
+are not readable from the repo; the data says nothing happened.
+
+**verify_072 left NO fixtures**: block B aborts before block D, which is the
+only block that writes. Residue query: `select id, business_name from
+applications where business_name like 'ZZ VERIFY 072%'` (want zero rows).
+
+**Delivered, NOT APPLIED:** `073_function_grants.sql` revokes EXECUTE from
+anon and PUBLIC on comp/uncomp, has_role, owns_invoice,
+set_tattoo_battle_champion (restated), and from anon, PUBLIC and
+authenticated on expire/cancel (service_role only), and gives expire/cancel
+the internal guard they never had (`auth.role() = 'service_role'` or
+is_admin()). `verify_073.sql` prints what anon can execute and asserts it
+equals the allow-list (is_admin, has_paid_deposit, booth_publicly_visible,
+sponsor_tier_counts, register_pinup_entry, pinup_spots_remaining,
+voting_state, tattoo_battle_media_ok), then checks each guarded function role
+by role. **Order: apply 073, run verify_073, then re-run verify_072.**
+
+**Lint:** `src/lib/function-grants.test.ts` fails the suite when a migration
+numbered >= 073 creates a non-trigger function without settling anon's
+EXECUTE in the same file (an explicit `revoke ... from ... anon` or an
+explicit `grant ... to ... anon`). `revoke all from public` alone fails it.
 
 ### 2026-09-24 Comp flow (plan: docs/superpowers/plans/2026-09-24-comp-flow.md)
 
@@ -541,8 +585,7 @@ codes 404 until cutover.
 
 ### OPEN ITEMS (one line each, with the owner)
 
-- **Apply 072, run comp_2026_09_24.sql, run verify_072**, then send the comp
-  notice to 44c185e8 from the drawer. Owner: Ryan.
+- **Apply 073, run verify_073, re-run verify_072.** Owner: Ryan.
 - **Sweep**: review `scripts/sweep-dry-run.mjs` output before setting
   LIFECYCLE_SWEEP_ENABLED. Owner: Ryan.
 - **Tick "Document verified"** on a veteran test application (neither live
@@ -794,6 +837,7 @@ are about to do something in the left column, read the entry.
 | a write spanning a file and a row | **Rollback direction follows which failure is visible.** |
 | a constraint could be violated | **Make the invalid state unreachable**, not merely detectable. |
 | editing a migration | **Never edit one someone is partway through applying.** Add a new one. |
+| creating a function | **`revoke all from public` does not revoke anon.** Supabase's default privileges grant EXECUTE to anon, authenticated and service_role on creation; revoke from anon (and authenticated where it applies) BY NAME, then grant the intended roles. 035/039/072 shipped anon-executable; expire/cancel had no internal guard either. `function-grants.test.ts` enforces it from 073 on; `verify_073` pins the live anon list. |
 | replacing a view | **Read the live shape, not the last migration that touched it.** A file says what a shape was INTENDED to be; only the database says what it IS. 065 copied 047's column list, 047 turned out never to have been applied, and Postgres refused the whole statement with 42P16. Pin the list in a verify block afterwards. |
 | holding a migration | **A hold whose gate fails silently is indistinguishable from a hold nobody remembers.** The gate must FAIL LOUDLY or be CHECKED ON A SCHEDULE - recording it in a header is not enough. Full entry below. |
 | writing "applied through N" | **Do not. A range is not a status.** It reads as contiguous and hides anything unapplied inside it. State every migration as applied, held (with its gate AND that gate's current status) or not applied. This is how 047 hid for months. |
