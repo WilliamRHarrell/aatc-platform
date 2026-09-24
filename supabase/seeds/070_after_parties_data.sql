@@ -1,6 +1,16 @@
 -- ============================================================
 -- DATA CHANGE for migration 070: venues, after-party rows, logo slots.
 --
+-- RUN by Ryan 2026-09-23. Do not run again (its guards would abort anyway).
+-- The values below are what it INSERTED; the live rows have since been edited
+-- in the admin and differ on purpose:
+--   - Friday and Saturday after parties: 20:00, published.
+--   - Sunday Brunch: 10:00 at Uptown's, published.
+--   - Club Luna: address 229 Hay St, Suite B, Fayetteville, NC 28301.
+--     instagram_url and instagram_label stay NULL permanently (Facebook only)
+--     unless Ryan says otherwise.
+-- docs/HANDOFF.md is the current-state record; this file is history.
+--
 -- Run AFTER 070_after_parties_venues_contest_sponsor.sql. Every value below
 -- is Ryan's (2026-09-23); fields he marked null stay null.
 --
