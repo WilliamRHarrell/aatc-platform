@@ -225,7 +225,11 @@ export default async function TicketsPage() {
               The 2027 schedule is being finalised and will be published here shortly.
             </p>
           ) : (
-            <div className="grid gap-6 md:grid-cols-3">
+            {/* Column count follows the day count so no day card orphans on a
+                second row: three days (before the Thursday row publishes) sit
+                three across; four days sit two by two. The container is capped
+                at max-w-5xl, so four across would cramp the day lists. */}
+            <div className={`grid gap-6 ${schedule.length % 2 === 0 ? 'sm:grid-cols-2' : 'md:grid-cols-3'}`}>
               {schedule.map(day => (
                 <div key={day.day} className="rounded-2xl p-6" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
                   <h3 className="mb-4 text-center text-sm font-bold uppercase tracking-wider text-white">

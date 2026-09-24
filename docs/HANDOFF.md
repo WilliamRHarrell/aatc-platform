@@ -264,6 +264,13 @@ refuses to publish without a time before the database does.
 Battle's three schedule rows only (Ryan, 2026-09-23). It was removed from
 /events/kids-contest (A4). Per-contest sponsors live on `contests.sponsor_id`.
 
+**FOLLOW-UP (Ryan, 2026-09-23): when the Sunday brunch row publishes,** the
+Important Information bullets on /events/after-parties ("All after party
+venues are 21+ only", "complimentary entry to all three after parties") need
+Ryan's wording - a brunch is not a night and the count changes. Edit them in
+`src/app/events/after-parties/page.tsx` with the words he sends; do not
+guess them.
+
 **FOLLOW-UP (Ryan, 2026-09-23):** /events/tattoo-contests lists its 49
 categories from a hardcoded constant in `TattooContestsClient.tsx`, not from
 the `contests` table, so a per-contest sponsor cannot render there. Migrate
@@ -286,9 +293,10 @@ the migration, after the admin) and every finding was folded in.
 **Status, individually (Ryan, 2026-09-23):**
 - `supabase/migrations/069_tattoo_battle.sql` - APPLIED.
 - `supabase/verify/verify_069.sql` - RUN, clean (fixtures_remaining = 0, no raise).
-- `supabase/seeds/wholelife_spelling.sql` - first run ABORTED by its own guard:
-  presentation_credits.buyer_name also carried the old spelling. The seed now
-  updates all four known homes and scans every text column; re-run pending.
+- `supabase/seeds/wholelife_spelling.sql` - RUN, PASS (Ryan, 2026-09-23): the
+  first run aborted on presentation_credits; the seed then covered all four
+  homes with a whole-database scan, and the re-run landed. verify_044 passed;
+  the Battle rows read "WholeLife Aftercare".
 - `supabase/seeds/thursday_after_party.sql` - DELETED on feat/after-parties;
   the Thursday row comes from seeds/070_after_parties_data.sql (see the
   after-parties entry above).
