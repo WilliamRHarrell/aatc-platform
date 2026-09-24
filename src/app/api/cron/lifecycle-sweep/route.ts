@@ -151,45 +151,58 @@ const dayDiff = (iso: string | null, now: Date) => iso ? Math.round((new Date(is
 async function dryRunReport(supabase: ReturnType<typeof adminSupabase>, now: Date) {
   const row = (a: { id: string; business_name: string; email: string }, due: string | null): DryRow =>
     ({ id: a.id, business_name: a.business_name, email: a.email, due, days_out: dayDiff(due, now) })
+  // A negative report needs a positive control: a query that ERRORS (for
+  // example comped_at missing because 072 is not applied) returns null data,
+  // which would read as "nothing to do". Every error is reported by name.
+  const errors: string[] = []
+  const note = (branch: string, e: { message: string } | null) => { if (e) errors.push(`${branch}: ${e.message}`) }
 
-  const { data: expire } = await supabase.from('applications')
+  const { data: expire, error: e1 } = await supabase.from('applications')
     .select('id, business_name, email, deposit_due_at, invoices!inner(deposit_paid_at)')
     .eq('status', 'approved').is('comped_at', null)
     .lt('deposit_due_at', now.toISOString()).is('invoices.deposit_paid_at', null)
-  const { data: cancel } = await supabase.from('applications')
+  note('would_expire', e1)
+  const { data: cancel, error: e2 } = await supabase.from('applications')
     .select('id, business_name, email, final_due_at, invoices!inner(final_paid_at)')
     .eq('status', 'approved').is('comped_at', null)
     .lt('final_due_at', now.toISOString()).is('invoices.final_paid_at', null)
+  note('would_cancel', e2)
 
   const target = new Date(now.getTime() + 7 * ONE_DAY_MS)
-  const { data: depositReminder } = await supabase.from('applications')
+  const { data: depositReminder, error: e3 } = await supabase.from('applications')
     .select('id, business_name, email, deposit_due_at, invoices!inner(deposit_paid_at)')
     .eq('status', 'approved').is('comped_at', null)
     .gte('deposit_due_at', new Date(target.getTime() - MS_TOLERANCE).toISOString())
     .lte('deposit_due_at', new Date(target.getTime() + MS_TOLERANCE).toISOString())
     .is('invoices.deposit_paid_at', null)
+  note('would_send_deposit_reminder', e3)
 
   const finalReminders: Array<DryRow & { days: number }> = []
   for (const daysOut of [30, 14, 7, 1]) {
     const t = new Date(now.getTime() + daysOut * ONE_DAY_MS)
-    const { data } = await supabase.from('applications')
+    const { data, error: e4 } = await supabase.from('applications')
       .select('id, business_name, email, final_due_at, invoices!inner(final_paid_at)')
       .eq('status', 'approved').is('comped_at', null)
       .gte('final_due_at', new Date(t.getTime() - MS_TOLERANCE).toISOString())
       .lte('final_due_at', new Date(t.getTime() + MS_TOLERANCE).toISOString())
       .is('invoices.final_paid_at', null)
+    note(`would_send_final_reminder[${daysOut}]`, e4)
     for (const a of data ?? []) finalReminders.push({ ...row(a, a.final_due_at), days: daysOut })
   }
 
   // Context the reviewer needs: every approved, un-comped application whose
   // deposit is not recorded, with its deadline, whether or not a branch fires today.
-  const { data: watch } = await supabase.from('applications')
+  const { data: watch, error: e5 } = await supabase.from('applications')
     .select('id, business_name, email, deposit_due_at, final_due_at, invoices(deposit_paid_at, final_paid_at)')
     .eq('status', 'approved').is('comped_at', null)
+  note('approved_uncomped_watchlist', e5)
 
   return {
     dry_run: true,
     ran_at: now.toISOString(),
+    // Non-empty means the report is NOT trustworthy. The script refuses to
+    // print an all-clear over it.
+    errors,
     would_expire: (expire ?? []).map(a => row(a, a.deposit_due_at)),
     would_cancel: (cancel ?? []).map(a => row(a, a.final_due_at)),
     would_send_deposit_reminder: (depositReminder ?? []).map(a => row(a, a.deposit_due_at)),

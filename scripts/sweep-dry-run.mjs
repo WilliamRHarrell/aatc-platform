@@ -25,6 +25,11 @@ if (!base || !secret) { console.error('Need a base URL (arg or NEXT_PUBLIC_SITE_
 const res = await fetch(`${base.replace(/\/$/, '')}/api/cron/lifecycle-sweep?dry_run=1`, { headers: { authorization: `Bearer ${secret}` } })
 if (!res.ok) { console.error(`HTTP ${res.status}: ${await res.text()}`); process.exit(2) }
 const r = await res.json()
+if (r.errors?.length) {
+  console.error(`REPORT NOT TRUSTWORTHY - ${r.errors.length} query error(s); an empty branch below may be a broken query, not a clean one:`)
+  for (const e of r.errors) console.error(`  ${e}`)
+  console.error('(comped_at missing = migration 072 is not applied yet)')
+}
 
 const table = (title, rows, extra = () => '') => {
   console.log(`\n== ${title}: ${rows.length}`)
@@ -37,3 +42,4 @@ table('WOULD SEND deposit reminder (7 days out)', r.would_send_deposit_reminder)
 table('WOULD SEND final reminder', r.would_send_final_reminder, x => `  [${x.days} d]`)
 table('WATCHLIST: approved, not comped', r.approved_uncomped_watchlist,
   x => `  deposit ${x.deposit_recorded ? 'recorded' : 'NOT recorded'}, final ${x.final_recorded ? 'recorded' : 'not recorded'}${x.has_invoice ? '' : ', NO INVOICE'}, final due ${x.final_due ?? '-'}`)
+if (r.errors?.length) { console.error('\nExited non-zero because of the query errors above.'); process.exit(3) }
