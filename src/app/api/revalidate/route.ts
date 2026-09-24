@@ -17,7 +17,7 @@ import { isAdminRole } from '@/lib/roles'
  * now, not in 60s; a cache purge is the least privileged thing they do.
  * Deliberately not a shared-secret endpoint - this runs from the browser.
  */
-const ALLOWED_PATHS = new Set(['/', '/apply', '/tickets', '/contests', '/sponsors', '/tattoo-battle', '/events/after-parties', '/events/schedule', '/events/kids-contest'])
+const ALLOWED_PATHS = new Set(['/', '/apply', '/tickets', '/contests', '/sponsors', '/tattoo-battle', '/events/after-parties', '/events/schedule', '/events/kids-contest', '/info/about'])
 // Entry pages are dynamic: /tattoo-battle/entry/<n>. Pattern-matched so an
 // admin publish can purge exactly the bucket it touched.
 const ALLOWED_PATH_PATTERNS = [/^\/tattoo-battle\/entry\/[1-9]\d{0,2}$/]

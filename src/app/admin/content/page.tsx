@@ -15,6 +15,7 @@ const PAGE_ROUTE: Record<string, string> = {
   tickets: '/tickets',
   contests: '/contests',
   sponsors: '/sponsors',
+  about: '/info/about',
 }
 
 export default function AdminContentPage() {
