@@ -294,7 +294,9 @@ refuses paid invoices, and the sweep is OFF.
   every INSERT, restored from OLD for owners on UPDATE), and two admin-only
   SECURITY DEFINER RPCs. `comp_application` sets comped_at/by, nulls both due
   dates, settles the invoice (amount 0, status paid, paid_at + both
-  milestones), creates one if absent, refuses when two exist. `uncomp_application`
+  milestones), creates one if absent, refuses when two exist or when any
+  payment is recorded (security review note: a comp over a payment would be
+  inconsistent and one-way; refund in Invoices first). `uncomp_application`
   is refused when amount_paid > 0 or two invoices; otherwise restores amount =
   total_amount, pending, milestones and paid_at null. Neither touches
   `status`. Header enumerates the 5 applications + 2 invoices policies; none change.
@@ -302,8 +304,14 @@ refuses paid invoices, and the sweep is OFF.
   (anon cannot execute), C clamp + RPC bodies (no `set status`), D nine
   behaviour checks with ZZ fixtures (owner clamp, non-admin refused, comp
   before approve, approve after comp, comp after approve, approve/send
-  back/comp/approve, refusal with payment, restore, two invoices, owner insert
-  arrives uncomped), Z residue. Needs the RLS harness user and one admin profile.
+  back/comp/approve, uncomp refused with payment, restore, comp refused with
+  payment, two invoices, owner insert arrives uncomped), Z residue.
+  Security review (2026-09-24): no findings at the bar; noted, deferred:
+  `comped_by` is readable through the pre-existing anon "public read
+  deposit-paid" policy for directory-visible rows (the role-split part 2
+  column-exposure item, not new), and neither RPC checks `status`, so an
+  admin can comp an expired/canceled row (harmless: 032 still requires
+  approved for public reads). Needs the RLS harness user and one admin profile.
 - `supabase/seeds/comp_2026_09_24.sql`: guarded data fix. Aborts unless 072 is
   applied and both rows match the recorded pre-state. 13c265d7 gets the full
   comp; 44c185e8 gets comped_at/by, both milestones on invoice 70396b61 and

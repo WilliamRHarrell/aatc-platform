@@ -219,6 +219,26 @@ begin
   if (select status::text from public.applications where id = v_b) <> 'approved' then raise exception 'FAIL D7: uncomp changed status'; end if;
   raise notice 'PASS D7: uncomp restores the invoice and leaves status alone';
 
+  -- D7b. Comp refused with a payment recorded (B is now uncomped, pending, 60000).
+  update public.invoices set amount_paid = 100 where application_id = v_b;
+  begin
+    set local role authenticated;
+    perform set_config('request.jwt.claims', json_build_object('sub', v_admin, 'role', 'authenticated')::text, true);
+    perform public.comp_application(v_b);
+    reset role;
+    raise exception 'FAIL D7b: comp succeeded with a payment recorded';
+  exception
+    when raise_exception then
+      get stacked diagnostics v_err = message_text;
+      reset role;
+      perform set_config('request.jwt.claims', '', true);
+      if position('payments exist' in v_err) = 0 then raise exception 'FAIL D7b: wrong refusal: %', v_err; end if;
+      raise notice 'PASS D7b: comp refused with payments (%)', v_err;
+  end;
+  if (select comped_at from public.applications where id = v_b) is not null then raise exception 'FAIL D7b: refusal still comped'; end if;
+  if (select amount from public.invoices where application_id = v_b) <> 60000 then raise exception 'FAIL D7b: refusal changed the invoice'; end if;
+  update public.invoices set amount_paid = 0 where application_id = v_b;
+
   -- D8. Two invoices: both RPCs refuse rather than guess.
   insert into public.invoices (application_id, amount, amount_paid, status) values (v_b, 100, 0, 'pending');
   begin

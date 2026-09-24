@@ -112,13 +112,16 @@ end $$;
 -- Settles the invoice: amount 0, status paid, paid_at + both milestones, so
 -- Assign Booth, the directory policy and the sweep joins all read "paid".
 -- Due dates are nulled: nothing is owed, so nothing is due. Idempotent.
+-- Refused once any payment is recorded (same rule as uncomp): a comp on top
+-- of a payment would leave amount_paid > amount and could never be undone.
+-- Refund or reverse the payment in Invoices first.
 create or replace function public.comp_application(p_application_id uuid)
 returns void
 language plpgsql
 security definer
 set search_path = public, pg_catalog
 as $$
-declare v_inv uuid; v_count int;
+declare v_inv uuid; v_count int; v_paid int;
 begin
   if not public.is_admin() then
     raise exception 'not allowed' using errcode = '42501';
@@ -132,6 +135,11 @@ begin
   v_count := (select count(*) from public.invoices where application_id = p_application_id);
   if v_count > 1 then
     raise exception 'multiple invoices on this application - settle them in Invoices first' using errcode = 'P0001';
+  end if;
+
+  v_paid := (select coalesce(amount_paid, 0) from public.invoices where application_id = p_application_id);
+  if v_paid > 0 then
+    raise exception 'payments exist on this invoice - refund them in Invoices before comping' using errcode = 'P0001';
   end if;
 
   update public.applications
@@ -208,7 +216,7 @@ grant execute on function public.comp_application(uuid) to authenticated;
 grant execute on function public.uncomp_application(uuid) to authenticated;
 
 comment on function public.comp_application(uuid) is
-  'Admin only (is_admin() inside). Sets comped_at/by, nulls due dates, settles the invoice to 0/paid with both milestones. Never touches status.';
+  'Admin only (is_admin() inside). Refused (P0001) when amount_paid > 0 or more than one invoice. Sets comped_at/by, nulls due dates, settles the invoice to 0/paid with both milestones. Never touches status.';
 comment on function public.uncomp_application(uuid) is
   'Admin only. Refused (P0001) when amount_paid > 0 or more than one invoice. Restores invoice to total_amount/pending with milestones cleared. Never touches status or due dates.';
 
