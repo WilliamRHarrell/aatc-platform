@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase'
-import { REGISTRY, PAGE_ROUTE, getPageDef } from '@/content/registry'
+import { REGISTRY, routesFor, getPageDef } from '@/content/registry'
 import Markdown from '@/components/Markdown'
 import { requestRevalidate } from '@/lib/revalidate'
 import { guardedWrite } from '@/lib/db-write'
@@ -78,7 +78,7 @@ export default function AdminContentPage() {
     // The public pages are statically prerendered, so purge the cache rather
     // than waiting out the 60s window.
     const purged = await requestRevalidate({
-      paths: [PAGE_ROUTE[pageKey] ?? '/'],
+      paths: routesFor(pageKey),
       tags: ['page_content'],
     })
     toast.success(purged ? 'Saved · live now' : 'Saved · live within ~60s')
