@@ -13,15 +13,20 @@ interface Contest {
   description: string | null
   scheduled_time: string | null
   order: number
+  /** 070: presenting sponsor, a confirmed sponsorship of this event. Public pages read it through sponsors_public. */
+  sponsor_id: string | null
 }
+
+interface SponsorOption { id: string; sponsor_name: string }
 
 interface FormState {
   name: string
   description: string
   scheduled_time: string
+  sponsor_id: string
 }
 
-const EMPTY_FORM: FormState = { name: '', description: '', scheduled_time: '' }
+const EMPTY_FORM: FormState = { name: '', description: '', scheduled_time: '', sponsor_id: '' }
 
 function formatSchedule(iso: string): string {
   return new Date(iso).toLocaleString('en-US', {
@@ -33,6 +38,7 @@ function formatSchedule(iso: string): string {
 function ContestForm({
   form,
   working,
+  sponsors,
   onChange,
   onSave,
   onCancel,
@@ -40,6 +46,7 @@ function ContestForm({
 }: {
   form: FormState
   working: boolean
+  sponsors: SponsorOption[]
   onChange: (f: FormState) => void
   onSave: () => void
   onCancel: () => void
@@ -89,6 +96,16 @@ function ContestForm({
             style={inputStyle}
           />
         </div>
+        <div className="sm:col-span-2">
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#8B7355' }}>
+            Presenting sponsor
+          </label>
+          <select value={form.sponsor_id} onChange={e => onChange({ ...form, sponsor_id: e.target.value })} className={input} style={inputStyle}>
+            <option value="">None</option>
+            {sponsors.map(s => <option key={s.id} value={s.id}>{s.sponsor_name}</option>)}
+          </select>
+          <p className="mt-1 text-xs" style={{ color: '#8a8a8a' }}>Confirmed sponsors only. The public page shows &quot;The [contest] is presented by [sponsor]&quot; with logo and link; never tier or payment.</p>
+        </div>
       </div>
       <div className="mt-4 flex gap-2">
         <button
@@ -114,6 +131,7 @@ function ContestForm({
 export default function AdminContestsPage() {
   const supabase = createClient()
   const [contests, setContests] = useState<Contest[]>([])
+  const [sponsors, setSponsors] = useState<SponsorOption[]>([])
   const [loading, setLoading] = useState(true)
   const [eventId, setEventId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
@@ -135,11 +153,18 @@ export default function AdminContestsPage() {
 
       const { data } = await supabase
         .from('contests')
-        .select('id, event_id, name, description, scheduled_time, order')
+        .select('id, event_id, name, description, scheduled_time, order, sponsor_id')
         .eq('event_id', event.id)
         .order('order', { ascending: true })
 
       setContests((data as unknown as Contest[]) ?? [])
+      const { data: sponsorRows } = await supabase
+        .from('sponsorships')
+        .select('id, sponsor_name')
+        .eq('event_id', event.id)
+        .eq('status', 'confirmed')
+        .order('sponsor_name')
+      setSponsors((sponsorRows as SponsorOption[] | null) ?? [])
       setLoading(false)
     }
     load()
@@ -158,6 +183,7 @@ export default function AdminContestsPage() {
       scheduled_time: c.scheduled_time
         ? new Date(c.scheduled_time).toISOString().slice(0, 16)
         : '',
+      sponsor_id: c.sponsor_id ?? '',
     })
     setEditingId(c.id)
     setAdding(false)
@@ -179,9 +205,10 @@ export default function AdminContestsPage() {
         name: form.name.trim(),
         description: form.description.trim() || null,
         scheduled_time: form.scheduled_time || null,
+        sponsor_id: form.sponsor_id || null,
         order: nextOrder,
       })
-      .select('id, event_id, name, description, scheduled_time, order')
+      .select('id, event_id, name, description, scheduled_time, order, sponsor_id')
       .single()
 
     if (!error && data) {
@@ -205,6 +232,7 @@ export default function AdminContestsPage() {
           name: form.name.trim(),
           description: form.description.trim() || null,
           scheduled_time: form.scheduled_time || null,
+          sponsor_id: form.sponsor_id || null,
         })
         .eq('id', editingId)
         .select('id'),
@@ -319,6 +347,7 @@ export default function AdminContestsPage() {
       {adding && (
         <div className="mb-6">
           <ContestForm
+              sponsors={sponsors}
             form={form}
             working={working}
             onChange={setForm}
@@ -346,6 +375,7 @@ export default function AdminContestsPage() {
             <div key={c.id}>
               {editingId === c.id ? (
                 <ContestForm
+              sponsors={sponsors}
                   form={form}
                   working={working}
                   onChange={setForm}

@@ -9,6 +9,7 @@ import VotingBoard, { type Contest, type Entry } from './VotingBoard'
 import Image from 'next/image'
 import { ASSETS, COLLECTORS_CHOICE_PRIZE } from '@/lib/event-config'
 import VotePageSponsors from '@/components/VotePageSponsors'
+import { getContestSponsors } from '@/lib/after-parties-data'
 
 export const metadata: Metadata = {
   title: 'AATC Collector’s Choice | Vote for Your Favorite Tattoo | AATC 2027',
@@ -101,10 +102,11 @@ const getVotingState = unstable_cache(
 )
 
 export default async function ContestsPage() {
-  const [c, contests, votingState] = await Promise.all([
+  const [c, contests, votingState, contestSponsors] = await Promise.all([
     getContent('contests'),
     getContests(),
     getVotingState(),
+    getContestSponsors(),
   ])
 
   // 'unscheduled' reads as 'before' to a visitor: no window configured is not a
@@ -161,6 +163,7 @@ export default async function ContestsPage() {
         ) : (
           <VotingBoard
             contests={contests}
+            sponsors={contestSponsors}
             voteHint={c.vote_hint}
             thankYou={
               <div

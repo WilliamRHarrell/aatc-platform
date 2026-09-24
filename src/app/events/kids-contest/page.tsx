@@ -4,7 +4,8 @@ import PublicNav from '@/components/PublicNav'
 import PageGallery from '@/components/PageGallery'
 import Markdown from '@/components/Markdown'
 import { getContent } from '@/content/getContent'
-import { TATTOO_BATTLE_PRESENTER } from '@/lib/event-config'
+import ContestPresentedBy from '@/components/ContestPresentedBy'
+import { getKidsContestCredit } from '@/lib/after-parties-data'
 
 // Kids Temp Tattoo Contest.
 //
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
 }
 
 export default async function KidsContestPage() {
-  const c = await getContent('kidsContest')
+  const [c, kids] = await Promise.all([getContent('kidsContest'), getKidsContestCredit()])
 
   return (
     <div className="min-h-screen">
@@ -45,6 +46,8 @@ export default async function KidsContestPage() {
         <div className="mx-auto mt-2 max-w-xl text-sm" style={{ color: '#999' }}>
           <Markdown inline>{c.hero_intro}</Markdown>
         </div>
+        {/* This contest's own presenting sponsor (contests.sponsor_id, 070). Null today. */}
+        {kids && <ContestPresentedBy contestName={kids.name} sponsor={kids.sponsor} className="mt-4" />}
       </div>
 
       {/* Key facts. Free and Sunday are confirmed; the under-18 exception is the
@@ -93,12 +96,6 @@ export default async function KidsContestPage() {
               Every other AATC contest is 18 and over. Best Temporary Tattoo (Kids) is the only
               exception, and it runs as one of Sunday&apos;s categories.
             </span>
-          </p>
-          {/* This page anchors the kids contest timing to the Tattoo Battle, so
-              it names the Battle - and the credit goes wherever it is named.
-              One source: src/lib/event-config.ts. */}
-          <p className="mt-3 text-xs font-semibold uppercase tracking-wider" style={{ color: '#C4A882' }}>
-            The All American Tattoo Battle is presented by {TATTOO_BATTLE_PRESENTER}
           </p>
           <Link
             href="/events/tattoo-contests"
