@@ -4,6 +4,7 @@ import { Resend } from 'resend'
 import { guardedWrite } from '@/lib/db-write'
 import { PINUP_REGISTRATION_OPEN, AATC_MAILING_ADDRESS } from '@/lib/event-config'
 import { botTrapRejection } from '@/lib/bot-trap'
+import { capacityCopy } from '@/lib/pinup-capacity'
 
 // POST /api/pinup-entry - Miss AATC Pinup Contest intake.
 //
@@ -43,7 +44,7 @@ const FROM = process.env.RESEND_FROM_EMAIL ?? 'AATC 2027 <onboarding@resend.dev>
 // receive a mail saying they are registered; that is the same false promise
 // the removed stub made, only harder to retract once it is in an inbox.
 // No prize amounts in either: they are unconfirmed and held.
-async function sendConfirmation(to: string, name: string, status: 'confirmed' | 'waitlist', optedIn: boolean) {
+async function sendConfirmation(to: string, name: string, status: 'confirmed' | 'waitlist', optedIn: boolean, capacity: number | null) {
   const registered = status === 'confirmed'
   const subject = registered
     ? 'You are registered - Miss AATC Pinup Contest'
@@ -57,8 +58,8 @@ async function sendConfirmation(to: string, name: string, status: 'confirmed' | 
        <p>If you can no longer take part, please reply to this email so we can offer
           your place to someone on the waitlist.</p>`
     : `<p>Hi ${name},</p>
-       <p>Thank you for entering the Miss AATC Pinup Contest. All 25 places were taken
-          when your entry arrived, so you are currently <strong>on the waitlist</strong>.
+       <p>Thank you for entering the Miss AATC Pinup Contest. ${capacityCopy(capacity).email}
+          You are currently <strong>on the waitlist</strong>.
           You are not registered for the contest.</p>
        <p>We will contact you if a place opens up. You are also welcome to come to the
           contest table on the day - if fewer contestants check in than registered,
@@ -220,6 +221,9 @@ export async function POST(req: NextRequest) {
 
   const row = Array.isArray(res.data) ? res.data[0] : res.data
   const status = (row as { status?: string } | undefined)?.status
+  // The cap the database applied (074 returns it). Null before 074 is applied.
+  const capacityRaw = (row as { capacity?: unknown } | undefined)?.capacity
+  const capacity = typeof capacityRaw === 'number' ? capacityRaw : null
 
   // Only ever reports what the database actually recorded. A waitlisted entrant
   // is never told they are registered.
@@ -237,7 +241,7 @@ export async function POST(req: NextRequest) {
   // error. Logged loudly instead - the row is the source of truth, and the
   // admin list is where a missing mail gets noticed.
   try {
-    await sendConfirmation(email, fullName, status, marketingOptIn)
+    await sendConfirmation(email, fullName, status, marketingOptIn, capacity)
   } catch (e) {
     console.error(`[pinup-entry] entry ${String((row as { id?: string } | undefined)?.id)} saved but confirmation email failed: ${String(e)}`)
   }

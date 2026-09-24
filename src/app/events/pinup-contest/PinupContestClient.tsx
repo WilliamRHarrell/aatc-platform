@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { capacityCopy } from '@/lib/pinup-capacity'
 import Image from 'next/image'
 import {
   ASSETS,
@@ -35,7 +36,8 @@ const FIELDS = [
   { key: 'address'   as const, label: 'Address (optional)',   type: 'text',  required: false },
 ]
 
-export default function PinupContestClient({ entrySlot }: { entrySlot: React.ReactNode }) {
+export default function PinupContestClient({ entrySlot, capacity }: { entrySlot: React.ReactNode; capacity: number | null }) {
+  const copy = capacityCopy(capacity)
   const [form, setForm] = useState({
     fullName: '',
     stageName: '',
@@ -218,7 +220,7 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
               >
                 <div className="space-y-3 text-xs leading-relaxed" style={{ color: '#999' }}>
                   <p>
-                    Entry is <strong style={{ color: '#C4A882' }}>FREE</strong>. Places are limited to 25 contestants and online registration comes first. If fewer than 25 register in advance, additional entries are taken at the contest table on the day.
+                    Entry is <strong style={{ color: '#C4A882' }}>FREE</strong>. {copy.intro}
                   </p>
                   <p>
                     Contestants should arrive backstage by 1:00 PM on Saturday for check-in and lineup coordination. The contest begins at 2:00 PM on the main stage.
@@ -275,7 +277,7 @@ export default function PinupContestClient({ entrySlot }: { entrySlot: React.Rea
                     <>
                       <p className="text-lg font-bold text-white">You&apos;re on the waitlist</p>
                       <p className="mx-auto mt-2 max-w-sm text-sm" style={{ color: '#999' }}>
-                        All 25 places are currently taken. We&apos;ll contact you if one opens up.
+                        {copy.waitlist}{' '}
                         You can also try at the contest table on the day - if fewer contestants
                         check in than registered, places are filled from the waitlist first.
                       </p>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { spotsRemaining } from '@/lib/pinup-capacity'
 import { createClient } from '@/lib/supabase'
 
 // Pinup contest entries. Read through the admin layout's auth gate; the table's
@@ -8,7 +9,6 @@ import { createClient } from '@/lib/supabase'
 // than an error - which is exactly why the empty state below distinguishes
 // "no entries yet" from "query failed".
 
-const CAPACITY = 25
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   confirmed: { bg: 'rgba(74,222,128,0.15)',  color: '#4ade80' },
@@ -33,12 +33,22 @@ type SortKey = 'created_at' | 'full_name' | 'status'
 
 export default function AdminPinupPage() {
   const [entries, setEntries] = useState<Entry[] | null>(null)
+  // events.pinup_capacity (074) - the number's one home. Null until 074 is applied.
+  const [capacity, setCapacity] = useState<number | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
   const [sort, setSort] = useState<SortKey>('created_at')
   const [asc, setAsc] = useState(true)
 
   useEffect(() => {
     const supabase = createClient()
+    // The cap, from its one home. A missing column (074 not applied) reads as
+    // null and the cards say so instead of inventing a number.
+    supabase.from('events').select('pinup_capacity').eq('is_active', true).maybeSingle()
+      .then(({ data, error }) => {
+        if (error) { console.error(`[admin/pinup] capacity: ${error.code}: ${error.message}`); return }
+        const v = (data as { pinup_capacity?: number } | null)?.pinup_capacity
+        if (typeof v === 'number') setCapacity(v)
+      })
     supabase
       .from('pinup_entries')
       .select('id, full_name, stage_name, email, phone, address, age_confirmed, status, created_at')
@@ -73,7 +83,7 @@ export default function AdminPinupPage() {
   // they are excluded here and in register_pinup_entry().
   const taken = entries?.filter(e => e.status === 'confirmed' || e.status === 'pending').length ?? 0
   const waitlisted = entries?.filter(e => e.status === 'waitlist').length ?? 0
-  const remaining = Math.max(0, CAPACITY - taken)
+  const remaining = capacity == null ? null : spotsRemaining(capacity, taken)
 
   const th = (key: SortKey, label: string) => (
     <th className="px-3 py-2 text-left">
@@ -93,8 +103,8 @@ export default function AdminPinupPage() {
 
       <div className="mt-4 flex flex-wrap gap-3">
         {[
-          { label: 'Places taken', value: `${taken} / ${CAPACITY}` },
-          { label: 'Remaining', value: String(remaining) },
+          { label: 'Places taken', value: capacity == null ? `${taken} / ? (apply 074)` : `${taken} / ${capacity}` },
+          { label: 'Remaining', value: remaining == null ? '?' : String(remaining) },
           { label: 'Waitlisted', value: String(waitlisted) },
         ].map(c => (
           <div key={c.label} className="rounded-xl px-5 py-3" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
