@@ -2,35 +2,34 @@
 
 import { useState } from 'react'
 import { pdf } from '@react-pdf/renderer'
-import { createClient } from '@/lib/supabase'
+import type { SignedDoc } from '@/lib/application-docs'
 import BoothPacketPDF, { type BoothPacketData } from './BoothPacketPDF'
 
 interface Props {
+  applicationId: string
   data: BoothPacketData
   fileName: string
 }
 
-export default function BoothPacketDownload({ data, fileName }: Props) {
+export default function BoothPacketDownload({ applicationId, data, fileName }: Props) {
   const [generating, setGenerating] = useState(false)
 
   const handleDownload = async () => {
     setGenerating(true)
     try {
-      const supabase = createClient()
+      // Artist ID images come from the admin application-docs route (the one
+      // home for signing; five-minute URLs, admin role checked server-side).
+      // A non-admin gets 403 and a packet without ID images, not a broken one.
+      const res = await fetch('/api/admin/application-docs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId }),
+      })
+      const json = res.ok ? ((await res.json()) as { documents: SignedDoc[] }) : { documents: [] }
+      const urlByKey = new Map(json.documents.map(d => [d.key, d.url]))
 
-      // Resolve id_url storage paths to signed URLs
-      const resolvedArtists = await Promise.all(
-        data.artists.map(async (artist) => {
-          if (!artist.id_url) return artist
-
-          const raw = artist.id_url
-          const path = raw.includes('/application-docs/') ? raw.split('/application-docs/')[1] : raw
-          const { data: signedData } = await supabase.storage
-            .from('application-docs')
-            .createSignedUrl(path, 3600)
-
-          return { ...artist, id_url: signedData?.signedUrl ?? null }
-        })
+      const resolvedArtists = data.artists.map((artist, i) =>
+        artist.id_url ? { ...artist, id_url: urlByKey.get(`artist-${i + 1}`) ?? null } : artist
       )
 
       const resolvedData: BoothPacketData = { ...data, artists: resolvedArtists }
