@@ -76,6 +76,10 @@ export const ASSETS = {
   introPhoto: `${STORAGE}/home-intro-mc.jpg`,
   /** Collector’s Choice script logo. White on transparent, 1467×941. */
   collectorsChoiceLogo: `${STORAGE}/collectors-choice-logo.png`,
+  /** Tattoo Battle share card, 1200x630, composed from the lockup and the
+   *  presenter/date facts by scripts/og/tattoo-battle-og.html. Served from
+   *  /public; absolute via metadataBase. */
+  tattooBattleOg: '/images/tattoo-battle/og.jpg',
   /** OG share image. Falls back to the horizontal logo until a purpose-built
    *  1200×630 card exists - a fallback beats a broken share preview. */
   ogImage: `${STORAGE}/aatc-secondary-main-horizontal%202.png`,
@@ -160,12 +164,17 @@ export const FINAL_DUE_LABEL = new Date(FINAL_DUE_AT).toLocaleDateString('en-US'
 
 export type ShowPhase = 'before' | 'during' | 'after'
 
-export function showPhase(now: number = Date.now()): ShowPhase {
-  const open = new Date(DOORS_OPEN_ISO).getTime()
-  const close = new Date(SHOW_CLOSE_ISO).getTime()
+/** Which side of a window `now` is on. Absolute instants, so every timezone agrees. */
+export function phaseBetween(openIso: string, closeIso: string, now: number = Date.now()): ShowPhase {
+  const open = new Date(openIso).getTime()
+  const close = new Date(closeIso).getTime()
   if (now < open) return 'before'
   if (now <= close) return 'during'
   return 'after'
+}
+
+export function showPhase(now: number = Date.now()): ShowPhase {
+  return phaseBetween(DOORS_OPEN_ISO, SHOW_CLOSE_ISO, now)
 }
 
 /** Whole days remaining until doors open (0 once the show has started). */
@@ -353,5 +362,5 @@ export const AATC_MAILING_ADDRESS: string | null = '5439 Yadkin Rd STE 112, Faye
  * When presentation_credits is built (CUTOVER section E2), both this constant
  * and the fallback column should read from it instead.
  */
-export const TATTOO_BATTLE_PRESENTER = 'Whole Life Aftercare'
+export const TATTOO_BATTLE_PRESENTER = 'WholeLife Aftercare'
 export const TATTOO_BATTLE_PRESENTED_BY = `Presented by ${TATTOO_BATTLE_PRESENTER}`

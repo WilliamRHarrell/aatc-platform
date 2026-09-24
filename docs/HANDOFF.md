@@ -237,6 +237,39 @@ promise right instead.
 
 ## 2. IN FLIGHT / NEXT
 
+### 2026-09-23 Tattoo Battle (spec: docs/superpowers/specs/2026-09-23-tattoo-battle-design.md)
+
+Code on branch `feat/tattoo-battle`, merging to develop after Ryan's approval.
+Routes: `/tattoo-battle`, `/tattoo-battle/entry/[bucket]` (1..20), `/admin/tattoo-battle`,
+`/admin/tattoo-battle/print`. Two independent security reviews were run (after
+the migration, after the admin) and every finding was folded in.
+
+**Status, individually (Ryan, 2026-09-23):**
+- `supabase/migrations/069_tattoo_battle.sql` - APPLIED.
+- `supabase/verify/verify_069.sql` - RUN, clean (fixtures_remaining = 0, no raise).
+- `supabase/seeds/wholelife_spelling.sql` - first run ABORTED by its own guard:
+  presentation_credits.buyer_name also carried the old spelling. The seed now
+  updates all four known homes and scans every text column; re-run pending.
+- `supabase/seeds/thursday_after_party.sql` - not run; refuses until v_start is
+  set (start_time is NOT NULL and no time is on record).
+
+Until 069 runs: `/tattoo-battle` renders with no entries (correct and inert),
+`/admin/tattoo-battle` shows "migration 069 has not been applied", and
+`node scripts/verify-tattoo-battle-anon.mjs` reports SKIP for every table
+check (verified 2026-09-23: PGRST205 on the table, "Bucket not found" on storage).
+
+`TATTOO_BATTLE_PRESENTER` now reads `'WholeLife Aftercare'` (Ryan, 2026-09-23).
+The `sponsorships` row and the 3 Battle `schedule_items` rows still say
+`'Whole Life Aftercare'` until the seed runs, so the sponsor block on
+`/tattoo-battle` renders the NAME AS TEXT with no logo until then. Verified how:
+`sponsors_public` queried with the anon key 2026-09-23.
+
+QR codes encode the fixed `QR_BASE_URL` (`https://www.allamericantattooconvention.com`),
+never the env var. The domain is served by the `aatc-landing` Vercel project
+today (verified 2026-09-23: apex 308s to www, www is a different app), so
+printed codes 404 until cutover - item 1 of the spec's §11 launch checklist.
+Migration **070 is reserved** for Ryan's after-parties change.
+
 ### Seminar times are PRESENTER-CONFIRMED, not document-derived
 
 Confirmed with both presenters directly on **2026-08-31**. They said the times

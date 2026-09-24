@@ -88,3 +88,39 @@ if (problems.length > 0) {
 }
 
 console.log(`[check-event-dates] OK - ${configStart} to ${configEnd} matches the active event row.`)
+
+// ── Tattoo Battle start must equal the "Battle Begins" schedule row ──
+// BATTLE_START drives the countdown and JSON-LD; the schedule row drives
+// /events/schedule and the timeline. Same reasoning as the show dates above.
+const battleSrc = readFileSync(`${ROOT}src/lib/tattoo-battle-config.ts`, 'utf8')
+const bm = battleSrc.match(/export const BATTLE_START = '([^']+)'/)
+if (!bm) { console.error('[check-event-dates] Could not find BATTLE_START in src/lib/tattoo-battle-config.ts'); process.exit(1) }
+const battleDate = etDate(bm[1])
+const battleTime = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(bm[1]))
+const { data: activeEvent } = await supabase.from('events').select('id').eq('is_active', true).single()
+const { data: beginsRow, error: beginsErr } = await supabase
+  .from('schedule_items_public')
+  .select('day_date, start_time')
+  .eq('event_id', activeEvent?.id ?? '')
+  .ilike('title', '%Tattoo Battle Begins%')
+  .maybeSingle()
+if (beginsErr || !beginsRow) {
+  // The events row was read a moment ago, so the database IS reachable: a
+  // missing or ambiguous row means it was renamed, deleted or duplicated.
+  // That is a real disagreement, not a network blip - fail the build.
+  console.error(
+    `\n[check-event-dates] FAIL - could not find exactly one "Tattoo Battle Begins" row on the\n` +
+    `active event (${beginsErr?.message ?? 'no row'}). BATTLE_START cannot be checked against the\n` +
+    `schedule. Restore the row (or fix its title) before deploying.\n`
+  )
+  process.exit(1)
+} else if (beginsRow.day_date !== battleDate || beginsRow.start_time.slice(0, 5) !== battleTime) {
+  console.error(
+    `\n[check-event-dates] FAIL - BATTLE_START (${battleDate} ${battleTime} ET) disagrees with the\n` +
+    `"Tattoo Battle Begins" schedule row (${beginsRow.day_date} ${beginsRow.start_time}).\n` +
+    `Fix whichever is wrong. The countdown and the timeline will disagree until they match.\n`
+  )
+  process.exit(1)
+} else {
+  console.log(`[check-event-dates] OK - BATTLE_START matches the schedule row (${battleDate} ${battleTime} ET).`)
+}

@@ -33,6 +33,7 @@ const DROPDOWNS: DropdownConfig[] = [
     label: 'Events',
     prefix: '/events',
     links: [
+      { href: '/tattoo-battle', label: 'Tattoo Battle' },
       { href: '/events/tattoo-contests', label: 'Tattoo Contests' },
       { href: '/events/kids-contest', label: 'Kids Temp Tattoo Contest' },
       { href: '/events/tattoo-panels', label: 'Tattoo Panels' },
@@ -102,7 +103,7 @@ function NavDropdown({ config, pathname }: { config: DropdownConfig; pathname: s
         onClick={() => setOpen(prev => !prev)}
         className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
         style={{
-          color: groupActive ? '#C4A882' : '#666',
+          color: groupActive ? '#C4A882' : '#8a8a8a',
           backgroundColor: groupActive ? 'rgba(139,115,85,0.1)' : 'transparent',
         }}
       >
@@ -200,7 +201,7 @@ export default function PublicNav() {
               href={link.href}
               className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
               style={{
-                color: isActive(link.href) ? '#C4A882' : '#666',
+                color: isActive(link.href) ? '#C4A882' : '#8a8a8a',
                 backgroundColor: isActive(link.href) ? 'rgba(139,115,85,0.1)' : 'transparent',
               }}
             >

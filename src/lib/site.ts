@@ -12,6 +12,14 @@
  */
 export const PRODUCTION_HOST = 'allamericantattooconvention.com'
 
+/**
+ * The canonical public origin (www, per Ryan 2026-09-23). Used as
+ * metadataBase so OG and canonical URLs are absolute, and by the printed QR
+ * codes. Deliberately NOT derived from NEXT_PUBLIC_SITE_URL: a preview build
+ * must still emit share images on the real host.
+ */
+export const CANONICAL_ORIGIN = 'https://www.allamericantattooconvention.com'
+
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
 /** True only when this deployment is serving the real domain. */

@@ -44,7 +44,7 @@ const HEALTH_SAFETY = [
   },
   {
     title: 'Aftercare',
-    description: 'Aftercare products are available for purchase from several booths throughout the convention floor, including Skin Reserve, Whole Life Aftercare, and After Inked, among others. Your artist will walk you through caring for fresh work before you leave the booth.',
+    description: 'Aftercare products are available for purchase from several booths throughout the convention floor, including Skin Reserve, WholeLife Aftercare, and After Inked, among others. Your artist will walk you through caring for fresh work before you leave the booth.',
   },
   {
     title: 'Hygiene & Sanitation',

@@ -488,8 +488,10 @@ Assets in `/public/images/tattoo-battle/`, cropped from the vector master
 (already rasterised at 2400 px with transparency): `lockup-full.png`,
 `fist.png`, `wordmark-stacked.png`, `badge.png`, plus `splatter-top.png` and
 `splatter-bottom.png` cut from the carousel frames' edges (the edges only, no
-text). OG image `og.png` 1200×630 built from the presented-by graphic's
-elements and the lockup; the carousel graphics 1-6 are never shipped.
+text). OG image `og.jpg` 1200×630, a composite of the lockup, "Presented by
+WholeLife Aftercare", the dates and the city, rendered from
+`scripts/og/tattoo-battle-og.html` (Ryan reversed the earlier as-is ruling
+2026-09-23); the carousel graphics 1-6 are never shipped.
 `ASSETS.tattooBattleOg` is added to `event-config.ts` so the OG URL has one
 home.
 
@@ -571,7 +573,10 @@ Before the printed QR codes are put on buckets:
    `scripts/verify-tattoo-battle-anon.mjs` against production.
 3. Run the WholeLife spelling seed; re-run `verify_044.sql`.
 4. Fill the `tattoo-battle-veteran-ink` page-image slot.
-5. Scan one printed code from a phone on the live site and confirm the holding
+5. Print-preview `/admin/tattoo-battle/print` (Chrome, 4x6 in, 100 %) and
+   check one label per page with nothing from the admin shell on it, before
+   any labels are printed.
+6. Scan one printed code from a phone on the live site and confirm the holding
    state renders for that bucket.
 
 ## 12. Report-back checklist (from the brief)
