@@ -116,3 +116,28 @@ export const getContestSponsors = unstable_cache(
   ['contest_sponsors'],
   { revalidate: 60, tags: ['contests', 'sponsors'] },
 )
+
+/**
+ * The kids contest row (is_kids_category) and its presenting sponsor, if any.
+ * The page itself is static copy; this is the one thing it reads from the
+ * contests table. Null sponsor renders nothing (Ryan: kids starts with none).
+ */
+export const getKidsContestCredit = unstable_cache(
+  async (): Promise<{ name: string; sponsor: ContestSponsor | null } | null> => {
+    const supabase = anon()
+    const { data: event } = await supabase.from('events').select('id').eq('is_active', true).maybeSingle()
+    if (!event) return null
+    const { data: row, error } = await supabase
+      .from('contests')
+      .select('id, name')
+      .eq('event_id', event.id)
+      .eq('is_kids_category', true)
+      .limit(1)
+      .maybeSingle()
+    if (error || !row) return null
+    const sponsors = await getContestSponsors()
+    return { name: row.name, sponsor: sponsors[row.id] ?? null }
+  },
+  ['kids_contest_credit'],
+  { revalidate: 60, tags: ['contests', 'sponsors'] },
+)
