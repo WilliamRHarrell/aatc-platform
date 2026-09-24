@@ -102,6 +102,8 @@ export type Database = {
           vendor_double_qty: number
           vendor_single_qty: number
           veteran_id_url: string | null
+          veteran_doc_verified_at: string | null
+          veteran_doc_verified_by: string | null
           website: string | null
         }
         Insert: {
@@ -143,6 +145,8 @@ export type Database = {
           vendor_double_qty?: number
           vendor_single_qty?: number
           veteran_id_url?: string | null
+          veteran_doc_verified_at?: string | null
+          veteran_doc_verified_by?: string | null
           website?: string | null
         }
         Update: {
@@ -184,6 +188,8 @@ export type Database = {
           vendor_double_qty?: number
           vendor_single_qty?: number
           veteran_id_url?: string | null
+          veteran_doc_verified_at?: string | null
+          veteran_doc_verified_by?: string | null
           website?: string | null
         }
         Relationships: [
