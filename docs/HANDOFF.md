@@ -107,7 +107,8 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **065** | **APPLIED + VERIFIED** 2026-08-31 | dual-read. Rejected on its FIRST run with `42P16` because its column list came from unapplied 047; fixed to the live shape and re-run. Verified by Ryan via `verify_065.sql` (four credits, all `source = 'fallback'`) and by re-fetching the three pages against a pre-064 baseline. |
 | 066-068 | present on develop before 2026-09-23 | `sponsorship_is_custom`, `placement_check_runs`, `payment_method_square`. Not re-audited in the 2026-09-23 sessions; their tables/columns are read by live code. |
 | **069** | **APPLIED + VERIFIED** 2026-09-23 | Tattoo Battle: `tattoo_battle_entries`, bucket `tattoo-battle-media`, `set_tattoo_battle_champion()`, slot `tattoo-battle-veteran-ink`. Ryan ran `verify_069.sql`: fixtures_remaining = 0, no raise. |
-| **073** | **NOT APPLIED** (delivered 2026-09-24) | anon/PUBLIC EXECUTE revoked on the seven non-anon functions; expire/cancel gain an internal guard. Run `verify_073.sql`, then re-run `verify_072.sql`. |
+| **074** | **NOT APPLIED** (delivered 2026-09-24) | `events.pinup_capacity`; register_pinup_entry parameter-free + service_role only; pinup_spots_remaining(uuid); two anon INSERT policies dropped; anon column grant on applications. Run `verify_074.sql` (includes the grant audit). |
+| **073** | **APPLIED** 2026-09-24 (Ryan; verify_073 exact, verify_072 re-run PASS) | anon/PUBLIC EXECUTE revoked on the seven non-anon functions; expire/cancel gain an internal guard. Run `verify_073.sql`, then re-run `verify_072.sql`. |
 | **072** | **APPLIED** 2026-09-24 (Ryan) | `comp_2026_09_24.sql` RUN, both rows correct. `verify_072` ABORTED at block B (anon grant; see 073) - re-run after 073. |
 | **071** | **APPLIED** 2026-09-24 (Ryan; verify_071 block A showed exactly the three policies) | application-docs policies (drop unscoped upload + own read; own folder insert, admin insert, admin read), `applications.veteran_doc_verified_at/by`, clamp + reset on `veteran_id_url` change. Run `verify_071.sql` after; block D needs the RLS harness user. |
 | **070** | **APPLIED** 2026-09-23 | `venues`, `schedule_items.venue_id`, kind `after_party`, `start_time` nullable only while unpublished, `contests.sponsor_id`, slot `after-party-sunday`; `schedule_items_public` recreated with `venue_id` last (14 columns). `verify_070.sql` run status NOT reported by Ryan - run it if unsure. |
@@ -269,6 +270,88 @@ this section is now history; develop has all of it. The next branch is
   under older hashes.
 - Until #3 merges, anything below that says "on develop" about after parties,
   venues, Part A, the About CMS or the lockup is on `feat/post-launch-fixes`.
+
+### 2026-09-24 Pinup capacity one home + public grant audit (migration 074; plan: docs/superpowers/plans/2026-09-24-pinup-capacity-and-grant-audit.md)
+
+073 APPLIED; verify_073 listed the 8 allow-listed functions; verify_072
+re-run PASSED; PR #6 merged (Ryan, 2026-09-24). Branch `feat/pinup-capacity`.
+
+**What the follow-up found (read-only, 2026-09-24):**
+- `register_pinup_entry()` decided confirmed vs waitlist against a
+  `p_capacity` PARAMETER (default 25), and 051/052/055 granted it to
+  service_role only, yet anon could execute it (default privileges again;
+  probed live: an anon call reached the function's own validation).
+  verify_073's allow-list had blessed it BY MISTAKE (corrected in that file).
+  Anyone could POST the RPC with p_capacity 1000 and be confirmed past the
+  cap, skipping the route's bot trap, open/closed gate, phone normalisation
+  and confirmation email. `pinup_spots_remaining(uuid,int)` trusted the same
+  parameter (anon probe: 25 default, 1000 with the argument).
+- Zero pinup entries live; nothing was exploited.
+- The number 25 had SIX homes: two SQL defaults, the admin constant, the
+  route's waitlist email, two sentences of public copy.
+- Duplicate protection is the partial unique index on (event_id,
+  lower(email)); no rate limiting anywhere (see the open item below).
+
+**Public grant audit (migrations + anon probes; verify_074 block F prints
+the live catalog and asserts the hard rules):**
+- Functions, anon: after 073 exactly is_admin, has_paid_deposit,
+  booth_publicly_visible, sponsor_tier_counts, voting_state,
+  pinup_spots_remaining, tattoo_battle_media_ok, plus register_pinup_entry
+  (wrong; 074 revokes it). Authenticated (from migrations; not probeable
+  without a JWT): the anon set plus has_role, owns_invoice, comp_application,
+  uncomp_application, set_tattoo_battle_champion (all admin-checked inside)
+  and register_pinup_entry (074 revokes).
+- Tables: all 25 have an RLS enable statement; verify_074 F3 asserts
+  `rowsecurity` live. Anon SELECT is revoked at the grant on the 038 set
+  (exclusivity_grants, exhibitors, food_trucks, panels, placement_check_runs,
+  presentation_credit_items, presentation_credits, schedule_items,
+  sponsorships). **Anon reads applications rows in FULL** through
+  "applications: public read deposit-paid" (032): 2 rows live today, both
+  comped (the comp milestones satisfy the policy), every column including
+  email, contact_name, notes, total_amount, id_doc_url, user_id, comped_by.
+  One is a real vendor. Folded into 074 as a column-level anon grant (see
+  below); the proper fix is 075.
+- Anon-reachable write policies (to anon, or no TO clause = PUBLIC):
+  pinup_entries anon insert and panel_registrations "public insert" with
+  check (true) - both DROPPED in 074 (both routes write with the service
+  role; each let anon bypass the route's capacity and validation);
+  sponsorships "Anyone can submit sponsor application" (by design:
+  /apply/sponsor inserts from the browser, clamped by 049); applications own
+  insert, profiles own update, food_trucks vendor update (require auth.uid(),
+  dead for anon); the admin `all` policies on applications, booths,
+  contest_entries, events, exhibitors, invoices, panel_registrations,
+  profiles, sponsorships are PUBLIC-scoped by omission with is_admin() (dead
+  for anon; hygiene).
+
+**Delivered, NOT APPLIED:** `074_pinup_capacity_and_grants.sql`:
+`events.pinup_capacity` (> 0, default 25) read inside both functions;
+`register_pinup_entry(uuid,text,text,text,text,text,text,boolean,boolean)`
+returns `capacity` too and is service_role only; `pinup_spots_remaining(uuid)`
+stays anon-callable; the two anon INSERT policies dropped; anon's
+table-level SELECT on applications replaced by a column grant on exactly the
+22 columns the three directory pages select plus the five the policy
+expression reads. `verify_074.sql`: A-E for 074, F the audit (F2 exact
+allow-lists: anon 7, authenticated 12; F3 RLS everywhere; F4 the anon-reachable
+write set, REVIEW notices for drift). **Order: apply 074, run verify_074.**
+Until 074 is applied the app degrades: the public copy says "limited"
+without a number, the admin pages show "?" with a note, the route still
+works against the old function.
+
+**Code:** `src/lib/pinup-capacity.ts` (parse, spots, copy, lowering note) and
+its test, which reads src/ for any literal 25 beside pinup wording and pins
+the directory selects inside the anon column grant. `/admin/events` "Event
+Settings" edits the capacity (positive integer; note that lowering never
+removes anyone) and purges `/events/pinup-contest` (allow-list + tag
+`pinup`). Public page reads the column server-side (60 s, tag `pinup`).
+Route quotes the RPC's returned capacity in the waitlist email.
+Verified: `npm test` 102 passing, tsc clean, lint clean on changed files,
+build green. Not verified in a browser.
+
+**For 075 (not small; report-first):** applications public reads through a
+column-limited view (038 pattern) so authenticated non-owners stop seeing
+PII too, and the directory pages read the view; rewrite the PUBLIC-scoped
+admin policies `to authenticated`; consider `to authenticated` on the
+sponsor insert with an anon path only if the sponsor form truly needs it.
 
 ### 2026-09-24 Function grants: anon could execute expire/cancel (migration 073)
 
@@ -585,7 +668,20 @@ codes 404 until cutover.
 
 ### OPEN ITEMS (one line each, with the owner)
 
-- **Apply 073, run verify_073, re-run verify_072.** Owner: Ryan.
+- **Apply 074, run verify_074** (its block F is the grant audit; read the
+  REVIEW notices). Owner: Ryan.
+- **Rate limiting for public form routes** (NOT BUILT): add Vercel WAF
+  rate-limit rules before launch on `POST /api/pinup-entry`,
+  `POST /api/panel-register`, `POST /api/aatc/*` if any accept anonymous
+  input, and the Supabase Auth endpoints reached from `/auth/signup` and
+  `/auth/forgot-password` (Supabase applies its own auth rate limits; confirm
+  them in the dashboard). `/apply/artist` and `/apply/vendor` write as a
+  signed-in user through PostgREST directly, so the WAF rule would go on the
+  Supabase project's REST host, not this app; the practical brake there is
+  the applications "own insert" policy plus the signup limit. Owner: Ryan
+  (dashboard), unassigned (verify).
+- **075**: applications column exposure for authenticated non-owners, and
+  the PUBLIC-scoped admin policies. Owner: unassigned. Report-first.
 - **Sweep**: review `scripts/sweep-dry-run.mjs` output before setting
   LIFECYCLE_SWEEP_ENABLED. Owner: Ryan.
 - **Tick "Document verified"** on a veteran test application (neither live
