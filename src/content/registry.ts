@@ -94,9 +94,9 @@ export const REGISTRY: PageDef[] = [
       afterparty_intro: {
         label: 'After party intro',
         type: 'markdown',
-        default: 'The show doesn’t stop when the doors close. Official AATC after parties run Thursday through Saturday night at bars around Fayetteville.',
+        default: 'The show doesn’t stop when the doors close. Official AATC after parties run every night of the show at venues around Fayetteville, starting with a kickoff the night before doors open.',
       },
-      afterparty_note: { label: 'After party note', type: 'text', default: '21+ · Venues announced closer to the show' },
+      afterparty_note: { label: 'After party note', type: 'text', default: '21+ · Valid ID required at the door' },
 
       // ── Fayetteville / Fort Bragg ──
       local_title: { label: 'Fayetteville section title', type: 'text', default: 'Fayetteville & Fort Bragg' },
