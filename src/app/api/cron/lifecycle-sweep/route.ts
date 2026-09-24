@@ -139,11 +139,87 @@ async function sendPlacementAlert(added: Finding[], resolvedCount: number) {
   }
 }
 
+type DryRow = { id: string; business_name: string; email: string; due: string | null; days_out: number | null }
+const dayDiff = (iso: string | null, now: Date) => iso ? Math.round((new Date(iso).getTime() - now.getTime()) / ONE_DAY_MS) : null
+
+/**
+ * What the four branches would select at `now`. Every query carries the same
+ * filters as the live branches, including `comped_at is null` (072): a comped
+ * exhibitor is never chased. Ryan reviews this before LIFECYCLE_SWEEP_ENABLED
+ * is set (HANDOFF).
+ */
+async function dryRunReport(supabase: ReturnType<typeof adminSupabase>, now: Date) {
+  const row = (a: { id: string; business_name: string; email: string }, due: string | null): DryRow =>
+    ({ id: a.id, business_name: a.business_name, email: a.email, due, days_out: dayDiff(due, now) })
+
+  const { data: expire } = await supabase.from('applications')
+    .select('id, business_name, email, deposit_due_at, invoices!inner(deposit_paid_at)')
+    .eq('status', 'approved').is('comped_at', null)
+    .lt('deposit_due_at', now.toISOString()).is('invoices.deposit_paid_at', null)
+  const { data: cancel } = await supabase.from('applications')
+    .select('id, business_name, email, final_due_at, invoices!inner(final_paid_at)')
+    .eq('status', 'approved').is('comped_at', null)
+    .lt('final_due_at', now.toISOString()).is('invoices.final_paid_at', null)
+
+  const target = new Date(now.getTime() + 7 * ONE_DAY_MS)
+  const { data: depositReminder } = await supabase.from('applications')
+    .select('id, business_name, email, deposit_due_at, invoices!inner(deposit_paid_at)')
+    .eq('status', 'approved').is('comped_at', null)
+    .gte('deposit_due_at', new Date(target.getTime() - MS_TOLERANCE).toISOString())
+    .lte('deposit_due_at', new Date(target.getTime() + MS_TOLERANCE).toISOString())
+    .is('invoices.deposit_paid_at', null)
+
+  const finalReminders: Array<DryRow & { days: number }> = []
+  for (const daysOut of [30, 14, 7, 1]) {
+    const t = new Date(now.getTime() + daysOut * ONE_DAY_MS)
+    const { data } = await supabase.from('applications')
+      .select('id, business_name, email, final_due_at, invoices!inner(final_paid_at)')
+      .eq('status', 'approved').is('comped_at', null)
+      .gte('final_due_at', new Date(t.getTime() - MS_TOLERANCE).toISOString())
+      .lte('final_due_at', new Date(t.getTime() + MS_TOLERANCE).toISOString())
+      .is('invoices.final_paid_at', null)
+    for (const a of data ?? []) finalReminders.push({ ...row(a, a.final_due_at), days: daysOut })
+  }
+
+  // Context the reviewer needs: every approved, un-comped application whose
+  // deposit is not recorded, with its deadline, whether or not a branch fires today.
+  const { data: watch } = await supabase.from('applications')
+    .select('id, business_name, email, deposit_due_at, final_due_at, invoices(deposit_paid_at, final_paid_at)')
+    .eq('status', 'approved').is('comped_at', null)
+
+  return {
+    dry_run: true,
+    ran_at: now.toISOString(),
+    would_expire: (expire ?? []).map(a => row(a, a.deposit_due_at)),
+    would_cancel: (cancel ?? []).map(a => row(a, a.final_due_at)),
+    would_send_deposit_reminder: (depositReminder ?? []).map(a => row(a, a.deposit_due_at)),
+    would_send_final_reminder: finalReminders,
+    approved_uncomped_watchlist: (watch ?? []).map(a => {
+      const inv = Array.isArray(a.invoices) ? a.invoices[0] : a.invoices
+      return {
+        ...row(a, a.deposit_due_at),
+        final_due: a.final_due_at,
+        deposit_recorded: !!inv?.deposit_paid_at,
+        final_recorded: !!inv?.final_paid_at,
+        has_invoice: !!inv,
+      }
+    }),
+  }
+}
+
 export async function GET(req: Request) {
   // Vercel Cron and manual callers both use Bearer auth.
   const auth = req.headers.get('authorization')
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // ── Dry run: ?dry_run=1 reports what a FULL run would do, right now,
+  // against live data. Reads only: no emails, no expiries, no placement-check
+  // row. Works while the kill switch is off, so the first real run is never
+  // the first look. The same query shapes as below, with the same guards.
+  if (new URL(req.url).searchParams.get('dry_run') === '1') {
+    return NextResponse.json(await dryRunReport(adminSupabase(), new Date()))
   }
 
   // ── Kill switch - default OFF ───────────────────────────────
@@ -192,6 +268,7 @@ export async function GET(req: Request) {
     .from('applications')
     .select('id, business_name, invoices!inner(id, deposit_paid_at)')
     .eq('status', 'approved')
+    .is('comped_at', null)
     .lt('deposit_due_at', now.toISOString())
     .is('invoices.deposit_paid_at', null)
 
@@ -219,6 +296,7 @@ export async function GET(req: Request) {
     .from('applications')
     .select('id, invoices!inner(id, final_paid_at, amount_paid)')
     .eq('status', 'approved')
+    .is('comped_at', null)
     .lt('final_due_at', now.toISOString())
     .is('invoices.final_paid_at', null)
 
@@ -248,6 +326,7 @@ export async function GET(req: Request) {
     .from('applications')
     .select('id, invoices!inner(deposit_paid_at)')
     .eq('status', 'approved')
+    .is('comped_at', null)
     .gte('deposit_due_at', reminderLow)
     .lte('deposit_due_at', reminderHigh)
     .is('invoices.deposit_paid_at', null)
@@ -267,6 +346,7 @@ export async function GET(req: Request) {
       .from('applications')
       .select('id, invoices!inner(final_paid_at)')
       .eq('status', 'approved')
+      .is('comped_at', null)
       .gte('final_due_at', low)
       .lte('final_due_at', high)
       .is('invoices.final_paid_at', null)
