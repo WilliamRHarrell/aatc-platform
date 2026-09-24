@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { defaultsFor } from '@/content/registry'
+import { defaultsFor, REGISTRY, PAGE_ROUTE } from '@/content/registry'
 
 /**
  * After parties are data (schedule rows + venues, migration 070). The homepage
@@ -35,5 +35,15 @@ describe('about page registry', () => {
     expect(c.story_body.split('\n\n')).toHaveLength(3)
     expect(c.fayetteville_body.split('\n\n')).toHaveLength(3)
     expect(c.hero_title).toBe('About AATC')
+  })
+})
+
+describe('PAGE_ROUTE', () => {
+  it('maps every registered page to the public path the content editor must purge', () => {
+    for (const page of REGISTRY) {
+      expect(PAGE_ROUTE[page.key], `route for ${page.key}`).toBeTruthy()
+    }
+    expect(PAGE_ROUTE.applyHub).toBe('/apply')
+    expect(PAGE_ROUTE.about).toBe('/info/about')
   })
 })

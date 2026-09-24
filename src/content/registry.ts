@@ -482,6 +482,23 @@ export const REGISTRY: PageDef[] = [
   },
 ]
 
+/**
+ * The public path each registry page renders on. The content editor purges
+ * this path after a save (via /api/revalidate, whose allow-list must contain
+ * it). A key missing here purged the HOMEPAGE instead: the apply hub sat under
+ * a stale 'home' key from before its registry key became 'applyHub', so its
+ * edits took up to a minute to show. registry.test.ts checks every key.
+ */
+export const PAGE_ROUTE: Record<string, string> = {
+  homepage: '/',
+  applyHub: '/apply',
+  tickets: '/tickets',
+  contests: '/contests',
+  kidsContest: '/events/kids-contest',
+  sponsors: '/sponsors',
+  about: '/info/about',
+}
+
 export function getPageDef(pageKey: string): PageDef | undefined {
   return REGISTRY.find(p => p.key === pageKey)
 }
