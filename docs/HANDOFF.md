@@ -105,6 +105,9 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | 048-063 | **APPLIED** | as above. |
 | **064** | **APPLIED + VERIFIED** 2026-08-31 | panel day/start repair, `panels_published_has_schedule`. |
 | **065** | **APPLIED + VERIFIED** 2026-08-31 | dual-read. Rejected on its FIRST run with `42P16` because its column list came from unapplied 047; fixed to the live shape and re-run. Verified by Ryan via `verify_065.sql` (four credits, all `source = 'fallback'`) and by re-fetching the three pages against a pre-064 baseline. |
+| 066-068 | present on develop before 2026-09-23 | `sponsorship_is_custom`, `placement_check_runs`, `payment_method_square`. Not re-audited in the 2026-09-23 sessions; their tables/columns are read by live code. |
+| **069** | **APPLIED + VERIFIED** 2026-09-23 | Tattoo Battle: `tattoo_battle_entries`, bucket `tattoo-battle-media`, `set_tattoo_battle_champion()`, slot `tattoo-battle-veteran-ink`. Ryan ran `verify_069.sql`: fixtures_remaining = 0, no raise. |
+| **070** | **APPLIED** 2026-09-23 | `venues`, `schedule_items.venue_id`, kind `after_party`, `start_time` nullable only while unpublished, `contests.sponsor_id`, slot `after-party-sunday`; `schedule_items_public` recreated with `venue_id` last (14 columns). `verify_070.sql` run status NOT reported by Ryan - run it if unsure. |
 
 **What this audit could and could not see.** It reads the live schema through
 PostgREST's OpenAPI document, which exposes tables, views, columns and callable
@@ -167,7 +170,10 @@ asserted as settled.
 | `contests_2027.sql` | **APPLIED** | 49 contests live |
 | `schedule_2027.sql` | **APPLIED** | 25 schedule_items live |
 | `panels_2027.sql` | **APPLIED** | 2 panels live. NOTE: it ran AFTER 046, which is why 046's backfill matched nothing and 064 was needed. |
-| `tattoo_battle_credit.sql` | **APPLIED** | 3 Battle rows carry `Whole Life Aftercare` |
+| `tattoo_battle_credit.sql` | **APPLIED** | 3 Battle rows carry the presenter credit (spelling since changed by `wholelife_spelling.sql`, below) |
+| `wholelife_spelling.sql` | **APPLIED + VERIFIED** 2026-09-23 | sponsorships row + 3 Battle rows + presentation_credits/exclusivity_grants read `WholeLife Aftercare`; verify_044 passed. First run aborted by its own guard on presentation_credits, re-run landed. |
+| `070_after_parties_data.sql` | **APPLIED** 2026-09-23 | 3 venues, 3 logo slots renamed to `venue-*`, 4 night slots, 4 after_party rows. Live rows since edited in the admin (times, publish state, Club Luna address) - see the 2026-09-23 after-parties entry. Do not re-run. |
+| `contact_email_scan.sql` | run status not reported | scan only; expects one PASS notice. |
 | `voting_window_2027.sql` | **APPLIED + VERIFIED** 2026-08-31 | Ryan ran it and read the report: opens 2027-04-21 12:00 ET, closes 2027-05-22 00:00 ET, `days_to_exclusive_bound` 31, `voting_state()` returns "before". See above. |
 
 ### Nothing is awaiting application
