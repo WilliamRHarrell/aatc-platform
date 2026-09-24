@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { venueLinks, mapsUrl, isPreConvention, weekdaySlug, nightLabel, type VenueLite } from '@/lib/venues'
+import { venueLinks, mapsUrl, isPreConvention, weekdaySlug, nightLabel, brunchBullet, type VenueLite } from '@/lib/venues'
 
 const base: VenueLite = {
   name: 'Club Luna', slug: 'club-luna', blurb: '', address: null, phone: null,
@@ -44,5 +44,17 @@ describe('weekdaySlug and nightLabel', () => {
     expect(weekdaySlug('2027-04-15')).toBe('after-party-thursday')
     expect(weekdaySlug('2027-04-18')).toBe('after-party-sunday')
     expect(nightLabel('2027-04-15')).toEqual({ night: 'Thursday', date: 'April 15' })
+  })
+})
+
+describe('brunchBullet', () => {
+  const night = (day_date: string, title: string, venue: string | null) => ({ day_date, title, venue: venue ? { ...base, name: venue } : null })
+  it('returns the Sunday line only when a Sunday row is published, naming its venue', () => {
+    expect(brunchBullet([night('2027-04-15', 'After Party', "Uptown's Chicken & Waffles")])).toBeNull()
+    expect(brunchBullet([night('2027-04-18', 'Sunday Brunch', "Uptown's Chicken & Waffles")]))
+      .toBe("Close out the weekend with Sunday Brunch at Uptown's Chicken & Waffles.")
+  })
+  it('omits the venue when the row has none', () => {
+    expect(brunchBullet([night('2027-04-18', 'Sunday Brunch', null)])).toBe('Close out the weekend with Sunday Brunch.')
   })
 })

@@ -3,7 +3,7 @@ import PublicNav from '@/components/PublicNav'
 import PageImage from '@/components/PageImage'
 import VenueCard from '@/components/VenueCard'
 import { getAfterParties } from '@/lib/after-parties-data'
-import { weekdaySlug } from '@/lib/venues'
+import { brunchBullet, weekdaySlug } from '@/lib/venues'
 import { CONTACT_EMAIL, EVENT_DATES_LABEL, EVENT_YEAR } from '@/lib/event-config'
 
 // After parties are schedule_items rows (kind 'after_party', migration 070)
@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 
 export default async function AfterPartiesPage() {
   const parties = await getAfterParties()
+  const brunch = brunchBullet(parties)
 
   return (
     <div className="min-h-screen">
@@ -63,11 +64,15 @@ export default async function AfterPartiesPage() {
           <div className="rounded-2xl p-6" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
             <h2 className="mb-3 text-sm font-bold text-white">Important Information</h2>
             <ul className="space-y-2">
+              {/* 21+ is scoped to the three after-party NIGHTS; the Sunday brunch
+                  carries no age statement (Ryan, 2026-09-23). Its line appears only
+                  while that row is published. */}
               {[
-                'All after party venues are 21+ only. Valid government-issued ID is required at the door.',
+                'All three after parties (Thursday, Friday and Saturday nights) are 21+. Valid government-issued ID is required at the door.',
                 'After party venues are located around Fayetteville, approximately 10-15 minutes from the Crown Complex.',
                 'Rideshare services are strongly encouraged. Please do not drink and drive.',
                 'VIP 3-Day Pass holders receive complimentary entry to all three after parties.',
+                ...(brunch ? [brunch] : []),
               ].map((item, i) => (
                 <li key={i} className="flex items-start gap-2 text-xs" style={{ color: '#999' }}>
                   <span className="mt-1 h-1 w-1 shrink-0 rounded-full" style={{ backgroundColor: '#8B7355' }} />

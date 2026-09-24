@@ -66,3 +66,14 @@ export function nightLabel(dayDate: string): { night: string; date: string } {
     date: d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }),
   }
 }
+
+/**
+ * The Sunday line for the after-parties page's Important Information list,
+ * present only while a Sunday row is published (Ryan, 2026-09-23). Built from
+ * the row so the title and venue have one home; never an age statement.
+ */
+export function brunchBullet(parties: Array<{ day_date: string; title: string; venue: { name: string } | null }>): string | null {
+  const sunday = parties.find(p => nightLabel(p.day_date).night === 'Sunday')
+  if (!sunday) return null
+  return sunday.venue ? `Close out the weekend with ${sunday.title} at ${sunday.venue.name}.` : `Close out the weekend with ${sunday.title}.`
+}

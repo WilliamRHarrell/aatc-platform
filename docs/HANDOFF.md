@@ -264,13 +264,6 @@ refuses to publish without a time before the database does.
 Battle's three schedule rows only (Ryan, 2026-09-23). It was removed from
 /events/kids-contest (A4). Per-contest sponsors live on `contests.sponsor_id`.
 
-**FOLLOW-UP (Ryan, 2026-09-23): when the Sunday brunch row publishes,** the
-Important Information bullets on /events/after-parties ("All after party
-venues are 21+ only", "complimentary entry to all three after parties") need
-Ryan's wording - a brunch is not a night and the count changes. Edit them in
-`src/app/events/after-parties/page.tsx` with the words he sends; do not
-guess them.
-
 **FOLLOW-UP (Ryan, 2026-09-23):** /events/tattoo-contests lists its 49
 categories from a hardcoded constant in `TattooContestsClient.tsx`, not from
 the `contests` table, so a per-contest sponsor cannot render there. Migrate
