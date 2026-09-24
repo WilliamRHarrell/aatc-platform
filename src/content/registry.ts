@@ -480,6 +480,24 @@ export const REGISTRY: PageDef[] = [
       cta_lead: { label: 'Footer CTA lead-in (the email address follows it automatically)', type: 'text', default: 'Contact us at' },
     },
   },
+  {
+    key: 'applyForms',
+    title: 'Booth application forms (/apply/artist, /apply/vendor)',
+    sections: {
+      // ── Veteran discount upload (both forms read the same two strings) ──
+      veteran_doc_label: {
+        label: 'Veteran upload - field label',
+        type: 'text',
+        default: 'Veteran ID / proof of service',
+      },
+      veteran_doc_help: {
+        label: 'Veteran upload - help text',
+        help: 'What proof to upload and what not to. Shown under the label on both booth application forms.',
+        type: 'text',
+        default: "Veteran discount: upload a DD-214, VA ID card, or driver's license with veteran designation. Do not upload a military ID (CAC).",
+      },
+    },
+  },
 ]
 
 /**
@@ -489,7 +507,7 @@ export const REGISTRY: PageDef[] = [
  * a stale 'home' key from before its registry key became 'applyHub', so its
  * edits took up to a minute to show. registry.test.ts checks every key.
  */
-export const PAGE_ROUTE: Record<string, string> = {
+export const PAGE_ROUTE: Record<string, string | string[]> = {
   homepage: '/',
   applyHub: '/apply',
   tickets: '/tickets',
@@ -497,6 +515,13 @@ export const PAGE_ROUTE: Record<string, string> = {
   kidsContest: '/events/kids-contest',
   sponsors: '/sponsors',
   about: '/info/about',
+  applyForms: ['/apply/artist', '/apply/vendor'],
+}
+
+/** Every public path a registry page renders on; the editor purges them all. */
+export function routesFor(pageKey: string): string[] {
+  const r = PAGE_ROUTE[pageKey]
+  return r === undefined ? [] : Array.isArray(r) ? r : [r]
 }
 
 export function getPageDef(pageKey: string): PageDef | undefined {

@@ -9,6 +9,9 @@ import { describeBooths } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 import type { Database } from '@/types/database'
 import { guardedWrite } from '@/lib/db-write'
+import { veteranNeedsVerification } from '@/lib/application-docs'
+import ApplicationDocuments from '@/components/admin/ApplicationDocuments'
+import VeteranVerification, { type VerificationState } from '@/components/admin/VeteranVerification'
 
 // The `artists` column is stored as JSON; describe its real shape here so the
 // regenerated Json type doesn't break array access throughout this file.
@@ -95,15 +98,20 @@ function DetailDrawer({
   app,
   onClose,
   onStatusChange,
+  onPatch,
 }: {
   app: Application
   onClose: () => void
   onStatusChange: (id: string, status: Application['status']) => void
+  onPatch: (id: string, patch: Partial<Application>) => void
 }) {
   const supabase = createClient()
   const [working, setWorking] = useState(false)
-  const [artistSignedUrls, setArtistSignedUrls] = useState<(string | null)[]>([])
-  const [veteranIdUrl, setVeteranIdUrl]         = useState<string | null>(null)
+  // Approve / comp on an unverified veteran document takes two clicks: the
+  // first shows the warning, the second proceeds. Reset per application by the
+  // parent keying this drawer on app.id.
+  const [ackUnverified, setAckUnverified]       = useState(false)
+  const unverified = veteranNeedsVerification(app)
   const [discountEnabled, setDiscountEnabled]   = useState(false)
   const [discountDollars, setDiscountDollars]   = useState('')
   const [compEnabled, setCompEnabled]           = useState(false)
@@ -114,38 +122,6 @@ function DetailDrawer({
     : 0
   const invoiceAmount = compEnabled ? 0 : Math.max(0, app.total_amount - discountCents)
 
-  // Generate signed URLs for documents
-  useEffect(() => {
-    const getUrls = async () => {
-      // Per-artist IDs (new format)
-      if (app.artists && app.artists.length > 0) {
-        const urls = await Promise.all(
-          app.artists.map(async (a) => {
-            if (!a.id_url) return null
-            const { data } = await supabase.storage
-              .from('application-docs')
-              .createSignedUrl(a.id_url, 3600)
-            return data?.signedUrl ?? null
-          })
-        )
-        setArtistSignedUrls(urls)
-      } else if (app.id_doc_url) {
-        // Legacy single ID doc
-        const { data } = await supabase.storage
-          .from('application-docs')
-          .createSignedUrl(app.id_doc_url, 3600)
-        setArtistSignedUrls([data?.signedUrl ?? null])
-      }
-      // Veteran ID
-      if (app.veteran_id_url) {
-        const { data } = await supabase.storage
-          .from('application-docs')
-          .createSignedUrl(app.veteran_id_url, 3600)
-        setVeteranIdUrl(data?.signedUrl ?? null)
-      }
-    }
-    getUrls()
-  }, [app.id])
 
 
   const handleResetPassword = async (email: string) => {
@@ -168,6 +144,10 @@ function DetailDrawer({
   }
 
   const updateStatus = async (newStatus: Application['status']) => {
+    if (newStatus === 'approved' && unverified && !ackUnverified) {
+      setAckUnverified(true)
+      return
+    }
     setWorking(true)
 
     if (newStatus === 'approved') {
@@ -321,8 +301,17 @@ function DetailDrawer({
                 <Field label="Artists" value={app.artist_count} />
               )}
               <Field label="Corner booth"  value={app.is_corner} />
-              <Field label="Veteran"       value={app.is_veteran} />
+              <Field label="Veteran discount" value={app.is_veteran ? 'Claimed' : 'Not claimed'} />
             </div>
+            {app.is_veteran && (
+              <div className="mt-3">
+                <VeteranVerification
+                  applicationId={app.id}
+                  value={{ veteran_doc_verified_at: app.veteran_doc_verified_at, veteran_doc_verified_by: app.veteran_doc_verified_by }}
+                  onChange={(next: VerificationState) => onPatch(app.id, next)}
+                />
+              </div>
+            )}
           </section>
 
           <div style={{ borderTop: '1px solid #2a2a2a' }} />
@@ -355,60 +344,18 @@ function DetailDrawer({
             </>
           )}
 
-          {/* Documents */}
+          {/* Documents - every document on the row, signed for five minutes by
+              the admin route. The old client-side signing fetched a vendor's ID
+              and never rendered it (only per-artist entries were mapped). */}
           {(app.artists || app.id_doc_url || app.veteran_id_url || app.artists_ids_later) && (
             <>
               <div style={{ borderTop: '1px solid #2a2a2a' }} />
               <section>
                 <p className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: '#555' }}>Documents</p>
-                <div className="space-y-2">
-                  {/* Per-artist IDs */}
-                  {app.artists_ids_later && (
-                    <p className="text-sm" style={{ color: '#eab308' }}>Artist IDs pending - to be collected before event</p>
-                  )}
-                  {app.artists && app.artists.map((a, i) => (
-                    <div key={i} className="rounded-lg px-4 py-3" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
-                      <p className="mb-1 text-xs font-semibold" style={{ color: '#8B7355' }}>Artist {i + 1}{a.name ? ` - ${a.name}` : ''}</p>
-                      {artistSignedUrls[i] ? (
-                        <a
-                          href={artistSignedUrls[i]!}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm transition-colors"
-                          style={{ color: '#C4A882' }}
-                          onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#fff')}
-                          onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = '#C4A882')}
-                        >
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                          </svg>
-                          View ID
-                        </a>
-                      ) : (
-                        <p className="text-xs" style={{ color: '#555' }}>No ID uploaded</p>
-                      )}
-                    </div>
-                  ))}
-                  {/* Veteran ID */}
-                  {veteranIdUrl && (
-                    <a
-                      href={veteranIdUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition-colors"
-                      style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a', color: '#C4A882' }}
-                      onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = '#8B7355')}
-                      onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = '#2a2a2a')}
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                      </svg>
-                      View Veteran ID
-                    </a>
-                  )}
-                </div>
+                {app.artists_ids_later && (
+                  <p className="mb-2 text-sm" style={{ color: '#eab308' }}>Artist IDs pending - to be collected before event</p>
+                )}
+                <ApplicationDocuments applicationId={app.id} />
               </section>
             </>
           )}
@@ -484,6 +431,13 @@ function DetailDrawer({
               )}
             </div>
 
+            {unverified && (ackUnverified || compEnabled) && (
+              <div className="rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.4)', color: '#eab308' }}>
+                This application claims the veteran discount and its document is not marked verified.
+                Verify it in the Veteran discount section above, or continue anyway.
+              </div>
+            )}
+
             {/* Buttons */}
             <div className="flex gap-3">
               <button
@@ -508,7 +462,9 @@ function DetailDrawer({
                 className="flex-1 rounded-lg py-3 text-sm font-semibold transition-colors disabled:opacity-50"
                 style={{ backgroundColor: 'rgba(74,222,128,0.15)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }}
               >
-                {working ? 'Saving…' : compEnabled ? 'Comp & Approve' : 'Approve'}
+                {working
+                  ? 'Saving…'
+                  : `${compEnabled ? 'Comp & Approve' : 'Approve'}${unverified && ackUnverified ? ' without verified document' : ''}`}
               </button>
             </div>
             <button
@@ -591,6 +547,11 @@ export default function AdminApplicationsPage() {
     )
     // Update drawer if still open
     setSelected(prev => prev?.id === id ? { ...prev, status: newStatus } : prev)
+  }
+
+  const handlePatch = (id: string, patch: Partial<Application>) => {
+    setApplications(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a))
+    setSelected(prev => prev?.id === id ? { ...prev, ...patch } : prev)
   }
 
   const filtered = useMemo(() => {
@@ -770,9 +731,11 @@ export default function AdminApplicationsPage() {
       {/* Detail drawer */}
       {selected && (
         <DetailDrawer
+          key={selected.id}
           app={selected}
           onClose={() => setSelected(null)}
           onStatusChange={handleStatusChange}
+          onPatch={handlePatch}
         />
       )}
     </>

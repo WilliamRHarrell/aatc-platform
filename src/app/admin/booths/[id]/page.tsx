@@ -10,6 +10,7 @@ import { describeBooths, boothSlotCount } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 import type { Database } from '@/types/database'
 import { guardedWrite } from '@/lib/db-write'
+import { useApplicationDocs } from '@/lib/use-application-docs'
 
 type ArtistEntry = {
   name?: string | null
@@ -120,9 +121,9 @@ export default function BoothDetailPage() {
   const [portfolioUrls, setPortfolioUrls] = useState<string[]>([])
   const [uploadingPortfolio, setUploadingPortfolio] = useState(false)
 
-  // Document signed URLs
-  const [artistSignedUrls, setArtistSignedUrls] = useState<Record<string, string>>({})
-  const [veteranSignedUrl, setVeteranSignedUrl] = useState<string | null>(null)
+  // ID documents: signed for five minutes by the admin route (the one home
+  // for signing). `open` re-signs on every click.
+  const docs = useApplicationDocs(app?.id ?? null)
 
   useEffect(() => {
     const load = async () => {
@@ -170,30 +171,6 @@ export default function BoothDetailPage() {
       setArtistPortfolioUrls(portfolioByArtist)
       setLogoUrl(a.logo_url ?? null)
       setPortfolioUrls(a.portfolio_image_urls ?? [])
-
-      // Generate signed URLs for artist ID docs (private bucket)
-      if (a.artists && a.artists.length > 0) {
-        const urlMap: Record<string, string> = {}
-        await Promise.all(
-          a.artists
-            .filter(ar => ar.id_url)
-            .map(async ar => {
-              const raw = ar.id_url!
-              const path = raw.includes('/application-docs/') ? raw.split('/application-docs/')[1] : raw
-              const { data } = await supabase.storage.from('application-docs').createSignedUrl(path, 3600)
-              if (data?.signedUrl) urlMap[raw] = data.signedUrl
-            })
-        )
-        setArtistSignedUrls(urlMap)
-      }
-
-      // Generate signed URL for veteran ID
-      if (a.is_veteran && a.veteran_id_url) {
-        const raw = a.veteran_id_url
-        const path = raw.includes('/application-docs/') ? raw.split('/application-docs/')[1] : raw
-        const { data } = await supabase.storage.from('application-docs').createSignedUrl(path, 3600)
-        if (data?.signedUrl) setVeteranSignedUrl(data.signedUrl)
-      }
 
       setLoading(false)
     }
@@ -503,7 +480,7 @@ export default function BoothDetailPage() {
       'Artist not saved',
       `admin/booths/${appId} saveArtist idx=${i}`,
     )
-    if (!saveRes.ok) { toast.error(saveRes.error) } else { toast.success('Artist saved') }
+    if (!saveRes.ok) { toast.error(saveRes.error) } else { toast.success('Artist saved'); void docs.refresh() }
     setSavingArtist(null)
   }
 
@@ -873,7 +850,7 @@ export default function BoothDetailPage() {
       {app.exhibitor_type === 'artist' && app.artists && app.artists.length > 0 && (
         <div className="space-y-4">
           {app.artists.map((artist, i) => {
-            const signedUrl = artist.id_url ? artistSignedUrls[artist.id_url] : null
+            const hasIdDoc = docs.docs.some(d => d.key === `artist-${i + 1}`)
             const portfolioImgs = artistPortfolioUrls[i] ?? []
             const isUploading = uploadingArtistPortfolio === i
             const isSaving = savingArtist === i
@@ -899,12 +876,12 @@ export default function BoothDetailPage() {
                       </span>
                     )}
                   </p>
-                  {signedUrl && (
-                    <a href={signedUrl} target="_blank" rel="noopener noreferrer"
+                  {hasIdDoc && (
+                    <button type="button" onClick={() => docs.open(`artist-${i + 1}`)}
                       className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold"
                       style={{ backgroundColor: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }}>
                       View ID ↗
-                    </a>
+                    </button>
                   )}
                 </div>
 
@@ -1034,12 +1011,12 @@ export default function BoothDetailPage() {
                   <div>
                     <p className="mb-2 text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Government-issued ID</p>
                     <div className="flex items-center gap-3 flex-wrap">
-                      {signedUrl ? (
-                        <a href={signedUrl} target="_blank" rel="noopener noreferrer"
+                      {hasIdDoc ? (
+                        <button type="button" onClick={() => docs.open(`artist-${i + 1}`)}
                           className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold"
                           style={{ backgroundColor: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }}>
                           View Current ID ↗
-                        </a>
+                        </button>
                       ) : (
                         <span className="text-xs font-semibold" style={{ color: '#f87171' }}>No ID on file</span>
                       )}
@@ -1055,7 +1032,7 @@ export default function BoothDetailPage() {
                         className="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold"
                         style={{ backgroundColor: 'rgba(139,115,85,0.15)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}
                       >
-                        {artistEdits[i]?.id_file ? `✓ ${artistEdits[i].id_file!.name}` : (signedUrl ? 'Replace ID' : 'Upload ID')}
+                        {artistEdits[i]?.id_file ? `✓ ${artistEdits[i].id_file!.name}` : (hasIdDoc ? 'Replace ID' : 'Upload ID')}
                       </label>
                     </div>
                   </div>
@@ -1086,12 +1063,12 @@ export default function BoothDetailPage() {
               <p className="text-sm text-white">Proof of military service</p>
               <p className="text-xs mt-0.5" style={{ color: '#555' }}>DD-214, military ID, or equivalent. Required to verify veteran discount.</p>
             </div>
-            {veteranSignedUrl ? (
-              <a href={veteranSignedUrl} target="_blank" rel="noopener noreferrer"
+            {docs.docs.some(d => d.key === 'veteran') ? (
+              <button type="button" onClick={() => docs.open('veteran')}
                 className="flex shrink-0 items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold"
                 style={{ backgroundColor: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }}>
                 View ID ↗
-              </a>
+              </button>
             ) : (
               <span className="text-sm font-semibold" style={{ color: '#f87171' }}>Not uploaded</span>
             )}

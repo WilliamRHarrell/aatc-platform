@@ -275,6 +275,7 @@ export default function AdminPrintPage() {
                     <div>
                       {isReady ? (
                         <BoothPacketDownload
+                          applicationId={row.applicationId}
                           data={{
                             businessName: row.businessName,
                             contactName: row.contactName,
