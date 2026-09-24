@@ -31,7 +31,8 @@ interface ScheduleItem {
   id: string
   event_id: string
   day_date: string
-  start_time: string
+  /** Null only while unpublished (070). */
+  start_time: string | null
   sort_order: number
   title: string
   location: string
@@ -39,8 +40,11 @@ interface ScheduleItem {
   kind: string
   presented_by_sponsorship_id: string | null
   presented_by_fallback: string | null
+  venue_id: string | null
   is_published: boolean
 }
+
+interface VenueOption { id: string; name: string }
 
 interface SponsorOption {
   id: string
@@ -58,6 +62,7 @@ interface FormState {
   kind: string
   presented_by_sponsorship_id: string
   presented_by_fallback: string
+  venue_id: string
   is_published: boolean
 }
 
@@ -71,6 +76,7 @@ const EMPTY_FORM: FormState = {
   kind: 'programme',
   presented_by_sponsorship_id: '',
   presented_by_fallback: '',
+  venue_id: '',
   is_published: true,
 }
 
@@ -82,6 +88,8 @@ const KINDS = [
   { value: 'ceremony', label: 'Ceremony' },
   { value: 'tribute', label: 'Tribute' },
   { value: 'seminar', label: 'Seminar' },
+  // 070: after parties are schedule rows; the venue comes from venue_id.
+  { value: 'after_party', label: 'After Party' },
 ]
 
 const LOCATIONS = VENUE_LOCATIONS
@@ -108,6 +116,7 @@ export default function AdminSchedulePage() {
   const [eventId, setEventId] = useState<string | null>(null)
   const [items, setItems] = useState<ScheduleItem[]>([])
   const [sponsors, setSponsors] = useState<SponsorOption[]>([])
+  const [venues, setVenues] = useState<VenueOption[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<ScheduleItem | null>(null)
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
@@ -144,6 +153,8 @@ export default function AdminSchedulePage() {
     if (rowsErr) toast.error(`Could not load the schedule: ${rowsErr.message}`)
     setItems((rows as ScheduleItem[] | null) ?? [])
     setSponsors((sponsorRows as SponsorOption[] | null) ?? [])
+    const { data: venueRows } = await supabase.from('venues').select('id, name').order('name')
+    setVenues((venueRows as VenueOption[] | null) ?? [])
     setLoading(false)
   }
 
@@ -157,7 +168,7 @@ export default function AdminSchedulePage() {
     setEditing(item)
     setForm({
       day_date: item.day_date,
-      start_time: item.start_time.slice(0, 5),
+      start_time: item.start_time ? item.start_time.slice(0, 5) : '',
       sort_order: String(item.sort_order),
       title: item.title,
       location: item.location ?? '',
@@ -165,6 +176,7 @@ export default function AdminSchedulePage() {
       kind: item.kind,
       presented_by_sponsorship_id: item.presented_by_sponsorship_id ?? '',
       presented_by_fallback: item.presented_by_fallback ?? '',
+      venue_id: item.venue_id ?? '',
       is_published: item.is_published,
     })
     setModalOpen(true)
@@ -174,12 +186,14 @@ export default function AdminSchedulePage() {
     e.preventDefault()
     if (!eventId) return
     if (!form.title.trim()) { toast.error('Title is required'); return }
+    // The database refuses this too (070 check); saying it here is clearer than a 23514.
+    if (form.is_published && !form.start_time) { toast.error('Set a start time before publishing. Unpublished rows may leave it empty.'); return }
     setWorking(true)
 
     const payload = {
       event_id: eventId,
       day_date: form.day_date,
-      start_time: form.start_time,
+      start_time: form.start_time || null,
       sort_order: parseInt(form.sort_order, 10) || 0,
       title: form.title.trim(),
       location: form.location.trim(),
@@ -187,6 +201,7 @@ export default function AdminSchedulePage() {
       kind: form.kind,
       presented_by_sponsorship_id: form.presented_by_sponsorship_id || null,
       presented_by_fallback: form.presented_by_fallback.trim() || null,
+      venue_id: form.venue_id || null,
       is_published: form.is_published,
     }
 
@@ -230,6 +245,7 @@ export default function AdminSchedulePage() {
   }
 
   async function togglePublished(item: ScheduleItem) {
+    if (!item.is_published && !item.start_time) { toast.error('Set a start time before publishing.'); return }
     const res = await guardedWrite(
       supabase.from('schedule_items')
         .update({ is_published: !item.is_published })
@@ -305,7 +321,7 @@ export default function AdminSchedulePage() {
                        style={{ borderBottom: idx < arr.length - 1 ? '1px solid #2a2a2a' : 'none' }}>
                     <span className="w-20 shrink-0 pt-0.5 text-right text-xs font-medium"
                           style={{ color: '#C4A882' }}>
-                      {formatTime(item.start_time)}
+                      {item.start_time ? formatTime(item.start_time) : <span style={{ color: '#8a8a8a' }}>no time</span>}
                     </span>
 
                     <div className="min-w-0 flex-1">
@@ -383,8 +399,8 @@ export default function AdminSchedulePage() {
                          onChange={e => setForm({ ...form, day_date: e.target.value })}
                          className={inputCls} style={inputStyle} />
                 </Field>
-                <Field label="Start time">
-                  <input type="time" required value={form.start_time}
+                <Field label="Start time" hint={form.is_published ? undefined : 'Optional while unpublished.'}>
+                  <input type="time" required={form.is_published} value={form.start_time}
                          onChange={e => setForm({ ...form, start_time: e.target.value })}
                          className={inputCls} style={inputStyle} />
                 </Field>
@@ -412,6 +428,14 @@ export default function AdminSchedulePage() {
                   </select>
                 </Field>
               </div>
+
+              <Field label="Venue" hint="After parties: the card reads name, blurb, address and links from the venue (/admin/venues).">
+                <select value={form.venue_id} onChange={e => setForm({ ...form, venue_id: e.target.value })}
+                        className={inputCls} style={inputStyle}>
+                  <option value="">None</option>
+                  {venues.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                </select>
+              </Field>
 
               <Field label="Note"
                      hint="Shown under the title. Use for a qualifier on the item - e.g. a demo that runs inside it.">
