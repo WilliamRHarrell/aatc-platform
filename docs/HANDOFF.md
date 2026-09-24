@@ -335,7 +335,10 @@ allow-lists: anon 7, authenticated 12; F3 RLS everywhere; F4 the anon-reachable
 write set, REVIEW notices for drift). **Order: apply 074, run verify_074.**
 Until 074 is applied the app degrades: the public copy says "limited"
 without a number, the admin pages show "?" with a note, the route still
-works against the old function.
+works against the old function. Security review (2026-09-24): no findings;
+noted that after 074 no INSERT policy remains on pinup_entries for any
+session (the admin page never inserted; the route's service role bypasses
+RLS), so a by-hand admin entry would need a policy or the SQL editor.
 
 **Code:** `src/lib/pinup-capacity.ts` (parse, spots, copy, lowering note) and
 its test, which reads src/ for any literal 25 beside pinup wording and pins
