@@ -239,36 +239,38 @@ promise right instead.
 
 ### 2026-09-23 After parties, venues, per-contest sponsor, Part A fixes (plan: docs/superpowers/plans/2026-09-23-after-parties.md)
 
-Branch `feat/after-parties`, stacked on `feat/tattoo-battle` (PR #2 after PR #1).
+Branch `feat/after-parties` (PR #2), stacked on `feat/tattoo-battle` (PR #1).
+Both PRs open at the time of writing; Ryan merges #1, then #2.
 
-**Status, individually:**
-- `supabase/migrations/070_after_parties_venues_contest_sponsor.sql` - not applied.
-- `supabase/verify/verify_070.sql` - not run (after 070).
-- `supabase/seeds/070_after_parties_data.sql` - not run (after 070): 3 venues,
-  renames the 3 uploaded logos into `venue-*` slots, 4 night-flyer slots,
-  4 after_party rows (Thursday 18:00 published; Fri/Sat/Sun unpublished, no time).
-- `supabase/seeds/contact_email_scan.sql` - not run; scan only, expects PASS.
+**Applied / run (Ryan, 2026-09-23):**
+- `supabase/migrations/070_after_parties_venues_contest_sponsor.sql` - APPLIED.
+- `supabase/seeds/070_after_parties_data.sql` - RUN. Its header records what it
+  inserted; the live rows were then edited in the admin (below). Do not re-run.
+- `supabase/verify/verify_070.sql` and `supabase/seeds/contact_email_scan.sql` -
+  run status not reported by Ryan; run them if the MESSAGES pane has not shown
+  their PASS notices. Both are read-mostly and safe to run any time.
 - `supabase/seeds/thursday_after_party.sql` - DELETED, superseded by the 070 data.
 
-Until 070 + its data run: /events/after-parties renders zero nights (no "to
-be announced" copy anywhere any more), the homepage after-parties grid is
-absent, /admin/venues shows the "migration 070 not applied" message.
+**Live state, entered by Ryan in the admin (RESOLVED, do not treat as open):**
+- Thursday after party: 18:00 at Uptown's, published, note "Live karaoke".
+- Friday and Saturday after parties: 20:00, published (Group Therapy, Club Luna).
+- Sunday Brunch: 10:00 at Uptown's; published once the brunch bullet wording
+  landed (commit 5de7893). No age statement on the brunch anywhere.
+- Club Luna: address 229 Hay St, Suite B, Fayetteville, NC 28301. Facebook
+  only. `instagram_url` and `instagram_label` stay NULL permanently unless
+  Ryan says otherwise - do not "fill them in".
+- Kids contest: `contests.sponsor_id` intentionally NULL for now.
 
 **A fact now has one home:** after parties are schedule_items rows (kind
 `after_party`) joined to `venues`; `AFTER_PARTIES` and `mapsUrl` left
 `homepage-content.ts`. `start_time` is nullable for UNPUBLISHED rows only
 (check constraint `schedule_items_time_required_when_published`); the admin
-refuses to publish without a time before the database does.
+refuses to publish without a time before the database does. The 21+ copy is
+scoped to the three after-party nights on the page and the homepage note.
 
 **Battle credit** renders on /tattoo-battle, the homepage Battle card and the
 Battle's three schedule rows only (Ryan, 2026-09-23). It was removed from
 /events/kids-contest (A4). Per-contest sponsors live on `contests.sponsor_id`.
-
-**FOLLOW-UP (Ryan, 2026-09-23):** /events/tattoo-contests lists its 49
-categories from a hardcoded constant in `TattooContestsClient.tsx`, not from
-the `contests` table, so a per-contest sponsor cannot render there. Migrate
-that list to the table (the rows already exist: 49 contests on the active
-event) so the credit and any future per-category data have one home.
 
 **Part A:** A1 booth button "Apply for a Booth" (registry default; only
 instance). A2 Miss AATC Pinup logo at the top of the pinup page, same pattern
@@ -278,38 +280,73 @@ wrong contact domain: one repo hit fixed to CONTACT_EMAIL, zero database hits
 
 ### 2026-09-23 Tattoo Battle (spec: docs/superpowers/specs/2026-09-23-tattoo-battle-design.md)
 
-Code on branch `feat/tattoo-battle`, merging to develop after Ryan's approval.
-Routes: `/tattoo-battle`, `/tattoo-battle/entry/[bucket]` (1..20), `/admin/tattoo-battle`,
+Branch `feat/tattoo-battle` (PR #1). Routes: `/tattoo-battle`,
+`/tattoo-battle/entry/[bucket]` (1..20), `/admin/tattoo-battle`,
 `/admin/tattoo-battle/print`. Two independent security reviews were run (after
 the migration, after the admin) and every finding was folded in.
 
-**Status, individually (Ryan, 2026-09-23):**
+**Applied / run (Ryan, 2026-09-23):**
 - `supabase/migrations/069_tattoo_battle.sql` - APPLIED.
 - `supabase/verify/verify_069.sql` - RUN, clean (fixtures_remaining = 0, no raise).
-- `supabase/seeds/wholelife_spelling.sql` - RUN, PASS (Ryan, 2026-09-23): the
-  first run aborted on presentation_credits; the seed then covered all four
-  homes with a whole-database scan, and the re-run landed. verify_044 passed;
-  the Battle rows read "WholeLife Aftercare".
-- `supabase/seeds/thursday_after_party.sql` - DELETED on feat/after-parties;
-  the Thursday row comes from seeds/070_after_parties_data.sql (see the
-  after-parties entry above).
+- `supabase/seeds/wholelife_spelling.sql` - RUN, PASS. The first run aborted on
+  presentation_credits; the seed then covered all four homes with a
+  whole-database scan and the re-run landed. verify_044 passed; the Battle
+  rows and the sponsorships row read "WholeLife Aftercare", so the sponsor
+  block on /tattoo-battle renders the logo from the confirmed row.
 
-Until 069 runs: `/tattoo-battle` renders with no entries (correct and inert),
-`/admin/tattoo-battle` shows "migration 069 has not been applied", and
-`node scripts/verify-tattoo-battle-anon.mjs` reports SKIP for every table
-check (verified 2026-09-23: PGRST205 on the table, "Bucket not found" on storage).
-
-`TATTOO_BATTLE_PRESENTER` now reads `'WholeLife Aftercare'` (Ryan, 2026-09-23).
-The `sponsorships` row and the 3 Battle `schedule_items` rows still say
-`'Whole Life Aftercare'` until the seed runs, so the sponsor block on
-`/tattoo-battle` renders the NAME AS TEXT with no logo until then. Verified how:
-`sponsors_public` queried with the anon key 2026-09-23.
+**Live state (RESOLVED):**
+- Veteran Ink logo: a STAND-IN (screenshot) is uploaded to the
+  `tattoo-battle-veteran-ink` page_images slot. Replace it with the official
+  SVG or transparent PNG when Ryan provides one; until then the section
+  renders the stand-in, which is a placeholder by Ryan's choice, not a
+  borrowed asset.
 
 QR codes encode the fixed `QR_BASE_URL` (`https://www.allamericantattooconvention.com`),
 never the env var. The domain is served by the `aatc-landing` Vercel project
-today (verified 2026-09-23: apex 308s to www, www is a different app), so
-printed codes 404 until cutover - item 1 of the spec's §11 launch checklist.
-Migration **070 is reserved** for Ryan's after-parties change.
+(verified 2026-09-23: apex 308s to www, www is a different app), so printed
+codes 404 until cutover.
+
+`// CONFIRM` values still open in `src/lib/tattoo-battle-config.ts`:
+`BUCKET_COUNT = 20`, `ONLINE_DONATIONS_COUNT_AS_VOTES = false`, the optional
+2028-booth prize, `PAST_CHAMPIONS = []`. They render as written.
+
+### OPEN ITEMS (one line each, with the owner)
+
+- **Domain cutover** from `aatc-landing` to this project, and production
+  `NEXT_PUBLIC_SITE_URL` = `https://www.allamericantattooconvention.com`.
+  Blocks printing the Tattoo Battle QR codes. Owner: Ryan.
+- **Pre-existing lint errors on develop** (22 errors in 16 untouched files).
+  Separate cleanup branch; not fixed on the feature branches by design. Owner: unassigned.
+- **Site-wide Lighthouse accessibility pass**: no `<main>` landmark on most
+  pages, shared contrast issues (`#666` text, white on `#8B7355` buttons).
+  The battle and after-parties pages score 1.00; `/` 0.94. Owner: unassigned.
+- **Tattoo-contests category list to the `contests` table** so per-contest
+  sponsors can render on /events/tattoo-contests (the 49 rows already exist;
+  `TattooContestsClient.tsx` still uses a constant). Owner: unassigned.
+- **Official Veteran Ink logo** to replace the stand-in. Owner: Ryan.
+- **Print-preview the QR sheet** (`/admin/tattoo-battle/print`, 4x6 in, 100%)
+  before labels are printed. Owner: Ryan.
+
+### DEFERRED MINORS (from the two whole-branch reviews; kept on purpose)
+
+Tattoo Battle: entry page h1 now exists (fixed); `aria-label` on the "LFG!!"
+paragraph (ARIA prohibits it on a paragraph, Lighthouse passed);
+`WINNER_ANNOUNCED` is a typed date beside the crowned schedule row;
+`${BATTLE_EDITION}rd` hardcodes the ordinal ("4rd" next year); apostrophe
+style inconsistency in HOW_IT_WORKS; `capturePoster` non-finite duration
+guard (fixed); verify_069 block D could also call the RPC on a draft
+expecting check_violation; SlotEditor form state is seeded once, so after a
+concurrency reload inputs show this phone's text until reopened;
+BattleCountdown comment says "at module load" but runs per render; the
+`tattoo_battle_credit.sql` row earlier in this file predates the spelling seed.
+
+After parties: schedule admin venue picker lists all venues, not only the
+active event's; "migration not applied" hints key on 42P01 only (PostgREST
+reports PGRST205 for a missing table); A1 changed the registry LABEL as well
+as the default; contests admin add-insert is not through guardedWrite
+(pre-existing shape) and no requestRevalidate after a sponsor change (60 s
+window); verify_070 block F teardown does not assert its deletes hit (Z
+covers it visually).
 
 ### Seminar times are PRESENTER-CONFIRMED, not document-derived
 
