@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase'
 import { calculatePricing, type BoothSize, type ExhibitorType } from '@/lib/pricing'
 import { formatCurrency } from '@/lib/utils'
 import { describeBooths, boothSlotCount } from '@/lib/booth-display'
+import { partitionAssignable, describeExclusions, type ExclusionReason } from '@/lib/comp'
 import toast from 'react-hot-toast'
 import { guardedWrite } from '@/lib/db-write'
 
@@ -24,6 +25,7 @@ interface ApprovedApp {
   artist_count: number
   artists: Array<{ name: string; id_url: string | null; id_later?: boolean; nickname?: string; portfolio_urls?: string[] }> | null
   artists_ids_later: boolean
+  comped_at: string | null
 }
 
 function docStatus(app: ApprovedApp): 'complete' | 'pending' | 'missing' | 'na' {
@@ -72,6 +74,8 @@ const STATUS_COLOR: Record<string, { bg: string; border: string; text: string; o
 export default function AdminBoothsPage() {
   const supabase = createClient()
   const [apps, setApps] = useState<ApprovedApp[]>([])
+  // Approved applications that cannot be placed yet, with the reason (072).
+  const [excluded, setExcluded] = useState<Array<{ reason: ExclusionReason }>>([])
   const [booths, setBooths] = useState<BoothRow[]>([])
   const [invoiceStatus, setInvoiceStatus] = useState<Map<string, 'paid' | 'overdue' | 'pending' | 'cancelled'>>(new Map())
   const [loading, setLoading] = useState(true)
@@ -245,9 +249,12 @@ export default function AdminBoothsPage() {
       const [{ data: appData }, { data: boothData }, { data: invoiceData }] = await Promise.all([
         supabase
           .from('applications')
-          .select('id, business_name, contact_name, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, is_corner, artist_count, artists, artists_ids_later, invoices!inner(deposit_paid_at)')
-          .eq('status', 'approved')
-          .not('invoices.deposit_paid_at', 'is', null),
+          // LEFT join (no !inner): approved applications without a recorded
+          // deposit are loaded too, so the empty state can say WHY they are
+          // not here instead of "no approved exhibitors". A comped application
+          // has both milestones set by comp_application() (072) and is assignable.
+          .select('id, business_name, contact_name, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, is_corner, artist_count, artists, artists_ids_later, comped_at, invoices(deposit_paid_at)')
+          .eq('status', 'approved'),
         supabase
           .from('booths')
           .select('id, booth_number, is_corner, status, application_id')
@@ -257,7 +264,10 @@ export default function AdminBoothsPage() {
           .select('application_id, status'),
       ])
       // FCFS sort: deposit-paid time ascending (earliest deposit first).
-      const sortedApps = ((appData ?? []) as unknown as Array<ApprovedApp & { invoices: { deposit_paid_at: string | null } | Array<{ deposit_paid_at: string | null }> }>)
+      const loaded = (appData ?? []) as unknown as Array<ApprovedApp & { invoices: { deposit_paid_at: string | null } | Array<{ deposit_paid_at: string | null }> | null }>
+      const split = partitionAssignable(loaded)
+      setExcluded(split.excluded.map(e => ({ reason: e.reason })))
+      const sortedApps = split.assignable
         .map(a => {
           const inv = Array.isArray(a.invoices) ? a.invoices[0] : a.invoices
           return { ...a, _depositPaidAt: inv?.deposit_paid_at ?? null }
@@ -328,6 +338,7 @@ export default function AdminBoothsPage() {
           <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">Booth Assignment</h1>
           <p className="mt-1 text-sm" style={{ color: '#999' }}>
             {apps.length} approved exhibitor{apps.length !== 1 ? 's' : ''} · {assignedCount} assigned · {apps.length - assignedCount} unassigned
+            {excluded.length > 0 && <span title={describeExclusions(excluded)}> · {excluded.length} not yet assignable</span>}
           </p>
         </div>
         <button
@@ -378,7 +389,9 @@ export default function AdminBoothsPage() {
       <div className="overflow-hidden rounded-2xl" style={{ border: '1px solid #2a2a2a' }}>
         {filtered.length === 0 ? (
           <div className="py-16 text-center text-sm" style={{ backgroundColor: '#1a1a1a', color: '#555' }}>
-            {apps.length === 0 ? 'No approved exhibitors yet' : 'No exhibitors match your filters'}
+            {apps.length === 0
+              ? (excluded.length > 0 ? describeExclusions(excluded) : 'No approved exhibitors yet')
+              : 'No exhibitors match your filters'}
           </div>
         ) : (
           <>
@@ -408,7 +421,12 @@ export default function AdminBoothsPage() {
                   <div key={app.id} className="flex flex-col gap-3 px-5 py-4 sm:grid sm:grid-cols-[1fr_80px_90px_60px_80px_90px_40px_1fr_100px] sm:items-center sm:gap-4">
                     {/* Name */}
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-white">{app.business_name}</p>
+                      <p className="truncate text-sm font-semibold text-white">
+                        {app.business_name}
+                        {app.comped_at && (
+                          <span className="ml-2 rounded-full px-2 py-0.5 text-xs font-bold tracking-widest align-middle" style={{ backgroundColor: 'rgba(74,222,128,0.15)', color: '#4ade80' }} title="Comped - balance $0">COMP</span>
+                        )}
+                      </p>
                       <p className="truncate text-xs" style={{ color: '#666' }}>{app.contact_name}</p>
                     </div>
 
