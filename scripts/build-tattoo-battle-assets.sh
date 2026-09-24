@@ -18,6 +18,9 @@ sips -s format png --resampleWidth 2400 "$TMP/sheet.pdf" --out "$TMP/sheet.png" 
 # 2. Crop each lockup. crop=w:h:x:y
 crop () { ffmpeg -loglevel error -y -i "$TMP/sheet.png" -vf "crop=$2" -frames:v 1 -update 1 "$OUT/$1.png"; }
 crop lockup-full       "1100:690:100:190"
+# lockup-full-dark.png is NOT generated: it is the white-and-gold version Ryan
+# supplied (Downloads/tattoo-battle-logo-full.png, 2026-09-24) for the dark
+# page and the OG card. Leave it alone.
 # The fist shares its bottom-right corner with the badge; erase that region (alpha 0) after cropping.
 ffmpeg -loglevel error -y -i "$TMP/sheet.png" -vf "crop=600:800:1360:120,format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='if(gt(X,400)*gt(Y,520),0,alpha(X,Y))'" -frames:v 1 -update 1 "$OUT/fist.png"
 crop wordmark-stacked  "760:650:120:1020"
