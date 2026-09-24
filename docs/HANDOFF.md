@@ -243,10 +243,49 @@ promise right instead.
 
 ## 2. IN FLIGHT / NEXT
 
+### 2026-09-24 START HERE: which branch has what
+
+- `develop` (remote) = the Tattoo Battle only (PR #1, merged 2026-09-24 08:30).
+- PR #2 (after parties) was based on `feat/tattoo-battle` and merged INTO THAT
+  BRANCH at 09:08, after #1 had already gone to develop. **develop never got
+  the after-parties work.** Verified 2026-09-24 by `git branch -r --contains`
+  on the #2 merge commit (71e9e40: only origin/feat/tattoo-battle).
+- **PR #3** `feat/post-launch-fixes` -> develop (open at the time of writing,
+  https://github.com/WilliamRHarrell/aatc-platform/pull/3) is the whole
+  feat/after-parties history replayed onto develop (tree verified identical),
+  plus: the white-and-gold Battle lockup, the About page CMS, and the content
+  editor route-map fix. 19 commits, listed in the PR. **Merge #3; then delete
+  `feat/tattoo-battle` and `feat/after-parties`** - they hold the same changes
+  under older hashes.
+- Until #3 merges, anything below that says "on develop" about after parties,
+  venues, Part A, the About CMS or the lockup is on `feat/post-launch-fixes`.
+
+### 2026-09-24 About page CMS, route-map fix, Battle lockup
+
+- `/info/about` is a server component whose 21 text blocks come from the
+  `about` registry entry (`src/content/registry.ts`), edited at
+  `/admin/content` -> "About AATC". Defaults are the old hardcoded copy
+  verbatim (rendered text diffed identical). The copy carries unverified
+  claims Ryan has not confirmed: "founded in 2025", "thousands of attendees,
+  hundreds of elite artists", "raised funds for veteran mental health
+  programs, supported Gold Star families", "a portion of every ticket sold",
+  "largest military installation in the world by population", "over 50,000
+  active-duty soldiers", "many of whom are veterans themselves". Edit them in
+  the admin, not in code. Card 2 keeps the "not veteran-owned" correction.
+- `PAGE_ROUTE` moved into `src/content/registry.ts`; the apply hub was keyed
+  `home` and purged the homepage on save. `registry.test.ts` now requires a
+  route for every registry key. `/api/revalidate` allow-list has every route.
+- `/tattoo-battle` hero and the OG card use `lockup-full-dark.png` (Ryan's
+  white-and-gold file, 2026-09-24). `scripts/build-tattoo-battle-assets.sh`
+  still generates the charcoal `lockup-full.png` but nothing renders it.
+- The WholeLife logo on /tattoo-battle comes from the confirmed sponsorship
+  row and is a square with its own black background; a transparent version
+  uploaded in /admin/sponsorships fixes it site-wide, no code change.
+
 ### 2026-09-23 After parties, venues, per-contest sponsor, Part A fixes (plan: docs/superpowers/plans/2026-09-23-after-parties.md)
 
-Branch `feat/after-parties` (PR #2), stacked on `feat/tattoo-battle` (PR #1).
-Both PRs open at the time of writing; Ryan merges #1, then #2.
+Originally branch `feat/after-parties` (PR #2). See "START HERE" above: this
+work reaches develop through PR #3, not #2.
 
 **Applied / run (Ryan, 2026-09-23):**
 - `supabase/migrations/070_after_parties_venues_contest_sponsor.sql` - APPLIED.
