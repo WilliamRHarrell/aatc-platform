@@ -289,8 +289,9 @@ the migration, after the admin) and every finding was folded in.
 - `supabase/seeds/wholelife_spelling.sql` - first run ABORTED by its own guard:
   presentation_credits.buyer_name also carried the old spelling. The seed now
   updates all four known homes and scans every text column; re-run pending.
-- `supabase/seeds/thursday_after_party.sql` - not run; refuses until v_start is
-  set (start_time is NOT NULL and no time is on record).
+- `supabase/seeds/thursday_after_party.sql` - DELETED on feat/after-parties;
+  the Thursday row comes from seeds/070_after_parties_data.sql (see the
+  after-parties entry above).
 
 Until 069 runs: `/tattoo-battle` renders with no entries (correct and inert),
 `/admin/tattoo-battle` shows "migration 069 has not been applied", and

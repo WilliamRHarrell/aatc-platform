@@ -243,7 +243,7 @@ export default function AdminContestsPage() {
     if (res.ok) {
       setContests(prev => prev.map(c =>
         c.id === editingId
-          ? { ...c, name: form.name.trim(), description: form.description.trim() || null, scheduled_time: form.scheduled_time || null }
+          ? { ...c, name: form.name.trim(), description: form.description.trim() || null, scheduled_time: form.scheduled_time || null, sponsor_id: form.sponsor_id || null }
           : c
       ))
       toast.success('Contest updated')

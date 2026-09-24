@@ -53,6 +53,7 @@ export default function AdminVenuesPage() {
   const [editing, setEditing] = useState<string | 'new' | null>(null)
   const [form, setForm] = useState<Form>(EMPTY)
   const [busy, setBusy] = useState(false)
+  const [slots, setSlots] = useState<string[]>([])
 
   const load = useCallback(async () => {
     const { data: ev } = await supabase.from('events').select('id').eq('is_active', true).maybeSingle()
@@ -64,6 +65,10 @@ export default function AdminVenuesPage() {
       return
     }
     setRows((data ?? []) as Venue[])
+    // Slots are created by migration (050's rule: a slug only means something
+    // if a page renders it). The picker lists what exists; it cannot invent one.
+    const { data: slotRows } = await supabase.from('page_images').select('slug').like('slug', 'venue-%').order('slug')
+    setSlots((slotRows ?? []).map(r => r.slug))
   }, [supabase])
 
   // Deferred, same shape as admin/page-images: load() sets state on its error path.
@@ -94,7 +99,11 @@ export default function AdminVenuesPage() {
   }
 
   const remove = async (v: Venue) => {
-    if (!window.confirm(`Delete ${v.name}? Schedule rows that use it keep the night but lose the venue.`)) return
+    // A night that points here would silently lose its venue details on the
+    // public card. Refuse until the schedule row is unlinked (plan Task 6).
+    const { count } = await supabase.from('schedule_items').select('id', { count: 'exact', head: true }).eq('venue_id', v.id)
+    if ((count ?? 0) > 0) { toast.error(`${v.name} is used by ${count} schedule row${count === 1 ? '' : 's'}. Unlink it from the schedule first.`); return }
+    if (!window.confirm(`Delete ${v.name}?`)) return
     setBusy(true)
     const res = await guardedWrite(supabase.from('venues').delete().eq('id', v.id).select('id'), 'Venue not deleted', `admin/venues delete id=${v.id}`)
     setBusy(false)
@@ -118,13 +127,18 @@ export default function AdminVenuesPage() {
             {f.label}
             {f.key === 'blurb' ? (
               <textarea rows={3} value={form.blurb} onChange={e => setForm({ ...form, blurb: e.target.value })} className={input} style={inputStyle} />
+            ) : f.key === 'logo_slot' ? (
+              <select value={form.logo_slot ?? ''} onChange={e => setForm({ ...form, logo_slot: e.target.value })} className={input} style={inputStyle}>
+                <option value="">None</option>
+                {slots.map(sl => <option key={sl} value={sl}>{sl}</option>)}
+              </select>
             ) : (
               <input type="text" value={form[f.key] ?? ''} placeholder={f.placeholder} onChange={e => setForm({ ...form, [f.key]: e.target.value })} className={input} style={inputStyle} />
             )}
           </label>
         ))}
       </div>
-      <p className="mt-2 text-xs" style={{ color: '#8a8a8a' }}>Only http(s) links render. The Instagram label replaces the default link text and tooltip; it never creates a link on its own.</p>
+      <p className="mt-2 text-xs" style={{ color: '#8a8a8a' }}>Only http(s) links render. The Instagram label replaces the default link text and tooltip; it never creates a link on its own. Logo slots are created by migration (venue-&lt;slug&gt;); a brand-new venue needs one added before its logo can be uploaded at /admin/page-images.</p>
       <div className="mt-4 flex gap-2">
         <button type="button" onClick={save} disabled={busy} className="rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" style={{ backgroundColor: '#8B7355' }}>{busy ? 'Saving…' : 'Save venue'}</button>
         <button type="button" onClick={() => setEditing(null)} className="rounded-lg px-4 py-2 text-sm" style={{ color: '#8a8a8a', border: '1px solid #2a2a2a' }}>Cancel</button>
@@ -138,7 +152,7 @@ export default function AdminVenuesPage() {
         <h1 className="text-2xl font-bold text-white">Venues</h1>
         <button type="button" onClick={startNew} className="rounded-lg px-4 py-2 text-sm font-semibold text-black" style={{ backgroundColor: '#C4A882' }}>Add venue</button>
       </div>
-      <p className="mb-4 text-sm" style={{ color: '#999' }}>A venue is a place. Which night uses it, and whether that night is published, lives on the schedule row at /admin/schedule. Logos are uploaded at /admin/page-images into the slot named here.</p>
+      <p className="mb-4 text-sm" style={{ color: '#999' }}>A venue is a place. Which night uses it, and whether that night is published, lives on the schedule row at /admin/schedule. Logos are uploaded at /admin/page-images into the slot picked here.</p>
       {editing === 'new' && <div className="mb-4">{formBox}</div>}
       <ul className="space-y-2">
         {rows.map(v => (
