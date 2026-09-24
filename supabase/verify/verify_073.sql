@@ -21,8 +21,10 @@ select p.proname, pg_get_function_identity_arguments(p.oid) as args, p.prosecdef
 do $$
 declare
   allowed text[] := array[
+    -- register_pinup_entry was listed here on 2026-09-24 by mistake: 051/052/055
+    -- grant it to service_role only. Migration 074 revokes anon; apply 074 first.
     'is_admin', 'has_paid_deposit', 'booth_publicly_visible', 'sponsor_tier_counts',
-    'register_pinup_entry', 'pinup_spots_remaining', 'voting_state', 'tattoo_battle_media_ok'
+    'pinup_spots_remaining', 'voting_state', 'tattoo_battle_media_ok'
   ];
   extra text; missing text;
 begin

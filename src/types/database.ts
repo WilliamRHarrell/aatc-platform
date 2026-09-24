@@ -409,6 +409,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          pinup_capacity: number
           registration_open_date: string | null
           start_date: string
           state: string
@@ -422,6 +423,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          pinup_capacity?: number
           registration_open_date?: string | null
           start_date: string
           state: string
@@ -435,6 +437,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          pinup_capacity?: number
           registration_open_date?: string | null
           start_date?: string
           state?: string
@@ -1557,6 +1560,12 @@ export type Database = {
       /** Migration 072 - admin only, atomic across application + invoice. */
       comp_application: { Args: { p_application_id: string }; Returns: undefined }
       uncomp_application: { Args: { p_application_id: string }; Returns: undefined }
+      /** Migration 074 - capacity read from events.pinup_capacity; service_role only. */
+      register_pinup_entry: {
+        Args: { p_event_id: string; p_full_name: string; p_email: string; p_phone: string; p_stage_name?: string | null; p_address?: string | null; p_notes?: string | null; p_marketing_opt_in?: boolean; p_likeness_release?: boolean }
+        Returns: { id: string; status: string; queue_position: number; capacity: number }[]
+      }
+      pinup_spots_remaining: { Args: { p_event_id: string }; Returns: number }
       /** Migration 030 - aggregate tier counts without exposing pending rows. */
       sponsor_tier_counts: {
         Args: { p_event_id: string }
