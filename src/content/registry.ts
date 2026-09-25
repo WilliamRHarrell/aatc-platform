@@ -146,14 +146,6 @@ export const REGISTRY: PageDef[] = [
       event_venue: { label: 'Venue name', help: 'Links to the venue map (link is fixed in code).', type: 'text', default: 'Crown Complex Event Center' },
       event_location: { label: 'City/State', type: 'text', default: 'Fayetteville, NC' },
 
-      countdown_heading: { label: 'Countdown heading', type: 'text', default: 'AATC 2027 Begins In' },
-      countdown_opens_text: {
-        label: 'Countdown sub-line',
-        help: 'Display text only. The countdown target date is set in code.',
-        type: 'text',
-        default: 'Doors open Friday, April 16, 2027 at 12:00 PM ET',
-      },
-      countdown_calendar_cta: { label: 'Calendar link label', type: 'text', default: 'Mark Your Calendar' },
 
       // ── Primary block: apply for a booth ──
       booth_block_title: { label: 'Booth block title', type: 'text', default: 'Apply for a Booth' },
