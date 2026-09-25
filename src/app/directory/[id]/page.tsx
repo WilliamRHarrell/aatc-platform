@@ -76,7 +76,7 @@ export default function DirectoryDetailPage() {
     const load = async () => {
       const [{ data: app }, { data: boothData }] = await Promise.all([
         supabase
-          .from('applications')
+          .from('applications_public')
           .select('id, business_name, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, instagram, website, facebook, phone, artists, artist_count, tv_show, logo_url, portfolio_image_urls')
           .eq('id', id)
           .eq('status', 'approved')

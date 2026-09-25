@@ -35,7 +35,7 @@ export default function FindArtistPage() {
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase
-        .from('applications')
+        .from('applications_public')
         .select('id, business_name, logo_url, artists')
         .eq('status', 'approved')
         .eq('exhibitor_type', 'artist')
