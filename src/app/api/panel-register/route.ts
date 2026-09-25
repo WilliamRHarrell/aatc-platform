@@ -2,12 +2,30 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { guardedWrite } from '@/lib/db-write'
+import { CONTACT_EMAIL } from '@/lib/event-config'
+import { panelRegisteredEmail, internalNewPanelRegistrationEmail } from '@/lib/email-templates'
+import { sendTransactional } from '@/lib/transactional-email'
 import { botTrapRejection } from '@/lib/bot-trap'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+// Receipt to the registrant and notice to CONTACT_EMAIL (PR 1b). Never fails
+// the request: the row is saved; a mail problem is logged.
+async function sendPanelReceipts(v: { name: string; email: string; phone: string | null; attendeeType: string; panelTitle: string; mode: 'free' | 'invoice' }) {
+  try {
+    await sendTransactional(v.email, `${v.mode === 'free' ? 'You are registered' : 'Registration started'} - ${v.panelTitle}`, panelRegisteredEmail(v.name, v.panelTitle, v.mode))
+  } catch (e) {
+    console.error(`[panel-register] receipt to registrant failed: ${String(e)}`)
+  }
+  try {
+    await sendTransactional(CONTACT_EMAIL, `New seminar registration: ${v.name} - ${v.panelTitle}`, internalNewPanelRegistrationEmail(v))
+  } catch (e) {
+    console.error(`[panel-register] internal notice failed: ${String(e)}`)
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -90,6 +108,7 @@ export async function POST(req: NextRequest) {
         )
       }
 
+      await sendPanelReceipts({ name, email, phone: phone || null, attendeeType: attendeeType || 'patron', panelTitle: panel.title, mode: 'free' })
       return NextResponse.json({ success: true })
     }
 
@@ -119,6 +138,7 @@ export async function POST(req: NextRequest) {
       if (!res.ok) {
         return NextResponse.json({ error: `${res.error} Please try again.` }, { status: 500 })
       }
+      await sendPanelReceipts({ name, email, phone: phone || null, attendeeType: attendeeType || 'patron', panelTitle: panel.title, mode: 'invoice' })
       const registration = res.data[0] as { id: string }
 
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
