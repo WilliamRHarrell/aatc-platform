@@ -16,6 +16,13 @@ begin
   if position('security_invoker=false' in coalesce(array_to_string((select reloptions from pg_class where oid = 'public.applications_public'::regclass), ','), '')) = 0 then
     raise exception 'FAIL A: applications_public is not security_invoker = false (it would run as the caller and hit RLS)';
   end if;
+  if position('security_barrier=true' in coalesce(array_to_string((select reloptions from pg_class where oid = 'public.applications_public'::regclass), ','), '')) = 0 then
+    raise exception 'FAIL A: applications_public is not security_barrier = true';
+  end if;
+  if has_table_privilege('anon', 'public.applications_public', 'update') or has_table_privilege('anon', 'public.applications_public', 'delete')
+     or has_table_privilege('authenticated', 'public.applications_public', 'insert') or has_table_privilege('authenticated', 'public.applications_public', 'update') or has_table_privilege('authenticated', 'public.applications_public', 'delete') then
+    raise exception 'FAIL A: a write privilege on the view exists for anon or authenticated (owner-executed view: it would bypass RLS)';
+  end if;
   -- Column list and ORDER pinned (HANDOFF: row counts do not check shape).
   cols := (select string_agg(column_name, ',' order by ordinal_position) from information_schema.columns
             where table_schema = 'public' and table_name = 'applications_public');

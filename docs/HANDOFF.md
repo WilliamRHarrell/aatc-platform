@@ -285,9 +285,15 @@ SELECT to anon + authenticated. "applications: public read deposit-paid"
 DROPPED; anon's 074 column grant and table SELECT revoked, so anon has NO
 access to the table. New "applications: staff read directory rows" (to
 authenticated, has_role content_editor / sponsorship_manager, same predicate)
-because /admin/print embeds applications from booths and /admin/invoices from
-invoices and those two roles reached those rows through the public policy;
-their pages do not change. The 13 PUBLIC-scoped write policies from the
+because /admin/print embeds applications from booths and reached those rows
+through the public policy; the page does not change. sponsorship_manager is
+included for /admin/invoices' embed, but the review found that role reads
+ZERO invoice rows today (invoices has only own-read and admin policies, 029):
+pre-existing, not touched here. Two more pre-existing notes from the review:
+`/apply/sponsor` inserts as anon with `.select('id')` while 038 revoked anon
+SELECT on sponsorships, so INSERT ... RETURNING may fail live - test the
+sponsor form; and `artists` is owner-editable with no shape constraint (the
+view now tolerates any shape). The 13 PUBLIC-scoped write policies from the
 audit are re-created with verbatim bodies and explicit roles (`to
 authenticated`; the sponsor insert `to anon, authenticated` because
 /apply/sponsor has no session). `verify_075.sql`: view shape pinned (20

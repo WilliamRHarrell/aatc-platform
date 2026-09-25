@@ -19,11 +19,13 @@
 --
 -- WHO LOSES WHAT. anon: table access entirely (the view replaces it).
 -- authenticated non-owners: the same. content_editor (/admin/print embeds
--- applications from booths) and sponsorship_manager (/admin/invoices embeds
--- applications from invoices) saw approved, roster-complete, deposit-paid
--- rows through the public policy; the staff policy gives those two roles that
--- exact predicate, so their pages do not change. Owners keep "own read".
--- Admins keep "admin all". The service role bypasses RLS.
+-- applications from booths) saw approved, roster-complete, deposit-paid rows
+-- through the public policy; the staff policy gives that exact predicate, so
+-- the page does not change. sponsorship_manager is included for /admin/invoices'
+-- embed, although that role reads ZERO invoice rows today (invoices has only
+-- own-read and admin policies, 029) - a pre-existing gap, neither caused nor
+-- fixed here. Owners keep "own read". Admins keep "admin all". The service
+-- role bypasses RLS.
 --
 -- The view strips `id_url` from every element of `artists`: those are paths
 -- into the private application-docs bucket and the directory never used them.
@@ -36,13 +38,19 @@
 begin;
 
 -- ── 1. The view ──────────────────────────────────────────────
-create or replace view public.applications_public with (security_invoker = false) as
+-- security_barrier: the view replaces an RLS policy, so keep the same
+-- guarantee that a caller's predicate cannot run before the row filter.
+create or replace view public.applications_public with (security_invoker = false, security_barrier = true) as
 select a.id, a.event_id, a.status, a.exhibitor_type, a.business_name, a.booth_size,
        a.artist_single_qty, a.artist_double_qty, a.vendor_single_qty, a.vendor_double_qty,
        a.corner_count, a.artist_count,
        a.instagram, a.website, a.facebook, a.phone,
-       case when a.artists is null then null
-            else (select jsonb_agg(el - 'id_url') from jsonb_array_elements(a.artists) el)
+       -- artists is owner-editable (portal) and not shape-constrained, so a
+       -- non-array or a non-object element must not error the whole view.
+       case when jsonb_typeof(a.artists) = 'array'
+            then (select jsonb_agg(case when jsonb_typeof(el) = 'object' then el - 'id_url' else el end)
+                    from jsonb_array_elements(a.artists) el)
+            else null
        end as artists,
        a.tv_show, a.logo_url, a.portfolio_image_urls
   from public.applications a
