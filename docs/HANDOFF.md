@@ -294,9 +294,16 @@ and never fail the submission. The pinup route now also sends
 `internalNewPinupEmail` to CONTACT_EMAIL. The email wrapper moved to
 `src/lib/email-templates.ts` (one home; /api/send-email imports it) and its
 four hard-typed contact addresses now read CONTACT_EMAIL.
+The logo now uploads THROUGH THE ROUTE (multipart; PNG/JPG/WebP/SVG, 5 MB):
+the security review found no storage policy lets an anonymous sponsor write
+to exhibitor-media, so the old browser upload only worked for a signed-in
+admin and aborted every other sponsor's submission at "Logo upload failed".
+A failed upload now saves the application and tells the sponsor the logo did not.
 **Follow-ups:** 076 drops the anon INSERT policy on sponsorships (the route
-is the only writer). PR 1b: booth (artist/vendor) and panel submission
-receipts + internal notices, same pattern.
+is the only writer; until then a direct PostgREST insert with the anon key
+can still set its own tier/amount - the review's finding 1, pre-existing).
+PR 1b: booth (artist/vendor) and panel submission receipts + internal
+notices, same pattern.
 **Not verified by the implementer:** the sends. Verify with one real
 submission on the deployed site and check CONTACT_EMAIL's inbox.
 

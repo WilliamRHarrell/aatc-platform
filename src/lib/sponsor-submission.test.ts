@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeSponsorAmount, primaryTier, validateSponsorSubmission } from '@/lib/sponsor-submission'
+import { computeSponsorAmount, primaryTier, validateSponsorSubmission, validateLogoFile, LOGO_MAX_BYTES } from '@/lib/sponsor-submission'
 import { SPONSOR_TIERS } from '@/lib/sponsor-tiers'
 
 describe('computeSponsorAmount', () => {
@@ -17,7 +17,7 @@ describe('primaryTier', () => {
 })
 
 describe('validateSponsorSubmission', () => {
-  const good = { sponsorName: 'Acme', contactName: 'Jo', email: 'jo@acme.com', tier: 'gold', items: ['vip_bag'], phone: '', websiteUrl: 'https://acme.com', instagram: '', facebook: '', notes: '', logoUrl: null }
+  const good = { sponsorName: 'Acme', contactName: 'Jo', email: 'jo@acme.com', tier: 'gold', items: ['vip_bag'], phone: '', websiteUrl: 'https://acme.com', instagram: '', facebook: '', notes: '' }
   it('accepts a complete submission and computes the amount server-side', () => {
     const r = validateSponsorSubmission(good)
     expect(r.ok).toBe(true)
@@ -47,8 +47,16 @@ describe('validateSponsorSubmission', () => {
     const r = validateSponsorSubmission({ ...good, amount: 1 } as typeof good & { amount: number })
     expect(r.ok && r.values.amount).toBe(SPONSOR_TIERS.gold.amount + SPONSOR_TIERS.vip_bag.amount)
   })
-  it('only accepts an https logo URL from the public bucket', () => {
-    const r = validateSponsorSubmission({ ...good, logoUrl: 'javascript:alert(1)' })
-    expect(r.ok && r.values.logo_url).toBe(null)
+})
+
+describe('validateLogoFile', () => {
+  it('no file is fine', () => { expect(validateLogoFile(null)).toBe(null) })
+  it('accepts the four image types and names the extension', () => {
+    expect(validateLogoFile({ type: 'image/png', size: 10 })).toEqual({ ok: true, ext: 'png' })
+    expect(validateLogoFile({ type: 'image/svg+xml', size: 10 })).toEqual({ ok: true, ext: 'svg' })
+  })
+  it('refuses other types and oversize files', () => {
+    expect(validateLogoFile({ type: 'application/pdf', size: 10 })).toHaveProperty('ok', false)
+    expect(validateLogoFile({ type: 'image/png', size: LOGO_MAX_BYTES + 1 })).toHaveProperty('ok', false)
   })
 })

@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { guardedWrite } from '@/lib/db-write'
 import { botTrapRejection } from '@/lib/bot-trap'
 import { CONTACT_EMAIL } from '@/lib/event-config'
-import { validateSponsorSubmission } from '@/lib/sponsor-submission'
+import { validateSponsorSubmission, validateLogoFile } from '@/lib/sponsor-submission'
 import { sponsorReceivedEmail, internalNewSponsorEmail, describeSponsorship } from '@/lib/email-templates'
 import { sendTransactional } from '@/lib/transactional-email'
 import type { Database } from '@/types/database'
@@ -19,6 +19,12 @@ import type { Database } from '@/types/database'
 // never taken from the body. The row is inserted as pending; the 049 insert
 // clamp exempts the service role, so status is set here on purpose.
 //
+// The LOGO is uploaded here too (multipart body). No storage policy lets an
+// anonymous sponsor write to exhibitor-media, so the old browser upload only
+// ever worked for a signed-in admin and aborted everyone else's submission.
+// A failed upload no longer loses the application: the row is saved and the
+// response says the logo did not, so the page can say so.
+//
 // NOT RATE LIMITED - same standing gap as the other public form routes
 // (HANDOFF open item: Vercel WAF rules before launch).
 
@@ -28,9 +34,19 @@ const supabase = createClient<Database>(
 )
 
 export async function POST(req: NextRequest) {
+  // Multipart: text fields as strings, `items` as a JSON array, `logo` as a file.
   let body: Record<string, unknown>
+  let logo: File | null = null
   try {
-    body = await req.json()
+    const fd = await req.formData()
+    body = {}
+    for (const [k, v] of fd.entries()) {
+      if (k === 'logo') { if (v instanceof File && v.size > 0) logo = v; continue }
+      body[k] = typeof v === 'string' ? v : ''
+    }
+    body.items = typeof body.items === 'string' && body.items ? JSON.parse(body.items) : []
+    body.tier = body.tier === '' ? null : body.tier
+    body.elapsedMs = typeof body.elapsedMs === 'string' && body.elapsedMs !== '' ? Number(body.elapsedMs) : undefined
   } catch {
     return NextResponse.json({ error: 'Could not read that submission. Please try again.' }, { status: 400 })
   }
@@ -48,11 +64,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Please check the highlighted fields.', fieldErrors: v.fieldErrors }, { status: 400 })
   }
   const s = v.values
+  const logoCheck = validateLogoFile(logo)
+  if (logoCheck && !logoCheck.ok) {
+    return NextResponse.json({ error: 'Please check the highlighted fields.', fieldErrors: { logo: logoCheck.error } }, { status: 400 })
+  }
 
   const { data: event, error: eventErr } = await supabase.from('events').select('id').eq('is_active', true).single()
   if (eventErr || !event) {
     console.error(`[sponsor-apply] no active event (${eventErr?.code ?? 'none'}): ${eventErr?.message ?? ''}`)
     return NextResponse.json({ error: 'Applications are temporarily unavailable. Please try again shortly.' }, { status: 503 })
+  }
+
+  // Upload first so the row can carry the URL; a failed upload is reported,
+  // never fatal (the application matters more than the picture).
+  let logo_url: string | null = null
+  let logoSaved: boolean | null = null
+  if (logo && logoCheck && logoCheck.ok) {
+    const path = `sponsors/${crypto.randomUUID()}.${logoCheck.ext}`
+    const { error: upErr } = await supabase.storage.from('exhibitor-media')
+      .upload(path, Buffer.from(await logo.arrayBuffer()), { contentType: logo.type, upsert: false })
+    if (upErr) {
+      console.error(`[sponsor-apply] logo upload failed: ${upErr.message}`)
+      logoSaved = false
+    } else {
+      logo_url = supabase.storage.from('exhibitor-media').getPublicUrl(path).data.publicUrl
+      logoSaved = true
+    }
   }
 
   const res = await guardedWrite(
@@ -67,7 +104,7 @@ export async function POST(req: NextRequest) {
       facebook: s.facebook,
       tier: s.tier,
       amount: s.amount,
-      logo_url: s.logo_url,
+      logo_url,
       notes: s.notes,
       additional_items: s.additionalItems as never,
       status: 'pending',
@@ -95,5 +132,5 @@ export async function POST(req: NextRequest) {
     console.error(`[sponsor-apply] ${id} saved but the internal notice failed: ${String(e)}`)
   }
 
-  return NextResponse.json({ id })
+  return NextResponse.json({ id, logoSaved })
 }

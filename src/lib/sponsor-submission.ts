@@ -1,8 +1,20 @@
 /**
  * Sponsor application submission - the pure rules the route enforces.
  * Amounts come from SPONSOR_TIERS (the one home for prices) and never from the
- * client. Field names match what /apply/sponsor posts.
+ * client. Field names match what /apply/sponsor posts. The logo is a FILE the
+ * route uploads itself; see validateLogoFile.
  */
+export const LOGO_MAX_BYTES = 5 * 1024 * 1024
+const LOGO_TYPES: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/svg+xml': 'svg' }
+
+/** Accepts the file or says why not; returns the extension to store it under. */
+export function validateLogoFile(file: { type: string; size: number } | null): { ok: true; ext: string } | { ok: false; error: string } | null {
+  if (!file) return null
+  const ext = LOGO_TYPES[file.type]
+  if (!ext) return { ok: false, error: 'Logo must be a PNG, JPG, WebP or SVG.' }
+  if (file.size > LOGO_MAX_BYTES) return { ok: false, error: 'Logo must be 5 MB or smaller.' }
+  return { ok: true, ext }
+}
 import { SPONSOR_TIERS, type SponsorTier } from '@/lib/sponsor-tiers'
 
 const TIER_KEYS = Object.keys(SPONSOR_TIERS) as SponsorTier[]
@@ -31,7 +43,6 @@ export interface SponsorSubmissionValues {
   tier: SponsorTier
   additionalItems: SponsorTier[]
   amount: number
-  logo_url: string | null
   notes: string | null
 }
 
@@ -62,10 +73,6 @@ export function validateSponsorSubmission(body: Record<string, unknown>): Sponso
   const okTier = tier as SponsorTier | null
   const okItems = [...new Set(items as SponsorTier[])]
 
-  const logoRaw = str(body.logoUrl)
-  const publicBucket = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''}/storage/v1/object/public/exhibitor-media/`
-  const logo_url = logoRaw && publicBucket.length > 30 && logoRaw.startsWith(publicBucket) ? logoRaw : null
-
   return {
     ok: true,
     values: {
@@ -79,7 +86,6 @@ export function validateSponsorSubmission(body: Record<string, unknown>): Sponso
       tier: primaryTier(okTier, okItems),
       additionalItems: okItems,
       amount: computeSponsorAmount(okTier, okItems),
-      logo_url,
       notes: str(body.notes) || null,
     },
   }

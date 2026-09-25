@@ -184,18 +184,6 @@ export default function SponsorApplicationPage() {
   const totalAmount = (form.tier ? TIER_INFO[form.tier].amount : 0) +
     form.items.reduce((sum, item) => sum + TIER_INFO[item].amount, 0)
 
-  // ── Logo upload ────────────────────────────────────────────
-  const uploadLogo = async (file: File): Promise<string | null> => {
-    const ext = file.name.split('.').pop()
-    const path = `sponsors/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-    const { data, error } = await supabase.storage
-      .from('exhibitor-media')
-      .upload(path, file)
-    if (error || !data) return null
-    const { data: urlData } = supabase.storage.from('exhibitor-media').getPublicUrl(data.path)
-    return urlData.publicUrl
-  }
-
   // ── Submit ─────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -208,43 +196,30 @@ export default function SponsorApplicationPage() {
 
     setSubmitting(true)
     try {
-      // Upload logo if provided
-      let logo_url: string | null = null
-      if (form.logo_file) {
-        logo_url = await uploadLogo(form.logo_file)
-        if (!logo_url) {
-          toast.error('Logo upload failed. Please try again.')
-          return
-        }
-      }
-
       // The route validates, prices from SPONSOR_TIERS, inserts with the
       // service role and sends the receipts. Nothing is inserted from here.
-      const res = await fetch('/api/sponsor-apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sponsorName: form.sponsor_name,
-          contactName: form.contact_name,
-          email: form.email,
-          phone: form.phone,
-          websiteUrl: form.website,
-          instagram: form.instagram,
-          facebook: form.facebook,
-          tier: form.tier,
-          items: form.items,
-          logoUrl: logo_url,
-          notes: form.notes,
-          website: honeypot,
-          elapsedMs: Date.now() - mountedAt,
-        }),
-      })
-      const json = (await res.json().catch(() => ({}))) as { error?: string; fieldErrors?: Record<string, string> }
+      const fd = new FormData()
+      fd.set('sponsorName', form.sponsor_name)
+      fd.set('contactName', form.contact_name)
+      fd.set('email', form.email)
+      fd.set('phone', form.phone)
+      fd.set('websiteUrl', form.website)
+      fd.set('instagram', form.instagram)
+      fd.set('facebook', form.facebook)
+      fd.set('tier', form.tier ?? '')
+      fd.set('items', JSON.stringify(form.items))
+      fd.set('notes', form.notes)
+      fd.set('website', honeypot)
+      fd.set('elapsedMs', String(Date.now() - mountedAt))
+      if (form.logo_file) fd.set('logo', form.logo_file)
+      const res = await fetch('/api/sponsor-apply', { method: 'POST', body: fd })
+      const json = (await res.json().catch(() => ({}))) as { error?: string; fieldErrors?: Record<string, string>; logoSaved?: boolean | null }
       if (!res.ok) {
         const first = json.fieldErrors ? Object.values(json.fieldErrors)[0] : undefined
         toast.error(first ?? json.error ?? 'Submission failed. Please try again.')
         return
       }
+      if (json.logoSaved === false) toast('Your application was saved, but the logo did not upload. We will ask you for it.', { icon: '⚠️' })
 
       setSubmittedEmail(form.email.trim())
       setSubmitted(true)
