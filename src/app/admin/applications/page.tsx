@@ -14,6 +14,7 @@ import ApplicationDocuments from '@/components/admin/ApplicationDocuments'
 import VeteranVerification, { type VerificationState } from '@/components/admin/VeteranVerification'
 import CompControls, { type CompPatch } from '@/components/admin/CompControls'
 import ReceiptStatus from '@/components/admin/ReceiptStatus'
+import DuplicateWarning from '@/components/admin/DuplicateWarning'
 import { approvePayload, SEND_BACK_PAYLOAD, isComped, discountedInvoiceUpdate } from '@/lib/comp'
 
 // The `artists` column is stored as JSON; describe its real shape here so the
@@ -278,6 +279,7 @@ function DetailDrawer({
               <StatusBadge status={app.status} />
             </div>
             <h2 className="font-display mt-2 text-xl font-bold text-white">{app.business_name}</h2>
+            <DuplicateWarning applicationId={app.id} userId={app.user_id} email={app.email} />
             <p className="text-sm" style={{ color: '#999' }}>
               {new Date(app.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
             </p>
