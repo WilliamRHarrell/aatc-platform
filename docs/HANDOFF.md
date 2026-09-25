@@ -272,6 +272,34 @@ this section is now history; develop has all of it. The next branch is
 - Until #3 merges, anything below that says "on develop" about after parties,
   venues, Part A, the About CMS or the lockup is on `feat/post-launch-fixes`.
 
+### 2026-09-25 Sponsor submission emails (PR 1; plan: docs/superpowers/plans/2026-09-25-sponsor-submission-emails.md)
+
+075 APPLIED, verify_075 A-E passed (F failed only on aatc_submissions'
+PUBLIC-scoped policies, fixed in 076); PR #9 merged. Ryan's sponsor-form test:
+row saved, approval email sent, but NO email on submission. The test
+sponsorship 2875774c was torn down (seeds/teardown_sponsorship_2875774c.sql +
+scripts/remove-storage-object.mjs, both run by Ryan; /sponsors checked).
+
+**Which forms emailed on submission before this PR:** pinup only (entrant
+receipt, no internal notice). Sponsor, booth (artist + vendor) and panel
+forms sent nothing.
+
+**Code:** `POST /api/sponsor-apply` is the sponsor form's only writer now:
+service role, bot trap (`website` = honeypot, real site = `websiteUrl`),
+`validateSponsorSubmission()` prices from SPONSOR_TIERS (a client amount is
+ignored), guardedWrite insert as pending, then the sponsor receipt
+(`sponsorReceivedEmail`, no invoice, "nothing is due yet") and the internal
+notice to CONTACT_EMAIL (`internalNewSponsorEmail`). Mail failures are logged
+and never fail the submission. The pinup route now also sends
+`internalNewPinupEmail` to CONTACT_EMAIL. The email wrapper moved to
+`src/lib/email-templates.ts` (one home; /api/send-email imports it) and its
+four hard-typed contact addresses now read CONTACT_EMAIL.
+**Follow-ups:** 076 drops the anon INSERT policy on sponsorships (the route
+is the only writer). PR 1b: booth (artist/vendor) and panel submission
+receipts + internal notices, same pattern.
+**Not verified by the implementer:** the sends. Verify with one real
+submission on the deployed site and check CONTACT_EMAIL's inbox.
+
 ### 2026-09-24 Applications public view (migration 075; plan: docs/superpowers/plans/2026-09-24-applications-public-view.md)
 
 074 APPLIED; PR #7 merged and deployed (Ryan). verify_074's first run failed
@@ -721,7 +749,9 @@ codes 404 until cutover.
 ### OPEN ITEMS (one line each, with the owner)
 
 - **Re-run verify_074** (PR #8 fixed its fixture); read block F. Owner: Ryan.
-- **Apply 075, run verify_075, then merge + deploy** the view branch. Owner: Ryan.
+- **Sponsor + pinup emails**: after PR 1 deploys, one real sponsor submission
+  and one pinup registration; confirm both receipts and both internal notices
+  arrive at CONTACT_EMAIL. Owner: Ryan.
 - **Rate limiting for public form routes** (NOT BUILT): add Vercel WAF
   rate-limit rules before launch on `POST /api/pinup-entry`,
   `POST /api/panel-register`, `POST /api/aatc/*` if any accept anonymous
