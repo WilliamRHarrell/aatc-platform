@@ -7,6 +7,7 @@ import { ARTIST_BOOTH_OPTIONS as ARTIST_BOOTHS, addOnOptions, VETERAN_DISCOUNT_L
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { calculatePricing, getMaxArtists, type AddOn, type AddOnTerm } from '@/lib/pricing'
+import { ACTIVE_STATUSES, DUPLICATE_MESSAGE, isDuplicateApplicationError } from '@/lib/duplicate-application'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import type { Event } from '@/types'
@@ -383,6 +384,18 @@ export default function ArtistApplyForm({ content }: { content: ApplyFormContent
       setSubmitting(false)
       return
     }
+    // One active application per user per event (079). Checked here so the
+    // applicant is told before uploading anything; the database index is the
+    // guarantee, and a 23505 from the insert below is handled the same way.
+    {
+      const { data: existing } = await supabase.from('applications').select('id, status')
+        .eq('user_id', user.id).eq('event_id', event.id).in('status', [...ACTIVE_STATUSES]).limit(1)
+      if (existing && existing.length > 0) {
+        toast.error(DUPLICATE_MESSAGE)
+        setSubmitting(false)
+        return
+      }
+    }
 
     const ts = Date.now()
 
@@ -453,7 +466,7 @@ export default function ArtistApplyForm({ content }: { content: ApplyFormContent
     }).select('id').single()
 
     if (error || !appRow) {
-      toast.error('Failed to submit application. Please try again.')
+      toast.error(isDuplicateApplicationError(error) ? DUPLICATE_MESSAGE : 'Failed to submit application. Please try again.')
       setSubmitting(false)
       return
     }
