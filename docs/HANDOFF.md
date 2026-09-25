@@ -107,7 +107,8 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **065** | **APPLIED + VERIFIED** 2026-08-31 | dual-read. Rejected on its FIRST run with `42P16` because its column list came from unapplied 047; fixed to the live shape and re-run. Verified by Ryan via `verify_065.sql` (four credits, all `source = 'fallback'`) and by re-fetching the three pages against a pre-064 baseline. |
 | 066-068 | present on develop before 2026-09-23 | `sponsorship_is_custom`, `placement_check_runs`, `payment_method_square`. Not re-audited in the 2026-09-23 sessions; their tables/columns are read by live code. |
 | **069** | **APPLIED + VERIFIED** 2026-09-23 | Tattoo Battle: `tattoo_battle_entries`, bucket `tattoo-battle-media`, `set_tattoo_battle_champion()`, slot `tattoo-battle-veteran-ink`. Ryan ran `verify_069.sql`: fixtures_remaining = 0, no raise. |
-| **074** | **NOT APPLIED** (delivered 2026-09-24) | `events.pinup_capacity`; register_pinup_entry parameter-free + service_role only; pinup_spots_remaining(uuid); two anon INSERT policies dropped; anon column grant on applications. Run `verify_074.sql` (includes the grant audit). |
+| **075** | **NOT APPLIED** (delivered 2026-09-24) | `applications_public` view; public read policy dropped; anon off the table; staff read policy; 13 write policies re-scoped. Run `verify_075.sql`. Apply BEFORE deploying the branch (directory reads the view). |
+| **074** | **APPLIED** 2026-09-24 (Ryan). verify_074 first run failed on its own fixture; PR #8 fixes it - re-run. | `events.pinup_capacity`; register_pinup_entry parameter-free + service_role only; pinup_spots_remaining(uuid); two anon INSERT policies dropped; anon column grant on applications. Run `verify_074.sql` (includes the grant audit). |
 | **073** | **APPLIED** 2026-09-24 (Ryan; verify_073 exact, verify_072 re-run PASS) | anon/PUBLIC EXECUTE revoked on the seven non-anon functions; expire/cancel gain an internal guard. Run `verify_073.sql`, then re-run `verify_072.sql`. |
 | **072** | **APPLIED** 2026-09-24 (Ryan) | `comp_2026_09_24.sql` RUN, both rows correct. `verify_072` ABORTED at block B (anon grant; see 073) - re-run after 073. |
 | **071** | **APPLIED** 2026-09-24 (Ryan; verify_071 block A showed exactly the three policies) | application-docs policies (drop unscoped upload + own read; own folder insert, admin insert, admin read), `applications.veteran_doc_verified_at/by`, clamp + reset on `veteran_id_url` change. Run `verify_071.sql` after; block D needs the RLS harness user. |
@@ -270,6 +271,42 @@ this section is now history; develop has all of it. The next branch is
   under older hashes.
 - Until #3 merges, anything below that says "on develop" about after parties,
   venues, Part A, the About CMS or the lockup is on `feat/post-launch-fixes`.
+
+### 2026-09-24 Applications public view (migration 075; plan: docs/superpowers/plans/2026-09-24-applications-public-view.md)
+
+074 APPLIED; PR #7 merged and deployed (Ryan). verify_074's first run failed
+on its OWN fixture (055's likeness timestamp constraint) - fixed in PR #8;
+re-run it and read block F. Branch `feat/applications-public-view`.
+
+**Delivered, NOT APPLIED:** `075_applications_public_view.sql`:
+`applications_public` (security_invoker = false, the 038 pattern), the same
+predicate as the old public policy, 20 columns, `artists[].id_url` stripped;
+SELECT to anon + authenticated. "applications: public read deposit-paid"
+DROPPED; anon's 074 column grant and table SELECT revoked, so anon has NO
+access to the table. New "applications: staff read directory rows" (to
+authenticated, has_role content_editor / sponsorship_manager, same predicate)
+because /admin/print embeds applications from booths and /admin/invoices from
+invoices and those two roles reached those rows through the public policy;
+their pages do not change. The 13 PUBLIC-scoped write policies from the
+audit are re-created with verbatim bodies and explicit roles (`to
+authenticated`; the sponsor insert `to anon, authenticated` because
+/apply/sponsor has no session). `verify_075.sql`: view shape pinned (20
+columns in order), anon reads the view and not the table (positive control
+on the row count), staff policy exact rows as a content_editor (skips with a
+notice if none exists), owner still reads own row, no id_url in the view's
+artists, no PUBLIC-scoped WRITE policy remains (SELECT ones printed as
+REVIEW). **Order: apply 075, run verify_075, merge, deploy.** Until 075 is
+applied the directory pages (now reading the view) render EMPTY - apply
+before merging, or merge and apply within the same minute.
+
+**Code:** the three directory pages read `applications_public`;
+`applications-public.test.ts` reads source to pin: directory pages use the
+view, the view's parsed column list covers every column they select or
+filter on and none of the withheld ones, and only admin/api/portal/apply
+(owner insert) code touches the table.
+
+**Deferred, listed by verify_075 F:** PUBLIC-scoped SELECT policies (events,
+contests, page_*, own reads) - by design or dead for anon; rewrite at leisure.
 
 ### 2026-09-24 Pinup capacity one home + public grant audit (migration 074; plan: docs/superpowers/plans/2026-09-24-pinup-capacity-and-grant-audit.md)
 
@@ -671,8 +708,8 @@ codes 404 until cutover.
 
 ### OPEN ITEMS (one line each, with the owner)
 
-- **Apply 074, run verify_074** (its block F is the grant audit; read the
-  REVIEW notices). Owner: Ryan.
+- **Re-run verify_074** (PR #8 fixed its fixture); read block F. Owner: Ryan.
+- **Apply 075, run verify_075, then merge + deploy** the view branch. Owner: Ryan.
 - **Rate limiting for public form routes** (NOT BUILT): add Vercel WAF
   rate-limit rules before launch on `POST /api/pinup-entry`,
   `POST /api/panel-register`, `POST /api/aatc/*` if any accept anonymous
@@ -683,8 +720,6 @@ codes 404 until cutover.
   Supabase project's REST host, not this app; the practical brake there is
   the applications "own insert" policy plus the signup limit. Owner: Ryan
   (dashboard), unassigned (verify).
-- **075**: applications column exposure for authenticated non-owners, and
-  the PUBLIC-scoped admin policies. Owner: unassigned. Report-first.
 - **Sweep**: review `scripts/sweep-dry-run.mjs` output before setting
   LIFECYCLE_SWEEP_ENABLED. Owner: Ryan.
 - **Tick "Document verified"** on a veteran test application (neither live
