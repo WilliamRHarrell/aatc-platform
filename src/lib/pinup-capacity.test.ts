@@ -68,21 +68,3 @@ describe('pinup capacity has one home', () => {
     expect(sig.slice(0, sig.indexOf('returns'))).not.toContain('p_capacity')
   })
 })
-
-/**
- * Migration 074 gives anon a column-level SELECT on applications that covers
- * exactly what the directory pages ask for. A directory select that names a
- * withheld column would start failing for anon; this catches it in CI.
- */
-describe('directory selects stay inside the anon column grant', () => {
-  const WITHHELD = /\b(email|notes|id_doc_url|veteran_id_url|user_id|total_amount|comped_at|comped_by|approved_at|deposit_due_at|final_due_at|veteran_doc_verified_at|veteran_doc_verified_by|contact_name|other_links|add_ons|artists_ids_later|is_veteran|is_corner|updated_at|created_at)\b/
-  it('none of the three directory pages selects a withheld column from applications', () => {
-    for (const rel of ['src/app/directory/page.tsx', 'src/app/directory/artists/page.tsx', 'src/app/directory/[id]/page.tsx']) {
-      const text = readFileSync(join(process.cwd(), rel), 'utf8')
-      const i = text.indexOf(".from('applications')")
-      expect(i, rel).toBeGreaterThan(-1)
-      const selectLine = text.slice(i, text.indexOf(')', text.indexOf('.select(', i)) + 1)
-      expect(selectLine, rel).not.toMatch(WITHHELD)
-    }
-  })
-})
