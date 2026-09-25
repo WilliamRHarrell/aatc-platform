@@ -346,6 +346,9 @@ export default function VendorApplyForm({ content }: { content: ApplyFormContent
       return
     }
 
+    // Receipt + internal notice, sent server-side once per application (077).
+    fetch('/api/application-submitted', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ applicationId: insRows[0].id }) })
+      .catch(err => console.error('Receipt request failed:', err))
 
     setSubmitted(true)
   }

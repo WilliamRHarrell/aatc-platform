@@ -8,6 +8,7 @@
  */
 import { CONTACT_EMAIL } from '@/lib/event-config'
 import { SPONSOR_TIERS, type SponsorTier } from '@/lib/sponsor-tiers'
+import type { ReceiptFacts } from '@/lib/application-receipt'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -159,6 +160,112 @@ export function internalNewPinupEmail(v: { fullName: string; stageName: string |
     </table>
     <p style="margin:24px 0 0; text-align:center;">
       <a href="${SITE_URL}/admin/pinup" style="display:inline-block; background:#8B7355; color:#ffffff; text-decoration:none; font-size:14px; font-weight:700; letter-spacing:1px; padding:12px 28px; border-radius:10px;">Open the entry list →</a>
+    </p>
+  `)
+}
+
+// ── Booth applications (PR 1b) ────────────────────────────────
+
+/** To the applicant, right after the form saves. No status, no dates, no payment ask. */
+export function applicationReceivedEmail(f: ReceiptFacts) {
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#C4A882;">
+      Application Received
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      Thank you, ${esc(f.businessName)}
+    </h2>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      We received your <strong style="color:#ffffff;">${f.kind.toLowerCase()}</strong> booth application for AATC 2027.
+      Our team reviews every application and will email you with a decision.
+    </p>
+    <div style="background:#0a0a0a; border:1px solid #2a2a2a; border-radius:12px; padding:20px 24px; margin:20px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-size:13px; color:#999999; padding-bottom:8px;">Booth</td>
+          <td align="right" style="font-size:13px; font-weight:600; color:#ffffff; padding-bottom:8px;">${esc(f.booths)}</td>
+        </tr>
+        ${f.kind === 'Artist' ? `<tr>
+          <td style="font-size:13px; color:#999999; padding-bottom:8px;">Artists</td>
+          <td align="right" style="font-size:13px; font-weight:600; color:#ffffff; padding-bottom:8px;">${f.artistCount}</td>
+        </tr>` : ''}
+        <tr>
+          <td style="font-size:13px; color:#999999; border-top:1px solid #2a2a2a; padding-top:8px;">Application total</td>
+          <td align="right" style="font-size:16px; font-weight:700; color:#C4A882; border-top:1px solid #2a2a2a; padding-top:8px;">${f.total}</td>
+        </tr>
+      </table>
+    </div>
+    <p style="margin:16px 0 0; font-size:15px; line-height:1.7; color:#cccccc;">
+      Nothing is due now. If approved, your invoice and deposit deadline arrive with the approval email.
+      You can check your application any time in your portal.
+    </p>
+    <p style="margin:24px 0 0; text-align:center;">
+      <a href="${SITE_URL}/portal" style="display:inline-block; background:#8B7355; color:#ffffff; text-decoration:none; font-size:14px; font-weight:700; letter-spacing:1px; padding:14px 32px; border-radius:10px;">View My Portal →</a>
+    </p>
+  `)
+}
+
+/** To CONTACT_EMAIL, for each new booth application. */
+export function internalNewApplicationEmail(f: ReceiptFacts, applicationId: string) {
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#C4A882;">
+      New ${f.kind} Application
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:24px; font-weight:700; color:#ffffff;">
+      ${esc(f.businessName)}
+    </h2>
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px; color:#cccccc;">
+      <tr><td style="padding:4px 0; color:#999999;">Contact</td><td align="right">${esc(f.contactName)}</td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Email</td><td align="right"><a href="mailto:${esc(f.email)}" style="color:#C4A882;">${esc(f.email)}</a></td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Phone</td><td align="right">${f.phone ? esc(f.phone) : '-'}</td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Booth</td><td align="right">${esc(f.booths)}</td></tr>
+      ${f.kind === 'Artist' ? `<tr><td style="padding:4px 0; color:#999999;">Artists</td><td align="right">${f.artistCount}</td></tr>` : ''}
+      <tr><td style="padding:4px 0; color:#999999;">Veteran discount</td><td align="right" style="color:${f.veteranClaimed ? '#eab308' : '#cccccc'};">${f.veteranClaimed ? 'CLAIMED - verify the document' : 'not claimed'}</td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Total</td><td align="right" style="color:#C4A882; font-weight:700;">${f.total}</td></tr>
+    </table>
+    <p style="margin:24px 0 0; text-align:center;">
+      <a href="${SITE_URL}/admin/applications?open=${encodeURIComponent(applicationId)}" style="display:inline-block; background:#8B7355; color:#ffffff; text-decoration:none; font-size:14px; font-weight:700; letter-spacing:1px; padding:12px 28px; border-radius:10px;">Review in admin →</a>
+    </p>
+  `)
+}
+
+// ── Panel registrations (PR 1b) ───────────────────────────────
+export function panelRegisteredEmail(name: string, panelTitle: string, mode: 'free' | 'invoice') {
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#C4A882;">
+      ${mode === 'free' ? 'Registration Received' : 'Registration Started'}
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      ${esc(panelTitle)}
+    </h2>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Hi ${esc(name)}, ${mode === 'free'
+        ? 'you are registered. We will email you if anything about the session changes. Walk-ins are welcome too, so bring a friend.'
+        : 'your registration is saved and will be confirmed once payment completes. If you closed the payment page, reply to this email and we will send a new link.'}
+    </p>
+    <p style="margin:24px 0 0; text-align:center;">
+      <a href="${SITE_URL}/events/tattoo-panels" style="display:inline-block; background:#8B7355; color:#ffffff; text-decoration:none; font-size:14px; font-weight:700; letter-spacing:1px; padding:14px 32px; border-radius:10px;">Seminar details →</a>
+    </p>
+  `)
+}
+
+export function internalNewPanelRegistrationEmail(v: { name: string; email: string; phone: string | null; panelTitle: string; attendeeType: string; mode: 'free' | 'invoice' }) {
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#C4A882;">
+      New Seminar Registration
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:24px; font-weight:700; color:#ffffff;">
+      ${esc(v.panelTitle)}
+    </h2>
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px; color:#cccccc;">
+      <tr><td style="padding:4px 0; color:#999999;">Name</td><td align="right">${esc(v.name)}</td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Email</td><td align="right"><a href="mailto:${esc(v.email)}" style="color:#C4A882;">${esc(v.email)}</a></td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Phone</td><td align="right">${v.phone ? esc(v.phone) : '-'}</td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Attendee type</td><td align="right">${esc(v.attendeeType)}</td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Payment</td><td align="right">${v.mode === 'free' ? 'free registration' : 'invoice - pending Stripe payment'}</td></tr>
+    </table>
+    <p style="margin:24px 0 0; text-align:center;">
+      <a href="${SITE_URL}/admin/panels" style="display:inline-block; background:#8B7355; color:#ffffff; text-decoration:none; font-size:14px; font-weight:700; letter-spacing:1px; padding:12px 28px; border-radius:10px;">Open panels →</a>
     </p>
   `)
 }
