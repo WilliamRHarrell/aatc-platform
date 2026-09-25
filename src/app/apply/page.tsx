@@ -3,8 +3,6 @@ import Link from 'next/link'
 import { getContent } from '@/content/getContent'
 import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
-import CountdownDigits from './CountdownDigits'
-import { DOORS_OPEN_ISO } from '@/lib/event-config'
 
 export const metadata: Metadata = {
   title: 'Apply - Booths, Contests & More | All American Tattoo Convention 2027',
@@ -12,24 +10,12 @@ export const metadata: Metadata = {
     'Applications for AATC 2027 are open. Apply for artist and vendor booths, food trucks, the tattoo contests, the Miss All American Pin-Up Contest, and sponsorships.',
 }
 
-/** Show dates live in src/lib/event-config.ts - do not re-declare them here. */
-const CONVENTION_START = DOORS_OPEN_ISO
-
-const CALENDAR_HREF = `data:text/calendar;charset=utf-8,${encodeURIComponent(
-  [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//AATC//EN',
-    'BEGIN:VEVENT',
-    'DTSTART:20270416T120000',
-    'DTEND:20270418T200000',
-    'SUMMARY:All American Tattoo Convention 2027',
-    'LOCATION:Crown Complex Event Center, 1960 Coliseum Drive, Fayetteville, NC 28306',
-    'DESCRIPTION:All American Tattoo Convention - April 16-18, 2027. Get your tickets at allamericantattooconvention.com',
-    'END:VEVENT',
-    'END:VCALENDAR',
-  ].join('\r\n')
-)}`
+// Every application option on /apply is a button-like card: theme gold border,
+// stronger on hover and focus, whole card clickable, visible keyboard ring.
+// Contrast (checked 2026-09-25): white on surface 17:1, gold-light on surface
+// 7.7:1, gold border on surface 3.9:1 (UI component minimum is 3:1).
+const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-light focus-visible:ring-offset-2 focus-visible:ring-offset-surface'
+const OPTION_CARD = `group flex flex-1 items-center justify-between gap-4 rounded-xl border-2 border-gold bg-background px-6 py-5 text-left transition-colors duration-200 hover:border-gold-light hover:bg-gold/15 ${FOCUS_RING}`
 
 export default async function ApplyPage() {
   const c = await getContent('applyHub')
@@ -53,16 +39,6 @@ export default async function ApplyPage() {
   return (
     <div className="min-h-screen">
       <PublicNav />
-
-      {/* ── Header ── */}
-      <header className="px-4 pb-6 pt-10 text-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/site-assets/aatc-secondary-main-horizontal%202.png`}
-          alt="All American Tattoo Convention"
-          className="mx-auto h-24 w-auto sm:h-32 md:h-40"
-        />
-      </header>
 
       {/* ── Hero ── */}
       <section className="px-4 py-12 text-center">
@@ -105,28 +81,6 @@ export default async function ApplyPage() {
         </div>
       </section>
 
-      {/* ── Countdown ── */}
-      <section className="px-4 pb-12">
-        <div className="mx-auto max-w-2xl rounded-2xl p-8 text-center" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
-          <p className="mb-6 text-sm font-medium uppercase tracking-widest" style={{ color: '#8B7355' }}>
-            {c.countdown_heading}
-          </p>
-
-          <CountdownDigits targetIso={CONVENTION_START} />
-
-          <p className="mt-6 text-sm font-bold uppercase tracking-wider" style={{ color: '#C4A882' }}>
-            {c.countdown_opens_text} - {' '}
-            <a
-              href={CALENDAR_HREF}
-              download="aatc-2027.ics"
-              className="text-[#C4A882] underline underline-offset-4 transition-colors hover:text-white"
-            >
-              {c.countdown_calendar_cta}
-            </a>
-          </p>
-        </div>
-      </section>
-
       {/* ── Primary block: apply for a booth ── */}
       <section className="px-4 pb-12">
         <div className="mx-auto max-w-3xl rounded-2xl p-8" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
@@ -138,30 +92,32 @@ export default async function ApplyPage() {
             <Markdown>{c.booth_block_body}</Markdown>
           </div>
 
-          {/* CTAs */}
+          {/* CTAs. Artist and vendor carry the SAME weight: the filled-vs-outlined
+              pair made the vendor option read as secondary (Ryan, 2026-09-25).
+              Theme tokens only (gold, gold-light); the whole card is the link. */}
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/apply/artist"
-              className="flex flex-1 items-center justify-center gap-3 rounded-xl bg-[#8B7355] px-6 py-4 text-center text-sm font-semibold text-white transition-colors duration-200 hover:bg-[#C4A882]"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                <path d="M2 17l10 5 10-5"/>
-                <path d="M2 12l10 5 10-5"/>
-              </svg>
-              {c.cta_artist}
+            <Link href="/apply/artist" className={OPTION_CARD} aria-label={`${c.cta_artist}: apply as an artist`}>
+              <span className="flex items-center gap-3">
+                <svg className="shrink-0 text-gold-light" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                  <path d="M2 12l10 5 10-5"/>
+                </svg>
+                <span className="text-base font-semibold text-white">{c.cta_artist}</span>
+              </span>
+              <span className="text-lg font-bold text-gold-light transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
             </Link>
 
-            <Link
-              href="/apply/vendor"
-              className="flex flex-1 items-center justify-center gap-3 rounded-xl border-2 border-[#8B7355] px-6 py-4 text-center text-sm font-semibold text-[#C4A882] transition-colors duration-200 hover:bg-[#8B7355] hover:text-white"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
-                <line x1="3" y1="6" x2="21" y2="6"/>
-                <path d="M16 10a4 4 0 0 1-8 0"/>
-              </svg>
-              {c.cta_vendor}
+            <Link href="/apply/vendor" className={OPTION_CARD} aria-label={`${c.cta_vendor}: apply as a vendor`}>
+              <span className="flex items-center gap-3">
+                <svg className="shrink-0 text-gold-light" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                  <line x1="3" y1="6" x2="21" y2="6"/>
+                  <path d="M16 10a4 4 0 0 1-8 0"/>
+                </svg>
+                <span className="text-base font-semibold text-white">{c.cta_vendor}</span>
+              </span>
+              <span className="text-lg font-bold text-gold-light transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
             </Link>
 
             {/* No food-truck application route exists yet - render as pending
@@ -218,28 +174,26 @@ export default async function ApplyPage() {
           </h2>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            {secondary.map(card => (
-              <div
-                key={card.title}
-                className="flex flex-col rounded-2xl border border-[#2a2a2a] bg-[#1a1a1a] p-6 transition-colors duration-200 hover:border-[#8B7355]"
-              >
+            {secondary.map(card => card.href ? (
+              <Link key={card.title} href={card.href} className={`group flex flex-col rounded-2xl border-2 border-gold bg-surface p-6 transition-colors duration-200 hover:border-gold-light hover:bg-gold/15 ${FOCUS_RING}`}>
                 <h3 className="text-base font-bold text-white">{card.title}</h3>
                 <div className="mt-2 flex-1 text-sm leading-relaxed" style={{ color: '#999999' }}>
                   <Markdown>{card.body}</Markdown>
                 </div>
-                {card.href ? (
-                  <Link
-                    href={card.href}
-                    className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#C4A882] transition-colors hover:text-white"
-                  >
-                    {card.cta}
-                    <span aria-hidden>→</span>
-                  </Link>
-                ) : (
-                  <p className="mt-4 text-sm font-semibold" style={{ color: '#666' }}>
-                    Applications opening soon
-                  </p>
-                )}
+                <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-gold-light">
+                  {card.cta}
+                  <span className="transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
+                </span>
+              </Link>
+            ) : (
+              <div key={card.title} className="flex flex-col rounded-2xl border-2 border-dashed border-[#3a3a3a] bg-surface p-6">
+                <h3 className="text-base font-bold text-white">{card.title}</h3>
+                <div className="mt-2 flex-1 text-sm leading-relaxed" style={{ color: '#999999' }}>
+                  <Markdown>{card.body}</Markdown>
+                </div>
+                <p className="mt-4 text-sm font-semibold" style={{ color: '#777' }}>
+                  Applications opening soon
+                </p>
               </div>
             ))}
           </div>
