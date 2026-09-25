@@ -26,7 +26,7 @@ export default function AddPinupEntry({ taken, capacity, eventId, onAdded }: {
 
   const submit = async () => {
     if (!eventId) { toast.error('No active event'); return }
-    const v = validateAdminPinupEntry(f, new Date())
+    const v = validateAdminPinupEntry(f)
     if (!v.ok) { setErrors(v.fieldErrors); return }
     setErrors({})
     setBusy(true)

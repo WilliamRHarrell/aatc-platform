@@ -3,8 +3,9 @@
  * INSERT policy). The registration function is service-role only and holds
  * the capacity lock; a by-hand entry bypasses that on purpose, so the admin
  * chooses confirmed or waitlist explicitly. The admin attests age and the
- * likeness release on the entrant's behalf (055's constraint needs the
- * timestamp), and marketing consent is never assumed.
+ * likeness release on the entrant's behalf; the TIMESTAMP is stamped by the
+ * database (076 trigger), never by this browser, and marketing consent is
+ * never assumed.
  */
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
@@ -25,7 +26,6 @@ export interface AdminPinupRow {
   status: AdminPinupStatus
   age_confirmed: true
   likeness_release: true
-  likeness_release_at: string
   marketing_opt_in: false
 }
 
@@ -33,7 +33,7 @@ export type AdminPinupValidation =
   | { ok: true; row: AdminPinupRow }
   | { ok: false; fieldErrors: Record<string, string> }
 
-export function validateAdminPinupEntry(input: Record<string, unknown>, now: Date): AdminPinupValidation {
+export function validateAdminPinupEntry(input: Record<string, unknown>): AdminPinupValidation {
   const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
   const fullName = str(input.fullName)
   const email = str(input.email).toLowerCase()
@@ -55,7 +55,6 @@ export function validateAdminPinupEntry(input: Record<string, unknown>, now: Dat
       status: status as AdminPinupStatus,
       age_confirmed: true,
       likeness_release: true,
-      likeness_release_at: now.toISOString(),
       marketing_opt_in: false,
     },
   }

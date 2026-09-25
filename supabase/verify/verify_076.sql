@@ -46,7 +46,10 @@ begin
   if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'pinup_entries' and policyname = 'admins insert pinup entries' and cmd = 'INSERT' and roles::text = '{authenticated}') then
     raise exception 'FAIL C: "admins insert pinup entries" missing or not scoped to authenticated';
   end if;
-  raise notice 'PASS C: admins can insert pinup entries';
+  if not exists (select 1 from pg_trigger where tgname = 'pinup_entries_stamp_consent_trg' and tgrelid = 'public.pinup_entries'::regclass) then
+    raise exception 'FAIL C: consent-stamp trigger missing';
+  end if;
+  raise notice 'PASS C: admins can insert pinup entries; the database stamps consent times';
 end $$;
 
 -- ── D. NO anon write anywhere in public, from the catalog  (grid + NOTICE)
@@ -71,11 +74,15 @@ declare
   v_uid uuid; v_event uuid; v_panel uuid;
   v_pin uuid; v_reg uuid; v_sub uuid;
   n_apps int; n_inv int; n_pin int; n_reg int; n_sub int; n_prof int;
-  c_apps int; c_inv int; c_prof int;
+  c_apps int; c_inv int; c_prof int; c_inv_other int; n_inv_other int;
 begin
   v_uid := (select id from public.profiles where email = 'rls-harness@allamericantattooconvention.com');
   if v_uid is null then raise exception 'ABORT: RLS harness user missing'; end if;
   if exists (select 1 from public.applications where user_id = v_uid) then raise exception 'ABORT: harness user owns an application - not a clean non-owner'; end if;
+  -- The harness user DOES own the seeded RLS-harness sponsorship and its
+  -- invoice (seeds/rls_harness_records.sql), so invoices are asserted as
+  -- "none the user does not own", not "none at all".
+  c_inv_other := (select count(*) from public.invoices i where not public.owns_invoice(i.application_id, i.sponsorship_id, v_uid));
   v_event := (select id from public.events where is_active order by start_date limit 1);
   v_panel := (select id from public.panels order by created_at limit 1);
 
@@ -86,8 +93,10 @@ begin
   if c_apps = 0 or c_inv = 0 or c_prof < 2 then raise exception 'ABORT: too little live data for a meaningful check (apps %, invoices %, profiles %)', c_apps, c_inv, c_prof; end if;
 
   -- Fixtures for the tables that may be empty live, so "0 rows" is a refusal, not an empty table.
-  insert into public.pinup_entries (event_id, full_name, email, phone, age_confirmed, status, likeness_release, likeness_release_at)
-  values (v_event, 'ZZ VERIFY 076', 'zz-verify-076@example.com', '(910) 555-0076', true, 'pending', true, now()) returning id into v_pin;
+  -- The pinup fixture omits likeness_release_at on purpose: the 076 trigger must stamp it.
+  insert into public.pinup_entries (event_id, full_name, email, phone, age_confirmed, status, likeness_release)
+  values (v_event, 'ZZ VERIFY 076', 'zz-verify-076@example.com', '(910) 555-0076', true, 'pending', true) returning id into v_pin;
+  if (select likeness_release_at from public.pinup_entries where id = v_pin) is null then raise exception 'FAIL E: consent trigger did not stamp likeness_release_at'; end if;
   if v_panel is not null then
     insert into public.panel_registrations (panel_id, name, email) values (v_panel, 'ZZ VERIFY 076', 'zz-verify-076@example.com') returning id into v_reg;
   end if;
@@ -98,6 +107,7 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', v_uid, 'role', 'authenticated')::text, true);
   n_apps := (select count(*) from public.applications);
   n_inv  := (select count(*) from public.invoices);
+  n_inv_other := (select count(*) from public.invoices i where not public.owns_invoice(i.application_id, i.sponsorship_id, v_uid));
   n_pin  := (select count(*) from public.pinup_entries);
   n_reg  := (select count(*) from public.panel_registrations);
   n_sub  := (select count(*) from public.aatc_submissions);
@@ -110,13 +120,14 @@ begin
   delete from public.pinup_entries where id = v_pin;
 
   if n_apps <> 0 then raise exception 'FAIL E: non-owner sees % applications (of %)', n_apps, c_apps; end if;
-  if n_inv  <> 0 then raise exception 'FAIL E: non-owner sees % invoices (of %)', n_inv, c_inv; end if;
+  if n_inv_other <> 0 then raise exception 'FAIL E: non-owner sees % invoices they do not own (of % such)', n_inv_other, c_inv_other; end if;
+  if n_inv > 0 then raise notice 'REVIEW E: harness user sees % invoice(s) it owns (the seeded harness sponsorship) - expected', n_inv; end if;
   if n_pin  <> 0 then raise exception 'FAIL E: non-owner sees % pinup entries', n_pin; end if;
   if n_reg  <> 0 then raise exception 'FAIL E: non-owner sees % panel registrations', n_reg; end if;
   if n_sub  <> 0 then raise exception 'FAIL E: non-owner sees % aatc submissions', n_sub; end if;
   if n_prof <> 1 then raise exception 'FAIL E: non-owner sees % profiles, want exactly their own', n_prof; end if;
   if exists (select 1 from public.pinup_entries where full_name = 'ZZ VERIFY 076') then raise exception 'FAIL E: fixture not removed'; end if;
-  raise notice 'PASS E: a signed-in non-owner sees 0 of % applications, 0 of % invoices, 0 pinup entries, 0 panel registrations, 0 aatc submissions, and 1 of % profiles (their own)', c_apps, c_inv, c_prof;
+  raise notice 'PASS E: a signed-in non-owner sees 0 of % applications, 0 of % invoices it does not own (% total), 0 pinup entries, 0 panel registrations, 0 aatc submissions, and 1 of % profiles (their own)', c_apps, c_inv_other, c_inv, c_prof;
 end $$;
 
 -- ── Z. residue  (results grid; want zero rows)
