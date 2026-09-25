@@ -22,6 +22,12 @@ begin
   if position('total_amount is distinct from v_price' in pg_get_functiondef('public.applications_force_safe_insert'::regproc)) = 0 then
     raise exception 'FAIL A: insert clamp does not refuse a mismatched total';
   end if;
+  if position('new.add_ons := old.add_ons' in pg_get_functiondef('public.applications_protect_staff_columns'::regproc)) = 0 then
+    raise exception 'FAIL A: update clamp does not restore add_ons for owners';
+  end if;
+  if not exists (select 1 from pg_constraint where conrelid = 'public.applications'::regclass and conname = 'applications_quantities_nonnegative') then
+    raise exception 'FAIL A: applications_quantities_nonnegative missing';
+  end if;
   raise notice 'PASS A: function (immutable, no anon), index, clamp refusal present';
 end $$;
 
@@ -71,6 +77,31 @@ begin
   if v_app is null then raise exception 'FAIL C2: the correct total did not land'; end if;
   raise notice 'PASS C2: the list price (60000 = single + corner) lands';
 
+  -- C3. negative quantities are refused (a negative cross-type quantity used to zero the permit fees at an agreed total)
+  begin
+    set local role authenticated;
+    perform set_config('request.jwt.claims', json_build_object('sub', v_uid, 'role', 'authenticated')::text, true);
+    insert into public.applications (event_id, user_id, exhibitor_type, business_name, contact_name, email, total_amount, status, artist_single_qty, vendor_single_qty, artist_count)
+    values (v_event, v_uid, 'artist', 'ZZ VERIFY 079 NEG (DELETE ME)', 'ZZ', 'zz-verify-079n@example.com', 80000, 'pending', 1, -1, 4);
+    reset role;
+    raise exception 'FAIL C3: a negative quantity was accepted';
+  exception when check_violation then
+    reset role; perform set_config('request.jwt.claims', '', true);
+    raise notice 'PASS C3: negative quantity refused';
+  end;
+
+  -- C4. an owner cannot change the priced inputs after insert (add_ons, artist_count are restored)
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_uid, 'role', 'authenticated')::text, true);
+  update public.applications set add_ons = '[{"kind":"tattoo_bed","term":"weekend","qty":3}]'::jsonb, artist_count = 4, notes = 'ZZ owner touched' where id = v_app;
+  reset role;
+  perform set_config('request.jwt.claims', '', true);
+  if (select notes from public.applications where id = v_app) is distinct from 'ZZ owner touched' then raise exception 'FAIL C4 control: the owner update did not land'; end if;
+  if (select add_ons from public.applications where id = v_app) <> '[]'::jsonb or (select artist_count from public.applications where id = v_app) <> 0 then
+    raise exception 'FAIL C4: owner changed add_ons or artist_count after insert';
+  end if;
+  raise notice 'PASS C4: add_ons and artist_count are clamped for owners';
+
   -- D. one ACTIVE application per user per event: a second one is refused, a rejected one is allowed
   begin
     set local role authenticated;
@@ -93,9 +124,15 @@ begin
   if not exists (select 1 from public.applications where business_name = 'ZZ VERIFY 079 DUP (DELETE ME)') then raise exception 'FAIL D2: re-applying after a rejection was refused'; end if;
   raise notice 'PASS D2: a rejected application does not block a new one';
 
+  -- E. admin-added applications (user_id NULL, /admin/booths add form) are not limited to one per event
+  insert into public.applications (event_id, user_id, exhibitor_type, business_name, contact_name, email, total_amount, status, vendor_single_qty, artist_count)
+  values (v_event, null, 'vendor', 'ZZ VERIFY 079 ADMIN1 (DELETE ME)', 'ZZ', 'zz-verify-079-admin1@example.com', 50000, 'approved', 1, 0),
+         (v_event, null, 'vendor', 'ZZ VERIFY 079 ADMIN2 (DELETE ME)', 'ZZ', 'zz-verify-079-admin2@example.com', 50000, 'approved', 1, 0);
+  raise notice 'PASS E: two approved admin-added applications (user_id null) coexist for one event';
+
   delete from public.applications where business_name like 'ZZ VERIFY 079%';
   if exists (select 1 from public.applications where business_name like 'ZZ VERIFY 079%') then raise exception 'FAIL: fixtures not removed'; end if;
-  raise notice 'PASS C/D: fixtures removed';
+  raise notice 'PASS C/D/E: fixtures removed';
 end $$;
 
 -- ── Z. residue  (results grid; want zero rows)

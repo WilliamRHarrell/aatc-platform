@@ -173,7 +173,10 @@ export default function AdminBoothsPage() {
       const qty = sizeToQty[b.size]
       const { data: appRow, error: appErr } = await supabase.from('applications').insert({
         event_id: event.id,
-        user_id: adminUser.id,
+        // Not the admin's application: user_id stays NULL (015) so the one-
+        // active-application index (079) counts only applicants, and the
+        // exhibitor links their own account later.
+        user_id: null,
         exhibitor_type: addForm.exhibitor_type,
         business_name: addForm.business_name,
         contact_name: addForm.contact_name,

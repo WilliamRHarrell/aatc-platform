@@ -24,9 +24,22 @@
 --    canceled rows do not count, so a declined applicant can re-apply. The
 --    forms check first and point to the portal; the index is the guarantee.
 --
+-- 3. QUANTITIES. No check constraint ever forbade a negative booth quantity
+--    or corner count, and both pricing implementations summed the OTHER
+--    exhibitor type's columns into the booth count, so an artist row with
+--    vendor_single_qty = -1 zeroed its permit fees at an agreed total
+--    (security review, 2026-09-25). Checks below; the clamp also refuses an
+--    applicant insert with no booth at all.
+-- 4. UPDATE. The 041/043 owner clamp restored total_amount and the booth
+--    quantities but not add_ons or artist_count, so an owner could add paid
+--    add-ons or artists after inserting at the bare price. Both are restored
+--    for owners now. artist_count is what was PAID for; the roster panel's
+--    write of it is ignored for owners (needs_roster and artists still land).
+--
 -- POLICIES: none touched. CLAMPS: applications_force_safe_insert() = 077
--- body + the price refusal. applications_protect_staff_columns() unchanged
--- (it already restores total_amount and the quantities for owners).
+-- body + the price refusal + the booth-count refusal;
+-- applications_protect_staff_columns() = 077 body + add_ons and artist_count
+-- restored for owners.
 -- ============================================================
 begin;
 
@@ -86,6 +99,11 @@ grant  execute on function public.application_list_price(text,int,int,int,int,in
 comment on function public.application_list_price is
   'Mirror of src/lib/pricing.ts calculatePricing().total. verify_079_matrix.sql (generated from the TS) pins equality. Used by the insert clamp to refuse a client total.';
 
+-- ── 1b. Quantities cannot be negative ────────────────────────
+alter table public.applications drop constraint if exists applications_quantities_nonnegative;
+alter table public.applications add constraint applications_quantities_nonnegative
+  check (artist_single_qty >= 0 and artist_double_qty >= 0 and vendor_single_qty >= 0 and vendor_double_qty >= 0 and corner_count >= 0);
+
 -- ── 2. Insert clamp: 077 body + the price refusal ───────────
 create or replace function public.applications_force_safe_insert()
 returns trigger language plpgsql security definer
@@ -104,6 +122,11 @@ begin
   new.approved_at := null;
   new.deposit_due_at := null;
   new.final_due_at := null;
+  -- 079: an applicant must be buying at least one booth of their own type.
+  if (case when new.exhibitor_type = 'artist' then new.artist_single_qty + new.artist_double_qty
+           else new.vendor_single_qty + new.vendor_double_qty end) < 1 then
+    raise exception 'an application needs at least one booth' using errcode = 'check_violation';
+  end if;
   -- 079: the applicant's total must equal the list price. Refused, not
   -- corrected, so a form/function drift surfaces at once.
   v_price := public.application_list_price(new.exhibitor_type::text, new.artist_single_qty, new.artist_double_qty,
@@ -112,6 +135,53 @@ begin
     raise exception 'total_amount % does not match the list price % for this application', new.total_amount, v_price
       using errcode = 'check_violation';
   end if;
+  return new;
+end $$;
+
+-- ── 2b. Update clamp: 077 body + priced inputs restored for owners ──
+create or replace function public.applications_protect_staff_columns()
+returns trigger language plpgsql security definer
+set search_path = public, pg_catalog as $$
+declare roster_ok boolean;
+begin
+  if not (public.is_admin() or auth.uid() is null) then
+    new.status := old.status;  new.approved_at := old.approved_at;
+    new.deposit_due_at := old.deposit_due_at;  new.final_due_at := old.final_due_at;
+    new.total_amount := old.total_amount;  new.directory_override := old.directory_override;
+    new.is_veteran := old.is_veteran;  new.corner_count := old.corner_count;
+    new.artist_single_qty := old.artist_single_qty;  new.artist_double_qty := old.artist_double_qty;
+    new.vendor_single_qty := old.vendor_single_qty;  new.vendor_double_qty := old.vendor_double_qty;
+    new.user_id := old.user_id;  new.event_id := old.event_id;
+    new.exhibitor_type := old.exhibitor_type;
+    new.veteran_doc_verified_at := old.veteran_doc_verified_at;
+    new.veteran_doc_verified_by := old.veteran_doc_verified_by;
+    new.comped_at := old.comped_at;
+    new.comped_by := old.comped_by;
+    new.submission_receipt_sent_at := old.submission_receipt_sent_at;
+    -- 079: the priced inputs an owner could still change.
+    new.add_ons := old.add_ons;
+    new.artist_count := old.artist_count;
+    if old.needs_roster and not new.needs_roster then
+      if old.exhibitor_type = 'artist' then
+        roster_ok := new.artists is not null
+          and jsonb_typeof(new.artists) = 'array'
+          and jsonb_array_length(new.artists) > 0
+          and not exists (select 1 from jsonb_array_elements(new.artists) e
+                           where coalesce(e->>'id_url', '') = '');
+      else
+        roster_ok := coalesce(new.id_doc_url, '') <> '';
+      end if;
+      if not roster_ok then new.needs_roster := old.needs_roster; end if;
+    elsif not old.needs_roster and new.needs_roster then
+      new.needs_roster := old.needs_roster;
+    end if;
+  end if;
+
+  if new.veteran_id_url is distinct from old.veteran_id_url then
+    new.veteran_doc_verified_at := null;
+    new.veteran_doc_verified_by := null;
+  end if;
+
   return new;
 end $$;
 

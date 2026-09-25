@@ -112,7 +112,7 @@ begin
      is_veteran, veteran_id_url, vendor_single_qty, artist_count,
      veteran_doc_verified_at, veteran_doc_verified_by)
   values
-    (v_event, v_uid, 'vendor', 'ZZ VERIFY 071 (DELETE ME)', 'ZZ', 'zz-verify-071@example.com', 0, 'pending',
+    (v_event, v_uid, 'vendor', 'ZZ VERIFY 071 (DELETE ME)', 'ZZ', 'zz-verify-071@example.com', 35000, 'pending', -- 35000 = list price (single, veteran; 079 refuses an owner total that differs)
      true, 'zz/verify-071-veteran-id.png', 1, 0,
      now(), v_uid);
   reset role;

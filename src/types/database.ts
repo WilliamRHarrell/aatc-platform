@@ -98,7 +98,7 @@ export type Database = {
           total_amount: number
           tv_show: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
           vendor_double_qty: number
           vendor_single_qty: number
           veteran_id_url: string | null
@@ -144,7 +144,7 @@ export type Database = {
           total_amount: number
           tv_show?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
           vendor_double_qty?: number
           vendor_single_qty?: number
           veteran_id_url?: string | null
@@ -190,7 +190,7 @@ export type Database = {
           total_amount?: number
           tv_show?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
           vendor_double_qty?: number
           vendor_single_qty?: number
           veteran_id_url?: string | null
