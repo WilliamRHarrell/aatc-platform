@@ -352,9 +352,11 @@ contests, page_*, own reads) - by design or dead for anon; rewrite at leisure.
 
 ### 2026-09-25 Security 076 (plan: docs/superpowers/plans/2026-09-25-security-076.md)
 
-Branch `feat/security-076`. **Delivered, NOT APPLIED. APPLY AFTER PR 1
-(sponsor route) IS DEPLOYED**: 076 drops the sponsor anon INSERT, and the old
-browser insert would break.
+Branch `feat/security-076-v2` (PR #11 was merged into its stacked base by
+mistake, never develop; replayed onto develop 2026-09-25 - seven commits,
+ten files, nothing duplicated). **Delivered, NOT APPLIED.** PR #10 (the
+sponsor route) is deployed, so 076's drop of the sponsor anon INSERT is
+safe to apply now.
 
 - `076_aatc_submissions_pin_and_policy_hygiene.sql`: aatc_submissions pinned
   from the live catalog (Ryan, 2026-09-25: 13 columns, pkey, FK exhibitor_id
@@ -1065,6 +1067,7 @@ are about to do something in the left column, read the entry.
 | a write spanning a file and a row | **Rollback direction follows which failure is visible.** |
 | a constraint could be violated | **Make the invalid state unreachable**, not merely detectable. |
 | editing a migration | **Never edit one someone is partway through applying.** Add a new one. |
+| opening a PR that depends on another open PR | **Do not stack PRs.** Twice a stacked PR was merged into its base branch instead of develop (PR #2 into feat/tattoo-battle, PR #11 into feat/sponsor-submission-emails) and had to be replayed. Base every PR on develop; if it needs another PR's code, wait for that merge, or let the later PR carry the earlier commits and say so in its description. |
 | creating a function | **`revoke all from public` does not revoke anon.** Supabase's default privileges grant EXECUTE to anon, authenticated and service_role on creation; revoke from anon (and authenticated where it applies) BY NAME, then grant the intended roles. 035/039/072 shipped anon-executable; expire/cancel had no internal guard either. `function-grants.test.ts` enforces it from 073 on; `verify_073` pins the live anon list. |
 | replacing a view | **Read the live shape, not the last migration that touched it.** A file says what a shape was INTENDED to be; only the database says what it IS. 065 copied 047's column list, 047 turned out never to have been applied, and Postgres refused the whole statement with 42P16. Pin the list in a verify block afterwards. |
 | holding a migration | **A hold whose gate fails silently is indistinguishable from a hold nobody remembers.** The gate must FAIL LOUDLY or be CHECKED ON A SCHEDULE - recording it in a header is not enough. Full entry below. |
