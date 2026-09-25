@@ -12,7 +12,9 @@ import type { Database } from '@/types/database'
 // The booth forms insert from the browser as the signed-in applicant, so
 // the receipt is sent here, after the insert. Rules:
 //   - the caller must be signed in and must OWN the application (the read
-//     goes through the cookie client, so "applications: own read" decides);
+//     goes through the cookie client, so "applications: own read" decides),
+//     OR be an admin (role = 'admin'), who may send a missing receipt from the
+//     drawer for any application - the 2026-09-25 test row never got one;
 //   - ONCE per application: a compare-and-set on submission_receipt_sent_at
 //     (077) with the service role. A second call, or a race, sends nothing.
 //     Fail closed: if the mark cannot be recorded, nothing is sent;
@@ -33,8 +35,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Bad request' }, { status: 400 })
   }
 
-  // Ownership: the cookie client only returns rows the caller may read.
-  const { data: app, error: readErr } = await supabase.from('applications').select(COLS).eq('id', id).eq('user_id', user.id).maybeSingle()
+  // Ownership: the cookie client only returns rows the caller may read. An
+  // admin's "admin all" policy lets them read any row; the explicit user_id
+  // filter is dropped only for them.
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle()
+  const isAdmin = profile?.role === 'admin'
+  let query = supabase.from('applications').select(COLS).eq('id', id)
+  if (!isAdmin) query = query.eq('user_id', user.id)
+  const { data: app, error: readErr } = await query.maybeSingle()
   if (readErr) {
     if (readErr.code === '42703') return NextResponse.json({ error: 'Receipts are not enabled yet (migration 077)' }, { status: 503 })
     console.error(`[application-submitted] read ${readErr.code}: ${readErr.message}`)
