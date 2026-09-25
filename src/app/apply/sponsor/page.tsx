@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { SPONSOR_TIERS as TIER_INFO, ALL_TIERS, MAIN_TIERS, INDIVIDUAL_ITEMS, type SponsorTier } from '@/lib/sponsor-tiers'
 import PublicNav from '@/components/PublicNav'
+import HoneypotField from '@/components/HoneypotField'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
@@ -157,6 +158,10 @@ function PerksList({ tier }: { tier: SponsorTier }) {
 export default function SponsorApplicationPage() {
   const supabase = createClient()
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
+  // Bot trap (same as the pinup form): `website` in the POST body is the
+  // honeypot and must arrive empty; the real website field posts as websiteUrl.
+  const [honeypot, setHoneypot] = useState('')
+  const [mountedAt] = useState(() => Date.now())
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [submittedEmail, setSubmittedEmail] = useState('')
@@ -203,17 +208,6 @@ export default function SponsorApplicationPage() {
 
     setSubmitting(true)
     try {
-      // Fetch active event
-      const { data: event, error: eventErr } = await supabase
-        .from('events')
-        .select('id')
-        .eq('is_active', true)
-        .single()
-      if (eventErr || !event) {
-        toast.error('No active event found. Please try again later.')
-        return
-      }
-
       // Upload logo if provided
       let logo_url: string | null = null
       if (form.logo_file) {
@@ -224,41 +218,33 @@ export default function SponsorApplicationPage() {
         }
       }
 
-      // Determine primary tier: main tier if selected, otherwise highest-value item
-      const primaryTier = form.tier ?? form.items.sort((a, b) => TIER_INFO[b].amount - TIER_INFO[a].amount)[0]
-
-      // Additional items (individual items selected alongside the tier)
-      const additionalItems = form.items.length > 0 ? form.items : []
-
-      // .select() so a zero-row insert cannot look like a successful application.
-      const { data: insRows, error: insertErr } = await supabase.from('sponsorships').insert({
-        event_id: event.id,
-        sponsor_name: form.sponsor_name.trim(),
-        contact_name: form.contact_name.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim() || null,
-        website: form.website.trim() || null,
-        instagram: form.instagram.trim() || null,
-        facebook: form.facebook.trim() || null,
-        tier: primaryTier,
-        amount: totalAmount,
-        logo_url,
-        notes: form.notes.trim() || null,
-        additional_items: additionalItems,
-        status: 'pending',
-      }).select('id')
-
-      if (insertErr) {
-        console.error(insertErr)
-        toast.error('Submission failed. Please try again.')
+      // The route validates, prices from SPONSOR_TIERS, inserts with the
+      // service role and sends the receipts. Nothing is inserted from here.
+      const res = await fetch('/api/sponsor-apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sponsorName: form.sponsor_name,
+          contactName: form.contact_name,
+          email: form.email,
+          phone: form.phone,
+          websiteUrl: form.website,
+          instagram: form.instagram,
+          facebook: form.facebook,
+          tier: form.tier,
+          items: form.items,
+          logoUrl: logo_url,
+          notes: form.notes,
+          website: honeypot,
+          elapsedMs: Date.now() - mountedAt,
+        }),
+      })
+      const json = (await res.json().catch(() => ({}))) as { error?: string; fieldErrors?: Record<string, string> }
+      if (!res.ok) {
+        const first = json.fieldErrors ? Object.values(json.fieldErrors)[0] : undefined
+        toast.error(first ?? json.error ?? 'Submission failed. Please try again.')
         return
       }
-    if (!insertErr && (!insRows || insRows.length === 0)) {
-      console.error('[sponsorship application] 0 rows inserted - no error returned')
-      toast.error('Nothing was saved. Please try again or contact us.')
-      return
-    }
-
 
       setSubmittedEmail(form.email.trim())
       setSubmitted(true)
@@ -552,6 +538,7 @@ export default function SponsorApplicationPage() {
           </section>
 
           {/* ── Submit ─────────────────────────────────────── */}
+          <HoneypotField value={honeypot} onChange={setHoneypot} />
           <button
             type="submit"
             disabled={submitting}
