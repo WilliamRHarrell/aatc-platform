@@ -171,30 +171,23 @@ select tablename, policyname, cmd, roles::text, coalesce(with_check, qual) as ex
    and ('anon' = any(roles) or roles = '{public}')
  order by tablename, policyname;
 do $$
-declare
-  known text[] := array[
-    'applications|applications: admin all', 'applications|applications: own insert',
-    'booths|booths: admin write', 'contest_entries|contest_entries: admin write',
-    'events|events: admin write', 'exhibitors|exhibitors: admin write',
-    'food_trucks|Vendors update own food_truck', 'invoices|invoices: admin all',
-    'panel_registrations|panel_registrations: admin all',
-    'profiles|profiles: admin update all', 'profiles|profiles: own update',
-    'sponsorships|Anyone can submit sponsor application', 'sponsorships|sponsorships: admin write'
-  ];
-  extra text; gone text;
+declare intake text; anon_writes text;
 begin
-  if exists (select 1 from pg_policies where schemaname = 'public' and tablename in ('pinup_entries','panel_registrations')
-               and cmd in ('INSERT','UPDATE','DELETE','ALL') and ('anon' = any(roles) or roles = '{public}')
-               and policyname not in ('panel_registrations: admin all')) then
-    raise exception 'FAIL F4: an anon-reachable write policy remains on pinup_entries / panel_registrations';
+  -- Hard rule, from the catalog: nothing anon-reachable writes the two intake tables.
+  intake := (select string_agg(tablename || ': ' || policyname, ', ') from pg_policies
+              where schemaname = 'public' and tablename in ('pinup_entries', 'panel_registrations')
+                and cmd <> 'SELECT' and ('anon' = any(roles) or roles = '{public}'));
+  if intake is not null then raise exception 'FAIL F4: anon-reachable write policy on an intake table: %', intake; end if;
+  -- Everything else is printed above and summarised here; no hardcoded list
+  -- (Ryan, 2026-09-25). 075 removes the PUBLIC scoping; 076 removes the last anon write.
+  anon_writes := (select string_agg(tablename || ': ' || policyname || ' (' || cmd || ', ' || roles::text || ')', ', ') from pg_policies
+                   where schemaname = 'public' and cmd <> 'SELECT' and ('anon' = any(roles) or roles = '{public}'));
+  if anon_writes is not null then
+    raise notice 'REVIEW F4: anon-reachable write policies live now: %', anon_writes;
+  else
+    raise notice 'PASS F4: no anon-reachable write policy in public';
   end if;
-  extra := (select string_agg(tablename || '|' || policyname, ', ') from pg_policies
-             where schemaname = 'public' and cmd <> 'SELECT' and ('anon' = any(roles) or roles = '{public}')
-               and not ((tablename || '|' || policyname) = any(known)));
-  if extra is not null then raise notice 'REVIEW F4: anon-reachable write policies not in the known list (new since 2026-09-24?): %', extra; end if;
-  gone := (select string_agg(k, ', ') from unnest(known) k where not exists (select 1 from pg_policies where schemaname = 'public' and (tablename || '|' || policyname) = k));
-  if gone is not null then raise notice 'REVIEW F4: known policies not found live: %', gone; end if;
-  raise notice 'PASS F4: no anon-reachable write on the two intake tables. Of the known list, every policy except sponsorships insert requires auth.uid() or is_admin() and is dead for anon; the sponsor insert is by design (/apply/sponsor, clamped by 049). All are PUBLIC-scoped by omission - rewrite `to authenticated` in 075.';
+  raise notice 'PASS F4: intake tables closed to anon writes';
 end $$;
 
 -- ── Z. residue  (results grid; want zero rows)
