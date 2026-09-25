@@ -1454,6 +1454,32 @@ export type Database = {
         }
         Relationships: []
       }
+      /** Migration 075 - the directory read model; the only public read of applications. */
+      applications_public: {
+        Row: {
+          id: string
+          event_id: string
+          status: Database["public"]["Enums"]["application_status"]
+          exhibitor_type: Database["public"]["Enums"]["exhibitor_type"]
+          business_name: string
+          booth_size: Database["public"]["Enums"]["booth_size"] | null
+          artist_single_qty: number
+          artist_double_qty: number
+          vendor_single_qty: number
+          vendor_double_qty: number
+          corner_count: number
+          artist_count: number
+          instagram: string | null
+          website: string | null
+          facebook: string | null
+          phone: string | null
+          artists: Json | null
+          tv_show: string | null
+          logo_url: string | null
+          portfolio_image_urls: string[] | null
+        }
+        Relationships: []
+      }
       exhibitors_public: {
         Row: {
           id: string
