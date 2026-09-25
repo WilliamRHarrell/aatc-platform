@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { spotsRemaining } from '@/lib/pinup-capacity'
 import { createClient } from '@/lib/supabase'
+import AddPinupEntry from '@/components/admin/AddPinupEntry'
 
 // Pinup contest entries. Read through the admin layout's auth gate; the table's
 // SELECT policy is admin-only, so a non-admin session sees zero rows rather
@@ -35,6 +36,7 @@ export default function AdminPinupPage() {
   const [entries, setEntries] = useState<Entry[] | null>(null)
   // events.pinup_capacity (074) - the number's one home. Null until 074 is applied.
   const [capacity, setCapacity] = useState<number | null>(null)
+  const [eventId, setEventId] = useState<string | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
   const [sort, setSort] = useState<SortKey>('created_at')
   const [asc, setAsc] = useState(true)
@@ -43,11 +45,12 @@ export default function AdminPinupPage() {
     const supabase = createClient()
     // The cap, from its one home. A missing column (074 not applied) reads as
     // null and the cards say so instead of inventing a number.
-    supabase.from('events').select('pinup_capacity').eq('is_active', true).maybeSingle()
+    supabase.from('events').select('id, pinup_capacity').eq('is_active', true).maybeSingle()
       .then(({ data, error }) => {
         if (error) { console.error(`[admin/pinup] capacity: ${error.code}: ${error.message}`); return }
-        const v = (data as { pinup_capacity?: number } | null)?.pinup_capacity
-        if (typeof v === 'number') setCapacity(v)
+        const row = data as { id?: string; pinup_capacity?: number } | null
+        if (row?.id) setEventId(row.id)
+        if (typeof row?.pinup_capacity === 'number') setCapacity(row.pinup_capacity)
       })
     supabase
       .from('pinup_entries')
@@ -115,6 +118,11 @@ export default function AdminPinupPage() {
           </div>
         ))}
       </div>
+
+      {!failed && (
+        <AddPinupEntry taken={taken} capacity={capacity} eventId={eventId}
+          onAdded={row => setEntries(prev => [row, ...(prev ?? [])])} />
+      )}
 
       {failed && (
         <p className="mt-6 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: 'rgba(239,68,68,0.12)', color: '#fca5a5' }}>

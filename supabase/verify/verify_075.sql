@@ -115,19 +115,28 @@ begin
   raise notice 'PASS E: no id_url in any view artists element (% rows checked)', (select count(*) from public.applications_public);
 end $$;
 
--- ── F. no PUBLIC-scoped WRITE policy remains; SELECT ones listed  (grid + NOTICE)
+-- ── F. write policies by role, FROM THE CATALOG  (grid + NOTICE)
+-- No hardcoded policy list (Ryan, 2026-09-25). Hard rule: no write policy in
+-- public is PUBLIC-scoped (no TO clause). Anon-reachable writes are printed
+-- and reported by count; 076 takes that count to zero and asserts it.
 select tablename, policyname, cmd, roles::text from pg_policies
- where schemaname = 'public' and roles = '{public}' order by cmd, tablename, policyname;
+ where schemaname = 'public' and cmd <> 'SELECT' and ('anon' = any(roles) or roles = '{public}')
+ order by tablename, policyname;
 do $$
-declare bad text; sel text;
+declare bad text; anon_writes text; sel text;
 begin
   bad := (select string_agg(tablename || ': ' || policyname, ', ') from pg_policies
            where schemaname = 'public' and roles = '{public}' and cmd <> 'SELECT');
   if bad is not null then raise exception 'FAIL F: PUBLIC-scoped write policies remain: %', bad; end if;
-  if (select roles::text from pg_policies where schemaname = 'public' and policyname = 'Anyone can submit sponsor application') <> '{anon,authenticated}' then
-    raise exception 'FAIL F: sponsor insert policy is not scoped to anon + authenticated';
+  anon_writes := (select string_agg(tablename || ': ' || policyname || ' (' || cmd || ')', ', ') from pg_policies
+                   where schemaname = 'public' and cmd <> 'SELECT' and 'anon' = any(roles));
+  if anon_writes is not null then
+    raise notice 'REVIEW F: policies that grant anon a write: % - expected only the sponsor insert until 076 is applied, none after', anon_writes;
+  else
+    raise notice 'PASS F: no policy grants anon a write';
   end if;
   sel := (select string_agg(tablename || ': ' || policyname, ', ') from pg_policies where schemaname = 'public' and roles = '{public}' and cmd = 'SELECT');
-  if sel is not null then raise notice 'REVIEW F: PUBLIC-scoped SELECT policies (by design for public reads; owner reads are dead for anon): %', sel; end if;
+  if sel is not null then raise notice 'REVIEW F: PUBLIC-scoped SELECT policies (public reads by design; owner reads are dead for anon): %', sel; end if;
   raise notice 'PASS F: every write policy in public names its roles';
 end $$;
+

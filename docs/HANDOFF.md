@@ -107,7 +107,8 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **065** | **APPLIED + VERIFIED** 2026-08-31 | dual-read. Rejected on its FIRST run with `42P16` because its column list came from unapplied 047; fixed to the live shape and re-run. Verified by Ryan via `verify_065.sql` (four credits, all `source = 'fallback'`) and by re-fetching the three pages against a pre-064 baseline. |
 | 066-068 | present on develop before 2026-09-23 | `sponsorship_is_custom`, `placement_check_runs`, `payment_method_square`. Not re-audited in the 2026-09-23 sessions; their tables/columns are read by live code. |
 | **069** | **APPLIED + VERIFIED** 2026-09-23 | Tattoo Battle: `tattoo_battle_entries`, bucket `tattoo-battle-media`, `set_tattoo_battle_champion()`, slot `tattoo-battle-veteran-ink`. Ryan ran `verify_069.sql`: fixtures_remaining = 0, no raise. |
-| **075** | **NOT APPLIED** (delivered 2026-09-24) | `applications_public` view; public read policy dropped; anon off the table; staff read policy; 13 write policies re-scoped. Run `verify_075.sql`. Apply BEFORE deploying the branch (directory reads the view). |
+| **076** | **NOT APPLIED** (delivered 2026-09-25) | aatc_submissions pinned + 4 policies to authenticated; admin pinup insert; sponsor anon insert dropped. APPLY AFTER PR 1 DEPLOYS. Run `verify_076.sql`. |
+| **075** | **APPLIED** 2026-09-24 (Ryan; verify_075 A-E passed, F failed only on aatc_submissions - fixed by 076) | `applications_public` view; public read policy dropped; anon off the table; staff read policy; 13 write policies re-scoped. Run `verify_075.sql`. Apply BEFORE deploying the branch (directory reads the view). |
 | **074** | **APPLIED** 2026-09-24 (Ryan). verify_074 first run failed on its own fixture; PR #8 fixes it - re-run. | `events.pinup_capacity`; register_pinup_entry parameter-free + service_role only; pinup_spots_remaining(uuid); two anon INSERT policies dropped; anon column grant on applications. Run `verify_074.sql` (includes the grant audit). |
 | **073** | **APPLIED** 2026-09-24 (Ryan; verify_073 exact, verify_072 re-run PASS) | anon/PUBLIC EXECUTE revoked on the seven non-anon functions; expire/cancel gain an internal guard. Run `verify_073.sql`, then re-run `verify_072.sql`. |
 | **072** | **APPLIED** 2026-09-24 (Ryan) | `comp_2026_09_24.sql` RUN, both rows correct. `verify_072` ABORTED at block B (anon grant; see 073) - re-run after 073. |
@@ -348,6 +349,52 @@ filter on and none of the withheld ones, and only admin/api/portal/apply
 
 **Deferred, listed by verify_075 F:** PUBLIC-scoped SELECT policies (events,
 contests, page_*, own reads) - by design or dead for anon; rewrite at leisure.
+
+### 2026-09-25 Security 076 (plan: docs/superpowers/plans/2026-09-25-security-076.md)
+
+Branch `feat/security-076-v2` (PR #11 was merged into its stacked base by
+mistake, never develop; replayed onto develop 2026-09-25 - seven commits,
+ten files, nothing duplicated). **Delivered, NOT APPLIED.** PR #10 (the
+sponsor route) is deployed, so 076's drop of the sponsor anon INSERT is
+safe to apply now.
+
+- `076_aatc_submissions_pin_and_policy_hygiene.sql`: aatc_submissions pinned
+  from the live catalog (Ryan, 2026-09-25: 13 columns, pkey, FK exhibitor_id
+  -> auth.users on delete cascade, FK reviewed_by -> auth.users) with its FOUR
+  policies re-created verbatim `to authenticated` ("admins read all",
+  "admins update all", "exhibitors insert own", "exhibitors read own"); NEW
+  "admins insert pinup entries" (is_admin()); "Anyone can submit sponsor
+  application" DROPPED. After 076 no policy in public grants anon a write.
+- `verify_076.sql`: A shape + FKs + RLS, B four policies authenticated with
+  bodies intact, C admin pinup insert, D zero anon-reachable writes FROM THE
+  CATALOG, E a signed-in non-owner (the RLS harness user) sees 0 applications,
+  0 invoices, 0 pinup entries, 0 panel registrations, 0 aatc submissions and
+  exactly 1 profile (their own), with ZZ fixtures written and removed so the
+  zeros are refusals. Positive controls on live counts.
+- verify_075 block F and verify_074 block F4 no longer carry a policy list;
+  both read pg_policies and print what they find (hard rules kept: no
+  PUBLIC-scoped write; no anon write on the intake tables).
+- `/admin/pinup` "Add entry by hand" (`AddPinupEntry`): confirmed or waitlist
+  chosen explicitly, current count and capacity shown, no email, admin
+  attests age + likeness release (055 timestamp). The registration function
+  stays service-role only.
+
+**is_admin() vs the inline check on aatc_submissions:** both evaluate
+`exists (select 1 from profiles where id = auth.uid() and role = 'admin')`.
+is_admin() (027) is SECURITY DEFINER with a pinned search_path and reads
+profiles as the owner; the inline form runs as the caller under profiles'
+own-read policy, which still lets a user see their own row, so the RESULT is
+identical for every role today. is_admin() is the safer form (no dependence
+on the profiles read policy, no search_path exposure); switching later is a
+one-line policy edit with no behaviour change. Kept verbatim in 076 so the
+migration changes scope only.
+
+**Non-owner read pattern, what was checked (2026-09-25, from migrations +
+verify_076 E live once run):** invoices = owner via owns_invoice() or admin;
+pinup_entries = admin only; panel_registrations = admin only (no owner read
+exists); profiles = own row + admin; applications = own, admin, staff
+directory rows; aatc_submissions = own + admin. No table lets a signed-in
+non-owner read another person's row.
 
 ### 2026-09-24 Pinup capacity one home + public grant audit (migration 074; plan: docs/superpowers/plans/2026-09-24-pinup-capacity-and-grant-audit.md)
 
@@ -1020,6 +1067,7 @@ are about to do something in the left column, read the entry.
 | a write spanning a file and a row | **Rollback direction follows which failure is visible.** |
 | a constraint could be violated | **Make the invalid state unreachable**, not merely detectable. |
 | editing a migration | **Never edit one someone is partway through applying.** Add a new one. |
+| opening a PR that depends on another open PR | **Do not stack PRs.** Twice a stacked PR was merged into its base branch instead of develop (PR #2 into feat/tattoo-battle, PR #11 into feat/sponsor-submission-emails) and had to be replayed. Base every PR on develop; if it needs another PR's code, wait for that merge, or let the later PR carry the earlier commits and say so in its description. |
 | creating a function | **`revoke all from public` does not revoke anon.** Supabase's default privileges grant EXECUTE to anon, authenticated and service_role on creation; revoke from anon (and authenticated where it applies) BY NAME, then grant the intended roles. 035/039/072 shipped anon-executable; expire/cancel had no internal guard either. `function-grants.test.ts` enforces it from 073 on; `verify_073` pins the live anon list. |
 | replacing a view | **Read the live shape, not the last migration that touched it.** A file says what a shape was INTENDED to be; only the database says what it IS. 065 copied 047's column list, 047 turned out never to have been applied, and Postgres refused the whole statement with 42P16. Pin the list in a verify block afterwards. |
 | holding a migration | **A hold whose gate fails silently is indistinguishable from a hold nobody remembers.** The gate must FAIL LOUDLY or be CHECKED ON A SCHEDULE - recording it in a header is not enough. Full entry below. |
