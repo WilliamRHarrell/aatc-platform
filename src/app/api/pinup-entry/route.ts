@@ -5,6 +5,9 @@ import { guardedWrite } from '@/lib/db-write'
 import { PINUP_REGISTRATION_OPEN, AATC_MAILING_ADDRESS } from '@/lib/event-config'
 import { botTrapRejection } from '@/lib/bot-trap'
 import { capacityCopy } from '@/lib/pinup-capacity'
+import { CONTACT_EMAIL } from '@/lib/event-config'
+import { internalNewPinupEmail } from '@/lib/email-templates'
+import { sendTransactional } from '@/lib/transactional-email'
 
 // POST /api/pinup-entry - Miss AATC Pinup Contest intake.
 //
@@ -244,6 +247,14 @@ export async function POST(req: NextRequest) {
     await sendConfirmation(email, fullName, status, marketingOptIn, capacity)
   } catch (e) {
     console.error(`[pinup-entry] entry ${String((row as { id?: string } | undefined)?.id)} saved but confirmation email failed: ${String(e)}`)
+  }
+  // Internal notice to CONTACT_EMAIL (Ryan, 2026-09-25). Same rule: never fails the request.
+  try {
+    const qp = (row as { queue_position?: unknown } | undefined)?.queue_position
+    await sendTransactional(CONTACT_EMAIL, `New pinup registration: ${fullName} (${status})`,
+      internalNewPinupEmail({ fullName, stageName: stageName || null, email, phone: phone ?? phoneRaw, status, queuePosition: typeof qp === 'number' ? qp : null, capacity }))
+  } catch (e) {
+    console.error(`[pinup-entry] entry ${String((row as { id?: string } | undefined)?.id)} saved but the internal notice failed: ${String(e)}`)
   }
 
   return NextResponse.json({ status })
