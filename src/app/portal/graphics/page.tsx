@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase'
+import { graphicsEligibility, ELIGIBILITY_COPY, type GraphicsEligibility } from '@/lib/graphics-eligibility'
 import {
   loadImage, loadBarbaro, renderAnnouncement, renderTattooCard,
   renderVerticalCard, canvasToBlob,
@@ -38,6 +39,8 @@ export default function PortalGraphicsPage() {
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState('')
   const [mine, setMine] = useState<MySubmission[]>([])
+  // Approved + secured booth only (graphics-eligibility.ts). Null while loading.
+  const [eligibility, setEligibility] = useState<GraphicsEligibility | null>(null)
 
   // Gate: must be logged in
   useEffect(() => {
@@ -45,6 +48,13 @@ export default function PortalGraphicsPage() {
       if (!user) { router.push('/auth/login?redirect=/portal/graphics'); return }
       setAuthChecked(true)
       loadMine(user.id)
+      // Own rows only, by RLS (own read on applications, owns_invoice on invoices).
+      Promise.all([
+        supabase.from('applications').select('id, status, comped_at, directory_override').eq('user_id', user.id),
+        supabase.from('invoices').select('application_id, deposit_paid_at'),
+      ]).then(([a, i]) => {
+        setEligibility(graphicsEligibility((a.data ?? []) as Parameters<typeof graphicsEligibility>[0], (i.data ?? []) as Parameters<typeof graphicsEligibility>[1]))
+      })
     })
     loadBarbaro().then(() => setFontReady(true))
   }, [])
@@ -151,6 +161,11 @@ export default function PortalGraphicsPage() {
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: 24, color: '#eee', fontFamily: 'Barlow, system-ui' }}>
       <h1 style={{ letterSpacing: 1 }}>Submit Graphics</h1>
+      {eligibility !== null && eligibility !== 'eligible' && (
+        <div style={{ margin: '12px 0 20px', padding: '14px 16px', borderRadius: 12, background: '#1a1a1a', border: '1px solid #8B7355', color: '#C4A882', fontSize: 14, lineHeight: 1.6 }}>
+          {ELIGIBILITY_COPY[eligibility]}
+        </div>
+      )}
       <p style={{ color: '#999', marginTop: -6, marginBottom: 20, fontSize: 14 }}>
         Upload your photo and 3 tattoos, generate your AATC announcement set, then send it to us to post.
       </p>
@@ -178,10 +193,10 @@ export default function PortalGraphicsPage() {
       </div>
 
       <div style={{ marginTop: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-        <button disabled={!ready || busy} onClick={generate} style={btn(ready && !busy)}>
+        <button disabled={!ready || busy || eligibility !== 'eligible'} onClick={generate} style={btn(ready && !busy && eligibility === 'eligible')}>
           Generate
         </button>
-        <button disabled={squareBlobs.length !== 4 || busy} onClick={sendToAATC} style={btn(squareBlobs.length === 4 && !busy)}>
+        <button disabled={squareBlobs.length !== 4 || busy || eligibility !== 'eligible'} onClick={sendToAATC} style={btn(squareBlobs.length === 4 && !busy && eligibility === 'eligible')}>
           Send to AATC to Post
         </button>
         <span style={{ fontSize: 13, opacity: 0.85 }}>{status}</span>

@@ -107,7 +107,8 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **065** | **APPLIED + VERIFIED** 2026-08-31 | dual-read. Rejected on its FIRST run with `42P16` because its column list came from unapplied 047; fixed to the live shape and re-run. Verified by Ryan via `verify_065.sql` (four credits, all `source = 'fallback'`) and by re-fetching the three pages against a pre-064 baseline. |
 | 066-068 | present on develop before 2026-09-23 | `sponsorship_is_custom`, `placement_check_runs`, `payment_method_square`. Not re-audited in the 2026-09-23 sessions; their tables/columns are read by live code. |
 | **069** | **APPLIED + VERIFIED** 2026-09-23 | Tattoo Battle: `tattoo_battle_entries`, bucket `tattoo-battle-media`, `set_tattoo_battle_champion()`, slot `tattoo-battle-veteran-ink`. Ryan ran `verify_069.sql`: fixtures_remaining = 0, no raise. |
-| **077** | **NOT APPLIED** (delivered 2026-09-25, PR #12) | `applications.submission_receipt_sent_at` + clamps (072 bodies + one line each; 076 does not touch the clamps, so 076 then 077 applies in either order). Apply with the PR #12 deploy. Run `verify_077.sql`. |
+| **078** | **NOT APPLIED** (delivered 2026-09-25) | storage: "exhibitor-media: own aatc-graphics insert". Run `verify_078.sql` and `node scripts/verify-graphics-owner.mjs`. |
+| **077** | **APPLIED** 2026-09-25 (Ryan; verify_077 PASSED) | `applications.submission_receipt_sent_at` + clamps (072 bodies + one line each; 076 does not touch the clamps, so 076 then 077 applies in either order). Apply with the PR #12 deploy. Run `verify_077.sql`. |
 | **076** | **NOT APPLIED** (delivered 2026-09-25) | aatc_submissions pinned + 4 policies to authenticated; admin pinup insert; sponsor anon insert dropped. APPLY AFTER PR 1 DEPLOYS. Run `verify_076.sql`. |
 | **075** | **APPLIED** 2026-09-24 (Ryan; verify_075 A-E passed, F failed only on aatc_submissions - fixed by 076) | `applications_public` view; public read policy dropped; anon off the table; staff read policy; 13 write policies re-scoped. Run `verify_075.sql`. Apply BEFORE deploying the branch (directory reads the view). |
 | **074** | **APPLIED** 2026-09-24 (Ryan). verify_074 first run failed on its own fixture; PR #8 fixes it - re-run. | `events.pinup_capacity`; register_pinup_entry parameter-free + service_role only; pinup_spots_remaining(uuid); two anon INSERT policies dropped; anon column grant on applications. Run `verify_074.sql` (includes the grant audit). |
@@ -311,6 +312,40 @@ own change at 21:22 - so an admin saved each with `none` in between. No
 audit log exists to say who. **`max_capacity` NULL means unlimited**, and so
 does a number: `/api/panel-register` deliberately makes no capacity check on
 free registrations (its comment: capacity is a planning target, not a gate).
+### 2026-09-25 Submit Graphics failed for exhibitors (fix/graphics-upload, migration 078)
+
+Ryan, signed in as the non-admin test exhibitor: /portal/graphics -> "new row
+violates row-level security policy". **It is the STORAGE upload, not the
+table insert.** The page uploads to `exhibitor-media/aatc-graphics/<auth.uid()>/`
+first and inserts `aatc_submissions` after; the only owner INSERT policy on
+that bucket (048) allows `profiles/<uid>/` and its comment says it keeps
+exhibitors out of `aatc-graphics` on purpose - written before /portal/graphics
+existed. Reproduced live with a temporary non-admin user
+(`scripts/verify-graphics-owner.mjs`): own-folder upload 403 RLS, other
+folder 403, own `aatc_submissions` insert 201, other exhibitor_id 403. So
+**076 did not break it** (the table policies work for the owner) and it was
+broken for every exhibitor since the page shipped. The portal sends
+`exhibitor_id = user.id`, which matches `auth.uid()`; no mismatch.
+**Delivered, NOT APPLIED:** `078_graphics_owner_upload.sql` adds
+"exhibitor-media: own aatc-graphics insert" (INSERT to authenticated, scoped
+to `aatc-graphics/<own uid>/`, same shape as 048). `verify_078.sql` asserts
+the storage policy from pg_policies only (its first version wrote to
+storage.objects and Supabase's storage.protect_delete refused the cleanup
+with 42501 - a verify must never write storage tables; the aborted DO block
+left nothing behind) and, as the harness user, inserts an own
+aatc_submissions row (removed) and is refused for another exhibitor_id.
+`node scripts/verify-graphics-owner.mjs` is the real Storage API path (it
+makes and removes its own user); it FAILED on the first step until 078 was
+applied and shows 4 PASS after (Ryan, 2026-09-25) - that script is the
+regression check.
+**Gating (was: signed-in only).** Now the page reads the caller's own
+applications and invoices and shows an explanation instead of the form
+unless one application is APPROVED and the booth is SECURED (deposit
+recorded, comped, or directory override) - the public directory's rule, so a
+graphic never advertises a booth that could still expire.
+`graphics-eligibility.ts` + tests. Ryan's test account (pending, no invoice)
+sees "still being reviewed"; that was the state when the error appeared.
+NOT verified in a browser (previews are behind Vercel Authentication).
 
 ### 2026-09-25 Booth + panel submission emails (PR 1b; plan: docs/superpowers/plans/2026-09-25-submission-emails-1b.md)
 
@@ -1151,6 +1186,7 @@ are about to do something in the left column, read the entry.
 | touching `sponsorships` | **Run it against Tattoo Goo first.** One row, one query. It has surfaced five defects before any of them fired, because every assumption the system makes about a sponsorship is false for it. Full section below. |
 | a fallback image or value | **No placeholder humans applies to BRANDS, and to any medium.** Substituting a real entity's asset as a default is the same failure whatever the medium. **A fallback asset must be GENERATED OR NEUTRAL, never borrowed from real content** - the footer's placeholder was picked from the site's own assets, which is exactly how a real business's mark becomes a default nobody notices. Render the name, not a borrowed asset. |
 | a path that has never run | **That is where the next defect sits.** `featured_footer` had never rendered a real sponsor, and the never-executed branch held the cross-brand placeholder. Inspect never-executed paths BEFORE the first real execution, not after. |
+| a verify that touches storage | **Never write storage.objects from SQL.** Supabase's storage.protect_delete refuses it (42501, verify_078's first run) and a direct insert would leave a record with no file. Assert storage policies from pg_policies; exercise uploads through the Storage API (scripts/verify-graphics-owner.mjs pattern). |
 | a verify that passes on a view | **Row counts and values do not check SHAPE.** A view can return the right rows with the right credits and be missing a column entirely. `create or replace` refuses a drop, but a DROP + CREATE does not. Assert the column list and order. |
 | moving hardcoded content into a table | **Confirm the new source matches the old BEFORE deleting the old.** |
 | writing a plpgsql function | **RETURNS TABLE columns become OUT variables** - qualify every column reference. And **a verify block must CALL the function**, not just describe it. |
