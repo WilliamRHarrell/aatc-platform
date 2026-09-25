@@ -487,6 +487,10 @@ export default function ArtistApplyForm({ content }: { content: ApplyFormContent
       )
     }
 
+    // Receipt + internal notice, sent server-side once per application (077).
+    fetch('/api/application-submitted', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ applicationId: appRow.id }) })
+      .catch(err => console.error('Receipt request failed:', err))
+
     setSubmitted(true)
   }
 

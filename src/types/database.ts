@@ -106,6 +106,7 @@ export type Database = {
           veteran_doc_verified_by: string | null
           comped_at: string | null
           comped_by: string | null
+          submission_receipt_sent_at: string | null
           website: string | null
         }
         Insert: {
@@ -151,6 +152,7 @@ export type Database = {
           veteran_doc_verified_by?: string | null
           comped_at?: string | null
           comped_by?: string | null
+          submission_receipt_sent_at?: string | null
           website?: string | null
         }
         Update: {
@@ -196,6 +198,7 @@ export type Database = {
           veteran_doc_verified_by?: string | null
           comped_at?: string | null
           comped_by?: string | null
+          submission_receipt_sent_at?: string | null
           website?: string | null
         }
         Relationships: [

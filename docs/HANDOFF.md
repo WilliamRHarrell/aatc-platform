@@ -107,6 +107,7 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **065** | **APPLIED + VERIFIED** 2026-08-31 | dual-read. Rejected on its FIRST run with `42P16` because its column list came from unapplied 047; fixed to the live shape and re-run. Verified by Ryan via `verify_065.sql` (four credits, all `source = 'fallback'`) and by re-fetching the three pages against a pre-064 baseline. |
 | 066-068 | present on develop before 2026-09-23 | `sponsorship_is_custom`, `placement_check_runs`, `payment_method_square`. Not re-audited in the 2026-09-23 sessions; their tables/columns are read by live code. |
 | **069** | **APPLIED + VERIFIED** 2026-09-23 | Tattoo Battle: `tattoo_battle_entries`, bucket `tattoo-battle-media`, `set_tattoo_battle_champion()`, slot `tattoo-battle-veteran-ink`. Ryan ran `verify_069.sql`: fixtures_remaining = 0, no raise. |
+| **077** | **NOT APPLIED** (delivered 2026-09-25, PR #12) | `applications.submission_receipt_sent_at` + clamps (072 bodies + one line each; 076 does not touch the clamps, so 076 then 077 applies in either order). Apply with the PR #12 deploy. Run `verify_077.sql`. |
 | **076** | **NOT APPLIED** (delivered 2026-09-25) | aatc_submissions pinned + 4 policies to authenticated; admin pinup insert; sponsor anon insert dropped. APPLY AFTER PR 1 DEPLOYS. Run `verify_076.sql`. |
 | **075** | **APPLIED** 2026-09-24 (Ryan; verify_075 A-E passed, F failed only on aatc_submissions - fixed by 076) | `applications_public` view; public read policy dropped; anon off the table; staff read policy; 13 write policies re-scoped. Run `verify_075.sql`. Apply BEFORE deploying the branch (directory reads the view). |
 | **074** | **APPLIED** 2026-09-24 (Ryan). verify_074 first run failed on its own fixture; PR #8 fixes it - re-run. | `events.pinup_capacity`; register_pinup_entry parameter-free + service_role only; pinup_spots_remaining(uuid); two anon INSERT policies dropped; anon column grant on applications. Run `verify_074.sql` (includes the grant audit). |
@@ -272,6 +273,36 @@ this section is now history; develop has all of it. The next branch is
   under older hashes.
 - Until #3 merges, anything below that says "on develop" about after parties,
   venues, Part A, the About CMS or the lockup is on `feat/post-launch-fixes`.
+
+### 2026-09-25 Booth + panel submission emails (PR 1b; plan: docs/superpowers/plans/2026-09-25-submission-emails-1b.md)
+
+Stacked on PR 1. **Migration 077 delivered, NOT APPLIED**:
+`applications.submission_receipt_sent_at` + both clamps (owners cannot set or
+clear it; nulled on insert). `verify_077.sql` proves the clamp and the
+once-only compare-and-set. **Apply 077 with the deploy**: until it exists,
+`/api/application-submitted` answers 503 and sends nothing (fail closed);
+panel receipts need no migration.
+
+- Booth forms (artist + vendor) call `POST /api/application-submitted`
+  after their insert. The route reads the row through the caller's session
+  (ownership by RLS), compare-and-sets the mark with the service role, then
+  sends `applicationReceivedEmail` (booth, artists, list total, "nothing is
+  due now") and `internalNewApplicationEmail` to CONTACT_EMAIL (contact,
+  booth, veteran discount claimed or not, admin link). A second call sends
+  nothing.
+- `/api/panel-register` sends `panelRegisteredEmail` (free: registered;
+  invoice: saved, confirmed on payment) and the internal notice after each
+  successful insert.
+- After this every public form sends a receipt and an internal notice:
+  sponsor (PR 1), pinup (051 + PR 1), booth and panel (PR 1b).
+- Security review of 1b: the panel route had no email validation at all
+  (an array of 50 addresses would have reached Resend as 50 recipients).
+  Fixed: strings only + the same regex as pinup; `sendTransactional` refuses
+  anything but one address and strips newlines from subjects; the invoice
+  receipt now goes out after the Stripe session exists. Pre-existing and
+  noted, not fixed: booth `total_amount` is client-set on insert (the receipt
+  echoes it; approval re-reads the row) and a signed-in user may create many
+  applications, each with one receipt.
 
 ### 2026-09-25 Sponsor submission emails (PR 1; plan: docs/superpowers/plans/2026-09-25-sponsor-submission-emails.md)
 
