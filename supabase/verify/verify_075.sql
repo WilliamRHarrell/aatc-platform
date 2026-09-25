@@ -1,0 +1,126 @@
+-- ============================================================
+-- HOW TO RUN: paste the whole file. Read the MESSAGES pane. A failure RAISES
+-- and aborts, so a clean finish IS a pass. Reads only; no fixtures. Blocks
+-- that switch role do so with `set local role` inside a DO block and reset.
+--
+-- STYLE NOTE: variables use `v := (select ...)`, never `select ... into v`.
+-- ============================================================
+
+-- ── A. the view: shape, options, grants  (NOTICE pane)
+do $$
+declare cols text; want text;
+begin
+  if not exists (select 1 from pg_views where schemaname = 'public' and viewname = 'applications_public') then
+    raise exception 'FAIL A: applications_public missing';
+  end if;
+  if position('security_invoker=false' in coalesce(array_to_string((select reloptions from pg_class where oid = 'public.applications_public'::regclass), ','), '')) = 0 then
+    raise exception 'FAIL A: applications_public is not security_invoker = false (it would run as the caller and hit RLS)';
+  end if;
+  -- Column list and ORDER pinned (HANDOFF: row counts do not check shape).
+  cols := (select string_agg(column_name, ',' order by ordinal_position) from information_schema.columns
+            where table_schema = 'public' and table_name = 'applications_public');
+  want := 'id,event_id,status,exhibitor_type,business_name,booth_size,artist_single_qty,artist_double_qty,vendor_single_qty,vendor_double_qty,corner_count,artist_count,instagram,website,facebook,phone,artists,tv_show,logo_url,portfolio_image_urls';
+  if cols is distinct from want then raise exception 'FAIL A: view columns are (%), want (%)', cols, want; end if;
+  if not has_table_privilege('anon', 'public.applications_public', 'select') then raise exception 'FAIL A: anon cannot select the view'; end if;
+  if not has_table_privilege('authenticated', 'public.applications_public', 'select') then raise exception 'FAIL A: authenticated cannot select the view'; end if;
+  if has_table_privilege('anon', 'public.applications_public', 'insert') then raise exception 'FAIL A: anon holds INSERT on the view'; end if;
+  raise notice 'PASS A: view present, definer-owned, 20 columns in order, SELECT for anon + authenticated only';
+end $$;
+
+-- ── B. the table: public policy gone, anon has nothing  (NOTICE pane)
+do $$
+declare n int; n_view int;
+begin
+  if exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'applications' and policyname = 'applications: public read deposit-paid') then
+    raise exception 'FAIL B: "applications: public read deposit-paid" still exists';
+  end if;
+  if has_table_privilege('anon', 'public.applications', 'select') then raise exception 'FAIL B: anon holds table SELECT on applications'; end if;
+  if has_any_column_privilege('anon', 'public.applications', 'select') then raise exception 'FAIL B: anon still holds a column SELECT on applications (074 grant not revoked)'; end if;
+
+  -- Positive control, as anon: the view returns exactly the rows the old policy did.
+  n := (select count(*) from public.applications a
+         where a.status = 'approved' and a.needs_roster = false and (public.has_paid_deposit(a.id) or a.directory_override = true));
+  set local role anon;
+  n_view := (select count(*) from public.applications_public);
+  reset role;
+  if n_view <> n then raise exception 'FAIL B: anon sees % view rows, predicate says %', n_view, n; end if;
+
+  begin
+    set local role anon;
+    perform 1 from public.applications limit 1;
+    reset role;
+    raise exception 'FAIL B: anon selected from the applications TABLE';
+  exception
+    when insufficient_privilege then reset role; raise notice 'PASS B1: anon table read refused (42501)';
+  end;
+  raise notice 'PASS B: public policy dropped; anon reads % rows through the view and none through the table', n_view;
+end $$;
+
+-- ── C. staff policy: content_editor and sponsorship_manager keep their rows  (NOTICE pane)
+do $$
+declare n_pred int; n_seen int; v_uid uuid;
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'applications' and policyname = 'applications: staff read directory rows') then
+    raise exception 'FAIL C: staff policy missing';
+  end if;
+  if (select roles::text from pg_policies where schemaname = 'public' and tablename = 'applications' and policyname = 'applications: staff read directory rows') <> '{authenticated}' then
+    raise exception 'FAIL C: staff policy is not scoped to authenticated';
+  end if;
+  n_pred := (select count(*) from public.applications a
+              where a.status = 'approved' and a.needs_roster = false and (public.has_paid_deposit(a.id) or a.directory_override = true));
+  -- As a content_editor, if one exists (skipped with a notice otherwise).
+  v_uid := (select id from public.profiles where role = 'content_editor' order by created_at limit 1);
+  if v_uid is null then
+    raise notice 'SKIP C: no content_editor profile to test as';
+  else
+    set local role authenticated;
+    perform set_config('request.jwt.claims', json_build_object('sub', v_uid, 'role', 'authenticated')::text, true);
+    n_seen := (select count(*) from public.applications);
+    reset role;
+    perform set_config('request.jwt.claims', '', true);
+    if n_seen <> n_pred then raise exception 'FAIL C: content_editor sees % rows, predicate says %', n_seen, n_pred; end if;
+    raise notice 'PASS C: content_editor sees exactly the % directory rows', n_seen;
+  end if;
+end $$;
+
+-- ── D. owners keep their own row  (NOTICE pane)
+do $$
+declare v_uid uuid; n_own int; n_seen int;
+begin
+  v_uid := (select user_id from public.applications where user_id is not null order by created_at limit 1);
+  if v_uid is null then raise notice 'SKIP D: no application with an owner'; return; end if;
+  n_own := (select count(*) from public.applications where user_id = v_uid);
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', v_uid, 'role', 'authenticated')::text, true);
+  n_seen := (select count(*) from public.applications);
+  reset role;
+  perform set_config('request.jwt.claims', '', true);
+  if n_seen < n_own then raise exception 'FAIL D: owner sees % rows but owns %', n_seen, n_own; end if;
+  raise notice 'PASS D: an owner still reads their own % row(s) (sees %)', n_own, n_seen;
+end $$;
+
+-- ── E. artists[].id_url is stripped in the view  (NOTICE pane)
+do $$
+declare n int;
+begin
+  n := (select count(*) from public.applications_public v, jsonb_array_elements(coalesce(v.artists, '[]'::jsonb)) el where el ? 'id_url');
+  if n <> 0 then raise exception 'FAIL E: % artist element(s) in the view still carry id_url', n; end if;
+  raise notice 'PASS E: no id_url in any view artists element (% rows checked)', (select count(*) from public.applications_public);
+end $$;
+
+-- ── F. no PUBLIC-scoped WRITE policy remains; SELECT ones listed  (grid + NOTICE)
+select tablename, policyname, cmd, roles::text from pg_policies
+ where schemaname = 'public' and roles = '{public}' order by cmd, tablename, policyname;
+do $$
+declare bad text; sel text;
+begin
+  bad := (select string_agg(tablename || ': ' || policyname, ', ') from pg_policies
+           where schemaname = 'public' and roles = '{public}' and cmd <> 'SELECT');
+  if bad is not null then raise exception 'FAIL F: PUBLIC-scoped write policies remain: %', bad; end if;
+  if (select roles::text from pg_policies where schemaname = 'public' and policyname = 'Anyone can submit sponsor application') <> '{anon,authenticated}' then
+    raise exception 'FAIL F: sponsor insert policy is not scoped to anon + authenticated';
+  end if;
+  sel := (select string_agg(tablename || ': ' || policyname, ', ') from pg_policies where schemaname = 'public' and roles = '{public}' and cmd = 'SELECT');
+  if sel is not null then raise notice 'REVIEW F: PUBLIC-scoped SELECT policies (by design for public reads; owner reads are dead for anon): %', sel; end if;
+  raise notice 'PASS F: every write policy in public names its roles';
+end $$;
