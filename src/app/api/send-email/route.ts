@@ -5,82 +5,15 @@ import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { describeBooths } from '@/lib/booth-display'
 import { minDepositCents } from '@/lib/pricing'
-import { FINAL_DUE_LABEL } from '@/lib/event-config'
+import { FINAL_DUE_LABEL, CONTACT_EMAIL } from '@/lib/event-config'
+import { emailWrapper } from '@/lib/email-templates'
 import type { Database } from '@/types/database'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL ?? 'AATC 2027 <onboarding@resend.dev>'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
-// ── Email HTML templates ──────────────────────────────────────
-
-const baseStyle = `
-  font-family: Georgia, 'Times New Roman', serif;
-  background-color: #0a0a0a;
-  color: #ffffff;
-  margin: 0;
-  padding: 0;
-`
-
-function emailWrapper(content: string) {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>All American Tattoo Convention</title>
-</head>
-<body style="${baseStyle}">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a; padding: 40px 16px;">
-    <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%;">
-
-          <!-- Header -->
-          <tr>
-            <td align="center" style="padding-bottom:32px;">
-              <p style="margin:0 0 8px; font-size:13px; font-weight:700; letter-spacing:4px; text-transform:uppercase; color:#8B7355;">
-                ★ ★ ★ ★ ★
-              </p>
-              <h1 style="margin:0; font-family:Georgia,serif; font-size:28px; font-weight:700; color:#ffffff; letter-spacing:2px;">
-                ALL AMERICAN
-              </h1>
-              <p style="margin:4px 0 0; font-family:Georgia,serif; font-size:18px; font-weight:600; color:#8B7355; letter-spacing:2px;">
-                TATTOO CONVENTION
-              </p>
-              <p style="margin:6px 0 0; font-size:12px; color:#555555; letter-spacing:2px; text-transform:uppercase;">
-                April 16-18, 2027 · Fayetteville, NC
-              </p>
-              <div style="margin:20px auto 0; height:1px; width:120px; background:#8B7355; opacity:0.5;"></div>
-            </td>
-          </tr>
-
-          <!-- Body -->
-          <tr>
-            <td style="background:#1a1a1a; border:1px solid #2a2a2a; border-radius:16px; padding:36px 32px;">
-              ${content}
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td align="center" style="padding-top:28px;">
-              <p style="margin:0; font-size:12px; color:#444444;">
-                All American Tattoo Convention · Crown Complex Event Center · Fayetteville, NC
-              </p>
-              <p style="margin:4px 0 0; font-size:12px; color:#444444;">
-                Questions? Email <a href="mailto:info@allamericantattooconvention.com" style="color:#8B7355;">info@allamericantattooconvention.com</a>
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`
-}
+// ── Email HTML templates (wrapper shared with the intake routes: src/lib/email-templates.ts) ──
 
 function approvedEmail(businessName: string, exhibitorType: string, boothSize: string, totalAmount: number, depositDueAt: string | null) {
   const dollars = (totalAmount / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
@@ -143,7 +76,7 @@ function approvedEmail(businessName: string, exhibitorType: string, boothSize: s
 
     <p style="margin:24px 0 0; font-size:13px; line-height:1.7; color:#666666; text-align:center;">
       Questions? Reply to this email or contact us at
-      <a href="mailto:info@allamericantattooconvention.com" style="color:#8B7355;">info@allamericantattooconvention.com</a>
+      <a href="mailto:${CONTACT_EMAIL}" style="color:#8B7355;">${CONTACT_EMAIL}</a>
     </p>
   `)
 }
@@ -256,7 +189,7 @@ function rejectedEmail(businessName: string, exhibitorType: string) {
 
     <p style="margin:0; font-size:13px; line-height:1.7; color:#666666; text-align:center;">
       Questions? Contact us at
-      <a href="mailto:info@allamericantattooconvention.com" style="color:#8B7355;">info@allamericantattooconvention.com</a>
+      <a href="mailto:${CONTACT_EMAIL}" style="color:#8B7355;">${CONTACT_EMAIL}</a>
     </p>
   `)
 }
@@ -282,7 +215,7 @@ function waitlistedEmail(businessName: string, exhibitorType: string) {
 
     <p style="margin:0; font-size:13px; line-height:1.7; color:#666666; text-align:center;">
       Questions? Contact us at
-      <a href="mailto:info@allamericantattooconvention.com" style="color:#8B7355;">info@allamericantattooconvention.com</a>
+      <a href="mailto:${CONTACT_EMAIL}" style="color:#8B7355;">${CONTACT_EMAIL}</a>
     </p>
   `)
 }
@@ -436,7 +369,7 @@ function sponsorApprovedEmail(sponsorName: string, tier: string, amount: number)
     </p>
     <p style="margin:24px 0 0; font-size:13px; line-height:1.7; color:#666666; text-align:center;">
       Questions? Reply to this email or contact us at
-      <a href="mailto:info@allamericantattooconvention.com" style="color:#8B7355;">info@allamericantattooconvention.com</a>
+      <a href="mailto:${CONTACT_EMAIL}" style="color:#8B7355;">${CONTACT_EMAIL}</a>
     </p>
   `)
 }
