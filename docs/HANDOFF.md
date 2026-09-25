@@ -344,8 +344,14 @@ the live catalog and asserts the hard rules):**
   without a JWT): the anon set plus has_role, owns_invoice, comp_application,
   uncomp_application, set_tattoo_battle_champion (all admin-checked inside)
   and register_pinup_entry (074 revokes).
-- Tables: all 25 have an RLS enable statement; verify_074 F3 asserts
-  `rowsecurity` live. Anon SELECT is revoked at the grant on the 038 set
+- Tables: 27 live (Ryan's manual check: all with RLS enabled); verify_074 F3
+  reads pg_tables, not a list, so every table including future ones is
+  covered. 26 are created by migrations; **aatc_submissions is NOT created by
+  any migration in the repo** (it is read by /portal/graphics, /admin/aatc-queue
+  and /api/aatc/queue-dispatch, and named in the teardown seed). It was made in
+  the dashboard; its policies have no home in the repo. Anon can SELECT it
+  (HTTP 200) and sees 0 of its 1 row. Owner: unassigned - write the
+  migration that pins its shape and policies (read the live shape first). Anon SELECT is revoked at the grant on the 038 set
   (exclusivity_grants, exhibitors, food_trucks, panels, placement_check_runs,
   presentation_credit_items, presentation_credits, schedule_items,
   sponsorships). **Anon reads applications rows in FULL** through
