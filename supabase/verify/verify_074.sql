@@ -7,7 +7,10 @@
 --
 -- STYLE NOTE: variables use `v := (select ...)`, never `select ... into v`.
 -- ⚠  Block C tries anon inserts that must FAIL and writes one ZZ pinup row as
--- postgres (positive control) which it deletes in the same block.
+-- postgres (positive control) which it deletes in the same block. A DO block
+-- is ONE statement in ONE transaction: any raise inside it rolls back every
+-- write it made, so a mid-block failure leaves no ZZ row behind (block Z
+-- confirms). Re-running after a fix is always safe.
 -- ============================================================
 
 -- ── A. functions: signatures and grants  (NOTICE pane)
@@ -61,8 +64,8 @@ begin
 
   begin
     set local role anon;
-    insert into public.pinup_entries (event_id, full_name, email, phone, age_confirmed, status, likeness_release)
-    values (v_event, 'ZZ VERIFY 074', 'zz-verify-074@example.com', '(910) 555-0074', true, 'pending', true);
+    insert into public.pinup_entries (event_id, full_name, email, phone, age_confirmed, status, likeness_release, likeness_release_at)
+    values (v_event, 'ZZ VERIFY 074', 'zz-verify-074@example.com', '(910) 555-0074', true, 'pending', true, now());
     reset role;
     raise exception 'FAIL C: anon inserted a pinup entry directly';
   exception
@@ -80,8 +83,12 @@ begin
   end;
 
   -- Positive control: a privileged writer (what the service role is) still inserts.
-  insert into public.pinup_entries (event_id, full_name, email, phone, age_confirmed, status, likeness_release)
-  values (v_event, 'ZZ VERIFY 074 CONTROL', 'zz-verify-074-control@example.com', '(910) 555-0074', true, 'pending', true)
+  -- Constraints the row must satisfy (055 likeness timestamp; 052 marketing
+  -- timestamp, satisfied by the default marketing_opt_in = false). The first
+  -- run of this block failed on the likeness constraint; a fixture must be a
+  -- row the route could have written.
+  insert into public.pinup_entries (event_id, full_name, email, phone, age_confirmed, status, likeness_release, likeness_release_at)
+  values (v_event, 'ZZ VERIFY 074 CONTROL', 'zz-verify-074-control@example.com', '(910) 555-0074', true, 'pending', true, now())
   returning id into v_id;
   delete from public.pinup_entries where id = v_id;
   if exists (select 1 from public.pinup_entries where id = v_id) then raise exception 'FAIL C: control row not deleted'; end if;
