@@ -28,8 +28,9 @@
 --    unchanged; a by-hand entry sets its own status (confirmed / waitlist).
 -- 3. sponsorships: "Anyone can submit sponsor application" INSERT to anon,
 --    authenticated (013, re-scoped 075) DROPPED. /api/sponsor-apply (service
---    role) is the only writer. After this no policy in public grants anon a
---    write of any kind (verify_076 D asserts it from the catalog).
+--    role, PR 1 - this branch is stacked on it so the tree that carries 076
+--    also carries the route) is the only writer. After this no policy in
+--    public grants anon a write of any kind (verify_076 D asserts it).
 -- ============================================================
 begin;
 
@@ -79,6 +80,23 @@ drop policy if exists "admins insert pinup entries" on public.pinup_entries;
 create policy "admins insert pinup entries"
   on public.pinup_entries for insert to authenticated
   with check (public.is_admin());
+
+-- Consent timestamps come from the DATABASE clock for every writer (the rule
+-- 052/055 set for register_pinup_entry). A by-hand admin insert sends the
+-- consent booleans only; this trigger stamps them, so a client clock never
+-- becomes the evidence.
+create or replace function public.pinup_entries_stamp_consent()
+returns trigger language plpgsql
+set search_path = public, pg_catalog as $$
+begin
+  if new.likeness_release and new.likeness_release_at is null then new.likeness_release_at := now(); end if;
+  if new.marketing_opt_in and new.marketing_opt_in_at is null then new.marketing_opt_in_at := now(); end if;
+  return new;
+end $$;
+drop trigger if exists pinup_entries_stamp_consent_trg on public.pinup_entries;
+create trigger pinup_entries_stamp_consent_trg
+  before insert on public.pinup_entries
+  for each row execute function public.pinup_entries_stamp_consent();
 
 -- ── 3. sponsorships: no anon write ───────────────────────────
 drop policy if exists "Anyone can submit sponsor application" on public.sponsorships;
