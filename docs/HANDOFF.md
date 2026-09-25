@@ -295,6 +295,14 @@ panel receipts need no migration.
   successful insert.
 - After this every public form sends a receipt and an internal notice:
   sponsor (PR 1), pinup (051 + PR 1), booth and panel (PR 1b).
+- Security review of 1b: the panel route had no email validation at all
+  (an array of 50 addresses would have reached Resend as 50 recipients).
+  Fixed: strings only + the same regex as pinup; `sendTransactional` refuses
+  anything but one address and strips newlines from subjects; the invoice
+  receipt now goes out after the Stripe session exists. Pre-existing and
+  noted, not fixed: booth `total_amount` is client-set on insert (the receipt
+  echoes it; approval re-reads the row) and a signed-in user may create many
+  applications, each with one receipt.
 
 ### 2026-09-25 Sponsor submission emails (PR 1; plan: docs/superpowers/plans/2026-09-25-sponsor-submission-emails.md)
 

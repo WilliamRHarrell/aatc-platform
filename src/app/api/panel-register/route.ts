@@ -42,14 +42,28 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { panelId, name, email, phone, socialMedia, attendeeType } = body
+    // Strings only, coerced like /api/pinup-entry: this route now sends mail
+    // to `email`, and an array or an object here must never reach Resend.
+    const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
+    const panelId = str(body.panelId)
+    const name = str(body.name)
+    const email = str(body.email)
+    const phone = str(body.phone)
+    const socialMedia = str(body.socialMedia)
+    const attendeeType = str(body.attendeeType)
+    const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
-    // Validate required fields
     if (!panelId || !name || !email) {
       return NextResponse.json(
         { error: 'Panel ID, name, and email are required.' },
         { status: 400 }
       )
+    }
+    if (!EMAIL.test(email)) {
+      return NextResponse.json({ error: 'That email address does not look right.' }, { status: 400 })
+    }
+    if (attendeeType && !['patron', 'artist', 'vendor'].includes(attendeeType)) {
+      return NextResponse.json({ error: 'Unknown attendee type.' }, { status: 400 })
     }
 
     // Fetch panel
@@ -138,7 +152,6 @@ export async function POST(req: NextRequest) {
       if (!res.ok) {
         return NextResponse.json({ error: `${res.error} Please try again.` }, { status: 500 })
       }
-      await sendPanelReceipts({ name, email, phone: phone || null, attendeeType: attendeeType || 'patron', panelTitle: panel.title, mode: 'invoice' })
       const registration = res.data[0] as { id: string }
 
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
@@ -167,6 +180,7 @@ export async function POST(req: NextRequest) {
         cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/events/tattoo-panels`,
       })
 
+      await sendPanelReceipts({ name, email, phone: phone || null, attendeeType: attendeeType || 'patron', panelTitle: panel.title, mode: 'invoice' })
       return NextResponse.json({ url: session.url })
     }
 
