@@ -10,12 +10,14 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
     npx tsc --noEmit && npm run build                                       # types + build
     curl -s https://aatc-platform.vercel.app/PATH | grep -c 'thing'         # what RENDERS
 
-The last one is not optional - see the code-and-data rule below.
+The last one is not optional - see the code-and-data rule (full entry in [sessions/2026-08-13.md](sessions/2026-08-13.md), "a claim about what a page RENDERS").
 
 
 ## 6. THE RULES - index
 
-All of these are written out in full further down. They came from real defects
+All of these are written out in full, either further down this file or in
+[sessions/2026-08-13.md](sessions/2026-08-13.md) (its "Standing rules" and
+"Loose ends" sections hold the `RULE:` entries). They came from real defects
 in this codebase, not from principle, and each one names the incident. If you
 are about to do something in the left column, read the entry.
 

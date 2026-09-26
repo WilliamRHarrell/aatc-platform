@@ -4,6 +4,20 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
 
 ### OPEN ITEMS (one line each, with the owner)
 
+- **Re-scope "applications: own read" to authenticated** (added 2026-09-26).
+  Live it is still roles {public}, qual `auth.uid() = user_id` (Ryan read it
+  from verify_079b block B). Harmless, since anon has no uid, but it is the last
+  PUBLIC-scoped policy on applications. Do it in the NEXT migration that
+  touches applications policies, and add it to that verify's PUBLIC-scope
+  check. Owner: whoever writes that migration.
+- **In-person (admin-added) applications have no account** (added
+  2026-09-26). `user_id` is NULL by design (015/079b), so the exhibitor has no
+  portal view, online pay, roster or graphics page. The "link account" admin
+  action is queued in START HERE. Owner: queued.
+- **Catalog check for the migrations the 2026-08-31 audit could not see**
+  (added 2026-09-26): 015 turned out never applied; see
+  [migrations.md](migrations.md). One read-only SQL Editor check for the rest.
+  Owner: unassigned.
 - **Re-run verify_074** (PR #8 fixed its fixture); read block F. Owner: Ryan.
 - **Sponsor + pinup emails**: after PR 1 deploys, one real sponsor submission
   and one pinup registration; confirm both receipts and both internal notices
