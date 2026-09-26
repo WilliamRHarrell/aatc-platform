@@ -21,8 +21,21 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
   48 checks over 002 003 007 011 024 025 031 034 041 043 049 054, each against
   the FINAL expected state after later migrations; DIFFERS rows sort first.
   It also settles whether "schedule_items: admin all" and "contests: admin
-  write" are live (070's header said so; 054 drops both). Owner: Ryan (run),
-  then record the result in migrations.md.
+  write" are live (070's header said so; 054 drops both). DONE 2026-09-26:
+  Ryan ran it, 48 PASS, 0 DIFFERS; recorded in migrations.md.
+- **/admin/invoices "Record payment" has no Square option** (added
+  2026-09-26): the dropdown offers stripe_external, cash, check,
+  bank_transfer, other; 068 made `square` part of the convention but the UI
+  was never updated. Owner: unassigned (small code change).
+- **/admin/invoices never loads `deposit_paid_at` / `final_paid_at`**
+  (added 2026-09-26): `load()` selects neither, so recordPayment's "fires at
+  most once" check always sees them empty and a SECOND recorded payment
+  overwrites the first deposit/final timestamps. Money path; fix with the
+  Square option. Owner: unassigned.
+- **Link the three sponsors to accounts** (added 2026-09-26): none of
+  Nomadica, AATS, WholeLife has `user_id` or an email on the row, so the
+  portal cannot show them their invoice until each is linked in
+  /admin/sponsorships. Owner: Ryan.
 - **Rate limiting for public form routes** (NOT BUILT): add Vercel WAF
   rate-limit rules before launch on `POST /api/pinup-entry`,
   `POST /api/panel-register`, `POST /api/aatc/*` if any accept anonymous
@@ -112,13 +125,18 @@ row cannot say which).
    $2,500 / $750 below) are recorded nowhere, and no sponsor has a balance the
    portal can collect. Owner: Ryan (step 2 below).
 2. **WholeLife amount disagrees with this file**: $5,000 live in both
-   `sponsorships.amount` and `presentation_credits.amount`; the table below
-   says $7,500 invoiced. One of them is wrong. If $5,000 is right, the portal
-   remainder after Square is $4,250, not $6,750. Owner: Ryan to confirm.
+   `sponsorships.amount` and `presentation_credits.amount`; Ryan confirmed
+   2026-09-26 that **$7,500 (Gold, off-tier) is correct**.
 3. **Nothing is linked**: every grant and credit above has
    `sponsorship_id` NULL and credits have `invoice_id` NULL; they match on
    `buyer_name` only. Owner: Ryan, when the invoices exist.
 4. `based_on_tier` spelling differs ("GOLD" vs "Gold"). Free text; cosmetic.
+
+**Items 1-3 are handled by `supabase/seeds/three_sponsors_2026_09_26.sql`**
+(delivered 2026-09-26, NOT RUN): WholeLife to 750000 in both tables, one
+invoice each with the Square payment recorded (payment_method `square`),
+grants and credits linked by id. The admin UI cannot do it (no Square
+option; see OPEN ITEMS). Update this section once it has run.
 
 The original plan, as written 2026-08-31:
 

@@ -1,3 +1,5 @@
+-- ⚠ SUPERSEDED 2026-09-26 - DO NOT RUN. Never applied; the grants now exist by hand and WholeLife's
+-- amount differs, so it would fail. Use supabase/seeds/three_sponsors_2026_09_26.sql.
 -- ============================================================
 -- SPELLING: 'WholeLife Aftercare' (one word) since 2026-09-23; run supabase/seeds/wholelife_spelling.sql first if the sponsorships row still carries the old spelling.
 -- The three 2027 sponsors: INVOICES and EXCLUSIVITY GRANTS.

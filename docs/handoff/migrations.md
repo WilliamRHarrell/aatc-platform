@@ -54,6 +54,14 @@ turned out to be missing live (see its row). The others (002, 003, 007, 011,
 this file; several were superseded by later migrations, but none has a
 recorded check. Open item: a single read-only catalog check for them.
 
+**CONFIRMED 2026-09-26: all twelve are in their expected final state.**
+Ryan ran `supabase/verify/audit_unconfirmed_migrations.sql` (48 checks, one
+read-only SELECT): 48 PASS, 0 DIFFERS. That covers 002, 003, 007, 011, 024,
+025, 031, 034, 041, 043, 049 and 054, including the later drops (007 by 024,
+024's applications policy by 075, 025 by 030) and 042's booths body.
+070's header note that "schedule_items: admin all" and "contests: admin write"
+were live is wrong: both are absent.
+
 | # | what | verified |
 |---|---|---|
 | 050 | `page_images` + bucket | verify_050 |
