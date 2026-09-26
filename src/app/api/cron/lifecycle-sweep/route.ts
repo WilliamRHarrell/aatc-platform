@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import { runPlacementCheck, diffFindings, type Finding } from '@/lib/placement-check'
-import { reminderStage } from '@/lib/sponsor-reminders'
+import { reminderStage, isTestSponsorship, TEST_SPONSOR_PREFIX } from '@/lib/sponsor-reminders'
 import { todayEastern } from '@/lib/date-only'
 import { sponsorDueReminderEmail } from '@/lib/email-templates'
 import { sendTransactional } from '@/lib/transactional-email'
@@ -161,6 +161,8 @@ async function sponsorReminders(supabase: ReturnType<typeof adminSupabase>, now:
     .not('sponsorship_id', 'is', null)
     .not('due_date', 'is', null)
     .in('status', ['pending', 'overdue'])
+    // Test sponsorships (RLS harness, verify fixtures) are never reminded.
+    .not('sponsorship.sponsor_name', 'ilike', `${TEST_SPONSOR_PREFIX}%`)
   // A query that errors returns null data, which would read as "nobody due".
   if (error) { out.errors.push(error.message); return out }
 
@@ -168,6 +170,7 @@ async function sponsorReminders(supabase: ReturnType<typeof adminSupabase>, now:
     const stage = reminderStage(inv, today)
     if (!stage) continue
     const spon = inv.sponsorship as unknown as { sponsor_name: string; email: string | null; user_id: string | null }
+    if (isTestSponsorship(spon.sponsor_name)) continue // belt and braces with the query filter
     let to = spon.email?.trim() || null
     if (!to && spon.user_id) {
       const { data: prof } = await supabase.from('profiles').select('email').eq('id', spon.user_id).maybeSingle()

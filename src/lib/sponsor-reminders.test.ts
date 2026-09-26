@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { reminderStage } from './sponsor-reminders'
+import { reminderStage, isTestSponsorship } from './sponsor-reminders'
 import { formatDateOnly, daysBetween, todayEastern } from './date-only'
 
 const inv = (over: Partial<Parameters<typeof reminderStage>[0]> = {}) => ({
@@ -29,6 +29,17 @@ describe('reminderStage', () => {
     expect(reminderStage(inv({ status: 'paid' }), '2027-01-28')).toBeNull()
     expect(reminderStage(inv({ status: 'cancelled' }), '2027-01-28')).toBeNull()
     expect(reminderStage(inv({ amount_paid: 750000 }), '2027-01-28')).toBeNull()
+  })
+})
+
+describe('isTestSponsorship', () => {
+  it('the harness and verify fixtures are test rows; real sponsors are not', () => {
+    expect(isTestSponsorship(`ZZ TEST ${String.fromCharCode(0x2014)} RLS Harness Pending (DELETE ME)`)).toBe(true) // the live name has an em dash
+    expect(isTestSponsorship('ZZ VERIFY 082 SPONSOR (DELETE ME)')).toBe(true)
+    expect(isTestSponsorship('  zz test lower')).toBe(true)
+    for (const real of ['Nomadica', 'All American Tattoo Supply', 'WholeLife Aftercare', 'Zzyzx Ink', 'Skin Reserve']) {
+      expect(isTestSponsorship(real), real).toBe(false)
+    }
   })
 })
 

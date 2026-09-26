@@ -1,6 +1,18 @@
 import { daysBetween } from '@/lib/date-only'
 
 /**
+ * Test sponsorships never get a reminder, whatever their dates. Every test
+ * fixture in this project is named with the "ZZ " prefix: the RLS harness
+ * ("ZZ TEST ... RLS Harness", deliberately live and anon-visible - see
+ * src/lib/sponsor-display.ts) and every verify fixture ("ZZ VERIFY ...").
+ * The sweep filters on this prefix in its query AND checks it here.
+ */
+export const TEST_SPONSOR_PREFIX = 'ZZ '
+export function isTestSponsorship(sponsorName: string | null | undefined): boolean {
+  return (sponsorName ?? '').trimStart().toUpperCase().startsWith(TEST_SPONSOR_PREFIX)
+}
+
+/**
  * Which due-date reminder a sponsor invoice is owed today, if any (081).
  *
  * Reminders only. A sponsorship is never expired or cancelled for being late,
