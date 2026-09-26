@@ -9,6 +9,7 @@ import { formatCurrency } from '@/lib/utils'
 import { describeBooths } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 import { RosterCompletionPanel } from '@/components/portal/RosterCompletionPanel'
+import { formatDateOnly } from '@/lib/date-only'
 
 interface PortalArtist {
   name: string
@@ -882,7 +883,7 @@ function PortalContent() {
                     )}
                     {invoice.due_date && invoice.status !== 'paid' && (
                       <span className="text-xs" style={{ color: '#555' }}>
-                        Due {new Date(invoice.due_date).toLocaleDateString()}
+                        Due {formatDateOnly(invoice.due_date)}
                       </span>
                     )}
                   </div>
@@ -1308,7 +1309,7 @@ function PortalContent() {
                     </span>
                     {hasPartial && inv.status !== 'paid' && <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: 'rgba(96,165,250,0.15)', color: '#60a5fa' }}>Deposit received</span>}
                     {inv.paid_at && <span className="text-xs" style={{ color: '#555' }}>{new Date(inv.paid_at).toLocaleDateString()}</span>}
-                    {inv.due_date && inv.status !== 'paid' && <span className="text-xs" style={{ color: '#555' }}>Due {new Date(inv.due_date).toLocaleDateString()}</span>}
+                    {inv.due_date && inv.status !== 'paid' && <span className="text-xs" style={{ color: '#555' }}>Due {formatDateOnly(inv.due_date)}</span>}
                   </div>
                   {isPayable && (
                     <div className="mt-5">
@@ -1417,7 +1418,7 @@ function PortalContent() {
                     <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: `${INVOICE_STATUS_STYLE[inv.status]?.color ?? '#999'}20`, color: INVOICE_STATUS_STYLE[inv.status]?.color ?? '#999' }}>{INVOICE_STATUS_STYLE[inv.status]?.label}</span>
                     {hasPartial && inv.status !== 'paid' && <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ backgroundColor: 'rgba(96,165,250,0.15)', color: '#60a5fa' }}>Deposit received</span>}
                     {inv.paid_at && <span className="text-xs" style={{ color: '#555' }}>{new Date(inv.paid_at).toLocaleDateString()}</span>}
-                    {inv.due_date && inv.status !== 'paid' && <span className="text-xs" style={{ color: '#555' }}>Due {new Date(inv.due_date).toLocaleDateString()}</span>}
+                    {inv.due_date && inv.status !== 'paid' && <span className="text-xs" style={{ color: '#555' }}>Due {formatDateOnly(inv.due_date)}</span>}
                   </div>
                   {isPayable && (
                     <div className="mt-5">

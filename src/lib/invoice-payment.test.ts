@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { paymentUpdate } from './invoice-payment'
+import { paymentUpdate, nextPaymentMinimumCents } from './invoice-payment'
 
 const T1 = '2026-09-26T10:00:00.000Z'
 const T2 = '2026-09-27T10:00:00.000Z'
@@ -32,5 +32,15 @@ describe('paymentUpdate', () => {
     expect(paymentUpdate(inv, 10000, T2, 'cash', null).ok).toBe(true)
     expect(paymentUpdate(inv, 0, T2, 'cash', null).ok).toBe(false)
     expect(paymentUpdate(inv, 1.5, T2, 'cash', null).ok).toBe(false)
+  })
+})
+
+describe('nextPaymentMinimumCents', () => {
+  it('booth invoice: 25% until the deposit is recorded, then $1', () => {
+    expect(nextPaymentMinimumCents({ amount: 100000, deposit_paid_at: null, sponsorship_id: null })).toBe(25000)
+    expect(nextPaymentMinimumCents({ amount: 100000, deposit_paid_at: T1, sponsorship_id: null })).toBe(100)
+  })
+  it('sponsor invoice: never a 25% minimum', () => {
+    expect(nextPaymentMinimumCents({ amount: 750000, deposit_paid_at: null, sponsorship_id: 's' })).toBe(100)
   })
 })

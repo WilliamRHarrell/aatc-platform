@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { paymentUpdate } from '@/lib/invoice-payment'
+import { formatDateOnly } from '@/lib/date-only'
 import { describeBooths } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 import { guardedWrite } from '@/lib/db-write'
@@ -38,6 +39,8 @@ interface Invoice {
     sponsor_name: string
     tier: string
     amount: number
+    email: string | null
+    user_id: string | null
   } | null
 }
 
@@ -87,7 +90,7 @@ export default function AdminInvoicesPage() {
           artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count
         ),
         sponsorship:sponsorships (
-          sponsor_name, tier, amount
+          sponsor_name, tier, amount, email, user_id
         )
       `)
       .order('created_at', { ascending: false })
@@ -201,6 +204,26 @@ export default function AdminInvoicesPage() {
       const saved = res.data[0] as Partial<Invoice>
       setInvoices(prev => prev.map(i => (i.id === paymentModal.id ? { ...i, ...saved } : i)))
       setPaymentModal(null)
+    }
+    setWorking(null)
+  }
+
+  // due_date is a DATE. Sponsor invoices are reminded 30 and 7 days before it
+  // (lifecycle sweep, 081); clearing it stops the reminders.
+  const saveDueDate = async (inv: Invoice, value: string) => {
+    const next = value || null
+    if (next === inv.due_date) return
+    setWorking(inv.id)
+    const res = await guardedWrite(
+      supabase.from('invoices').update({ due_date: next }).eq('id', inv.id).select('id, due_date'),
+      'Due date not saved',
+      `admin/invoices saveDueDate id=${inv.id}`,
+    )
+    if (!res.ok) {
+      toast.error(res.error)
+    } else {
+      setInvoices(prev => prev.map(i => (i.id === inv.id ? { ...i, due_date: next } : i)))
+      toast.success(next ? `Due ${formatDateOnly(next)}` : 'Due date cleared')
     }
     setWorking(null)
   }
@@ -388,6 +411,24 @@ export default function AdminInvoicesPage() {
                       {inv.status === 'paid' && amountPaid > 0 && (
                         <p className="text-xs" style={{ color: '#4ade80' }}>
                           {formatCurrency(amountPaid)} paid
+                        </p>
+                      )}
+                      {(inv.status === 'pending' || inv.status === 'overdue') && (
+                        <label className="mt-1 flex items-center gap-1 text-xs" style={{ color: '#666' }}>
+                          Due
+                          <input
+                            type="date"
+                            defaultValue={inv.due_date ?? ''}
+                            onBlur={e => saveDueDate(inv, e.target.value)}
+                            disabled={isWorking}
+                            className="rounded px-1 py-0.5 text-xs text-white outline-none"
+                            style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a', colorScheme: 'dark' }}
+                          />
+                        </label>
+                      )}
+                      {spon && inv.due_date && inv.status !== 'paid' && inv.status !== 'cancelled' && !spon.email && !spon.user_id && (
+                        <p className="mt-1 text-xs" style={{ color: '#f87171' }}>
+                          No email on file - due-date reminders cannot be sent
                         </p>
                       )}
                     </div>

@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import { runPlacementCheck, diffFindings, type Finding } from '@/lib/placement-check'
+import { reminderStage } from '@/lib/sponsor-reminders'
+import { todayEastern } from '@/lib/date-only'
+import { sponsorDueReminderEmail } from '@/lib/email-templates'
+import { sendTransactional } from '@/lib/transactional-email'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://aatc-platform.vercel.app'
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
@@ -139,6 +143,64 @@ async function sendPlacementAlert(added: Finding[], resolvedCount: number) {
   }
 }
 
+/**
+ * Sponsor invoices: reminders 30 and 7 days before due_date (081). Nothing
+ * else - a sponsorship is never expired or cancelled by this sweep, and
+ * nothing is sent after the due date. Runs whether or not the BOOTH sweep is
+ * armed, behind its own switch: SPONSOR_REMINDERS_ENABLED=true sends; anything
+ * else reports what WOULD be sent. Each reminder is claimed (compare-and-set
+ * on its *_sent_at column) before sending and released if the send fails, so
+ * it goes out at most once and a failed day is retried the next.
+ */
+async function sponsorReminders(supabase: ReturnType<typeof adminSupabase>, now: Date, send: boolean) {
+  const today = todayEastern(now)
+  const out = { mode: send ? 'send' : 'report-only', today, sent: [] as string[], would_send: [] as string[], no_email: [] as string[], failed: [] as string[], errors: [] as string[] }
+  const { data, error } = await supabase
+    .from('invoices')
+    .select('id, amount, amount_paid, status, due_date, due_reminder_30_sent_at, due_reminder_7_sent_at, sponsorship:sponsorships!inner(sponsor_name, email, user_id)')
+    .not('sponsorship_id', 'is', null)
+    .not('due_date', 'is', null)
+    .in('status', ['pending', 'overdue'])
+  // A query that errors returns null data, which would read as "nobody due".
+  if (error) { out.errors.push(error.message); return out }
+
+  for (const inv of data ?? []) {
+    const stage = reminderStage(inv, today)
+    if (!stage) continue
+    const spon = inv.sponsorship as unknown as { sponsor_name: string; email: string | null; user_id: string | null }
+    let to = spon.email?.trim() || null
+    if (!to && spon.user_id) {
+      const { data: prof } = await supabase.from('profiles').select('email').eq('id', spon.user_id).maybeSingle()
+      to = prof?.email?.trim() || null
+    }
+    const label = `${spon.sponsor_name} (${stage}d, due ${inv.due_date})`
+    if (!to) { out.no_email.push(label); continue }
+    if (!send) { out.would_send.push(`${label} -> ${to}`); continue }
+
+    const col = stage === 30 ? 'due_reminder_30_sent_at' : 'due_reminder_7_sent_at'
+    const { data: claimed, error: claimErr } = await supabase.from('invoices')
+      .update({ [col]: now.toISOString() }).eq('id', inv.id).is(col, null).select('id')
+    if (claimErr) { out.errors.push(`${label}: ${claimErr.message}`); continue }
+    if (!claimed || claimed.length === 0) continue // claimed by a concurrent run
+
+    try {
+      await sendTransactional(to, `AATC 2027 sponsorship balance due ${inv.due_date}`, sponsorDueReminderEmail({
+        sponsorName: spon.sponsor_name,
+        balanceCents: inv.amount - (inv.amount_paid ?? 0),
+        dueDate: inv.due_date!,
+        daysOut: stage,
+        hasAccount: !!spon.user_id,
+      }))
+      out.sent.push(`${label} -> ${to}`)
+    } catch (e) {
+      console.error(`[sweep] sponsor reminder ${inv.id} failed: ${String(e)}`)
+      await supabase.from('invoices').update({ [col]: null }).eq('id', inv.id)
+      out.failed.push(label)
+    }
+  }
+  return out
+}
+
 type DryRow = { id: string; business_name: string; email: string; due: string | null; days_out: number | null }
 const dayDiff = (iso: string | null, now: Date) => iso ? Math.round((new Date(iso).getTime() - now.getTime()) / ONE_DAY_MS) : null
 
@@ -232,8 +294,15 @@ export async function GET(req: Request) {
   // row. Works while the kill switch is off, so the first real run is never
   // the first look. The same query shapes as below, with the same guards.
   if (new URL(req.url).searchParams.get('dry_run') === '1') {
-    return NextResponse.json(await dryRunReport(adminSupabase(), new Date()))
+    return NextResponse.json({
+      ...(await dryRunReport(adminSupabase(), new Date())),
+      sponsor_reminders: await sponsorReminders(adminSupabase(), new Date(), false),
+    })
   }
+
+  // Sponsor due-date reminders run whether or not the booth sweep is armed:
+  // they never expire anything, so they do not wait on its review.
+  const sponsor = await sponsorReminders(adminSupabase(), new Date(), process.env.SPONSOR_REMINDERS_ENABLED === 'true')
 
   // ── Kill switch - default OFF ───────────────────────────────
   // This sweep does not merely send reminders: it flips applications to
@@ -247,7 +316,8 @@ export async function GET(req: Request) {
   if (process.env.LIFECYCLE_SWEEP_ENABLED !== 'true') {
     return NextResponse.json({
       skipped: true,
-      reason: 'LIFECYCLE_SWEEP_ENABLED is not "true" - sweep disabled.',
+      reason: 'LIFECYCLE_SWEEP_ENABLED is not "true" - booth sweep disabled.',
+      sponsor_reminders: sponsor,
     })
   }
 
@@ -377,6 +447,7 @@ export async function GET(req: Request) {
     ok: true,
     mode: destructive ? 'full' : 'reminders-only',
     placement,
+    sponsor_reminders: sponsor,
     ranAt: now.toISOString(),
     ...(destructive ? {} : {
       note: 'Expiry and cancellation were NOT performed. would_expire / would_cancel ' +

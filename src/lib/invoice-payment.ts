@@ -53,3 +53,17 @@ export function paymentUpdate(
   }
   return { ok: true, newAmountPaid, fullyPaid, update }
 }
+
+/**
+ * The smallest amount the portal accepts for the NEXT payment, in cents.
+ * Booth invoices: the first payment must reach the 25% deposit
+ * (minDepositCents) until deposit_paid_at is set; after that, $1.
+ * Sponsor invoices: $1 always. Sponsors pay on negotiated terms with no
+ * deposit requirement (2026-09-26); their balance is due on the invoice's
+ * due_date. Read by /portal/pay (form validation) and /api/create-checkout
+ * (the check that matters).
+ */
+export function nextPaymentMinimumCents(inv: { amount: number; deposit_paid_at: string | null; sponsorship_id: string | null }): number {
+  if (inv.sponsorship_id) return 100
+  return inv.deposit_paid_at ? 100 : minDepositCents(inv.amount)
+}
