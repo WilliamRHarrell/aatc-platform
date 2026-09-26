@@ -93,13 +93,6 @@ begin
   insert into public.applications (event_id, user_id, exhibitor_type, business_name, contact_name, email, total_amount, status, vendor_single_qty, artist_count)
   values (v_event, v_owner, 'vendor', 'ZZ VERIFY 072 A (DELETE ME)', 'ZZ', 'zz-verify-072a@example.com', 60000, 'pending', 1, 0)
   returning id into v_a;
-  -- Fixture B: approved with dates and a pending invoice (comp AFTER approve).
-  insert into public.applications (event_id, user_id, exhibitor_type, business_name, contact_name, email, total_amount, status, vendor_single_qty, artist_count,
-                                   approved_at, deposit_due_at, final_due_at)
-  values (v_event, v_owner, 'vendor', 'ZZ VERIFY 072 B (DELETE ME)', 'ZZ', 'zz-verify-072b@example.com', 60000, 'approved', 1, 0,
-          now(), now() + interval '30 days', '2027-01-01T05:00:00+00:00')
-  returning id into v_b;
-  insert into public.invoices (application_id, amount, amount_paid, status) values (v_b, 60000, 0, 'pending');
 
   -- D1. An OWNER cannot comp themselves by UPDATE (clamp); the update itself lands on notes (control).
   set local role authenticated;
@@ -153,6 +146,19 @@ begin
   if (select comped_at from public.applications where id = v_a) is null then raise exception 'FAIL D3b: approve cleared the comp'; end if;
   if (select deposit_due_at from public.applications where id = v_a) is not null then raise exception 'FAIL D3b: deposit_due_at set on a comped application'; end if;
   raise notice 'PASS D3b: approve after comp keeps the comp';
+
+  -- Fixture A is done. Remove it before fixture B: 079 allows one ACTIVE
+  -- application per user per event, and both are owned by the harness user.
+  delete from public.invoices where application_id = v_a;
+  delete from public.applications where id = v_a;
+
+  -- Fixture B: approved with dates and a pending invoice (comp AFTER approve).
+  insert into public.applications (event_id, user_id, exhibitor_type, business_name, contact_name, email, total_amount, status, vendor_single_qty, artist_count,
+                                   approved_at, deposit_due_at, final_due_at)
+  values (v_event, v_owner, 'vendor', 'ZZ VERIFY 072 B (DELETE ME)', 'ZZ', 'zz-verify-072b@example.com', 60000, 'approved', 1, 0,
+          now(), now() + interval '30 days', '2027-01-01T05:00:00+00:00')
+  returning id into v_b;
+  insert into public.invoices (application_id, amount, amount_paid, status) values (v_b, 60000, 0, 'pending');
 
   -- D4. Comp AFTER approve (fixture B): existing pending invoice re-priced to 0/paid, dates nulled.
   set local role authenticated;
@@ -256,11 +262,14 @@ begin
       raise notice 'PASS D8: two invoices refused';
   end;
 
-  -- D9. An OWNER inserting a row cannot arrive comped (insert clamp).
+  -- D9. An OWNER inserting a row cannot arrive comped (insert clamp). B is
+  -- removed first (079: one active application per user per event).
+  delete from public.invoices where application_id = v_b;
+  delete from public.applications where id = v_b;
   set local role authenticated;
   perform set_config('request.jwt.claims', json_build_object('sub', v_owner, 'role', 'authenticated')::text, true);
   insert into public.applications (event_id, user_id, exhibitor_type, business_name, contact_name, email, total_amount, status, vendor_single_qty, artist_count, comped_at, comped_by)
-  values (v_event, v_owner, 'vendor', 'ZZ VERIFY 072 C (DELETE ME)', 'ZZ', 'zz-verify-072c@example.com', 60000, 'pending', 1, 0, now(), v_owner);
+  values (v_event, v_owner, 'vendor', 'ZZ VERIFY 072 C (DELETE ME)', 'ZZ', 'zz-verify-072c@example.com', 50000, 'pending', 1, 0, now(), v_owner); -- 50000 = list price (079)
   reset role;
   perform set_config('request.jwt.claims', '', true);
   if (select comped_at from public.applications where business_name = 'ZZ VERIFY 072 C (DELETE ME)') is not null then
@@ -268,7 +277,7 @@ begin
   end if;
   raise notice 'PASS D9: owner insert arrives uncomped';
 
-  -- Cleanup belongs with the last block that needs the fixtures.
+  -- Cleanup belongs with the last block that needs the fixtures (A and B are already gone).
   delete from public.invoices where application_id in (v_a, v_b);
   delete from public.applications where id in (v_a, v_b) or business_name = 'ZZ VERIFY 072 C (DELETE ME)';
   if exists (select 1 from public.applications where business_name like 'ZZ VERIFY 072%') then raise exception 'FAIL: fixtures not deleted'; end if;
