@@ -39,7 +39,7 @@ begin
   set local role authenticated;
   perform set_config('request.jwt.claims', json_build_object('sub', v_uid, 'role', 'authenticated')::text, true);
   insert into public.applications (event_id, user_id, exhibitor_type, business_name, contact_name, email, total_amount, status, vendor_single_qty, artist_count, submission_receipt_sent_at)
-  values (v_event, v_uid, 'vendor', 'ZZ VERIFY 077 (DELETE ME)', 'ZZ', 'zz-verify-077@example.com', 40000, 'pending', 1, 0, now());
+  values (v_event, v_uid, 'vendor', 'ZZ VERIFY 077 (DELETE ME)', 'ZZ', 'zz-verify-077@example.com', 50000, 'pending', 1, 0, now()); -- 50000 = the list price (079 refuses an owner total that differs)
   reset role;
   perform set_config('request.jwt.claims', '', true);
   v_app := (select id from public.applications where business_name = 'ZZ VERIFY 077 (DELETE ME)');

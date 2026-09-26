@@ -107,6 +107,7 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **065** | **APPLIED + VERIFIED** 2026-08-31 | dual-read. Rejected on its FIRST run with `42P16` because its column list came from unapplied 047; fixed to the live shape and re-run. Verified by Ryan via `verify_065.sql` (four credits, all `source = 'fallback'`) and by re-fetching the three pages against a pre-064 baseline. |
 | 066-068 | present on develop before 2026-09-23 | `sponsorship_is_custom`, `placement_check_runs`, `payment_method_square`. Not re-audited in the 2026-09-23 sessions; their tables/columns are read by live code. |
 | **069** | **APPLIED + VERIFIED** 2026-09-23 | Tattoo Battle: `tattoo_battle_entries`, bucket `tattoo-battle-media`, `set_tattoo_battle_champion()`, slot `tattoo-battle-veteran-ink`. Ryan ran `verify_069.sql`: fixtures_remaining = 0, no raise. |
+| **079** | **NOT APPLIED** (delivered 2026-09-25) | `application_list_price()`, insert clamp refuses a client total, one-active-application index. Run `verify_079.sql` then `verify_079_matrix.sql`. |
 | **077** | **NOT APPLIED** (delivered 2026-09-25, PR #12) | `applications.submission_receipt_sent_at` + clamps (072 bodies + one line each; 076 does not touch the clamps, so 076 then 077 applies in either order). Apply with the PR #12 deploy. Run `verify_077.sql`. |
 | **076** | **NOT APPLIED** (delivered 2026-09-25) | aatc_submissions pinned + 4 policies to authenticated; admin pinup insert; sponsor anon insert dropped. APPLY AFTER PR 1 DEPLOYS. Run `verify_076.sql`. |
 | **075** | **APPLIED** 2026-09-24 (Ryan; verify_075 A-E passed, F failed only on aatc_submissions - fixed by 076) | `applications_public` view; public read policy dropped; anon off the table; staff read policy; 13 write policies re-scoped. Run `verify_075.sql`. Apply BEFORE deploying the branch (directory reads the view). |
@@ -311,6 +312,37 @@ own change at 21:22 - so an admin saved each with `none` in between. No
 audit log exists to say who. **`max_capacity` NULL means unlimited**, and so
 does a number: `/api/panel-register` deliberately makes no capacity check on
 free registrations (its comment: capacity is a planning target, not a gate).
+### 2026-09-25 Server-computed price + one active application (migration 079; plan: docs/superpowers/plans/2026-09-25-server-pricing.md)
+
+Branch `feat/server-pricing`. **Delivered, NOT APPLIED.** (078 is the Submit
+Graphics storage policy on fix/graphics-upload, so pricing is 079.)
+- `application_list_price(...)` mirrors `calculatePricing()`: booth base by
+  type, permit fees clamped to 4 artists per booth, corners clamped to the
+  booth count, add-ons from the same table (extra_table / extra_chairs flat
+  5000; tattoo_bed 5000 daily / 15000 weekend; arm_rest and tattoo_light 4000
+  daily / 8000 weekend), veteran discount 15000. Immutable; no anon execute.
+- The insert clamp (077 body) REFUSES a non-admin, non-service insert whose
+  `total_amount` differs (check_violation naming both numbers). Admins and the
+  service role keep their totals: the /admin/booths add form prices with the
+  same TS function; the returning-exhibitor import types grandfathered
+  prior-year totals with the service role.
+- ONE HOME stays `src/lib/pricing.ts`. `pricing-matrix.test.ts` generates
+  `verify_079_matrix.sql` (22 cases) from `calculatePricing()` and fails
+  until it is regenerated (`WRITE_PRICING_MATRIX=1 npx vitest run
+  src/lib/pricing-matrix.test.ts`), and it source-checks the seven constants
+  in the migration against the TS. verify_079 block B lists every live
+  application's total beside the function's price (both live rows matched on
+  2026-09-25); a mismatch is a REVIEW notice because imported prior-year rows
+  are expected to differ. **A price change is now three edits: pricing.ts, a
+  new migration re-creating the function, and the regenerated matrix.**
+- Partial unique index `applications_one_active_per_user_event` on
+  (user_id, event_id) for pending / approved / waitlisted. Both forms check
+  first and say "You already have a booth application for this event"; a
+  23505 from the insert says the same. The admin drawer lists other
+  applications by the same account or email (`DuplicateWarning`).
+- verify_072 and verify_077 fixtures updated: owner inserts now carry the list
+  price, and verify_072 holds one active harness application at a time.
+  **Order: apply 079, paste verify_079.sql, then verify_079_matrix.sql.**
 
 ### 2026-09-25 Booth + panel submission emails (PR 1b; plan: docs/superpowers/plans/2026-09-25-submission-emails-1b.md)
 
