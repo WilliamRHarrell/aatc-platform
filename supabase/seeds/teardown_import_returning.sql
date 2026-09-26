@@ -32,7 +32,7 @@ do $$
 declare
   ---------------------------------------------------------------
   -- SET THIS. The only line you edit.
-  v_email    text    := 'ryan@skinreserve.com';
+  v_email    text    := 'replace-me@example.com';
   -- Set to false to actually delete. Leave true to preview.
   v_dry_run  boolean := true;
   ---------------------------------------------------------------
@@ -60,6 +60,18 @@ begin
   if v_user_id is null then
     raise exception
       'REFUSING TO RUN: no auth user exists for %. Nothing was deleted. Check the address - an import that succeeded always leaves one.', v_email;
+  end if;
+
+  -- ── Guard 3: never a real exhibitor (added 2026-09-26) ────
+  -- This file's default address was once ryan@skinreserve.com, which is the
+  -- REAL Skin Reserve account (application 13c265d7, a comped booth given in
+  -- exchange for product). A comp or recorded money means the account is not
+  -- a throwaway import test, whatever the address.
+  if exists (select 1 from applications a where a.user_id = v_user_id
+              and (a.comped_at is not null or a.id = '13c265d7-04e4-4142-a673-721201ded275'
+                   or exists (select 1 from invoices i where i.application_id = a.id and coalesce(i.amount_paid, 0) > 0))) then
+    raise exception
+      'REFUSING TO RUN: % owns a comped application or one with money recorded - a real exhibitor, not an import test. Nothing was deleted.', v_email;
   end if;
 
   -- ── Count what is about to go ─────────────────────────────

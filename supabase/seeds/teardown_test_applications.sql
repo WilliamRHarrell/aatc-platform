@@ -1,3 +1,10 @@
+-- ⚠⚠ RETIRED 2026-09-26 - DO NOT RUN. It deletes EVERY application
+-- (`delete from applications;`, no filter), and its only guard is that the
+-- RLS-harness records exist, which they still do. Written before real
+-- exhibitors existed; run today it would delete Skin Reserve (13c265d7, a real
+-- comped booth) and every real application with its invoices. The first
+-- statement after `begin;` now raises, which aborts the whole transaction.
+-- Kept for history. Use a teardown scoped to named ZZ test rows instead.
 -- ============================================================
 -- TEST DATA TEARDOWN - applications and everything hanging off them
 --
@@ -43,6 +50,8 @@
 -- ============================================================
 
 begin;
+
+do $$ begin raise exception 'RETIRED 2026-09-26: this file deletes EVERY application. Nothing was deleted. See the header.'; end $$;
 
 do $$
 declare
