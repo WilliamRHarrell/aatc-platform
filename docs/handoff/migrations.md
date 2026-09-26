@@ -31,7 +31,7 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **071** | **APPLIED** 2026-09-24 (Ryan; verify_071 block A showed exactly the three policies) | application-docs policies (drop unscoped upload + own read; own folder insert, admin insert, admin read), `applications.veteran_doc_verified_at/by`, clamp + reset on `veteran_id_url` change. Run `verify_071.sql` after; block D needs the RLS harness user. |
 | **072** | **APPLIED** 2026-09-24 (Ryan) | `comp_2026_09_24.sql` RUN, both rows correct. `verify_072` ABORTED at block B (anon grant; see 073) - re-run after 073. |
 | **073** | **APPLIED** 2026-09-24 (Ryan; verify_073 exact, verify_072 re-run PASS) | anon/PUBLIC EXECUTE revoked on the seven non-anon functions; expire/cancel gain an internal guard. Run `verify_073.sql`, then re-run `verify_072.sql`. |
-| **074** | **APPLIED** 2026-09-24 (Ryan). verify_074 first run failed on its own fixture; PR #8 fixes it - re-run. | `events.pinup_capacity`; register_pinup_entry parameter-free + service_role only; pinup_spots_remaining(uuid); two anon INSERT policies dropped; anon column grant on applications. Run `verify_074.sql` (includes the grant audit). |
+| **074** | **APPLIED + VERIFIED** 2026-09-24 (Ryan). verify_074 first run failed on its own fixture; PR #8 fixed it and the re-run is done (Ryan, 2026-09-26). | `events.pinup_capacity`; register_pinup_entry parameter-free + service_role only; pinup_spots_remaining(uuid); two anon INSERT policies dropped; anon column grant on applications. Run `verify_074.sql` (includes the grant audit). |
 | **075** | **APPLIED** 2026-09-24 (Ryan; verify_075 A-E passed, F failed only on aatc_submissions - fixed by 076) | `applications_public` view; public read policy dropped; anon off the table; staff read policy; 13 write policies re-scoped. Run `verify_075.sql`. Apply BEFORE deploying the branch (directory reads the view). |
 | **076** | **APPLIED** (Ryan, recorded in the 2026-09-26 START HERE; verify_076 result not recorded here) | aatc_submissions pinned + 4 policies to authenticated; admin pinup insert; sponsor anon insert dropped. |
 | **077** | **APPLIED** 2026-09-25 (Ryan; verify_077 PASSED) | `applications.submission_receipt_sent_at` + clamps (072 bodies + one line each; 076 does not touch the clamps, so 076 then 077 applies in either order). Apply with the PR #12 deploy. Run `verify_077.sql`. |
@@ -53,6 +53,14 @@ turned out to be missing live (see its row). The others (002, 003, 007, 011,
 024, 025, 031, 034, 041, 043, 049, 054) are still unconfirmed by anything in
 this file; several were superseded by later migrations, but none has a
 recorded check. Open item: a single read-only catalog check for them.
+
+**CONFIRMED 2026-09-26: all twelve are in their expected final state.**
+Ryan ran `supabase/verify/audit_unconfirmed_migrations.sql` (48 checks, one
+read-only SELECT): 48 PASS, 0 DIFFERS. That covers 002, 003, 007, 011, 024,
+025, 031, 034, 041, 043, 049 and 054, including the later drops (007 by 024,
+024's applications policy by 075, 025 by 030) and 042's booths body.
+070's header note that "schedule_items: admin all" and "contests: admin write"
+were live is wrong: both are absent.
 
 | # | what | verified |
 |---|---|---|
