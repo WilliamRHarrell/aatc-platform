@@ -10,7 +10,8 @@
 **Standing rules that came out of this week (each has a full entry in §6):**
 no stacked PRs (base every PR on develop); never write storage tables from a
 verify (assert from pg_policies, upload through the Storage API); migrations
-are delivered, never applied by the implementer; report before building.
+are delivered, never applied by the implementer; enumerate existing policies
+before changing them; report before building.
 
 **Merged and deployed (develop = 39127cb, PR #15):** #10 sponsor route +
 receipts, #12 booth/panel receipts (077), #13 security 076 (replay of #11),
@@ -1239,6 +1240,7 @@ are about to do something in the left column, read the entry.
 | a fallback image or value | **No placeholder humans applies to BRANDS, and to any medium.** Substituting a real entity's asset as a default is the same failure whatever the medium. **A fallback asset must be GENERATED OR NEUTRAL, never borrowed from real content** - the footer's placeholder was picked from the site's own assets, which is exactly how a real business's mark becomes a default nobody notices. Render the name, not a borrowed asset. |
 | a path that has never run | **That is where the next defect sits.** `featured_footer` had never rendered a real sponsor, and the never-executed branch held the cross-brand placeholder. Inspect never-executed paths BEFORE the first real execution, not after. |
 | a verify that touches storage | **Never write storage.objects from SQL.** Supabase's storage.protect_delete refuses it (42501, verify_078's first run) and a direct insert would leave a record with no file. Assert storage policies from pg_policies; exercise uploads through the Storage API (scripts/verify-graphics-owner.mjs pattern). |
+| writing, replacing or dropping an RLS or storage policy | **Enumerate the existing policies first.** Query `pg_policies` for the table (live, not the last migration) and list every policy with its command, roles and `using`/`with check`, then state in the migration header what each one covers after your change. Permissive policies OR together, so a stricter policy added beside a `using (true)` baseline is decorative (three times), and dropping a baseline silently removed the owner path it was carrying (four for four: sponsorships, applications, food_trucks, booths). 078 found `aatc-graphics` had no owner INSERT policy at all. Full entry in the 2026-08-13 standing rules ("PERMISSIVE BASELINES WERE DOUBLING AS OWNER POLICIES"). |
 | a verify that passes on a view | **Row counts and values do not check SHAPE.** A view can return the right rows with the right credits and be missing a column entirely. `create or replace` refuses a drop, but a DROP + CREATE does not. Assert the column list and order. |
 | moving hardcoded content into a table | **Confirm the new source matches the old BEFORE deleting the old.** |
 | writing a plpgsql function | **RETURNS TABLE columns become OUT variables** - qualify every column reference. And **a verify block must CALL the function**, not just describe it. |
