@@ -9,6 +9,7 @@
 import { CONTACT_EMAIL } from '@/lib/event-config'
 import { SPONSOR_TIERS, type SponsorTier } from '@/lib/sponsor-tiers'
 import type { ReceiptFacts } from '@/lib/application-receipt'
+import { formatDateOnly } from '@/lib/date-only'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -267,5 +268,44 @@ export function internalNewPanelRegistrationEmail(v: { name: string; email: stri
     <p style="margin:24px 0 0; text-align:center;">
       <a href="${SITE_URL}/admin/panels" style="display:inline-block; background:#8B7355; color:#ffffff; text-decoration:none; font-size:14px; font-weight:700; letter-spacing:1px; padding:12px 28px; border-radius:10px;">Open panels →</a>
     </p>
+  `)
+}
+
+/**
+ * Sponsor balance reminder, 30 or 7 days before the invoice's due_date (081).
+ * A reminder only: it states the balance and the date and never threatens a
+ * consequence, because none exists - a sponsorship is not expired for being
+ * late. The date is a DATE column, formatted without a time zone shift.
+ */
+export function sponsorDueReminderEmail(v: { sponsorName: string; balanceCents: number; dueDate: string; daysOut: 30 | 7; hasAccount: boolean }) {
+  const due = formatDateOnly(v.dueDate, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+  const balance = `$${(v.balanceCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#C4A882;">
+      Sponsorship balance
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      ${v.daysOut === 7 ? 'Due in a week' : 'Due in 30 days'}, ${esc(v.sponsorName)}
+    </h2>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      A reminder that the remaining balance on your AATC 2027 sponsorship is due
+      <strong style="color:#ffffff;">${due}</strong>. Thank you for supporting the show.
+    </p>
+    <div style="background:#0a0a0a; border:1px solid #2a2a2a; border-radius:12px; padding:20px 24px; margin:20px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-size:13px; color:#999999;">Balance due</td>
+          <td align="right" style="font-size:16px; font-weight:700; color:#C4A882;">${balance}</td>
+        </tr>
+      </table>
+    </div>
+    <p style="margin:16px 0 0; font-size:15px; line-height:1.7; color:#cccccc;">
+      ${v.hasAccount
+        ? 'You can pay any amount toward it online from your sponsor portal.'
+        : `To pay online through the sponsor portal, email <a href="mailto:${CONTACT_EMAIL}" style="color:#8B7355;">${CONTACT_EMAIL}</a> and we will connect your account to your sponsorship.`}
+    </p>
+    ${v.hasAccount ? `<p style="margin:24px 0 0; text-align:center;">
+      <a href="${SITE_URL}/portal" style="display:inline-block; background:#8B7355; color:#ffffff; text-decoration:none; font-size:14px; font-weight:700; letter-spacing:1px; padding:14px 32px; border-radius:10px;">Open My Portal →</a>
+    </p>` : ''}
   `)
 }

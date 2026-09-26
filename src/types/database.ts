@@ -604,6 +604,8 @@ export type Database = {
           created_at: string
           deposit_paid_at: string | null
           due_date: string | null
+          due_reminder_30_sent_at: string | null
+          due_reminder_7_sent_at: string | null
           final_paid_at: string | null
           payment_method: string | null
           payment_reference: string | null
@@ -623,6 +625,8 @@ export type Database = {
           created_at?: string
           deposit_paid_at?: string | null
           due_date?: string | null
+          due_reminder_30_sent_at?: string | null
+          due_reminder_7_sent_at?: string | null
           final_paid_at?: string | null
           payment_method?: string | null
           payment_reference?: string | null
@@ -642,6 +646,8 @@ export type Database = {
           created_at?: string
           deposit_paid_at?: string | null
           due_date?: string | null
+          due_reminder_30_sent_at?: string | null
+          due_reminder_7_sent_at?: string | null
           final_paid_at?: string | null
           payment_method?: string | null
           payment_reference?: string | null

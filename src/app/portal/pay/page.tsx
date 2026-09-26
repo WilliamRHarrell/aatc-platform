@@ -6,7 +6,8 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
-import { minDepositCents } from '@/lib/pricing'
+import { nextPaymentMinimumCents } from '@/lib/invoice-payment'
+import { formatDateOnly } from '@/lib/date-only'
 import toast from 'react-hot-toast'
 
 interface InvoiceData {
@@ -18,6 +19,7 @@ interface InvoiceData {
   final_paid_at: string | null
   application_id: string | null
   sponsorship_id: string | null
+  due_date: string | null
 }
 
 function PayContent() {
@@ -34,7 +36,7 @@ function PayContent() {
     if (!invoiceId) { setLoading(false); return }
     supabase
       .from('invoices')
-      .select('id, amount, amount_paid, status, deposit_paid_at, final_paid_at, application_id, sponsorship_id')
+      .select('id, amount, amount_paid, status, deposit_paid_at, final_paid_at, application_id, sponsorship_id, due_date')
       .eq('id', invoiceId)
       .single()
       .then(({ data }) => {
@@ -74,8 +76,12 @@ function PayContent() {
   }
 
   const balance = invoice.amount - invoice.amount_paid
-  const isFirstPayment = !invoice.deposit_paid_at
-  const minimumCents = isFirstPayment ? minDepositCents(invoice.amount) : 100
+  // Sponsors have no 25% first-payment minimum (negotiated terms); booth
+  // invoices do until the deposit is recorded. One rule, shared with
+  // /api/create-checkout: nextPaymentMinimumCents.
+  const isSponsor = !!invoice.sponsorship_id
+  const minimumCents = nextPaymentMinimumCents(invoice)
+  const isFirstPayment = !isSponsor && !invoice.deposit_paid_at
   const amountCents = Math.round(parseFloat(amountInput || '0') * 100)
   const valid = amountCents >= minimumCents && amountCents <= balance
 
@@ -144,9 +150,11 @@ function PayContent() {
             />
           </div>
           <p className="mt-1 text-xs" style={{ color: '#999' }}>
-            {isFirstPayment
-              ? `Minimum first payment: ${formatCurrency(minimumCents)} (25%). Remaining balance is due by ${FINAL_DUE_LABEL}.`
-              : `Pay any amount up to ${formatCurrency(balance)}.`}
+            {isSponsor
+              ? `Pay any amount up to ${formatCurrency(balance)}.${invoice.due_date ? ` Balance due ${formatDateOnly(invoice.due_date)}.` : ''}`
+              : isFirstPayment
+                ? `Minimum first payment: ${formatCurrency(minimumCents)} (25%). Remaining balance is due by ${FINAL_DUE_LABEL}.`
+                : `Pay any amount up to ${formatCurrency(balance)}.`}
           </p>
         </div>
 
