@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
-import { minDepositCents } from '@/lib/pricing'
+import { paymentUpdate } from '@/lib/invoice-payment'
 import { describeBooths } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 import { guardedWrite } from '@/lib/db-write'
@@ -81,6 +81,7 @@ export default function AdminInvoicesPage() {
       .from('invoices')
       .select(`
         id, application_id, sponsorship_id, amount, amount_paid, status, due_date, paid_at, created_at,
+        deposit_paid_at, final_paid_at, payment_method, payment_reference,
         application:applications (
           business_name, contact_name, email, exhibitor_type, booth_size,
           artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count
@@ -144,42 +145,29 @@ export default function AdminInvoicesPage() {
       toast.error('Enter a valid payment amount')
       return
     }
-
     const cents = Math.round(dollars * 100)
-    const balance = paymentModal.amount - (paymentModal.amount_paid ?? 0)
 
-    if (cents > balance) {
-      toast.error(`Payment cannot exceed the balance of ${formatCurrency(balance)}`)
+    setWorking(paymentModal.id)
+
+    // Re-read the row. The list may be stale (another tab, the Stripe webhook),
+    // and the milestone columns fire at most once, so they are decided from
+    // the database, not from what this screen loaded. See invoice-payment.ts.
+    const { data: fresh, error: freshErr } = await supabase
+      .from('invoices')
+      .select('amount, amount_paid, deposit_paid_at, final_paid_at')
+      .eq('id', paymentModal.id)
+      .single()
+    if (freshErr || !fresh) {
+      toast.error('Could not read the invoice - payment NOT recorded')
+      setWorking(null)
       return
     }
 
-    setWorking(paymentModal.id)
-    const newAmountPaid = (paymentModal.amount_paid ?? 0) + cents
-    const fullyPaid = newAmountPaid >= paymentModal.amount
-
-    // Milestone tracking, mirroring the Stripe webhook. Without this a payment
-    // taken in cash/check/transfer marks the invoice paid but never sets
-    // deposit_paid_at - and the public directory policy gates on that column,
-    // so the exhibitor stays invisible forever. Both fire at most once.
-    const nowIso = new Date().toISOString()
-    const minDeposit = minDepositCents(paymentModal.amount)
-    const justCrossedDeposit = !paymentModal.deposit_paid_at && newAmountPaid >= minDeposit
-    const justCrossedFinal = !paymentModal.final_paid_at && newAmountPaid >= paymentModal.amount
-
-    const updateData: Record<string, unknown> = {
-      amount_paid: newAmountPaid,
-      payment_method: paymentMethod,
-      payment_reference: paymentReference.trim() || null,
-    }
-    if (justCrossedDeposit) {
-      updateData.deposit_paid_at = nowIso
-    }
-    if (justCrossedFinal) {
-      updateData.final_paid_at = nowIso
-    }
-    if (fullyPaid) {
-      updateData.status = 'paid'
-      updateData.paid_at = nowIso
+    const plan = paymentUpdate(fresh, cents, new Date().toISOString(), paymentMethod, paymentReference.trim() || null)
+    if (!plan.ok) {
+      toast.error(plan.error)
+      setWorking(null)
+      return
     }
 
     // The highest-stakes write in the admin. Unguarded, a filtered or stale
@@ -187,37 +175,31 @@ export default function AdminInvoicesPage() {
     // 'paid in full!' and marked the row paid in local state, while the database
     // still showed it unpaid. Someone hands over money at the booth, the screen
     // confirms it, and the record disagrees. .select() is the difference between
-    // recording a payment and appearing to.
+    // recording a payment and appearing to. The amount_paid match makes it a
+    // compare-and-set: if another payment landed since the re-read, nothing is
+    // written and this says so.
     const res = await guardedWrite(
       supabase
         .from('invoices')
-        .update(updateData)
+        .update(plan.update)
         .eq('id', paymentModal.id)
-        .select('id'),
+        .eq('amount_paid', fresh.amount_paid ?? 0)
+        .select('id, amount_paid, status, paid_at, deposit_paid_at, final_paid_at, payment_method, payment_reference'),
       'Payment NOT recorded',
       `admin/invoices recordPayment id=${paymentModal.id} cents=${cents}`,
     )
 
     if (!res.ok) {
-      toast.error(`${res.error} - do not treat this as paid. Check the invoice before taking further payment.`)
+      toast.error(`${res.error} - do not treat this as paid. Reload and check the invoice before taking further payment.`)
     } else {
       const invName = paymentModal.application?.business_name ?? paymentModal.sponsorship?.sponsor_name ?? 'Invoice'
       toast.success(
-        fullyPaid
+        plan.fullyPaid
           ? `${invName} paid in full!`
           : `${formatCurrency(cents)} payment recorded for ${invName}`
       )
-      setInvoices(prev =>
-        prev.map(i =>
-          i.id === paymentModal.id
-            ? {
-                ...i,
-                amount_paid: newAmountPaid,
-                ...(fullyPaid ? { status: 'paid' as const, paid_at: new Date().toISOString() } : {}),
-              }
-            : i
-        )
-      )
+      const saved = res.data[0] as Partial<Invoice>
+      setInvoices(prev => prev.map(i => (i.id === paymentModal.id ? { ...i, ...saved } : i)))
       setPaymentModal(null)
     }
     setWorking(null)
@@ -565,6 +547,7 @@ export default function AdminInvoicesPage() {
                   style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}
                 >
                   <option value="stripe_external">Stripe invoice (outside platform)</option>
+                  <option value="square">Square</option>
                   <option value="cash">Cash</option>
                   <option value="check">Check</option>
                   <option value="bank_transfer">Bank transfer</option>
