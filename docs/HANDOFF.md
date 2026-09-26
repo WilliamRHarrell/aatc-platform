@@ -5,7 +5,59 @@
      Read this block first. Everything below it is the standing reference.
      ============================================================ -->
 
-## 0. START HERE - state as of 2026-08-31
+## 0. START HERE - state as of 2026-09-26 (read this, then the 2026-08-31 block below only for history)
+
+**Standing rules that came out of this week (each has a full entry in §6):**
+no stacked PRs (base every PR on develop); never write storage tables from a
+verify (assert from pg_policies, upload through the Storage API); migrations
+are delivered, never applied by the implementer; report before building.
+
+**Merged and deployed (develop = 39127cb, PR #15):** #10 sponsor route +
+receipts, #12 booth/panel receipts (077), #13 security 076 (replay of #11),
+#14 teardown, #15 booth receipt fix. **Applied in production (Ryan):** 076,
+077, 078. Note the gap: **078's migration file exists only on PR #16's branch
+until #16 merges** - develop's last migration file is 077 while production
+is at 078. Merge #16 before adding any migration numbered 078 elsewhere.
+
+**Verified live 2026-09-25/26:** Submit Graphics works for an approved
+exhibitor (Skin Reserve account); `scripts/verify-graphics-owner.mjs` 4 PASS;
+verify_078 passes (policy-only version); sponsor, pinup and panel receipts
+plus internal notices arrive; the booth receipt route works end to end with a
+real session (browser path fixed in #15, browser-verified by Ryan pending).
+
+**In flight:**
+- **PR #16** `fix/graphics-upload` - migration 078 (already applied) +
+  verify_078 (policy-only) + `/portal/graphics` eligibility gate. Rebased on
+  develop 2026-09-26, OPEN, mergeable. Merge first.
+- **PR #17** `feat/server-pricing` - migration **079 NOT APPLIED**:
+  `application_list_price()`, insert clamp refuses a client total, one active
+  application per user per event, owner clamp on add_ons/artist_count,
+  non-negative quantity checks; generated `verify_079_matrix.sql`. On current
+  develop as of 2026-09-26; both #16 and #17 add a HANDOFF section at the same
+  place, so whichever merges second needs a rebase (two minutes). Order:
+  merge, apply 079, paste verify_079.sql then verify_079_matrix.sql.
+- **`feat/apply-hub-buttons`** (no PR yet) - /apply loses the leftover logo and
+  countdown; every application option is a bordered, fully clickable card with
+  a focus ring and equal weight for artist and vendor. Preview:
+  https://aatc-platform-git-feat-apply-hub-buttons-creative-champion.vercel.app/apply
+  (Vercel Authentication). Ryan to approve the look, then open the PR.
+
+**Queued, not started:**
+1. HANDOFF restructure so parallel branches stop conflicting (one file per
+   dated session under docs/handoff/, this file becomes the index).
+2. Branded Supabase Auth email templates (signup, magic link, reset) matching
+   `src/lib/email-templates.ts`, plus a deliverability check. DMARC exists
+   with `p=none` and `rua` to accounting@; decide whether to move to
+   quarantine after a clean reporting window.
+3. Panel `max_capacity` enforcement (today it is a planning target; free
+   registrations have no gate - `/api/panel-register` says so).
+4. Admin audit log (who changed a panel's signup_type, who comped, who
+   verified) - design only in HANDOFF first.
+
+**Test data left live on purpose:** none. Teardowns for every test row this
+week are in `supabase/seeds/teardown_*.sql` and were run by Ryan.
+
+## 0a. Earlier START HERE - state as of 2026-08-31 (history)
 
 ### ADDENDUM 2026-09-13 - content pass (rooms, schedule source, Gold Star passes)
 
