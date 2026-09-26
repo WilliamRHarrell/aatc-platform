@@ -1,4 +1,7 @@
 -- ============================================================
+-- NEEDS 079b (applications.user_id nullable; block E inserts NULL-owner rows).
+-- Its first run on 2026-09-26 failed at E with 23502 because 015 was never
+-- applied live. Apply 079b and run verify_079b.sql first.
 -- HOW TO RUN: paste the whole file, then paste verify_079_matrix.sql (the
 -- GENERATED price matrix - src/lib/pricing-matrix.test.ts keeps it equal to
 -- calculatePricing()). Read the MESSAGES pane. A failure RAISES and aborts.
@@ -22,13 +25,19 @@ begin
   if position('total_amount is distinct from v_price' in pg_get_functiondef('public.applications_force_safe_insert'::regproc)) = 0 then
     raise exception 'FAIL A: insert clamp does not refuse a mismatched total';
   end if;
+  if position('an application needs at least one booth' in pg_get_functiondef('public.applications_force_safe_insert'::regproc)) = 0 then
+    raise exception 'FAIL A: insert clamp lacks the booth-count refusal (live 079 predates the security fold-in)';
+  end if;
+  if (select indexdef from pg_indexes where schemaname = 'public' and indexname = 'applications_one_active_per_user_event') !~* 'user_id IS NOT NULL' then
+    raise exception 'FAIL A: one-active index lacks the user_id IS NOT NULL predicate (live 079 predates the security fold-in)';
+  end if;
   if position('new.add_ons := old.add_ons' in pg_get_functiondef('public.applications_protect_staff_columns'::regproc)) = 0 then
     raise exception 'FAIL A: update clamp does not restore add_ons for owners';
   end if;
   if not exists (select 1 from pg_constraint where conrelid = 'public.applications'::regclass and conname = 'applications_quantities_nonnegative') then
     raise exception 'FAIL A: applications_quantities_nonnegative missing';
   end if;
-  raise notice 'PASS A: function (immutable, no anon), index, clamp refusal present';
+  raise notice 'PASS A: function (immutable, no anon), index with its NULL-owner predicate, price and booth-count refusals, owner clamp, quantity check';
 end $$;
 
 -- ── B. every live application matches the function  (results grid, then NOTICE)
@@ -52,6 +61,9 @@ declare v_uid uuid; v_event uuid; v_app uuid;
 begin
   v_uid := (select id from public.profiles where email = 'rls-harness@allamericantattooconvention.com');
   if v_uid is null then raise exception 'ABORT: RLS harness user missing'; end if;
+  if (select is_nullable from information_schema.columns where table_schema = 'public' and table_name = 'applications' and column_name = 'user_id') <> 'YES' then
+    raise exception 'ABORT: applications.user_id is NOT NULL - apply 079b and run verify_079b.sql first';
+  end if;
   if exists (select 1 from public.applications where user_id = v_uid and status in ('pending','approved','waitlisted')) then raise exception 'ABORT: harness user already has an active application'; end if;
   v_event := (select id from public.events where is_active order by start_date limit 1);
 
