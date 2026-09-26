@@ -548,10 +548,11 @@ public build has nothing to wait on.
 - Year derives from `contests.event_id -> events`. No year column, so 2028 needs
   no migration.
 
-### Panel capacity - NOT enforced, and that is the decision
+### Panel capacity - NOT enforced for free seminars, and that is the decision
 
-`max_capacity` is a **planning target, not a limit**, and nothing enforces it.
-That is deliberate, decided 2026-08-13. Do not "fix" it for the seminars.
+For a free seminar, `max_capacity` is a **planning target, not a limit**, and
+nothing enforces it. That is deliberate, decided 2026-08-13. Do not "fix" it
+for the seminars. Two exceptions since 2026-09-26 are below.
 
 **Why.** Seminars are not access-controlled. Registration exists so the team can
 plan the room and follow up afterwards; walk-ins are welcome if there is space.
@@ -572,21 +573,26 @@ walk-in margin, never the count itself. This caveat is also rendered directly
 above the registration list in `/admin/panels`, which is where it will actually
 be read.
 
-#### BUT - `aatc_invoice` panels are different, and that path IS wrong
+#### Exceptions, decided 2026-09-26 (migration 080)
 
-A paid seat is a **claim**. Someone who pays for a panel has bought a specific
-seat, so overselling is a refund rather than an apology - and
-`/api/panel-register` has no capacity check on that branch either.
+1. **Paid panels (`aatc_invoice`) with a `max_capacity` are capped.** A paid
+   seat is a claim, so overselling is a refund, not an apology. Built as this
+   section always said it had to be: `register_panel_seat()` locks the panel
+   row `FOR UPDATE`, counts and inserts in one transaction, so two people
+   cannot both take the last seat. An unpaid registration holds its seat for
+   36 minutes; the Stripe Checkout session expires at 31, so an abandoned
+   checkout frees the seat by itself.
+2. **Any panel can be hard-capped** (`panels.hard_cap`, a checkbox in
+   /admin/panels). That enforces `max_capacity` on FREE registration too, for
+   a limited physical resource. First use: the Tooth Gem Seminar, 50 starter
+   kits. Full means **refused** with "This seminar is full", not waitlisted.
 
-**No paid panel exists today, which is the only reason this is acceptable.**
-Before the first one is sold, that branch needs a real cap, and a count in the
-route will not do it: counting and then inserting is two statements, so two
-people can read `count = cap - 1` and both succeed. It needs a `SECURITY
-DEFINER` function that does `select ... from panels where id = ... for update`,
-then counts and inserts in the same transaction - the row lock on the panel is
-what serialises concurrent registrations.
-
-Roughly 2 hours. **Trigger: the first paid panel, not a date.**
+A free panel WITHOUT `hard_cap` is unchanged: ungated, and nothing public
+mentions its capacity. Only enforced panels show "N spots left" / "Full" /
+"Sold out" publicly (`panel_seats_remaining()` returns NULL for the rest), and
+/admin/panels reads them as "X of Y seats taken · CAPPED". Every seat is
+counted by one rule, `panel_seats_taken()`: paid, free, and unpaid holds
+still live.
 
 ### Helper pass - revenue not captured (post-launch, not blocking)
 

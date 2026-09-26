@@ -21,9 +21,11 @@ interface Panel {
   cost: number
   signup_type: 'none' | 'aatc_invoice' | 'email_host' | 'free_registration'
   host_email: string | null
-  // max_capacity is deliberately NOT read here. It is a planning target for
-  // /admin/panels, not a limit - nothing public should imply limited
-  // availability, remaining spots or fullness. Registration never closes.
+  // max_capacity is deliberately NOT read here. For most panels it is a
+  // planning target, and nothing public should imply limited availability.
+  // The exception (080) comes from panel_seats_remaining(), which answers
+  // only for ENFORCED panels (paid with a size, or hard-capped) and returns
+  // null for every other panel - so only those show "N left" or "Full".
   image_url: string | null
 }
 
@@ -38,6 +40,8 @@ interface RegistrationForm {
 function TattooPanelsContent() {
   const searchParams = useSearchParams()
   const [panels, setPanels] = useState<Panel[]>([])
+  // Seats left on enforced panels only; absent = not enforced (show nothing).
+  const [seatsLeft, setSeatsLeft] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [selectedPanel, setSelectedPanel] = useState<Panel | null>(null)
   const [form, setForm] = useState<RegistrationForm>({
@@ -77,6 +81,15 @@ function TattooPanelsContent() {
       if (data) {
         const fetched = data as Panel[]
         setPanels(fetched)
+
+        const left: Record<string, number> = {}
+        await Promise.all(fetched
+          .filter(p => p.signup_type === 'free_registration' || p.signup_type === 'aatc_invoice')
+          .map(async p => {
+            const { data: n } = await supabase.rpc('panel_seats_remaining', { p_panel_id: p.id })
+            if (typeof n === 'number') left[p.id] = n
+          }))
+        setSeatsLeft(left)
 
         // Auto-open registration if ?register=<panelId> is in URL
         const registerId = searchParams.get('register')
@@ -281,7 +294,12 @@ function TattooPanelsContent() {
                               </a>
                             )}
 
-                            {panel.signup_type === 'free_registration' && (
+                            {panel.signup_type === 'free_registration' && seatsLeft[panel.id] === 0 && (
+                              <span className="rounded-lg px-4 py-1.5 text-xs font-bold" style={{ backgroundColor: '#2a2a2a', color: '#999' }}>
+                                Full
+                              </span>
+                            )}
+                            {panel.signup_type === 'free_registration' && seatsLeft[panel.id] !== 0 && (
                               <button
                                 onClick={() => openModal(panel)}
                                 className="rounded-lg px-4 py-1.5 text-xs font-bold transition-opacity hover:opacity-80"
@@ -290,8 +308,18 @@ function TattooPanelsContent() {
                                 Register
                               </button>
                             )}
+                            {panel.signup_type === 'free_registration' && (seatsLeft[panel.id] ?? 0) > 0 && (
+                              <span className="text-xs" style={{ color: '#C4A882' }}>
+                                {seatsLeft[panel.id]} {seatsLeft[panel.id] === 1 ? 'spot' : 'spots'} left
+                              </span>
+                            )}
 
-                            {panel.signup_type === 'aatc_invoice' && (
+                            {panel.signup_type === 'aatc_invoice' && seatsLeft[panel.id] === 0 && (
+                              <span className="rounded-lg px-4 py-1.5 text-xs font-bold" style={{ backgroundColor: '#2a2a2a', color: '#999' }}>
+                                Sold out
+                              </span>
+                            )}
+                            {panel.signup_type === 'aatc_invoice' && seatsLeft[panel.id] !== 0 && (
                               <button
                                 onClick={() => openModal(panel)}
                                 className="rounded-lg px-4 py-1.5 text-xs font-bold transition-opacity hover:opacity-80"
@@ -299,6 +327,11 @@ function TattooPanelsContent() {
                               >
                                 Register & Pay {formatCurrency(panel.cost)}
                               </button>
+                            )}
+                            {panel.signup_type === 'aatc_invoice' && (seatsLeft[panel.id] ?? 0) > 0 && (
+                              <span className="text-xs" style={{ color: '#C4A882' }}>
+                                {seatsLeft[panel.id]} {seatsLeft[panel.id] === 1 ? 'spot' : 'spots'} left
+                              </span>
                             )}
                           </div>
                         </div>

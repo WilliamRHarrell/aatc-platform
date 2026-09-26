@@ -24,7 +24,9 @@ declare
     -- register_pinup_entry was listed here on 2026-09-24 by mistake: 051/052/055
     -- grant it to service_role only. Migration 074 revokes anon; apply 074 first.
     'is_admin', 'has_paid_deposit', 'booth_publicly_visible', 'sponsor_tier_counts',
-    'pinup_spots_remaining', 'voting_state', 'tattoo_battle_media_ok'
+    'pinup_spots_remaining', 'voting_state', 'tattoo_battle_media_ok',
+    -- 080: seats left on enforced panels, read by the public /events/tattoo-panels page.
+    'panel_seats_remaining'
   ];
   extra text; missing text;
 begin

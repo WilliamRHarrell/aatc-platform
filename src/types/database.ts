@@ -683,6 +683,7 @@ export type Database = {
           attendee_type: Database["public"]["Enums"]["panel_attendee_type"]
           created_at: string
           email: string
+          hold_expires_at: string | null
           id: string
           name: string
           panel_id: string
@@ -695,6 +696,7 @@ export type Database = {
           attendee_type?: Database["public"]["Enums"]["panel_attendee_type"]
           created_at?: string
           email: string
+          hold_expires_at?: string | null
           id?: string
           name: string
           panel_id: string
@@ -707,6 +709,7 @@ export type Database = {
           attendee_type?: Database["public"]["Enums"]["panel_attendee_type"]
           created_at?: string
           email?: string
+          hold_expires_at?: string | null
           id?: string
           name?: string
           panel_id?: string
@@ -820,6 +823,7 @@ export type Database = {
           is_published: boolean
           location: string
           max_capacity: number | null
+          hard_cap: boolean
           panel_date: string
           panel_time: string
           panel_day: string | null
@@ -843,6 +847,7 @@ export type Database = {
           is_published?: boolean
           location?: string
           max_capacity?: number | null
+          hard_cap?: boolean
           panel_date?: string
           panel_time?: string
           panel_day?: string | null
@@ -866,6 +871,7 @@ export type Database = {
           is_published?: boolean
           location?: string
           max_capacity?: number | null
+          hard_cap?: boolean
           panel_date?: string
           panel_time?: string
           panel_day?: string | null
@@ -1563,19 +1569,23 @@ export type Database = {
     }
     Functions: {
       is_admin: { Args: never; Returns: boolean }
-      /** Migration 047 - atomic capacity check + insert. Locks the panels row. */
-      register_for_panel: {
+      /** Migration 080 - locks the panel row, applies the cap when enforced, inserts. NULL = full. service_role only. */
+      register_panel_seat: {
         Args: {
           p_panel_id: string
           p_name: string
           p_email: string
-          p_phone: string | null
-          p_social: string | null
-          p_attendee_type: Database["public"]["Enums"]["panel_attendee_type"]
-          p_payment_status: string
+          p_phone?: string | null
+          p_social_media?: string | null
+          p_attendee_type?: string
+          p_hold_minutes?: number | null
         }
-        Returns: { registration_id: string; seats_taken: number; capacity: number | null }[]
+        Returns: string | null
       }
+      /** Migration 080 - seats counted by the one rule (paid, free, live unpaid holds). */
+      panel_seats_taken: { Args: { p_panel_id: string }; Returns: number }
+      /** Migration 080 - seats left on an ENFORCED panel; null when not enforced. anon-callable. */
+      panel_seats_remaining: { Args: { p_panel_id: string }; Returns: number | null }
       /** Migration 039 - true when the caller holds any of the given roles. */
       has_role: { Args: { p_roles: string[] }; Returns: boolean }
       /** Migration 069 - atomic champion switch; null clears. Returns the changed rows. */
