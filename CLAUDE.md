@@ -7,10 +7,18 @@ for email.
 
 ## Start here
 
-Read the **START HERE** block at the top of [docs/HANDOFF.md](docs/HANDOFF.md)
-before doing anything. It holds current state: open PRs, which migrations are
-applied in production, and what is queued. Section 6 of that file indexes the
-full rules; this file is only the short list.
+Read the **START HERE** block in [docs/HANDOFF.md](docs/HANDOFF.md) before
+doing anything: open PRs, what is applied in production, what is queued. The
+rest lives in [docs/handoff/](docs/handoff/):
+
+- `rules.md` - the full rules index; this file is only the short list.
+- `migrations.md` - the one home for whether a migration or seed is applied.
+- `open-items.md` - open items and deferred work.
+- `sessions/` - one file per dated session.
+
+**Handoff notes:** a branch adds its own `docs/handoff/sessions/YYYY-MM-DD-<topic>.md`
+and edits no other handoff file. START HERE and `migrations.md` change only
+after something is merged or applied, on their own docs PR.
 
 ## Standing rules
 
