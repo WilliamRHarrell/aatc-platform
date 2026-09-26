@@ -278,7 +278,15 @@ function DetailDrawer({
               <TypeBadge type={app.exhibitor_type} />
               <StatusBadge status={app.status} />
             </div>
-            <h2 className="font-display mt-2 text-xl font-bold text-white">{app.business_name}</h2>
+            <h2 className="font-display mt-2 text-xl font-bold text-white">{app.business_name}{app.is_protected && (
+              <span
+                title="Protected (082): cannot be deleted by any script, cleanup or account deletion. Changed only in SQL."
+                className="ml-2 rounded-full px-2 py-0.5 align-middle text-xs font-semibold"
+                style={{ backgroundColor: 'rgba(74,222,128,0.15)', color: '#4ade80' }}
+              >
+                Protected
+              </span>
+            )}</h2>
             <DuplicateWarning applicationId={app.id} userId={app.user_id} email={app.email} />
             <p className="text-sm" style={{ color: '#999' }}>
               {new Date(app.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}

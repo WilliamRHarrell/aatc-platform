@@ -13,6 +13,7 @@ type SponsorStatus = 'pending' | 'confirmed' | 'cancelled'
 
 interface Sponsorship {
   id: string
+  is_protected: boolean
   event_id: string
   sponsor_name: string
   tier: SponsorTier
@@ -454,6 +455,11 @@ export default function AdminSponsorshipsPage() {
   }
 
   const handleDelete = async (id: string) => {
+    // The database refuses this anyway (082); saying why beats a generic error.
+    if (sponsorships.find(s => s.id === id)?.is_protected) {
+      toast.error('This sponsor is protected and cannot be removed. Protection is lifted only in SQL.')
+      return
+    }
     setDeleting(id)
     const res = await guardedWrite(
       supabase.from('sponsorships').delete().eq('id', id).select('id'),
@@ -1054,7 +1060,15 @@ export default function AdminSponsorshipsPage() {
 
                   {/* Info */}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-white">{s.sponsor_name}</p>
+                    <p className="truncate font-medium text-white">{s.sponsor_name}{s.is_protected && (
+              <span
+                title="Protected (082): cannot be deleted by any script, cleanup or account deletion. Changed only in SQL."
+                className="ml-2 rounded-full px-2 py-0.5 align-middle text-xs font-semibold"
+                style={{ backgroundColor: 'rgba(74,222,128,0.15)', color: '#4ade80' }}
+              >
+                Protected
+              </span>
+            )}</p>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2">
                       <span
                         className="rounded-full px-2 py-0.5 text-xs font-semibold"

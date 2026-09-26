@@ -79,6 +79,7 @@ export type Database = {
           deposit_due_at: string | null
           email: string
           event_id: string
+          is_protected: boolean
           exhibitor_type: Database["public"]["Enums"]["exhibitor_type"]
           facebook: string | null
           final_due_at: string | null
@@ -125,6 +126,7 @@ export type Database = {
           deposit_due_at?: string | null
           email: string
           event_id: string
+          is_protected?: boolean
           exhibitor_type: Database["public"]["Enums"]["exhibitor_type"]
           facebook?: string | null
           final_due_at?: string | null
@@ -171,6 +173,7 @@ export type Database = {
           deposit_due_at?: string | null
           email?: string
           event_id?: string
+          is_protected?: boolean
           exhibitor_type?: Database["public"]["Enums"]["exhibitor_type"]
           facebook?: string | null
           final_due_at?: string | null
@@ -1309,6 +1312,7 @@ export type Database = {
           hold_expires_at: string | null
           homepage_order: number | null
           id: string
+          is_protected: boolean
           instagram: string | null
           logo_url: string | null
           notes: string | null
@@ -1338,6 +1342,7 @@ export type Database = {
           hold_expires_at?: string | null
           homepage_order?: number | null
           id?: string
+          is_protected?: boolean
           instagram?: string | null
           logo_url?: string | null
           notes?: string | null
@@ -1367,6 +1372,7 @@ export type Database = {
           hold_expires_at?: string | null
           homepage_order?: number | null
           id?: string
+          is_protected?: boolean
           instagram?: string | null
           logo_url?: string | null
           notes?: string | null
