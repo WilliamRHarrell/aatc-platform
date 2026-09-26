@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
-import { guardedWrite } from '@/lib/db-write'
 import { CONTACT_EMAIL } from '@/lib/event-config'
 import { panelRegisteredEmail, internalNewPanelRegistrationEmail } from '@/lib/email-templates'
 import { sendTransactional } from '@/lib/transactional-email'
@@ -11,6 +10,12 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+// Stripe Checkout expires at CHECKOUT_MINUTES (Stripe's minimum is 30); the
+// seat hold outlives it by five minutes so a payment completed at the last
+// second still finds its seat held when the webhook arrives.
+const CHECKOUT_MINUTES = 31
+const HOLD_MINUTES = CHECKOUT_MINUTES + 5
 
 // Receipt to the registrant and notice to CONTACT_EMAIL (PR 1b). Never fails
 // the request: the row is saved; a mail problem is logged.
@@ -82,82 +87,65 @@ export async function POST(req: NextRequest) {
     }
 
     // Only allow registration for free_registration and aatc_invoice types
-    if (panel.signup_type === 'none' || panel.signup_type === 'email_host') {
+    if (panel.signup_type !== 'free_registration' && panel.signup_type !== 'aatc_invoice') {
       return NextResponse.json(
         { error: 'Registration is not available for this panel.' },
         { status: 400 }
       )
     }
 
-    if (panel.signup_type === 'free_registration') {
-      // NO CAPACITY CHECK, DELIBERATELY. Seminars are not access-controlled:
-      // registration exists for planning and follow-up, and walk-ins are
-      // welcome if there is room. Refusing the 51st signup would turn away
-      // someone who would have walked in anyway - losing both the attendee and
-      // the forecast. max_capacity is a PLANNING TARGET, not a gate; see
-      // /admin/panels. Nothing is being claimed, so there is no race to lose.
-      //
-      // guardedWrite is still required: a filtered or zero-row insert returns
-      // error: null, and someone who thinks they are on a list they are not on
-      // is worse than an error - they do not re-register, and the room is
-      // undercounted.
-      const res = await guardedWrite(
-        supabase.from('panel_registrations').insert({
-          panel_id: panelId,
-          name,
-          email,
-          phone: phone || null,
-          social_media: socialMedia || null,
-          attendee_type: attendeeType || 'patron',
-          payment_status: 'na',
-        }).select('id'),
-        'Registration did not save',
-        `panel-register free_registration panel=${panelId}`,
+    // ONE PATH FOR BOTH TYPES: register_panel_seat() (migration 080) locks the
+    // panel row, counts and inserts in one transaction, so two people cannot
+    // both take the last seat. It returns NULL when the panel is full.
+    //
+    // Which panels are capped is the function's decision, not this route's:
+    // a PAID panel with max_capacity always is (a paid seat is a claim); a
+    // FREE panel only when hard_cap is set (a limited resource, e.g. starter
+    // kits). A free panel without hard_cap is never refused - max_capacity is
+    // a planning target there, walk-ins are welcome (CUTOVER, "Panel capacity").
+    //
+    // A paid registration holds its seat for HOLD_MINUTES while the Stripe
+    // Checkout session (which expires first) is open; an abandoned checkout
+    // frees the seat on its own.
+    const isPaid = panel.signup_type === 'aatc_invoice'
+    const { data: registrationId, error: seatErr } = await supabase.rpc('register_panel_seat', {
+      p_panel_id: panelId,
+      p_name: name,
+      p_email: email,
+      p_phone: phone || null,
+      p_social_media: socialMedia || null,
+      p_attendee_type: attendeeType || 'patron',
+      p_hold_minutes: isPaid ? HOLD_MINUTES : null,
+    })
+
+    if (seatErr) {
+      console.error(`[panel-register] register_panel_seat ${seatErr.code}: ${seatErr.message} panel=${panelId}`)
+      return NextResponse.json(
+        { error: isPaid
+            ? 'Registration did not save. Please try again.'
+            : 'Registration did not save. Please try again, or just come along on the day - walk-ins are welcome.' },
+        { status: 500 }
       )
+    }
+    if (!registrationId) {
+      return NextResponse.json(
+        { error: isPaid ? 'This panel is sold out.' : 'This seminar is full.', full: true },
+        { status: 409 }
+      )
+    }
 
-      if (!res.ok) {
-        return NextResponse.json(
-          { error: `${res.error} Please try again, or just come along on the day - walk-ins are welcome.` },
-          { status: 500 }
-        )
-      }
-
+    if (!isPaid) {
       await sendPanelReceipts({ name, email, phone: phone || null, attendeeType: attendeeType || 'patron', panelTitle: panel.title, mode: 'free' })
       return NextResponse.json({ success: true })
     }
 
-    if (panel.signup_type === 'aatc_invoice') {
-      // NOTE - A PAID SEAT IS A CLAIM, AND THIS PATH HAS NO CAP.
-      // Unlike the free seminars above, someone paying for a panel is buying a
-      // specific seat, so overselling here is a refund rather than an apology.
-      // No paid panel exists today, which is the only reason this is acceptable.
-      // Before the first one is sold this branch needs an atomic capacity check
-      // - a SECURITY DEFINER function that locks the panels row FOR UPDATE,
-      // counts and inserts. Counting here and inserting after is two statements
-      // and two people can take the last seat. Scoped in CUTOVER §E2.
-      const res = await guardedWrite(
-        supabase.from('panel_registrations').insert({
-          panel_id: panelId,
-          name,
-          email,
-          phone: phone || null,
-          social_media: socialMedia || null,
-          attendee_type: attendeeType || 'patron',
-          payment_status: 'pending',
-        }).select('id'),
-        'Registration did not save',
-        `panel-register aatc_invoice panel=${panelId}`,
-      )
-
-      if (!res.ok) {
-        return NextResponse.json({ error: `${res.error} Please try again.` }, { status: 500 })
-      }
-      const registration = res.data[0] as { id: string }
-
+    let sessionUrl: string | null = null
+    try {
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-
       const session = await stripe.checkout.sessions.create({
         mode: 'payment',
+        // Expires before the seat hold does (Stripe's minimum is 30 minutes).
+        expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_MINUTES * 60,
         line_items: [
           {
             price_data: {
@@ -173,21 +161,24 @@ export async function POST(req: NextRequest) {
         ],
         customer_email: email,
         metadata: {
-          panel_registration_id: registration.id,
+          panel_registration_id: registrationId,
           panel_id: panelId,
         },
         success_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/events/tattoo-panels?registered=1`,
         cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/events/tattoo-panels`,
       })
-
-      await sendPanelReceipts({ name, email, phone: phone || null, attendeeType: attendeeType || 'patron', panelTitle: panel.title, mode: 'invoice' })
-      return NextResponse.json({ url: session.url })
+      sessionUrl = session.url
+    } catch (e) {
+      // No checkout means no way to pay: release the held seat now rather
+      // than leaving it held for HOLD_MINUTES.
+      console.error(`[panel-register] Stripe session failed for registration ${registrationId}: ${String(e)}`)
+      const { error: delErr } = await supabase.from('panel_registrations').delete().eq('id', registrationId).eq('payment_status', 'pending')
+      if (delErr) console.error(`[panel-register] could not release held seat ${registrationId}: ${delErr.message}`)
+      return NextResponse.json({ error: 'Payment could not be started. Please try again.' }, { status: 502 })
     }
 
-    return NextResponse.json(
-      { error: 'Invalid signup type.' },
-      { status: 400 }
-    )
+    await sendPanelReceipts({ name, email, phone: phone || null, attendeeType: attendeeType || 'patron', panelTitle: panel.title, mode: 'invoice' })
+    return NextResponse.json({ url: sessionUrl })
   } catch (err) {
     console.error('Panel registration error:', err)
     return NextResponse.json(

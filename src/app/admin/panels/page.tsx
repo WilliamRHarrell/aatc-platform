@@ -23,8 +23,14 @@ interface Panel {
   signup_type: 'none' | 'aatc_invoice' | 'email_host' | 'free_registration'
   host_email: string | null
   max_capacity: number | null
+  hard_cap: boolean
   is_published: boolean
   image_url: string | null
+}
+
+/** Capacity is ENFORCED (080) for a paid panel with a size, or a hard-capped one. */
+function capEnforced(p: { signup_type: string; max_capacity: number | null; hard_cap: boolean }) {
+  return p.max_capacity !== null && (p.signup_type === 'aatc_invoice' || p.hard_cap)
 }
 
 interface PanelRegistration {
@@ -53,6 +59,7 @@ interface PanelFormState {
   signup_type: 'none' | 'aatc_invoice' | 'email_host' | 'free_registration'
   host_email: string
   max_capacity: string
+  hard_cap: boolean
   is_published: boolean
 }
 
@@ -69,6 +76,7 @@ const EMPTY_FORM: PanelFormState = {
   signup_type: 'none',
   host_email: '',
   max_capacity: '',
+  hard_cap: false,
   is_published: false,
 }
 
@@ -90,6 +98,9 @@ export default function AdminPanelsPage() {
   const supabase = createClient()
   const [panels, setPanels] = useState<Panel[]>([])
   const [registrationCounts, setRegistrationCounts] = useState<Record<string, number>>({})
+  // Seats taken by the SAME rule the database enforces (panel_seats_taken,
+  // 080): paid, free, and unpaid holds still live. Enforced panels only.
+  const [seatsTaken, setSeatsTaken] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [eventId, setEventId] = useState<string | null>(null)
 
@@ -146,6 +157,13 @@ export default function AdminPanelsPage() {
         counts[r.panel_id] = (counts[r.panel_id] || 0) + 1
       })
       setRegistrationCounts(counts)
+
+      const taken: Record<string, number> = {}
+      await Promise.all(loadedPanels.filter(capEnforced).map(async p => {
+        const { data, error } = await supabase.rpc('panel_seats_taken', { p_panel_id: p.id })
+        if (!error && typeof data === 'number') taken[p.id] = data
+      }))
+      setSeatsTaken(taken)
     }
 
     setLoading(false)
@@ -180,6 +198,7 @@ export default function AdminPanelsPage() {
       signup_type: panel.signup_type,
       host_email: panel.host_email ?? '',
       max_capacity: panel.max_capacity ? String(panel.max_capacity) : '',
+      hard_cap: panel.hard_cap,
       is_published: panel.is_published,
     })
     setEditingPanel(panel)
@@ -228,6 +247,8 @@ export default function AdminPanelsPage() {
       signup_type: form.signup_type,
       host_email: form.signup_type === 'email_host' ? (form.host_email.trim() || null) : null,
       max_capacity: form.max_capacity ? parseInt(form.max_capacity, 10) : null,
+      // panels_hard_cap_needs_capacity: a hard cap without a number is refused.
+      hard_cap: form.hard_cap && !!form.max_capacity,
       is_published: form.is_published,
     }
 
@@ -501,14 +522,26 @@ export default function AdminPanelsPage() {
                     )}
                   </div>
 
-                  {/* Registrations against the room's planning target.
-                      Deliberately NOT "42 / 50 max" - that reads as an enforced
-                      gate, and nothing is gated. Registration stays open past
-                      the target; the number is there so the room can be
-                      changed or chairs added. */}
+                  {/* Registrations against the room's size. Two cases (080):
+                      ENFORCED (paid with a size, or hard cap) reads as seats
+                      taken of a cap, because registration closes at it.
+                      Otherwise it is a planning target and deliberately NOT
+                      "42 / 50 max" - nothing closes, so the number is there to
+                      move rooms or add chairs. */}
                   {(() => {
                     const count = registrationCounts[panel.id] ?? 0
                     const target = panel.max_capacity
+                    if (target && capEnforced(panel)) {
+                      const taken = seatsTaken[panel.id]
+                      const full = taken !== undefined && taken >= target
+                      return (
+                        <p className="mt-1 text-xs" style={{ color: full ? '#ef4444' : '#C4A882' }}>
+                          {taken === undefined ? 'seats taken: unavailable' : `${taken} of ${target} seats taken`}
+                          {' · CAPPED - registration closes when full'}
+                          {full && ' · FULL'}
+                        </p>
+                      )
+                    }
                     const ratio = target ? count / target : 0
                     const over = !!target && count > target
                     const near = !!target && !over && ratio >= 0.8
@@ -724,8 +757,8 @@ export default function AdminPanelsPage() {
                 </div>
               </div>
 
-              {/* Room size - a PLANNING TARGET, not a cap. Nothing enforces
-                  it and registration never closes. */}
+              {/* Room size. A planning target for free panels; a CAP for paid
+                  panels and for hard-capped ones (080). */}
               <div>
                 <label className={labelClass} style={{ color: '#8B7355' }}>
                   Room seats
@@ -739,10 +772,31 @@ export default function AdminPanelsPage() {
                   style={inputStyle}
                 />
                 <p className="mt-1 text-[11px]" style={{ color: '#666' }}>
-                  Planning target only. Registration is never closed and no
-                  attendee is ever turned away - this is what the count is
-                  flagged against so you can move rooms or add chairs.
+                  {form.signup_type === 'aatc_invoice'
+                    ? 'Paid panel: this is a cap. Registration closes when the seats are taken (unpaid checkouts hold a seat for about 35 minutes).'
+                    : form.hard_cap
+                      ? 'Hard cap: registration closes when this many have registered.'
+                      : 'Planning target only. Registration stays open past it - the count is flagged against it so you can move rooms or add chairs.'}
                 </p>
+                {form.signup_type === 'free_registration' && (
+                  <label className="mt-2 flex items-start gap-2 text-xs" style={{ color: '#ccc' }}>
+                    <input
+                      type="checkbox"
+                      checked={form.hard_cap}
+                      onChange={e => setForm({ ...form, hard_cap: e.target.checked })}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      Hard cap: close free registration at this number (for a limited
+                      resource, like starter kits). Needs a number above.
+                    </span>
+                  </label>
+                )}
+                {form.hard_cap && !form.max_capacity && (
+                  <p className="mt-1 text-[11px]" style={{ color: '#ef4444' }}>
+                    A hard cap needs a number - without one it will not be saved as capped.
+                  </p>
+                )}
               </div>
 
               {/* Signup Type */}
