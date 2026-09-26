@@ -458,7 +458,24 @@ export default function ArtistApplyForm({ content }: { content: ApplyFormContent
       return
     }
 
-    // Upload portfolio images for each artist
+    // Receipt + internal notice, sent server-side once per application (077).
+    // Requested right after the insert and AWAITED, before anything else that
+    // could throw: the 2026-09-25 test row got no receipt because the request
+    // never left the browser. keepalive lets it finish even if the tab moves on.
+    try {
+      const rc = await fetch('/api/application-submitted', {
+        method: 'POST', keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId: appRow.id }),
+      })
+      if (!rc.ok) console.error(`[apply] receipt request answered ${rc.status}`)
+    } catch (err) {
+      console.error('[apply] receipt request failed:', err)
+    }
+
+    // Upload portfolio images for each artist. Nothing below may keep the
+    // applicant from the success screen: the application is saved.
+    try {
     const hasPortfolio = artistEntries.some(e => e.portfolio_files.length > 0)
     if (hasPortfolio) {
       const updatedArtists = [...artistsData]
@@ -486,10 +503,10 @@ export default function ArtistApplyForm({ content }: { content: ApplyFormContent
         'apply/artist roster',
       )
     }
-
-    // Receipt + internal notice, sent server-side once per application (077).
-    fetch('/api/application-submitted', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ applicationId: appRow.id }) })
-      .catch(err => console.error('Receipt request failed:', err))
+    } catch (err) {
+      console.error('[apply/artist] portfolio step failed after the application was saved:', err)
+      toast('Your application is saved. Some portfolio images did not upload; you can add them in your portal.', { icon: '⚠️' })
+    }
 
     setSubmitted(true)
   }

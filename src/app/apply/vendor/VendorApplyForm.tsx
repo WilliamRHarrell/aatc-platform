@@ -347,8 +347,19 @@ export default function VendorApplyForm({ content }: { content: ApplyFormContent
     }
 
     // Receipt + internal notice, sent server-side once per application (077).
-    fetch('/api/application-submitted', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ applicationId: insRows[0].id }) })
-      .catch(err => console.error('Receipt request failed:', err))
+    // Requested right after the insert and AWAITED, before anything else that
+    // could throw: the 2026-09-25 test row got no receipt because the request
+    // never left the browser. keepalive lets it finish even if the tab moves on.
+    try {
+      const rc = await fetch('/api/application-submitted', {
+        method: 'POST', keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId: insRows[0].id }),
+      })
+      if (!rc.ok) console.error(`[apply] receipt request answered ${rc.status}`)
+    } catch (err) {
+      console.error('[apply] receipt request failed:', err)
+    }
 
     setSubmitted(true)
   }

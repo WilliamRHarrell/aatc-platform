@@ -274,6 +274,44 @@ this section is now history; develop has all of it. The next branch is
 - Until #3 merges, anything below that says "on develop" about after parties,
   venues, Part A, the About CMS or the lockup is on `feat/post-launch-fixes`.
 
+### 2026-09-25 Booth receipt never sent (fix/booth-receipt)
+
+077 APPLIED, verify_077 PASSED, PR #12 deployed 21:11 UTC. Ryan's booth test
+(application 9800610c, 21:16 UTC) saved but got no receipt and its
+`submission_receipt_sent_at` stayed NULL. Vercel runtime logs for that
+deployment show NO `POST /api/application-submitted` at all between 21:05
+and 21:19 (the deployment logged the earlier GET /apply and the later panel
+POST, and logs both of my probe POSTs), so the browser never sent the
+request. The route itself works: an end-to-end test with a real session
+(temp user, password sign-in, crafted `sb-<ref>-auth-token` cookie, own
+application, route call on PRODUCTION) returned `sent: true`, refused the
+second call, set the mark, and was torn down. Preview deployments sit behind
+Vercel Authentication with no automation bypass secret configured, so the
+test ran against production; the emails from it went to
+ryan+receipttest@ryanharrell.com and CONTACT_EMAIL.
+**Why the browser never sent it is not proven.** The call was fire-and-forget
+after the artist form's portfolio step; nothing in the code path throws for a
+row like Ryan's. **Fix:** the request is now made immediately after the
+insert, awaited, with `keepalive`, before anything else; the portfolio step
+is wrapped so a failure there can neither strand the applicant nor skip the
+receipt; the drawer shows "Receipt sent <time>" or "Receipt NOT sent" with a
+Send button (the route lets an admin send for any application, still once).
+NOT verified in a browser by the implementer: submit one booth application on
+the preview and confirm the receipt arrives; the drawer shows the mark.
+Teardown for this round: `seeds/teardown_test_round_2026_09_25b.sql`
+(application 9800610c, panel registration 158162f3, test account ff3f28f5).
+
+**Panels (asked 2026-09-25):** both seminars carried `signup_type = none`
+before the test. The only code that writes `signup_type` is the admin panels
+form (`admin/panels/page.tsx`), which loads the existing value into the edit
+form (the `none` default applies to NEW panels only); the seed
+`panels_2027_signup_type.sql` set both to free_registration on 2026-08-13.
+Tooth Gem's `updated_at` is 2026-09-24 14:29 UTC and Bookkeeping's is Ryan's
+own change at 21:22 - so an admin saved each with `none` in between. No
+audit log exists to say who. **`max_capacity` NULL means unlimited**, and so
+does a number: `/api/panel-register` deliberately makes no capacity check on
+free registrations (its comment: capacity is a planning target, not a gate).
+
 ### 2026-09-25 Booth + panel submission emails (PR 1b; plan: docs/superpowers/plans/2026-09-25-submission-emails-1b.md)
 
 Stacked on PR 1. **Migration 077 delivered, NOT APPLIED**:

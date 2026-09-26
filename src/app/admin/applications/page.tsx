@@ -13,6 +13,7 @@ import { veteranNeedsVerification } from '@/lib/application-docs'
 import ApplicationDocuments from '@/components/admin/ApplicationDocuments'
 import VeteranVerification, { type VerificationState } from '@/components/admin/VeteranVerification'
 import CompControls, { type CompPatch } from '@/components/admin/CompControls'
+import ReceiptStatus from '@/components/admin/ReceiptStatus'
 import { approvePayload, SEND_BACK_PAYLOAD, isComped, discountedInvoiceUpdate } from '@/lib/comp'
 
 // The `artists` column is stored as JSON; describe its real shape here so the
@@ -322,6 +323,9 @@ function DetailDrawer({
               )}
               <Field label="Corner booth"  value={app.is_corner} />
               <Field label="Veteran discount" value={app.is_veteran ? 'Claimed' : 'Not claimed'} />
+            </div>
+            <div className="mt-3">
+              <ReceiptStatus applicationId={app.id} sentAt={app.submission_receipt_sent_at} onSent={iso => onPatch(app.id, { submission_receipt_sent_at: iso })} />
             </div>
             {app.is_veteran && (
               <div className="mt-3">
