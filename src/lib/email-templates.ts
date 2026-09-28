@@ -7,7 +7,7 @@
  * client value. The internal notices go to CONTACT_EMAIL (one home).
  */
 import { CONTACT_EMAIL } from '@/lib/event-config'
-import { SPONSOR_TIERS, type SponsorTier } from '@/lib/sponsor-tiers'
+import { SPONSOR_TIERS, sponsorLines, type ShownPrices, type SponsorTier } from '@/lib/sponsor-tiers'
 import type { ReceiptFacts } from '@/lib/application-receipt'
 import { formatDateOnly } from '@/lib/date-only'
 
@@ -90,8 +90,26 @@ export function describeSponsorship(tier: SponsorTier, items: SponsorTier[]): st
   return [main, ...extras].filter(Boolean).join(' + ')
 }
 
-/** To the sponsor, on submission. No invoice, no deadline: nothing is confirmed yet. */
-export function sponsorReceivedEmail(sponsorName: string, tier: SponsorTier, items: SponsorTier[], amount: number) {
+/**
+ * To the sponsor, on submission. No invoice, no deadline: nothing is confirmed yet.
+ *
+ * Line by line, priced only where the tier's price is shown (084); a hidden
+ * package reads `followUp` and there is no total, which would reveal it by
+ * subtraction. The list price is still on the row and in the internal notice.
+ */
+export function sponsorReceivedEmail(sponsorName: string, tier: SponsorTier, items: SponsorTier[], shown: ShownPrices, followUp: string) {
+  const { lines, total } = sponsorLines(tier, items, shown)
+  const cell = 'font-size:13px; padding:4px 0;'
+  const rows = lines.map(l => `
+        <tr>
+          <td style="${cell} color:#ffffff;">${esc(l.label)}</td>
+          <td align="right" style="${cell} ${l.amount === null ? 'color:#999999;">' + esc(followUp) : 'font-weight:600; color:#C4A882;">' + dollars(l.amount)}</td>
+        </tr>`).join('')
+  const totalRow = total === null ? '' : `
+        <tr>
+          <td style="font-size:13px; color:#999999; border-top:1px solid #2a2a2a; padding-top:8px;">Total</td>
+          <td align="right" style="font-size:16px; font-weight:700; color:#C4A882; border-top:1px solid #2a2a2a; padding-top:8px;">${dollars(total)}</td>
+        </tr>`
   return emailWrapper(`
     <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#C4A882;">
       Application Received
@@ -103,15 +121,8 @@ export function sponsorReceivedEmail(sponsorName: string, tier: SponsorTier, ite
       We received your sponsorship application for AATC 2027 and will be in touch shortly to confirm the details.
     </p>
     <div style="background:#0a0a0a; border:1px solid #2a2a2a; border-radius:12px; padding:20px 24px; margin:20px 0;">
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="font-size:13px; color:#999999; padding-bottom:8px;">Requested</td>
-          <td align="right" style="font-size:13px; font-weight:600; color:#ffffff; padding-bottom:8px;">${esc(describeSponsorship(tier, items))}</td>
-        </tr>
-        <tr>
-          <td style="font-size:13px; color:#999999; border-top:1px solid #2a2a2a; padding-top:8px;">Package total</td>
-          <td align="right" style="font-size:16px; font-weight:700; color:#C4A882; border-top:1px solid #2a2a2a; padding-top:8px;">${dollars(amount)}</td>
-        </tr>
+      <p style="margin:0 0 8px; font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#999999;">Requested</p>
+      <table width="100%" cellpadding="0" cellspacing="0">${rows}${totalRow}
       </table>
     </div>
     <p style="margin:16px 0 0; font-size:15px; line-height:1.7; color:#cccccc;">
@@ -120,7 +131,10 @@ export function sponsorReceivedEmail(sponsorName: string, tier: SponsorTier, ite
   `)
 }
 
-/** To CONTACT_EMAIL, for each new sponsor application. */
+/**
+ * To CONTACT_EMAIL, for each new sponsor application. INTERNAL: always the
+ * list price, hidden or not - it is the default amount the invoice starts from.
+ */
 export function internalNewSponsorEmail(v: { sponsorName: string; contactName: string; email: string; phone: string | null; tier: SponsorTier; items: SponsorTier[]; amount: number; notes: string | null }) {
   return emailWrapper(`
     <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#C4A882;">

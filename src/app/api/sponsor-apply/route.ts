@@ -6,6 +6,9 @@ import { CONTACT_EMAIL } from '@/lib/event-config'
 import { validateSponsorSubmission, validateLogoFile } from '@/lib/sponsor-submission'
 import { sponsorReceivedEmail, internalNewSponsorEmail, describeSponsorship } from '@/lib/email-templates'
 import { sendTransactional } from '@/lib/transactional-email'
+import { getPriceVisibility } from '@/lib/sponsor-price-visibility'
+import { shownPrices } from '@/lib/sponsor-prices'
+import { getContent } from '@/content/getContent'
 import type { Database } from '@/types/database'
 
 // POST /api/sponsor-apply - sponsorship application intake.
@@ -15,8 +18,10 @@ import type { Database } from '@/types/database'
 // guardedWrite on the write, then two receipts that never fail the request:
 // the sponsor's "we received it" and the internal notice to CONTACT_EMAIL.
 //
-// The AMOUNT is computed here from SPONSOR_TIERS (validateSponsorSubmission),
-// never taken from the body. The row is inserted as pending; the 049 insert
+// The AMOUNT is computed here from SPONSOR_PRICES (validateSponsorSubmission),
+// never taken from the body. It is the list price even when that tier's price
+// is hidden (084): the internal default the invoice starts from. The sponsor's
+// receipt shows only shown prices; the internal notice shows the list price. The row is inserted as pending; the 049 insert
 // clamp exempts the service role, so status is set here on purpose.
 //
 // The LOGO is uploaded here too (multipart body). No storage policy lets an
@@ -120,8 +125,9 @@ export async function POST(req: NextRequest) {
   // Receipts. The row is saved; a mail failure is logged, never surfaced as a
   // failed submission (the sponsor would resubmit and create a duplicate).
   try {
+    const [visibility, wording] = await Promise.all([getPriceVisibility(), getContent('sponsorPricing')])
     await sendTransactional(s.email, `We received your AATC 2027 sponsorship application - ${s.sponsor_name}`,
-      sponsorReceivedEmail(s.sponsor_name, s.tier, s.additionalItems, s.amount))
+      sponsorReceivedEmail(s.sponsor_name, s.tier, s.additionalItems, shownPrices(visibility), wording.follow_up_pricing))
   } catch (e) {
     console.error(`[sponsor-apply] ${id} saved but the sponsor receipt failed: ${String(e)}`)
   }

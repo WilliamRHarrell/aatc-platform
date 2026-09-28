@@ -1368,7 +1368,10 @@ function PortalContent() {
               <dl className="space-y-2">
                 {[
                   { label: 'Tier', value: sponsorship.tier },
-                  { label: 'Amount', value: formatCurrency(sponsorship.amount) },
+                  // The invoice's amount, and only once one exists: before that the
+                  // row holds the list price, which is internal for a hidden-price
+                  // package (084). Rows with no value are filtered out below.
+                  { label: 'Amount', value: sponsorInvoice ? formatCurrency(sponsorInvoice.amount) : '' },
                   { label: 'Contact', value: sponsorship.contact_name },
                   { label: 'Email', value: sponsorship.email },
                 ].filter(r => r.value).map(r => (

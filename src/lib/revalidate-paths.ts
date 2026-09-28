@@ -5,7 +5,7 @@
  * waits out the 60 s window.
  */
 export const ALLOWED_PATHS = new Set([
-  '/', '/apply', '/apply/artist', '/apply/vendor', '/tickets', '/contests', '/sponsors', '/tattoo-battle',
+  '/', '/apply', '/apply/artist', '/apply/vendor', '/apply/sponsor', '/tickets', '/contests', '/sponsors', '/sponsors/packages', '/tattoo-battle',
   '/events/after-parties', '/events/schedule', '/events/kids-contest', '/events/pinup-contest', '/info/about',
 ])
 // Entry pages are dynamic: /tattoo-battle/entry/<n>. Pattern-matched so an

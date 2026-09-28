@@ -103,7 +103,10 @@ interface FormState {
   is_custom: boolean
 }
 
-const EMPTY_FORM: FormState = { sponsor_name: '', tier: 'brass', website: '', status: 'pending', contact_name: '', email: '', phone: '', instagram: '', facebook: '', notes: '', show_on_sponsors: true, show_on_vote_pages: false, amount: (TIER_INFO.brass.amount / 100).toString(), is_custom: false }
+// amount is filled from the Brass list price when the prices have loaded (startAdd).
+const EMPTY_FORM: FormState = { sponsor_name: '', tier: 'brass', website: '', status: 'pending', contact_name: '', email: '', phone: '', instagram: '', facebook: '', notes: '', show_on_sponsors: true, show_on_vote_pages: false, amount: '', is_custom: false }
+
+type Prices = Record<SponsorTier, number>
 
 export default function AdminSponsorshipsPage() {
   const supabase = createClient()
@@ -124,6 +127,39 @@ export default function AdminSponsorshipsPage() {
   const [linkingId, setLinkingId] = useState<string | null>(null)
   const [linkEmail, setLinkEmail] = useState('')
   const [linkWorking, setLinkWorking] = useState(false)
+  // List prices and the per-tier "show price" flag (084). Fetched from
+  // /api/admin/sponsor-pricing rather than imported: this page ships as public
+  // JavaScript, and the price table must not (lib/sponsor-prices.ts).
+  const [prices, setPrices] = useState<Prices | null>(null)
+  const [showPrice, setShowPrice] = useState<Record<SponsorTier, boolean> | null>(null)
+  const [pricingError, setPricingError] = useState<string | null>(null)
+  const [savingTier, setSavingTier] = useState<SponsorTier | null>(null)
+
+  useEffect(() => {
+    fetch('/api/admin/sponsor-pricing')
+      .then(async r => {
+        const j = await r.json().catch(() => ({}))
+        if (!r.ok) throw new Error(j.error ?? `HTTP ${r.status}`)
+        setPrices(j.prices as Prices)
+        setShowPrice(j.showPrice)
+      })
+      .catch(e => setPricingError(String(e instanceof Error ? e.message : e)))
+  }, [])
+
+  const togglePriceShown = async (t: SponsorTier) => {
+    if (!showPrice) return
+    const next = !showPrice[t]
+    setSavingTier(t)
+    const r = await fetch('/api/admin/sponsor-pricing', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier: t, showPrice: next }),
+    }).catch(() => null)
+    setSavingTier(null)
+    if (!r?.ok) { toast.error('Price visibility not saved'); return }
+    setShowPrice(prev => (prev ? { ...prev, [t]: next } : prev))
+    toast.success(`${TIER_INFO[t].label}: price ${next ? 'shown' : 'hidden'} publicly`)
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -176,11 +212,11 @@ export default function AdminSponsorshipsPage() {
   const suggestion = useMemo(() => {
     if (form.amount === '') return null
     const cents = Math.round(parseFloat(form.amount) * 100)
-    if (!Number.isFinite(cents) || cents <= 0) return null
-    const fields = tierFieldsForNewSponsorship(cents)
+    if (!Number.isFinite(cents) || cents <= 0 || !prices) return null
+    const fields = tierFieldsForNewSponsorship(cents, prices)
     if (!fields) return null
     return { ...fields, label: tierLabelWithCustom(fields.tier, fields.is_custom) }
-  }, [form.amount])
+  }, [form.amount, prices])
 
   /**
    * Choosing a tier fills in its price, UNLESS a figure has been typed that is
@@ -198,11 +234,11 @@ export default function AdminSponsorshipsPage() {
     setForm(f => {
       const typed = f.amount === '' ? null : Math.round(parseFloat(f.amount) * 100)
       const isUntouched =
-        typed === null || ALL_TIERS.some(x => TIER_INFO[x].amount === typed)
+        typed === null || (!!prices && ALL_TIERS.some(x => prices[x] === typed))
       return {
         ...f,
         tier: t,
-        amount: isUntouched ? (TIER_INFO[t].amount / 100).toString() : f.amount,
+        amount: isUntouched && prices ? (prices[t] / 100).toString() : f.amount,
       }
     })
   }
@@ -239,7 +275,7 @@ export default function AdminSponsorshipsPage() {
   )
 
   const startAdd = () => {
-    setForm(EMPTY_FORM)
+    setForm({ ...EMPTY_FORM, amount: prices ? (prices.brass / 100).toString() : '' })
     setLogoFile(null)
     setAdding(true)
     setEditing(null)
@@ -800,7 +836,7 @@ export default function AdminSponsorshipsPage() {
                     border: `1px solid ${active ? `${info.color}60` : '#2a2a2a'}`,
                   }}
                 >
-                  {info.label} · {formatCurrency(info.amount)}
+                  {info.label}{prices ? ` · ${formatCurrency(prices[t])}` : ''}
                 </button>
               )
             })}
@@ -822,7 +858,7 @@ export default function AdminSponsorshipsPage() {
                     border: `1px solid ${active ? 'rgba(139,115,85,0.5)' : '#2a2a2a'}`,
                   }}
                 >
-                  {info.label} · {formatCurrency(info.amount)}
+                  {info.label}{prices ? ` · ${formatCurrency(prices[t])}` : ''}
                 </button>
               )
             })}
@@ -846,7 +882,7 @@ export default function AdminSponsorshipsPage() {
               step="0.01"
               value={form.amount}
               onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
-              placeholder={(TIER_INFO[form.tier].amount / 100).toString()}
+              placeholder={prices ? (prices[form.tier] / 100).toString() : ''}
               disabled={!!editingRow?.amount_locked}
               className="w-full rounded-lg px-3 py-2 text-sm text-white disabled:opacity-50"
               style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }}
@@ -1001,6 +1037,50 @@ export default function AdminSponsorshipsPage() {
           <p className="mt-2 font-display text-3xl font-bold text-white">{counts.all}</p>
           <p className="mt-1 text-xs" style={{ color: '#555' }}>{formatCurrency(totalConfirmed + totalPending)} pipeline</p>
         </div>
+      </div>
+
+      {/* Price visibility (084): which list prices the public sees. */}
+      <div className="mb-6 rounded-2xl p-5" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#8B7355' }}>Price visibility</p>
+        <p className="mt-1 mb-4 text-xs" style={{ color: '#666' }}>
+          Hidden: /sponsors/packages and /apply/sponsor show the tier without a price, the applicant sees no
+          total, and the receipt email leaves it out. The application still records the list price for you.
+        </p>
+        {pricingError ? (
+          <p className="text-xs" style={{ color: '#f87171' }}>{pricingError}</p>
+        ) : !showPrice || !prices ? (
+          <p className="text-xs" style={{ color: '#555' }}>Loading...</p>
+        ) : (
+          (['main', 'individual'] as const).map(group => (
+            <div key={group} className="mb-3 last:mb-0">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: '#666' }}>
+                {group === 'main' ? 'Packages' : 'Individual Items'}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {ALL_TIERS.filter(t => TIER_INFO[t].group === group).map(t => {
+                  const on = showPrice[t]
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => togglePriceShown(t)}
+                      disabled={savingTier !== null}
+                      aria-pressed={on}
+                      className="rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-50"
+                      style={{
+                        backgroundColor: on ? 'rgba(74,222,128,0.1)' : 'rgba(255,255,255,0.04)',
+                        color: on ? '#4ade80' : '#999',
+                        border: `1px solid ${on ? 'rgba(74,222,128,0.4)' : '#2a2a2a'}`,
+                      }}
+                    >
+                      {TIER_INFO[t].label} · {formatCurrency(prices[t])} · {savingTier === t ? 'Saving...' : on ? 'Shown' : 'Hidden'}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Add / Edit form */}
