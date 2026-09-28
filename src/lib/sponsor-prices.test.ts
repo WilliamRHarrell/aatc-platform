@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { SPONSOR_PRICES, shownPrices, type PriceVisibility } from './sponsor-prices'
+import { Constants } from '@/types/database'
 import { ALL_HIDDEN, visibilityFromRows } from './sponsor-price-visibility'
 import { ALL_TIERS, SPONSOR_TIERS, sponsorLines } from './sponsor-tiers'
 import { sponsorReceivedEmail, internalNewSponsorEmail } from './email-templates'
@@ -64,6 +65,23 @@ describe('sponsor emails', () => {
     const amount = SPONSOR_PRICES.gold + SPONSOR_PRICES.vip_bag
     const html = internalNewSponsorEmail({ sponsorName: 'ZZ Test Co', contactName: 'ZZ', email: 'zz@example.com', phone: null, tier: 'gold', items: ['vip_bag'], amount, notes: null })
     expect(html).toContain(usd(amount))
+  })
+})
+
+describe('every sponsor_tier enum value has a settings row', () => {
+  // The enum carried 'bronze' (001) that neither 084 nor the app covered;
+  // verify_084 caught it live. This catches the next one before it ships: an
+  // enum value (types/database.ts, generated from the live schema) must be
+  // seeded by some 084* migration.
+  it('084 and its follow-ups seed a row for each enum value', () => {
+    const dir = join(process.cwd(), 'supabase', 'migrations')
+    const sql = readdirSync(dir).filter(f => /^084[a-z]?_/.test(f)).map(f => readFileSync(join(dir, f), 'utf8')).join('\n')
+    const missing = Constants.public.Enums.sponsor_tier.filter(t => !new RegExp(`\\('${t}',\\s*(true|false)\\)`).test(sql))
+    expect(missing).toEqual([])
+  })
+  it('bronze is hidden (084b)', () => {
+    const sql = readFileSync(join(process.cwd(), 'supabase', 'migrations', '084b_sponsor_tier_settings_bronze.sql'), 'utf8')
+    expect(sql).toMatch(/\('bronze',\s*false\)/)
   })
 })
 

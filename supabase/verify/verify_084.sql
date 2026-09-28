@@ -14,7 +14,8 @@ begin
   if to_regclass('public.sponsor_tier_settings') is null then raise exception 'FAIL A: sponsor_tier_settings does not exist - 084 is not applied'; end if;
   if not (select relrowsecurity from pg_class where oid = 'public.sponsor_tier_settings'::regclass) then raise exception 'FAIL A: RLS is off'; end if;
 
-  -- One row per tier in the enum, no more.
+  -- One row per value of the enum (read from pg_enum, never a written-out list),
+  -- so a tier added to the enum later fails here until it has a row.
   missing := (select string_agg(e.enumlabel, ', ') from pg_enum e
                where e.enumtypid = 'public.sponsor_tier'::regtype
                  and not exists (select 1 from public.sponsor_tier_settings s where s.tier::text = e.enumlabel));
@@ -102,7 +103,11 @@ begin
   end if;
 end $$;
 
--- ── C. the live settings  (results grid; seeded: 5 packages hidden, 5 items shown)
-select tier, show_price, updated_at
-  from public.sponsor_tier_settings
- order by show_price, tier;
+-- ── C. the live settings, one line per ENUM value  (results grid)
+-- Seeded: 5 packages hidden, 5 items shown (084), bronze hidden (084b). Driven
+-- by the enum, so a value with no row shows here as show_price NULL.
+select e.enumlabel as tier, s.show_price, s.updated_at
+  from pg_enum e
+  left join public.sponsor_tier_settings s on s.tier::text = e.enumlabel
+ where e.enumtypid = 'public.sponsor_tier'::regtype
+ order by s.show_price nulls first, e.enumsortorder;

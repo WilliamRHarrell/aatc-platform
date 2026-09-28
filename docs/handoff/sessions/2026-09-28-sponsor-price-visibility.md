@@ -33,7 +33,16 @@ JSON-LD on the site; OG and description text carry no prices;
 `sponsors_public` has no amount column; `sponsor_tier_counts` returns counts
 only; anon cannot select `sponsorships` (probe, 2026-09-28).
 
-**Order:** apply 084, run verify_084, THEN merge. Merged first, every price
+**084 applied by Ryan 2026-09-28; verify_084 FAILED block A: "tiers with no
+row: bronze".** The enum has had `bronze` since 001; 011's "remove bronze"
+only added values. No sponsorship uses it (production read, 2026-09-28); the
+only reference is verify_065's throwaway fixture. **084b** adds a hidden row.
+`sponsor-prices.test.ts` now also requires a seeded row for every
+`sponsor_tier` value in `types/database.ts`, so the next enum value fails in CI
+rather than in a live verify. Removing `bronze` from the enum: not done, see
+the PR.
+
+**Order:** apply 084b, run verify_084b, re-run verify_084, THEN merge. Merged first, every price
 (items too) reads hidden until 084 exists, and the admin panel shows an error.
 
 **Not changed, on purpose:**
