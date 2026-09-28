@@ -51,7 +51,7 @@
 | 3:00 PM | Tooth Gem Seminar |
 | 4:00 PM | Tattoo Contest begins - Main Stage |
 | 6:00 PM | All American Tattoo Battle Champion crowned |
-| 7:00 PM | Tattoo of the Day & Best of Show - Main Stage |
+| 7:00 PM | Tattoo of the Day & Best in Show - Main Stage |
 | 8:00 PM | Show closes |
 
 ---
@@ -80,7 +80,7 @@ Two schedule items now carry a "presented by" sponsor, and there will be more. D
 
 ### Homepage §5 - Events list
 
-Populate from this schedule. Highlights worth surfacing on the homepage rather than the full list: Tattoo Battle, Miss All American Pin-Up Contest, Team Strongman, Tattoo Dating Game, Best of Show. Link through to the full schedule page.
+Populate from this schedule. Highlights worth surfacing on the homepage rather than the full list: Tattoo Battle, Miss All American Pin-Up Contest, Team Strongman, Tattoo Dating Game, Best in Show. Link through to the full schedule page.
 
 ### Homepage §6 - Seminars & Panels
 

@@ -127,7 +127,7 @@ const SPONSORS = [
   { name: 'Sponsor TBA', initials: 'S6' },
 ]
 
-export default function TattooContestsClient({ prizesSlot }: { prizesSlot: React.ReactNode }) {
+export default function TattooContestsClient({ prizesSlot, scheduleSlot }: { prizesSlot: React.ReactNode; scheduleSlot: React.ReactNode }) {
   return (
     <div className="min-h-screen">
       <PublicNav />
@@ -207,10 +207,10 @@ export default function TattooContestsClient({ prizesSlot }: { prizesSlot: React
 
           <div className="space-y-4">
             {[
-              { step: '1', title: 'Register at the Contest Booth', desc: 'Visit the contest registration booth located near the main stage. Registration opens at 1:00 PM each day; judging begins at 4:00 PM.' },
+              { step: '1', title: 'Register at the Contest Booth', desc: 'Visit the contest registration booth located near the main stage. Registration and start times for each day are in the schedule below.' },
               { step: '2', title: 'Pay the Entry Fee', desc: `${CONTEST_ENTRY_FEE_NOTE} Cash and card accepted at the booth.` },
-              { step: '3', title: 'Listen for Your Category', desc: 'Categories are called live from the main stage rather than running to a fixed schedule, and several run at once. When yours is called, bring your entry to the judging area. Our panel of professional artists evaluates each entry on technical execution, creativity and overall impact.' },
-              { step: '4', title: 'Stay for the Result', desc: 'Each category runs until its winner is announced from the main stage, so results come through the day rather than in one block at the end. You must be present to accept your award.' },
+              { step: '3', title: 'Listen for Your Category', desc: 'Categories are called live from the main stage, one after another, rather than at fixed times. When yours is called, bring your entry to the judging area. Our panel of professional artists evaluates each entry on technical execution, creativity and overall impact.' },
+              { step: '4', title: 'Stay for the Result', desc: 'Each category is judged as it is called and its winner announced from the main stage before the next one is called, so results come through the day rather than in one block at the end. You must be present to accept your award.' },
             ].map(item => (
               <div
                 key={item.step}
@@ -231,24 +231,9 @@ export default function TattooContestsClient({ prizesSlot }: { prizesSlot: React
             ))}
           </div>
 
-          <div
-            className="mt-6 rounded-2xl p-5"
-            style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
-          >
-            <h3 className="mb-3 text-sm font-bold text-white">Daily Contest Schedule</h3>
-            <div className="space-y-2">
-              {[
-                { day: 'Friday', time: 'Registration 1:00 PM / Judging 4:00 PM' },
-                { day: 'Saturday', time: 'Registration 1:00 PM / Judging 4:00 PM' },
-                { day: 'Sunday', time: 'Registration 1:00 PM / Judging 4:00 PM' },
-              ].map(d => (
-                <div key={d.day} className="flex gap-3">
-                  <span className="w-28 shrink-0 text-right text-xs font-medium" style={{ color: '#C4A882' }}>{d.day}</span>
-                  <span className="text-xs" style={{ color: '#999' }}>{d.time}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Daily Contest Schedule: copy from the registry, times from the
+              schedule rows (ContestScheduleBlock, rendered by page.tsx). */}
+          {scheduleSlot}
         </div>
       </section>
 

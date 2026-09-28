@@ -84,7 +84,7 @@ select e.id, v.day_date, v.start_time, v.sort_order, v.title, v.location,
   (date '2027-04-18', time '13:00', 0, 'Tattoo Contest Registration Opens', 'Contest Booth', 'contest', '', null),
   (date '2027-04-18', time '16:00', 0, 'Tattoo Contest Begins', 'Main Stage', 'contest', '', null),
   (date '2027-04-18', time '18:00', 0, 'All American Tattoo Battle Champion Crowned', 'Main Stage', 'contest', '', null),
-  (date '2027-04-18', time '19:00', 0, 'Tattoo of the Day & Best of Show', 'Main Stage', 'contest', '', null),
+  (date '2027-04-18', time '19:00', 0, 'Tattoo of the Day & Best in Show', 'Main Stage', 'contest', '', null),
   (date '2027-04-18', time '20:00', 0, 'Show Closes', '', 'programme', '', null)
 
 ) as v(day_date, start_time, sort_order, title, location, kind, note, presented_by_fallback)
