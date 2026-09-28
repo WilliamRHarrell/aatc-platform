@@ -1,6 +1,6 @@
 /**
  * Sponsor application submission - the pure rules the route enforces.
- * Amounts come from SPONSOR_TIERS (the one home for prices) and never from the
+ * Amounts come from SPONSOR_PRICES (the one home for prices) and never from the
  * client. Field names match what /apply/sponsor posts. The logo is a FILE the
  * route uploads itself; see validateLogoFile.
  */
@@ -16,6 +16,7 @@ export function validateLogoFile(file: { type: string; size: number } | null): {
   return { ok: true, ext }
 }
 import { SPONSOR_TIERS, type SponsorTier } from '@/lib/sponsor-tiers'
+import { SPONSOR_PRICES } from '@/lib/sponsor-prices'
 
 const TIER_KEYS = Object.keys(SPONSOR_TIERS) as SponsorTier[]
 const isTier = (v: unknown): v is SponsorTier => typeof v === 'string' && (TIER_KEYS as string[]).includes(v)
@@ -23,13 +24,13 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 export function computeSponsorAmount(tier: SponsorTier | null, items: SponsorTier[]): number {
   const unique = [...new Set(items)]
-  return (tier ? SPONSOR_TIERS[tier].amount : 0) + unique.reduce((sum, i) => sum + SPONSOR_TIERS[i].amount, 0)
+  return (tier ? SPONSOR_PRICES[tier] : 0) + unique.reduce((sum, i) => sum + SPONSOR_PRICES[i], 0)
 }
 
 /** The row's tier column: the main tier, or the most expensive item. */
 export function primaryTier(tier: SponsorTier | null, items: SponsorTier[]): SponsorTier {
   if (tier) return tier
-  return [...items].sort((a, b) => SPONSOR_TIERS[b].amount - SPONSOR_TIERS[a].amount)[0]
+  return [...items].sort((a, b) => SPONSOR_PRICES[b] - SPONSOR_PRICES[a])[0]
 }
 
 export interface SponsorSubmissionValues {

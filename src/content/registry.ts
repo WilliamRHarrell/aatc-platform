@@ -417,6 +417,24 @@ export const REGISTRY: PageDef[] = [
     },
   },
   {
+    key: 'sponsorPricing',
+    title: 'Sponsor pricing wording (/sponsors/packages, /apply/sponsor)',
+    sections: {
+      contact_for_pricing: {
+        label: 'Hidden-price package: price line',
+        help: 'Shown in place of the price on packages whose price is hidden (Price visibility, in /admin/sponsorships).',
+        type: 'text',
+        default: 'Contact us for pricing',
+      },
+      follow_up_pricing: {
+        label: 'Hidden-price package: on the application and receipt',
+        help: 'Shown to an applicant in place of the price and total when their selection includes a hidden-price package. Also used in the receipt email.',
+        type: 'text',
+        default: "We'll follow up with pricing",
+      },
+    },
+  },
+  {
     key: 'about',
     title: 'About AATC',
     sections: {
@@ -506,6 +524,7 @@ export const PAGE_ROUTE: Record<string, string | string[]> = {
   contests: '/contests',
   kidsContest: '/events/kids-contest',
   sponsors: '/sponsors',
+  sponsorPricing: ['/sponsors/packages', '/apply/sponsor'],
   about: '/info/about',
   applyForms: ['/apply/artist', '/apply/vendor'],
 }

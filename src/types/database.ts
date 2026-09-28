@@ -1299,6 +1299,24 @@ export type Database = {
         }
         Relationships: []
       }
+      sponsor_tier_settings: {
+        Row: {
+          show_price: boolean
+          tier: Database["public"]["Enums"]["sponsor_tier"]
+          updated_at: string
+        }
+        Insert: {
+          show_price: boolean
+          tier: Database["public"]["Enums"]["sponsor_tier"]
+          updated_at?: string
+        }
+        Update: {
+          show_price?: boolean
+          tier?: Database["public"]["Enums"]["sponsor_tier"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sponsorships: {
         Row: {
           additional_items: string[] | null

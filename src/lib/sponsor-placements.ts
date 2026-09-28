@@ -185,6 +185,11 @@ export function extraPlacements(row: PlacementFlags): Placement[] {
  * a floor - assigning Brass to someone who paid less than Brass would be
  * rounding UP, which is the direction this rule exists to forbid. The caller
  * decides explicitly; that is not a case this function should guess at.
+ *
+ * `prices` is passed in (cents per tier) because this module is imported by
+ * the admin page, a browser component, and must not carry the price table
+ * itself (lib/sponsor-prices.ts). The admin page gets it from
+ * /api/admin/sponsor-pricing.
  */
 export interface NewSponsorshipTierFields {
   tier: SponsorTier
@@ -193,9 +198,10 @@ export interface NewSponsorshipTierFields {
 
 export function tierFieldsForNewSponsorship(
   amountCents: number,
+  prices: Record<SponsorTier, number>,
 ): NewSponsorshipTierFields | null {
   const candidates = GOLD_AND_ABOVE.concat(['silver', 'brass'])
-    .map(t => ({ tier: t, amount: SPONSOR_TIERS[t].amount }))
+    .map(t => ({ tier: t, amount: prices[t] }))
     .filter(t => t.amount <= amountCents)
     .sort((a, b) => b.amount - a.amount)
 

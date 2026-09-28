@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest'
 import { computeSponsorAmount, primaryTier, validateSponsorSubmission, validateLogoFile, LOGO_MAX_BYTES } from '@/lib/sponsor-submission'
-import { SPONSOR_TIERS } from '@/lib/sponsor-tiers'
+import { SPONSOR_PRICES } from '@/lib/sponsor-prices'
 
 describe('computeSponsorAmount', () => {
   it('sums the main tier and every individual item from the tier table', () => {
     expect(computeSponsorAmount('gold', ['vip_bag', 'rafter_banner']))
-      .toBe(SPONSOR_TIERS.gold.amount + SPONSOR_TIERS.vip_bag.amount + SPONSOR_TIERS.rafter_banner.amount)
+      .toBe(SPONSOR_PRICES.gold + SPONSOR_PRICES.vip_bag + SPONSOR_PRICES.rafter_banner)
   })
-  it('items only', () => { expect(computeSponsorAmount(null, ['vip_bag'])).toBe(SPONSOR_TIERS.vip_bag.amount) })
-  it('ignores duplicates', () => { expect(computeSponsorAmount(null, ['vip_bag', 'vip_bag'])).toBe(SPONSOR_TIERS.vip_bag.amount) })
+  it('items only', () => { expect(computeSponsorAmount(null, ['vip_bag'])).toBe(SPONSOR_PRICES.vip_bag) })
+  it('ignores duplicates', () => { expect(computeSponsorAmount(null, ['vip_bag', 'vip_bag'])).toBe(SPONSOR_PRICES.vip_bag) })
 })
 
 describe('primaryTier', () => {
@@ -22,7 +22,7 @@ describe('validateSponsorSubmission', () => {
     const r = validateSponsorSubmission(good)
     expect(r.ok).toBe(true)
     if (r.ok) {
-      expect(r.values.amount).toBe(SPONSOR_TIERS.gold.amount + SPONSOR_TIERS.vip_bag.amount)
+      expect(r.values.amount).toBe(SPONSOR_PRICES.gold + SPONSOR_PRICES.vip_bag)
       expect(r.values.tier).toBe('gold')
       expect(r.values.additionalItems).toEqual(['vip_bag'])
       expect(r.values.website).toBe('https://acme.com')
@@ -45,7 +45,7 @@ describe('validateSponsorSubmission', () => {
   })
   it('never trusts a client amount', () => {
     const r = validateSponsorSubmission({ ...good, amount: 1 } as typeof good & { amount: number })
-    expect(r.ok && r.values.amount).toBe(SPONSOR_TIERS.gold.amount + SPONSOR_TIERS.vip_bag.amount)
+    expect(r.ok && r.values.amount).toBe(SPONSOR_PRICES.gold + SPONSOR_PRICES.vip_bag)
   })
 })
 
