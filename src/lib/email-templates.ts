@@ -383,3 +383,60 @@ export function authResetPasswordEmail() {
     </p>
   `)
 }
+
+// ── Invite & link (admin action, /api/admin/invite-link) ──────
+// `what` names the thing now in their portal: "sponsorship" or "booth application".
+
+const ctaButton = (href: string, label: string) => `
+    <p style="margin:24px 0 0; text-align:center;">
+      <a href="${href}" style="display:inline-block; background:#8B7355; color:#ffffff; text-decoration:none; font-size:14px; font-weight:700; letter-spacing:1px; padding:14px 32px; border-radius:10px;">${label}</a>
+    </p>`
+
+const contactLine = `
+    <p style="margin:24px 0 0; font-size:13px; line-height:1.7; color:#666666; text-align:center;">
+      Questions? Reply to this email or contact us at
+      <a href="mailto:${CONTACT_EMAIL}" style="color:#8B7355;">${CONTACT_EMAIL}</a>
+    </p>`
+
+/**
+ * No account yet: an invitation to create one. `actionUrl` is a single-use
+ * Supabase link that signs them in and lands on the set-password page; the
+ * account is already linked, so the portal shows their record straight away.
+ */
+export function accountInviteEmail(v: { name: string; what: string; actionUrl: string }) {
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#C4A882;">
+      Your AATC Portal
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      Set up your account, ${esc(v.name)}
+    </h2>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      We have created a portal account for you and connected it to your AATC 2027 ${esc(v.what)}.
+      Choose a password to sign in. From the portal you can see your details and any invoice, and pay online.
+    </p>
+    ${ctaButton(esc(v.actionUrl), 'Set Your Password →')}
+    <p style="margin:16px 0 0; font-size:13px; line-height:1.7; color:#999999; text-align:center;">
+      This link works once and expires. If it has expired, use "Forgot password" on the sign-in page with this email address.
+    </p>
+    ${contactLine}
+  `)
+}
+
+/** An existing account was linked: tell them where to look. */
+export function portalLinkedEmail(v: { name: string; what: string }) {
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#C4A882;">
+      Your AATC Portal
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      Your ${esc(v.what)} is in your portal
+    </h2>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      We have connected the AATC 2027 ${esc(v.what)} for <strong style="color:#ffffff;">${esc(v.name)}</strong> to your account.
+      Sign in to see its details and any invoice, and to pay online.
+    </p>
+    ${ctaButton(`${SITE_URL}/auth/login?redirect=/portal`, 'Go to Your Portal →')}
+    ${contactLine}
+  `)
+}

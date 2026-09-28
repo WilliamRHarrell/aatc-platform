@@ -1,16 +1,23 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import toast from 'react-hot-toast'
+
+// An admin invitation (/api/admin/invite-link) lands here with type=invite in
+// the URL hash. Read once at load, before the auth client consumes the hash;
+// cosmetic only (the heading), so a miss just shows the reset wording.
+const OPENED_FROM_INVITE = typeof window !== 'undefined' && /(^|[#&])type=invite(&|$)/.test(window.location.hash)
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [ready, setReady] = useState(false)
+  // false on the server render, the load-time value on the client: no mismatch.
+  const invited = useSyncExternalStore(() => () => {}, () => OPENED_FROM_INVITE, () => false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -70,7 +77,7 @@ export default function ResetPasswordPage() {
         className="w-full max-w-md rounded-2xl p-8"
         style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
       >
-        <h2 className="font-display mb-1 text-2xl font-bold text-white">Set new password</h2>
+        <h2 className="font-display mb-1 text-2xl font-bold text-white">{invited ? 'Create your password' : 'Set new password'}</h2>
         <p className="mb-6 text-sm" style={{ color: '#999999' }}>
           {ready
             ? 'Choose a new password for your account.'
