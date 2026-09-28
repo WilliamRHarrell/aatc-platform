@@ -15,6 +15,7 @@ import VeteranVerification, { type VerificationState } from '@/components/admin/
 import CompControls, { type CompPatch } from '@/components/admin/CompControls'
 import ReceiptStatus from '@/components/admin/ReceiptStatus'
 import DuplicateWarning from '@/components/admin/DuplicateWarning'
+import InviteLinkControl from '@/components/admin/InviteLinkControl'
 import { approvePayload, SEND_BACK_PAYLOAD, isComped, discountedInvoiceUpdate } from '@/lib/comp'
 
 // The `artists` column is stored as JSON; describe its real shape here so the
@@ -288,6 +289,16 @@ function DetailDrawer({
               </span>
             )}</h2>
             <DuplicateWarning applicationId={app.id} userId={app.user_id} email={app.email} />
+            <div className="mt-2">
+              <InviteLinkControl
+                kind="application"
+                id={app.id}
+                linked={!!app.user_id}
+                defaultEmail={app.email}
+                allowUnlink={false}
+                onChange={userId => onPatch(app.id, { user_id: userId })}
+              />
+            </div>
             <p className="text-sm" style={{ color: '#999' }}>
               {new Date(app.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
             </p>
