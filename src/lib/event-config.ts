@@ -59,10 +59,13 @@ export const VENUE_LOCATIONS: readonly string[] = ['Main Stage', ROOMS.seminarRo
 export const CONTACT_EMAIL = 'info@allamericantattooconvention.com'
 export const CONTACT_PHONE = '(910) 850-2566'
 
+// instagram and tiktok were '/officialaatc' here but unused; the live footer
+// linked the accounts below (and the design handoff agrees). Footer reads this
+// since 2026-09-28, so this is now the one home. Confirm if the handles changed.
 export const SOCIAL = {
-  instagram: 'https://instagram.com/officialaatc',
-  facebook: 'https://facebook.com/allamericantattooconvention',
-  tiktok: 'https://tiktok.com/@officialaatc',
+  instagram: 'https://www.instagram.com/allamericantattooconvention/',
+  facebook: 'https://www.facebook.com/allamericantattooconvention',
+  tiktok: 'https://www.tiktok.com/@theaatc',
   x: 'https://x.com/officialaatc',
   xHandle: '@officialaatc',
 } as const

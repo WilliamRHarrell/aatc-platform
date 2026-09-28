@@ -26,18 +26,21 @@
 export default function HoneypotField({
   value,
   onChange,
+  id = 'website-url',
 }: {
   value: string
   onChange: (v: string) => void
+  /** Unique per page: the footer's newsletter form sits on pages that have their own form. */
+  id?: string
 }) {
   return (
     <div
       aria-hidden="true"
       style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, overflow: 'hidden' }}
     >
-      <label htmlFor="website-url">Leave this blank</label>
+      <label htmlFor={id}>Leave this blank</label>
       <input
-        id="website-url"
+        id={id}
         name="website"
         type="text"
         tabIndex={-1}

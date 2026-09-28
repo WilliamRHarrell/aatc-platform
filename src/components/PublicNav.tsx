@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import { ROUTES } from '@/lib/routes'
 
 interface DropdownConfig {
   label: string
@@ -11,71 +12,76 @@ interface DropdownConfig {
   links: { href: string; label: string }[]
 }
 
+// Destinations come from lib/routes.ts (shared with the footer); labels,
+// grouping and order are the header's own.
 const NAV_LINKS = [
-  { href: '/', label: 'Home' },
-  { href: '/contests', label: 'Vote' },
+  { href: ROUTES.home, label: 'Home' },
+  { href: ROUTES.vote, label: 'Vote' },
 ]
 
 const DROPDOWNS: DropdownConfig[] = [
   {
     label: 'Buy Tickets',
-    prefix: '/tickets',
+    prefix: ROUTES.tickets,
     links: [
-      { href: '/tickets', label: 'All Tickets' },
-      { href: '/tickets#friday', label: 'Friday Pass' },
-      { href: '/tickets#saturday', label: 'Saturday Pass' },
-      { href: '/tickets#sunday', label: 'Sunday Pass' },
-      { href: '/tickets#weekend', label: 'Weekend Pass' },
-      { href: '/tickets#vip', label: 'VIP Pass' },
+      { href: ROUTES.tickets, label: 'All Tickets' },
+      { href: `${ROUTES.tickets}#friday`, label: 'Friday Pass' },
+      { href: `${ROUTES.tickets}#saturday`, label: 'Saturday Pass' },
+      { href: `${ROUTES.tickets}#sunday`, label: 'Sunday Pass' },
+      { href: `${ROUTES.tickets}#weekend`, label: 'Weekend Pass' },
+      { href: `${ROUTES.tickets}#vip`, label: 'VIP Pass' },
     ],
   },
   {
     label: 'Events',
     prefix: '/events',
     links: [
-      { href: '/tattoo-battle', label: 'Tattoo Battle' },
-      { href: '/events/tattoo-contests', label: 'Tattoo Contests' },
-      { href: '/events/kids-contest', label: 'Kids Temp Tattoo Contest' },
-      { href: '/events/tattoo-panels', label: 'Tattoo Panels' },
-      { href: '/events/schedule', label: 'Event Schedule' },
-      { href: '/events/pinup-contest', label: 'Miss AATC Pinup Contest' },
-      { href: '/events/food-truck-rodeo', label: 'Food Truck Rodeo' },
-      { href: '/events/dating-game', label: 'Tattoo Dating Game' },
-      { href: '/events/strongest-sideshow', label: 'Strongest at the Sideshow' },
-      { href: '/events/medieval-combat', label: 'Medieval Armored Combat' },
-      { href: '/events/after-parties', label: 'After Parties' },
-      { href: '/events/vip-meet-greet', label: 'Gold Star VIP Meet & Greet' },
+      { href: ROUTES.schedule, label: 'Event Schedule' },
+      { href: ROUTES.tattooBattle, label: 'Tattoo Battle' },
+      { href: ROUTES.tattooContests, label: 'Tattoo Contests' },
+      { href: ROUTES.kidsContest, label: 'Kids Temp Tattoo Contest' },
+      { href: ROUTES.panels, label: 'Tattoo Panels' },
+      { href: ROUTES.pinupContest, label: 'Miss AATC Pinup Contest' },
+      { href: ROUTES.foodTruckRodeo, label: 'Food Truck Rodeo' },
+      { href: ROUTES.datingGame, label: 'Tattoo Dating Game' },
+      { href: ROUTES.strongestSideshow, label: 'Strongest at the Sideshow' },
+      { href: ROUTES.medievalCombat, label: 'Medieval Armored Combat' },
+      { href: ROUTES.afterParties, label: 'After Parties' },
+      { href: ROUTES.vipMeetGreet, label: 'Gold Star VIP Meet & Greet' },
     ],
   },
   {
     label: 'Event Info',
     prefix: '/info',
     links: [
-      { href: '/info/about', label: 'About AATC' },
-      { href: '/info/directions', label: 'Directions' },
-      { href: '/info/staying', label: 'Staying with AATC' },
-      { href: '/info/policies', label: 'Convention Policies' },
-      { href: '/info/wall-of-honor', label: 'Wall of Honor' },
+      { href: ROUTES.about, label: 'About AATC' },
+      { href: ROUTES.directions, label: 'Directions' },
+      { href: ROUTES.staying, label: 'Staying with AATC' },
+      { href: ROUTES.policies, label: 'Convention Policies' },
+      { href: ROUTES.wallOfHonor, label: 'Wall of Honor' },
     ],
   },
   {
     label: 'Artists & Vendors',
-    prefix: '/directory',
+    prefix: ROUTES.directory,
     links: [
-      { href: '/directory', label: 'Artist & Vendor Directory' },
-      { href: '/directory/artists', label: 'Find An Artist' },
-      { href: '/apply/artist', label: 'Booth Applications' },
+      { href: ROUTES.directory, label: 'Artist & Vendor Directory' },
+      { href: ROUTES.findArtist, label: 'Find An Artist' },
+      { href: ROUTES.apply, label: 'Booth Applications' },
     ],
   },
   {
     label: 'Sponsors',
-    prefix: '/sponsors',
+    prefix: ROUTES.sponsors,
     links: [
-      { href: '/sponsors', label: 'Sponsor Directory' },
-      { href: '/sponsors/packages', label: 'Become A Sponsor' },
+      { href: ROUTES.sponsors, label: 'Sponsor Directory' },
+      { href: ROUTES.sponsorPackages, label: 'Sponsorship Packages' },
     ],
   },
 ]
+
+/** The booth-application pages. /apply/sponsor is under /apply but belongs to Sponsors. */
+const BOOTH_APPLY_PATHS: string[] = [ROUTES.apply, '/apply/artist', '/apply/vendor']
 
 function NavDropdown({ config, pathname }: { config: DropdownConfig; pathname: string }) {
   const [open, setOpen] = useState(false)
@@ -90,12 +96,14 @@ function NavDropdown({ config, pathname }: { config: DropdownConfig; pathname: s
   }, [])
 
   const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(href + '/')
+    href === ROUTES.apply
+      ? BOOTH_APPLY_PATHS.includes(pathname)
+      : pathname === href || pathname.startsWith(href + '/')
 
   const groupActive =
     config.links.some(l => isActive(l.href)) ||
     pathname.startsWith(config.prefix) ||
-    (config.label === 'Artists & Vendors' && (pathname === '/apply/artist' || pathname === '/apply/vendor'))
+    (config.label === 'Sponsors' && pathname === ROUTES.sponsorApply)
 
   return (
     <div className="relative" ref={ref}>
@@ -186,7 +194,7 @@ export default function PublicNav() {
 
         {/* Wordmark */}
         <Link
-          href="/"
+          href={ROUTES.home}
           className="text-sm font-medium uppercase tracking-widest"
           style={{ color: '#C4A882' }}
         >
@@ -215,7 +223,7 @@ export default function PublicNav() {
 
           {authed && (
             <Link
-              href="/portal"
+              href={ROUTES.portal}
               className="ml-2 rounded-lg px-3 py-1.5 text-xs font-semibold"
               style={{
                 backgroundColor: 'rgba(139,115,85,0.15)',

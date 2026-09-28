@@ -13,8 +13,8 @@ import { excludeHarnessSponsors, HARNESS_PREFIX } from '@/lib/sponsor-display'
  * receiving materially less than was sold to them. Same fix class as /contests
  * and /directory, applied to the one component that appears on every page.
  *
- * Rendered from the root layout and passed into SiteFooter as a prop, because
- * SiteFooter has to stay a client component for its usePathname admin check.
+ * Rendered from the root layout directly below the page content and above the
+ * site footer, inside PublicBottom (a client shell that hides both on /admin).
  */
 interface FooterSponsor {
   id: string

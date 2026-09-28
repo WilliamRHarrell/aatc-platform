@@ -1,0 +1,17 @@
+import React from 'react';
+export function Button({variant='primary',size='md',disabled=false,children,onClick,style}){
+  const pad=size==='sm'?'8px 18px':size==='lg'?'16px 40px':'12px 28px';
+  const fs=size==='sm'?12:size==='lg'?18:14;
+  const variants={
+    primary:{background:'var(--aatc-gold)',color:'var(--text-on-gold)',border:'2px solid var(--aatc-gold)'},
+    secondary:{background:'transparent',color:'var(--aatc-white)',border:'2px solid var(--aatc-white)'},
+    outline:{background:'transparent',color:'var(--text-accent)',border:'2px solid var(--aatc-gold)'},
+    ghost:{background:'transparent',color:'var(--text-accent)',border:'2px solid transparent'},
+  };
+  const base={fontFamily:'var(--font-condensed)',textTransform:'uppercase',letterSpacing:'var(--tracking-caps)',fontWeight:600,fontSize:fs,padding:pad,borderRadius:'var(--radius-none)',cursor:disabled?'not-allowed':'pointer',opacity:disabled?.45:1,transition:'all var(--transition-fast)',display:'inline-flex',alignItems:'center',gap:8,...variants[variant],...style};
+  const hover=e=>{if(disabled)return;const s=e.currentTarget.style;
+    if(variant==='primary'){s.background='var(--aatc-gold-light)';s.borderColor='var(--aatc-gold-light)';}
+    else{s.color='var(--aatc-gold-light)';if(variant!=='ghost')s.borderColor='var(--aatc-gold-light)';}};
+  const leave=e=>{const s=e.currentTarget.style;s.background=variants[variant].background;s.color=variants[variant].color;s.border=variants[variant].border;};
+  return <button disabled={disabled} onClick={onClick} onMouseEnter={hover} onMouseLeave={leave} style={base}>{children}</button>;
+}

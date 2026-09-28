@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
 import { CANONICAL_ORIGIN, ROBOTS_META } from '@/lib/site'
 import { ASSETS } from '@/lib/event-config'
-import { Playfair_Display, Inter } from 'next/font/google'
+import { Playfair_Display, Inter, Oswald } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 import SiteFooter from '@/components/SiteFooter'
 import FooterSponsors from '@/components/FooterSponsors'
+import PublicBottom from '@/components/PublicBottom'
 import './globals.css'
 
 const playfair = Playfair_Display({
@@ -15,6 +16,16 @@ const playfair = Playfair_Display({
 
 const inter = Inter({
   variable: '--font-inter',
+  subsets: ['latin'],
+  display: 'swap',
+})
+
+// The footer's condensed caps (docs/design/site-footer). Only the weights the
+// footer uses: 300 copy, 400 links and address, 600 headings and buttons, 700
+// titles. Distinct from /tattoo-battle's own --font-oswald (500/700).
+const oswald = Oswald({
+  variable: '--font-oswald-site',
+  weight: ['300', '400', '600', '700'],
   subsets: ['latin'],
   display: 'swap',
 })
@@ -41,7 +52,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
+    <html lang="en" className={`${playfair.variable} ${inter.variable} ${oswald.variable}`}>
       <body className="bg-background text-text-primary antialiased">
         {/* Site-wide hero background - fades to black at bottom */}
         <div
@@ -69,7 +80,12 @@ export default function RootLayout({
         <div className="relative z-10">
           {children}
 
-          <SiteFooter sponsors={<FooterSponsors />} />
+          {/* Page bottom, in this order on every public page: the sponsor
+              section, then the footer. Neither on /admin. */}
+          <PublicBottom>
+            <FooterSponsors />
+            <SiteFooter />
+          </PublicBottom>
         </div>
         <Toaster
           position="top-right"

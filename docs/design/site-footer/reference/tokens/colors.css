@@ -1,0 +1,24 @@
+:root{
+/* Base palette */
+--aatc-black:#0b0b09; /* ink black — primary background */
+--aatc-charcoal:#3d3c39; /* worn charcoal — secondary surface */
+--aatc-charcoal-deep:#1d1c1a;
+--aatc-gold:#9c8446; /* antique gold — primary accent */
+--aatc-gold-dark:#7a683a;
+--aatc-gold-light:#b59d5e;
+--aatc-white:#ffffff; /* pure white — headline accent */
+--aatc-offwhite:#f2efe6;
+--aatc-silver:#b9bdbe; /* pewter silver — engraving highlight */
+/* Semantic aliases */
+--surface-page:var(--aatc-black);
+--surface-card:var(--aatc-charcoal-deep);
+--surface-raised:var(--aatc-charcoal);
+--text-display:var(--aatc-white);
+--text-body:var(--aatc-offwhite);
+--text-muted:var(--aatc-silver);
+--text-accent:var(--aatc-gold);
+--text-on-gold:var(--aatc-black);
+--border-default:var(--aatc-gold);
+--border-subtle:rgba(156,132,70,.4);
+--focus-ring:var(--aatc-gold-light);
+}

@@ -1,0 +1,7 @@
+import React from 'react';
+export function StarDivider({count=5,rules=false,style}){
+  const stars=Array.from({length:count},()=>'★').join(' ');
+  const row=<div style={{color:'var(--aatc-gold)',letterSpacing:10,fontSize:12,textAlign:'center'}}>{stars}</div>;
+  if(!rules)return <div style={style}>{row}</div>;
+  return <div style={{display:'flex',alignItems:'center',gap:16,...style}}><div style={{flex:1,borderTop:'1px solid var(--border-subtle)'}}></div>{row}<div style={{flex:1,borderTop:'1px solid var(--border-subtle)'}}></div></div>;
+}

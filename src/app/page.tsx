@@ -681,25 +681,6 @@ export default async function HomePage() {
           </address>
         </div>
       </section>
-
-      {/* ── 10. Artist & vendor login ── */}
-      <section className="border-t px-4 py-14" style={{ borderColor: '#2a2a2a' }}>
-        <div
-          className="mx-auto flex max-w-3xl flex-col items-center gap-4 rounded-2xl px-6 py-7 text-center sm:flex-row sm:justify-between sm:text-left"
-          style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
-        >
-          <div>
-            <h2 className="text-base font-bold text-white">{c.login_title}</h2>
-            <p className="mt-1 text-sm" style={{ color: '#999' }}>{c.login_body}</p>
-          </div>
-          <Link
-            href="/auth/login"
-            className="shrink-0 rounded-xl border-2 border-[#8B7355] px-6 py-3 text-sm font-bold text-[#C4A882] transition-colors hover:bg-[#8B7355] hover:text-white"
-          >
-            {c.login_button}
-          </Link>
-        </div>
-      </section>
     </div>
   )
 }

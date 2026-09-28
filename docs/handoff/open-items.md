@@ -54,7 +54,9 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
   needs an account, then the link in /admin/sponsorships. Owner: Ryan.
 - **Rate limiting for public form routes** (NOT BUILT): add Vercel WAF
   rate-limit rules before launch on `POST /api/pinup-entry`,
-  `POST /api/panel-register`, `POST /api/aatc/*` if any accept anonymous
+  `POST /api/panel-register`, `POST /api/newsletter` (footer signup into
+  GHL, added 2026-09-28), `POST /api/sponsor-apply` (its header already
+  pointed here; it was missing from this list), `POST /api/aatc/*` if any accept anonymous
   input, and the Supabase Auth endpoints reached from `/auth/signup` and
   `/auth/forgot-password` (Supabase applies its own auth rate limits; confirm
   them in the dashboard). `/apply/artist` and `/apply/vendor` write as a
