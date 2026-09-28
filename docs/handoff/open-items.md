@@ -4,6 +4,14 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
 
 ### OPEN ITEMS (one line each, with the owner)
 
+- **Review DMARC aggregate reports around 2026-10-12, then move to
+  `p=quarantine; pct=25`** (added 2026-09-28) - only if every legitimate
+  sender passes (Google Workspace, Resend/`send.` subdomain, and any tool the
+  reports name). Reports go to accounting@ (`rua`). DNS is ready: root SPF
+  and Google DKIM added 2026-09-28, Workspace DKIM "Authenticating email",
+  `node scripts/check-email-dns.mjs` all PASS (Ryan and Claude, 2026-09-28).
+  After quarantine: raise pct in steps, re-run the script after any DNS
+  change. Owner: Ryan.
 - **Enable `SPONSOR_REMINDERS_ENABLED=true` in Vercel before 2026-12-01**
   (added 2026-09-26). The first reminders fall due 2026-12-02 (30 days before
   the Nomadica and AATS due date, 2027-01-01); WholeLife's 30-day reminder is
@@ -11,10 +19,6 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
   days before the due date. Check `/api/cron/lifecycle-sweep?dry_run=1` first:
   `sponsor_reminders.would_send` should list the three real sponsors only.
   Owner: Ryan.
-- **`sponsor_tier_counts()` counts the RLS-harness sponsorships** (added
-  2026-09-26): gold read 6 taken with 5 real gold sponsors. Fixed by migration
-  083 (excludes `'ZZ %'` rows), delivered 2026-09-27, NOT APPLIED. Owner: Ryan
-  (apply 083, paste verify_083.sql).
 - **Re-scope "applications: own read" to authenticated** (added 2026-09-26).
   Live it is still roles {public}, qual `auth.uid() = user_id` (Ryan read it
   from verify_079b block B). Harmless, since anon has no uid, but it is the last
@@ -84,6 +88,8 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
 
 ### CLOSED (kept one line each, with the evidence)
 
+- **`sponsor_tier_counts()` counted the RLS-harness sponsorships.** DONE -
+  migration 083 applied, verify_083 passed (Ryan, 2026-09-28).
 - **Re-run verify_074** (PR #8 fixed its fixture). DONE - Ryan, 2026-09-26.
 - **Sponsor + pinup emails** (one real sponsor submission and one pinup
   registration; both receipts and both internal notices at CONTACT_EMAIL).

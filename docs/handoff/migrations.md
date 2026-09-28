@@ -38,6 +38,10 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **078** | **APPLIED + VERIFIED** 2026-09-25 (Ryan: verify_078 passed; `scripts/verify-graphics-owner.mjs` 4 PASS) | storage: "exhibitor-media: own aatc-graphics insert". |
 | **079** | **APPLIED + VERIFIED** 2026-09-26 (Ryan). First verify_079 failed at block E (23502, 015 never applied); after 079b, verify_079 and verify_079_matrix passed, and the duplicate-application refusal was checked by hand. | `application_list_price()`, insert clamp refuses a client total, one-active-application index. |
 | **079b** | **APPLIED + VERIFIED** 2026-09-26 (Ryan: verify_079b passed, block D returned no admin-owned applications) | `applications.user_id` drop not null - 015's statement. |
+| **080** | **APPLIED + VERIFIED** (Ryan, reported 2026-09-27: verify_080 and re-run verify_073 passed) | panel capacity: `hard_cap`, seat holds, `register_panel_seat()`, `panel_seats_taken()`, `panel_seats_remaining()` (anon). |
+| **081** | **APPLIED + VERIFIED** (Ryan, reported 2026-09-27: verify_081 passed) | `invoices.due_reminder_30_sent_at` / `due_reminder_7_sent_at` for sponsor due reminders. |
+| **082** | **APPLIED + VERIFIED** (Ryan, 2026-09-28: 082, then `protect_2026_09_26.sql`, then verify_082, no errors; grid C listed applications 13c265d7 Skin Reserve and 44c185e8 The Pinback Button Club, sponsorship 3c393126 Skin Reserve; Ryan's own check flag_columns = 2, protect_triggers = 8) | protected records: `is_protected` on applications and sponsorships, delete-refusal triggers (including cascades from the owner account), flag changeable only in SQL. |
+| **083** | **APPLIED + VERIFIED** (Ryan, 2026-09-28: verify_083 passed) | `sponsor_tier_counts()` excludes `'ZZ %'` test sponsorships. |
 
 **What this audit could and could not see.** It reads the live schema through
 PostgREST's OpenAPI document, which exposes tables, views, columns and callable
