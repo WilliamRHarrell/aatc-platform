@@ -31,8 +31,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Newsletter signup is not available right now. Please try again later.' }, { status: 503 })
   }
   if (!r.ok) {
-    console.error(`[newsletter] GHL signup failed: ${r.detail}`)
+    console.error(`[newsletter] GHL signup failed: ${r.detail} | steps ${JSON.stringify(r.steps.map(s => [s.call, s.status]))}`)
     return NextResponse.json({ error: 'We could not sign you up just now. Please try again.' }, { status: 502 })
+  }
+  // The contact exists in GHL, so the visitor is told they are on the list. A
+  // tag that did not apply is OUR problem to fix, not theirs to retry: it is
+  // logged as an error with GHL's response (status + body, no token, no email).
+  if (!r.tagged) {
+    console.error(`[newsletter] contact ${r.contactId} (new=${r.created}) saved but NOT tagged "newsletter": ${r.tagError}`)
+  } else {
+    console.info(`[newsletter] contact ${r.contactId} (new=${r.created}) tagged via ${r.steps.at(-1)?.call} ${r.steps.at(-1)?.status}`)
   }
   return NextResponse.json({ ok: true })
 }
