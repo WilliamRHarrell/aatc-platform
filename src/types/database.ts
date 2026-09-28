@@ -841,6 +841,7 @@ export type Database = {
           presented_by_sponsorship_id: string | null
           presented_by_fallback: string | null
           signup_type: Database["public"]["Enums"]["panel_signup_type"]
+          signup_closed: boolean
           title: string
           updated_at: string
         }
@@ -865,6 +866,7 @@ export type Database = {
           presented_by_sponsorship_id?: string | null
           presented_by_fallback?: string | null
           signup_type?: Database["public"]["Enums"]["panel_signup_type"]
+          signup_closed?: boolean
           title: string
           updated_at?: string
         }
@@ -889,6 +891,7 @@ export type Database = {
           presented_by_sponsorship_id?: string | null
           presented_by_fallback?: string | null
           signup_type?: Database["public"]["Enums"]["panel_signup_type"]
+          signup_closed?: boolean
           title?: string
           updated_at?: string
         }
@@ -1565,6 +1568,7 @@ export type Database = {
           is_free: boolean
           cost: number
           signup_type: Database["public"]["Enums"]["panel_signup_type"]
+          signup_closed: boolean | null
           max_capacity: number | null
           image_url: string | null
           host_email: string | null

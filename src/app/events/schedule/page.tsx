@@ -148,7 +148,7 @@ export default async function SchedulePage() {
 
                             {item.isPanel && item.signupType && item.signupType !== 'none' && (
                               <span className="text-[10px]" style={{ color: '#666' }}>
-                                {signupLabel(item.signupType)}
+                                {item.signupType === 'email_host' && item.signupClosed ? 'Full' : signupLabel(item.signupType)}
                               </span>
                             )}
                           </div>

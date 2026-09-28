@@ -44,6 +44,7 @@ interface PanelRow {
   is_free: boolean
   cost: number
   signup_type: string
+  signup_closed: boolean | null
   presented_by: string | null
   presented_by_website: string | null
   presented_by_linked: boolean
@@ -66,6 +67,8 @@ export interface Item {
   isFree?: boolean
   cost?: number
   signupType?: string
+  /** Email-host panel marked Full by hand (085). */
+  signupClosed?: boolean
   presentedBy: string | null
   presentedByWebsite: string | null
   presentedByLinked: boolean
@@ -92,7 +95,7 @@ export const getSchedule = unstable_cache(
         .order('sort_order'),
       supabase
         .from('panels_public')
-        .select('id, title, panel_day, panel_start, location, is_free, cost, signup_type, presented_by, presented_by_website, presented_by_linked')
+        .select('id, title, panel_day, panel_start, location, is_free, cost, signup_type, signup_closed, presented_by, presented_by_website, presented_by_linked')
         .eq('event_id', event.id),
     ])
 
@@ -161,6 +164,7 @@ export const getSchedule = unstable_cache(
           isFree: p.is_free,
           cost: p.cost,
           signupType: p.signup_type,
+          signupClosed: p.signup_closed === true,
           presentedBy: p.presented_by,
           presentedByWebsite: p.presented_by_website,
           presentedByLinked: p.presented_by_linked,

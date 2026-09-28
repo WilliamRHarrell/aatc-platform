@@ -21,6 +21,8 @@ interface Panel {
   cost: number
   signup_type: 'none' | 'aatc_invoice' | 'email_host' | 'free_registration'
   host_email: string | null
+  /** Manual "Full / closed" (085), for email-host panels the site cannot count. */
+  signup_closed: boolean | null
   // max_capacity is deliberately NOT read here. For most panels it is a
   // planning target, and nothing public should imply limited availability.
   // The exception (080) comes from panel_seats_remaining(), which answers
@@ -95,7 +97,10 @@ function TattooPanelsContent() {
         const registerId = searchParams.get('register')
         if (registerId) {
           const target = fetched.find(p => p.id === registerId)
-          if (target && target.signup_type !== 'none') {
+          // Only the two types the site registers itself. An email-host panel
+          // signs up with its host, so the form would be the wrong door (and
+          // a closed one has no door at all).
+          if (target && (target.signup_type === 'free_registration' || target.signup_type === 'aatc_invoice')) {
             openModal(target)
           }
         }
@@ -284,7 +289,12 @@ function TattooPanelsContent() {
                               </span>
                             )}
 
-                            {panel.signup_type === 'email_host' && panel.host_email && (
+                            {panel.signup_type === 'email_host' && panel.signup_closed && (
+                              <span className="rounded-lg px-4 py-1.5 text-xs font-bold" style={{ backgroundColor: '#2a2a2a', color: '#999' }}>
+                                Full
+                              </span>
+                            )}
+                            {panel.signup_type === 'email_host' && !panel.signup_closed && panel.host_email && (
                               <a
                                 href={`mailto:${panel.host_email}?subject=Panel Registration: ${encodeURIComponent(panel.title)}`}
                                 className="rounded-lg px-4 py-1.5 text-xs font-bold transition-opacity hover:opacity-80"
