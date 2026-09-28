@@ -1,0 +1,23 @@
+:root{
+/* Families */
+--font-display:'Barbaro',serif; /* western headline font — ALL CAPS only */
+--font-condensed:'Oswald',sans-serif; /* wood-type condensed caps — subheads, dates, locations */
+--font-brush:'Permanent Marker',cursive; /* grunge brush — sparse hype accents */
+--font-body:'Oswald',sans-serif; /* body runs condensed too; the brand has no quiet font */
+/* Sizes (poster-first scale) */
+--text-hero:clamp(56px,8vw,120px);
+--text-h1:48px;
+--text-h2:32px;
+--text-h3:24px;
+--text-lead:18px;
+--text-base:16px;
+--text-small:13px;
+/* Letterspacing — the brand tracks caps wide */
+--tracking-display:.02em;
+--tracking-caps:.14em;
+--tracking-wide:.28em;
+/* Weights */
+--weight-regular:400;
+--weight-medium:500;
+--weight-bold:700;
+}

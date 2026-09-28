@@ -120,10 +120,7 @@ export const REGISTRY: PageDef[] = [
         default: '**$5 off** all ticket types for active military and veterans with valid ID. Veteran artists and vendors save **$150** on any booth with a veteran tattooing or vending in it.',
       },
 
-      // ── Vendor login ──
-      login_title: { label: 'Artist & vendor login title', type: 'text', default: 'Artist & Vendor Login' },
-      login_body: { label: 'Artist & vendor login body', type: 'text', default: 'Manage your profile, booth details, and documents year-round.' },
-      login_button: { label: 'Login button label', type: 'text', default: 'Sign In to Your Portal' },
+      // Vendor login card removed 2026-09-28: the site footer carries it on every page.
     },
   },
   {

@@ -1,0 +1,88 @@
+import React from 'react';
+import {Button} from '../core/Button.jsx';
+import {StarDivider} from '../core/StarDivider.jsx';
+
+const caps={fontFamily:'var(--font-condensed)',textTransform:'uppercase',letterSpacing:'var(--tracking-caps)'};
+const DEFAULT_NAV=[
+  {heading:'Convention',links:['Artists','Contests','Tattoo Battle','Schedule']},
+  {heading:'Attend',links:['Tickets','Venue & Parking','Hotels','FAQ']},
+  {heading:'Participate',links:['Vendors','Artist Booths','Sponsors','Contact']},
+];
+const DEFAULT_SOCIALS=[
+  {icon:'fa-instagram',label:'Instagram',href:'https://instagram.com/allamericantattooconvention'},
+  {icon:'fa-facebook-f',label:'Facebook',href:'https://facebook.com/allamericantattooconvention'},
+  {icon:'fa-tiktok',label:'TikTok',href:'https://tiktok.com/@theaatc'},
+  {icon:'fa-x-twitter',label:'X',href:'https://x.com/officialaatc'},
+];
+
+function NavColumn({heading,links}){
+  return <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
+    <div style={{...caps,fontSize:12,fontWeight:600,letterSpacing:'var(--tracking-wide)',color:'var(--text-accent)'}}>{heading}</div>
+    <div style={{width:24,borderTop:'1px solid var(--border-subtle)'}}></div>
+    {links.map(l=><a key={l} href="#" style={{...caps,fontSize:14,letterSpacing:'.06em',color:'var(--text-body)',textDecoration:'none',transition:'color var(--transition-fast)'}} onMouseEnter={e=>e.currentTarget.style.color='var(--aatc-gold-light)'} onMouseLeave={e=>e.currentTarget.style.color='var(--text-body)'}>{l}</a>)}
+  </div>;
+}
+
+function Newsletter({onSubscribe}){
+  const [email,setEmail]=React.useState('');
+  const [done,setDone]=React.useState(false);
+  const submit=e=>{e.preventDefault();if(!/.+@.+\..+/.test(email))return;onSubscribe&&onSubscribe(email);setDone(true);};
+  return <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:0}}>
+    <div style={{...caps,fontSize:12,fontWeight:600,letterSpacing:'var(--tracking-wide)',color:'var(--text-accent)'}}>Newsletter</div>
+    <div style={{width:24,borderTop:'1px solid var(--border-subtle)'}}></div>
+    <div style={{...caps,fontSize:20,fontWeight:700,color:'var(--text-display)',lineHeight:1.15}}>Get the lineup first</div>
+    <div style={{fontFamily:'var(--font-condensed)',fontSize:14,fontWeight:300,color:'var(--text-muted)',lineHeight:1.5}}>Artist announcements, contest news and ticket drops.</div>
+    {done
+      ?<div style={{...caps,fontSize:14,color:'var(--text-accent)',border:'1px solid var(--aatc-gold)',padding:'12px 14px'}}>★ You're on the list</div>
+      :<form onSubmit={submit} style={{display:'flex',minWidth:0}}>
+        <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="EMAIL ADDRESS" aria-label="Email address" style={{flex:1,minWidth:0,fontFamily:'var(--font-condensed)',fontSize:14,letterSpacing:'.06em',background:'var(--surface-card)',color:'var(--text-body)',border:'1px solid var(--border-subtle)',borderRight:'none',borderRadius:0,padding:'12px 14px',outline:'none'}} onFocus={e=>e.target.style.borderColor='var(--focus-ring)'} onBlur={e=>e.target.style.borderColor='var(--border-subtle)'}/>
+        <Button variant="primary" size="md" style={{flexShrink:0}}>Sign Up</Button>
+      </form>}
+  </div>;
+}
+
+function PortalCard(){
+  return <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:24,flexWrap:'wrap',background:'var(--surface-card)',border:'1px solid var(--border-subtle)',padding:'24px 28px'}}>
+    <div style={{display:'flex',flexDirection:'column',gap:6}}>
+      <div style={{...caps,fontSize:18,fontWeight:700,color:'var(--text-display)'}}>Artist &amp; Vendor Login</div>
+      <div style={{fontFamily:'var(--font-condensed)',fontSize:14,fontWeight:300,color:'var(--text-muted)'}}>Manage your profile, booth details, and documents year-round.</div>
+    </div>
+    <Button variant="outline">Sign In to Your Portal</Button>
+  </div>;
+}
+
+function SocialIcon({icon,label,href}){
+  return <a href={href} aria-label={label} target="_blank" rel="noreferrer" style={{width:44,height:44,display:'inline-flex',alignItems:'center',justifyContent:'center',border:'1px solid var(--border-subtle)',color:'var(--text-body)',fontSize:17,textDecoration:'none',transition:'all var(--transition-fast)'}}
+    onMouseEnter={e=>{const s=e.currentTarget.style;s.borderColor='var(--aatc-gold)';s.color='var(--aatc-gold-light)';}}
+    onMouseLeave={e=>{const s=e.currentTarget.style;s.borderColor='var(--border-subtle)';s.color='var(--text-body)';}}>
+    <i className={'fa-brands '+icon}></i>
+  </a>;
+}
+
+export function SiteFooter({nav=DEFAULT_NAV,socials=DEFAULT_SOCIALS,phone='(910) 850-2566',email='allamericantattooconvention@gmail.com',showPortal=true,onSubscribe,logoSrc,year=new Date().getFullYear(),style}){
+  const contact={fontFamily:'var(--font-condensed)',fontSize:14,letterSpacing:'.04em',color:'var(--text-muted)',textDecoration:'none',display:'inline-flex',alignItems:'center',gap:8};
+  return <footer style={{position:'relative',background:'var(--surface-page)',borderTop:'1px solid var(--border-subtle)',overflow:'hidden',...style}}>
+    <img src={logoSrc?logoSrc.replace(/[^/]*$/,'aatc-bg-flag.png'):undefined} alt="" aria-hidden="true" style={{display:logoSrc?'block':'none',position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:.12,pointerEvents:'none'}}/>
+    <div style={{position:'relative',maxWidth:1200,margin:'0 auto',padding:'64px 48px 32px',display:'flex',flexDirection:'column',gap:48}}>
+      <div style={{display:'grid',gridTemplateColumns:'minmax(0,1.1fr) repeat('+nav.length+',minmax(0,1fr)) minmax(0,1.6fr)',gap:40}}>
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+          {logoSrc?<img src={logoSrc} alt="The All American Tattoo Convention" style={{width:'100%',height:'auto',display:'block'}}/>
+            :<div style={{...caps,fontWeight:700,fontSize:16,color:'var(--text-display)'}}>The All American Tattoo Convention</div>}
+          <div style={{...caps,fontSize:12,color:'var(--text-muted)',lineHeight:1.6}}>Crown Complex<br/>Fayetteville / Fort Bragg, NC</div>
+        </div>
+        {nav.map(c=><NavColumn key={c.heading} {...c}/>)}
+        <Newsletter onSubscribe={onSubscribe}/>
+      </div>
+      {showPortal&&<PortalCard/>}
+      <StarDivider count={5} rules/>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:20}}>
+        <div style={{display:'flex',gap:12}}>{socials.map(s=><SocialIcon key={s.label} {...s}/>)}</div>
+        <div style={{display:'flex',gap:24,flexWrap:'wrap',justifyContent:'center'}}>
+          <a href={'tel:'+phone.replace(/\D/g,'')} style={contact}><i className="fa-solid fa-phone" style={{color:'var(--text-accent)',fontSize:12}}></i>{phone}</a>
+          <a href={'mailto:'+email} style={contact}><i className="fa-solid fa-envelope" style={{color:'var(--text-accent)',fontSize:12}}></i>{email}</a>
+        </div>
+        <div style={{...caps,fontSize:11,color:'var(--text-muted)',opacity:.8}}>© {year} The All American Tattoo Convention · #AATCEAST</div>
+      </div>
+    </div>
+  </footer>;
+}

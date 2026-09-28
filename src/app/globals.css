@@ -10,6 +10,21 @@
   --color-text-secondary: #999999;
   --color-border: #2a2a2a;
 
+  /* Brand handoff (docs/design/site-footer). Used by the footer; the antique
+     golds pass AA on the dark background where #8B7355 does not (4.41:1).
+     A follow-up makes them the site-wide gold. */
+  --color-gold-antique: #9c8446;
+  --color-gold-antique-hover: #b59d5e;
+  --color-gold-antique-press: #7a683a;
+  --color-text-body: #f2efe6;
+  --color-text-muted: #b9bdbe;
+  --color-line-gold: rgb(156 132 70 / 0.4);
+
+  /* Letter-spacing for condensed caps. Not "wide": Tailwind's tracking-wide
+     (0.025em) is already used across the site. */
+  --tracking-caps: 0.14em;
+  --tracking-spread: 0.28em;
+
   /* Fonts */
   --font-display: var(--font-playfair);
   --font-sans: var(--font-inter);
@@ -25,6 +40,8 @@
    (etc.) variables are set on the /tattoo-battle segment wrapper, not on
    :root, and a token resolved at :root would be invalid there. */
 @theme inline {
+  /* Oswald, loaded site-wide in the root layout for the footer. */
+  --font-condensed: var(--font-oswald-site), 'Arial Narrow', sans-serif;
   --font-battle-display: var(--font-rubik-dirt), Impact, sans-serif;
   --font-battle-slab: var(--font-rye), Georgia, serif;
   --font-battle-condensed: var(--font-oswald), 'Arial Narrow', sans-serif;
