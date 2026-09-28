@@ -65,9 +65,9 @@ export default function StrongestSideshowPage() {
           {/* 2027 is a SINGLE Saturday session, team strongman only. The Friday
               and Sunday rows here were stale multi-day content and the Saturday
               time (2:00 PM) disagreed with both other places the time lived.
-              Strongman time now lives in exactly two places - the schedule_items
-              seed and homepage-content.ts - both 1:00 PM. Do not reintroduce a
-              third copy here; link to the schedule instead.
+              Strongman time now lives in one place, its schedule_items row
+              (the homepage card reads it from there too). Do not type a copy
+              here; link to the schedule instead.
 
               Room: the Ballroom, confirmed by Ryan 2026-09-13, sourced from
               ROOMS in event-config.ts. The footnote below used to say "Sideshow

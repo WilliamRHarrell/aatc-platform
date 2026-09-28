@@ -2,16 +2,14 @@ import { TATTOO_BATTLE_PRESENTER, ROOMS } from './event-config'
 /**
  * Homepage list content that has no table of its own yet.
  *
- * HOME_EVENTS is deliberately NOT read from `schedule_items`. The schedule is
- * the programme - 25 timed rows, several of them repeats ("Tattoo Contest
- * Continues") that mean nothing to someone deciding whether to buy a ticket.
- * These cards are editorial: a curated handful with marketing copy and a link
- * to a detail page, neither of which lives on a schedule row. They must stay
- * CONSISTENT with the schedule, which is why the day/time claims below are
- * annotated with their source rows - but they are not generated from it.
+ * HOME_EVENTS is a curated handful of cards, NOT the programme: the name, the
+ * marketing copy and the link are written here by hand. Their DAYS AND TIMES
+ * are not (Ryan, 2026-09-28): a card with `scheduleTitle` shows every
+ * published schedule_items row whose title matches, as "Fri 6:00 PM · Sat
+ * 6:00 PM", via cardWhen(). A missing row shows no time rather than a stale
+ * one. So the descriptions below carry no clock times.
  *
- * Source of truth for anything timed: docs/aatc-2027-schedule-spec.md, seeded
- * by supabase/seeds/schedule_2027.sql.
+ * Source of truth for anything timed: schedule_items (/admin/schedule).
  *
  * Panels/seminars are NOT here - they come from the `panels` table so the
  * homepage auto-populates from admin.
@@ -24,12 +22,23 @@ export interface HomeEvent {
   href: string
   /** Presentation credit, where the item has a presenting sponsor. */
   presentedBy?: string
-  /**
-   * Take `day` from the schedule instead of the literal above: the day and time
-   * of that schedule row (lib/contest-schedule.ts), or nothing if the row is
-   * missing. Never a typed-in time.
-   */
-  dayFromSchedule?: 'bestInShow'
+  /** Title of the schedule row(s) this card's day and time come from. */
+  scheduleTitle?: RegExp
+}
+
+/** 'Friday, April 16' -> 'Fri'. */
+const shortDay = (label: string) => label.split(',')[0].trim().slice(0, 3)
+
+/**
+ * The card's day label: every matching schedule row, in schedule order, or the
+ * card's own `day` when it has no `scheduleTitle`. '' when no row matches.
+ */
+export function cardWhen(ev: HomeEvent, days: { day: string; items: { title: string; time: string }[] }[]): string {
+  if (!ev.scheduleTitle) return ev.day
+  const re = ev.scheduleTitle
+  return days
+    .flatMap(d => d.items.filter(i => re.test(i.title.trim())).map(i => `${shortDay(d.day)} ${i.time}`))
+    .join(' · ')
 }
 
 export const HOME_EVENTS: HomeEvent[] = [
@@ -45,42 +54,44 @@ export const HOME_EVENTS: HomeEvent[] = [
   {
     name: 'The All American Tattoo Battle',
     presentedBy: TATTOO_BATTLE_PRESENTER,
-    day: 'Fri - Sun',
-    // Fri 1:00 PM start, 5:00 PM voting opens; champion crowned Sun 6:00 PM.
+    day: '',
+    // The start and the crowning; not "Battle Ends - Voting Opens".
+    scheduleTitle: /tattoo battle (begins|champion crowned)/i,
     description:
-      'Artists battle live on the main stage from Friday afternoon. Voting opens Friday evening and the champion is crowned Sunday at 6:00 PM.',
+      'Artists battle live on the main stage, then voting opens and the champion is crowned.',
     href: '/tattoo-battle',
   },
   {
     name: 'Miss All American Pin-Up Contest',
-    day: 'Saturday',
-    // Sat 2:00 PM, Main Stage.
+    day: '',
+    scheduleTitle: /pin-?up contest/i,
     description:
-      'Our most famous event, now in its 10th year - classic Americana on the main stage Saturday at 2:00 PM.',
+      'Our most famous event, now in its 10th year - classic Americana on the main stage.',
     href: '/events/pinup-contest',
   },
   {
     name: 'Tattoo Dating Game',
-    day: 'Friday',
-    // Fri 6:00 PM, Main Stage.
+    day: '',
+    // Every published row: Friday, and Saturday once that row is published.
+    scheduleTitle: /tattoo dating game/i,
     description:
-      'Friday night on the main stage at 6:00 PM. Exactly what it sounds like, and it gets out of hand every year.',
+      'Live on the main stage. Exactly what it sounds like, and it gets out of hand every year.',
     href: '/events/dating-game',
   },
   {
     name: 'Strongest at the Sideshow',
-    day: 'Saturday',
+    day: '',
     // 2027 CHANGE: team strongman only. Dead-lift and bench press are dropped -
     // do not reinstate them here without checking the schedule spec.
+    scheduleTitle: /strongest at the sideshow/i,
     description:
-      `Team strongman competition in the ${ROOMS.ballroom}, Saturday at 1:00 PM.`,
+      `Team strongman competition in the ${ROOMS.ballroom}.`,
     href: '/events/strongest-sideshow',
   },
   {
     name: 'Best in Show',
-    // Day and time from the Sunday "Tattoo of the Day & Best in Show" row.
     day: '',
-    dayFromSchedule: 'bestInShow',
+    scheduleTitle: /best (in|of) show/i,
     description:
       'The weekend’s top work, judged on the main stage alongside the final Tattoo of the Day.',
     href: '/events/tattoo-contests',
