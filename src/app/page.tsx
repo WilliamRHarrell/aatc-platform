@@ -11,9 +11,8 @@ import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
 import Countdown from '@/components/home/Countdown'
 import VideoFacade from '@/components/home/VideoFacade'
-import { HOME_EVENTS } from '@/lib/homepage-content'
+import { HOME_EVENTS, cardWhen } from '@/lib/homepage-content'
 import { getSchedule } from '@/lib/schedule-data'
-import { contestSchedule } from '@/lib/contest-schedule'
 import { getAfterParties } from '@/lib/after-parties-data'
 import { mapsUrl, nightLabel } from '@/lib/venues'
 import { timeLabel } from '@/lib/schedule-format'
@@ -169,12 +168,7 @@ const getHomepageData = unstable_cache(
 
 export default async function HomePage() {
   const [c, { sponsors, panels }, afterParties, schedule] = await Promise.all([getContent('homepage'), getHomepageData(), getAfterParties(), getSchedule()])
-  const contests = contestSchedule(schedule)
-  const cardDay = (ev: (typeof HOME_EVENTS)[number]) => {
-    if (ev.dayFromSchedule !== 'bestInShow') return ev.day
-    const b = contests.bestInShow[0]
-    return b ? `${b.day} · ${b.time}` : ''
-  }
+  const cardDay = (ev: (typeof HOME_EVENTS)[number]) => cardWhen(ev, schedule)
 
   const ticketsLive = isTrue(c.ticket_sales_live) && !!c.ticket_url
   const winners = BEST_IN_SHOW[BEST_IN_SHOW_YEAR] ?? []
@@ -396,7 +390,7 @@ export default async function HomePage() {
               >
                 <div className="flex items-baseline justify-between gap-3">
                   <h3 className="text-base font-bold text-white">{ev.name}</h3>
-                  <span className="shrink-0 text-xs font-medium uppercase tracking-wider" style={{ color: '#8B7355' }}>
+                  <span className="text-right text-xs font-medium uppercase tracking-wider" style={{ color: '#8B7355' }}>
                     {cardDay(ev)}
                   </span>
                 </div>
