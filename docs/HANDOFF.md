@@ -8,54 +8,51 @@ This file is the index and the current state. Everything else lives in
 - [open-items.md](handoff/open-items.md) - open items, deferred minors, the three sponsors, deferred work with triggers.
 - [sessions/](handoff/sessions/) - one file per dated session, history.
 
-## START HERE - state as of 2026-09-28
+## START HERE - state as of 2026-09-28 (evening)
 
-**Merged and deployed (develop = 292c771):** everything through #31. Since
-the last refresh: #24 panel capacity (080), #25 sponsor invoice terms (081),
-#26 protected records (082), #27 branded Supabase Auth emails and the DNS
-check, #28 sponsor reminders skip test rows, #29 tier counts skip test rows
-(083), #30 CLAUDE.md worktree rule, #31 DMARC open item and 080-083 status.
-No open PRs. Source: `gh pr list`, 2026-09-28.
+**Merged and deployed (develop = 0534bd7):** everything through #38. Since the
+morning refresh: #32 START HERE, #33 /apply cards, #34 sponsor price
+visibility (084, 084b), #35 panel Full / closed switch (085), #36 Invite &
+link, #37 new site footer + newsletter to GHL, #38 newsletter tagging fix +
+YouTube. Source: `gh pr list`, 2026-09-28.
 
-**Applied in production (Ryan):** everything through **083**, each verified
-(080, 081 on 2026-09-27; 082 with `protect_2026_09_26.sql`, and 083, on
-2026-09-28). 015 was never applied and is superseded by 079b; 047 is still
-HELD. Evidence per migration is in [migrations.md](handoff/migrations.md).
+**Applied in production (Ryan):** everything through **084b**, verified
+(verify_084 passed after 084b, Ryan 2026-09-28). **085** is live (a read of
+`panels_public.signup_closed` succeeded, 2026-09-28); its verify_085 result
+is not reported. 015 superseded by 079b; 047 still HELD (its body would also
+now drop 065's credit join and 085's `signup_closed`). Evidence per migration
+is in [migrations.md](handoff/migrations.md).
 
-**Done outside the code (reported by Ryan, 2026-09-28):**
-- Branded confirm-signup email: tested by Ryan in an incognito window,
-  arrives in the inbox and renders correctly. The reset-password template
-  is not reported tested yet.
-- The three sponsors (Nomadica, All American Tattoo Supply, WholeLife) have
-  their contacts entered in /admin/sponsorships. **Their accounts are still
-  not linked:** a read of production on 2026-09-28 shows an email on all
-  three and `user_id` NULL on all three. The portal reads sponsorships by
-  `user_id` only, so none of them can see their invoice yet (open-items).
-- Tooth Gem Seminar: price $400 and 50 seats, confirmed by the same read
-  (`cost` 40000, `max_capacity` 50). **Its signup type is still `none`**,
-  not "AATC invoice", so the seat cap is not enforced (080 caps a panel only
-  when it is `aatc_invoice` or `hard_cap`). Ryan: set it in /admin/panels.
+**Done outside the code (Ryan, 2026-09-28):**
+- Newsletter to GHL works on production for new and existing contacts, tag
+  "newsletter" included (Ryan via the admin test: test27 new, test26
+  existing). Env GHL_API_TOKEN, GHL_LOCATION_ID set in Vercel.
+- Branded confirm-signup email tested. Reset-password: not reported yet.
+- Sponsor contacts entered; accounts still unlinked (use Invite & link, #36).
+- Tooth Gem: $400, 50 seats. **Signup type still `none`** in production
+  (read 2026-09-28); Ryan intends email host + host email.
 
-**In flight:** `feat/apply-hub-buttons` (/apply cards redesign), preview
-approved by Ryan 2026-09-28; being rebased onto develop for its PR.
+**Admin tools:**
+- `GET /api/admin/newsletter-test?email=...` (admin role only; encode `+` as
+  `%2B`): a REAL signup into GHL through the footer's code, every GHL
+  response, and the contact's tags read back (token has contacts.readonly).
+  `&version=` overrides the Version header for one run. Creates or updates a
+  real contact: use test addresses, and delete them in GHL afterwards.
 
 **Queued, in order, each its own PR, report before building:**
-1. Sponsor price visibility: hide prices on sponsorship packages, keep them
-   on individual items, per-tier show/hide setting in admin. The
-   package/item split goes to Ryan for confirmation before building.
-2. Admin "link account" action for in-person applications (`user_id` NULL):
-   the admin enters or selects the exhibitor's email; the system links an
-   existing account or sends an invite, then sets `user_id`, respecting the
-   one-active-application index.
-3. Admin audit log (who changed a panel's signup_type, who comped, who
-   verified) - a design note in this folder only, not built.
+1. Tattoo contests "Daily Contest Schedule": rolling format, times only for
+   Tattoo of the Day, Best in Show and the Tattoo Battle, from schedule_items
+   (report sent 2026-09-28, awaiting decisions).
+2. Site-wide gold: the antique golds replace #8B7355 / #866f52 (plan sent;
+   awaiting button-text and light-gold decisions).
+3. Admin audit log - a design note only, not built.
 
-**Dated (Ryan):** review DMARC reports around 2026-10-12, then
-`p=quarantine; pct=25`; set `SPONSOR_REMINDERS_ENABLED=true` in Vercel
-before 2026-12-01. Details in [open-items.md](handoff/open-items.md).
+**Dated (Ryan):** DMARC reports ~2026-10-12 then `p=quarantine; pct=25`;
+`SPONSOR_REMINDERS_ENABLED=true` in Vercel before 2026-12-01. Details in
+[open-items.md](handoff/open-items.md).
 
-**Test data left live on purpose:** none. (The `ZZ TEST` RLS-harness
-sponsorships are standing fixtures, excluded by 083 and the reminder query.)
+**Test data left live on purpose:** none. (ZZ TEST RLS-harness
+sponsorships are standing fixtures.)
 
 ## How to write handoff notes (so parallel branches stop conflicting)
 

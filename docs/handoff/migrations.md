@@ -42,6 +42,9 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **081** | **APPLIED + VERIFIED** (Ryan, reported 2026-09-27: verify_081 passed) | `invoices.due_reminder_30_sent_at` / `due_reminder_7_sent_at` for sponsor due reminders. |
 | **082** | **APPLIED + VERIFIED** (Ryan, 2026-09-28: 082, then `protect_2026_09_26.sql`, then verify_082, no errors; grid C listed applications 13c265d7 Skin Reserve and 44c185e8 The Pinback Button Club, sponsorship 3c393126 Skin Reserve; Ryan's own check flag_columns = 2, protect_triggers = 8) | protected records: `is_protected` on applications and sponsorships, delete-refusal triggers (including cascades from the owner account), flag changeable only in SQL. |
 | **083** | **APPLIED + VERIFIED** (Ryan, 2026-09-28: verify_083 passed) | `sponsor_tier_counts()` excludes `'ZZ %'` test sponsorships. |
+| **084** | **APPLIED + VERIFIED** (Ryan, 2026-09-28: verify_084 first failed on `bronze`, then passed after 084b) | `sponsor_tier_settings`: per-tier show_price, seeded packages hidden / items shown. |
+| **084b** | **APPLIED + VERIFIED** (Ryan, 2026-09-28: verify_084b passed, verify_084 re-run passed) | hidden `bronze` row (leftover enum value from 001). |
+| **085** | **LIVE, VERIFY NOT REPORTED** (column read from production 2026-09-28; verify_085 result not reported) | `panels.signup_closed`, appended to `panels_public`. |
 
 **What this audit could and could not see.** It reads the live schema through
 PostgREST's OpenAPI document, which exposes tables, views, columns and callable
