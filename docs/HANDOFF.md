@@ -8,37 +8,54 @@ This file is the index and the current state. Everything else lives in
 - [open-items.md](handoff/open-items.md) - open items, deferred minors, the three sponsors, deferred work with triggers.
 - [sessions/](handoff/sessions/) - one file per dated session, history.
 
-## START HERE - state as of 2026-09-26 (evening)
+## START HERE - state as of 2026-09-28
 
-**Merged and deployed (develop = b5a1d3f):** #16 Submit Graphics (078), #17
-server-computed price + one active application (079, 079b), #18 START HERE,
-#19 CLAUDE.md. Source: `gh pr list`, 2026-09-26.
+**Merged and deployed (develop = 292c771):** everything through #31. Since
+the last refresh: #24 panel capacity (080), #25 sponsor invoice terms (081),
+#26 protected records (082), #27 branded Supabase Auth emails and the DNS
+check, #28 sponsor reminders skip test rows, #29 tier counts skip test rows
+(083), #30 CLAUDE.md worktree rule, #31 DMARC open item and 080-083 status.
+No open PRs. Source: `gh pr list`, 2026-09-28.
 
-**Applied in production (Ryan):** everything through **079b**. Migration files
-on develop match production. 015 was never applied and is superseded by 079b;
-047 is still HELD. Evidence per migration is in
-[migrations.md](handoff/migrations.md).
+**Applied in production (Ryan):** everything through **083**, each verified
+(080, 081 on 2026-09-27; 082 with `protect_2026_09_26.sql`, and 083, on
+2026-09-28). 015 was never applied and is superseded by 079b; 047 is still
+HELD. Evidence per migration is in [migrations.md](handoff/migrations.md).
 
-**In flight:**
-- The HANDOFF split (this structure), docs only.
-- `feat/apply-hub-buttons` (no PR): /apply cards redesign, waiting on Ryan to
-  approve the preview. Not re-checked since the morning.
+**Done outside the code (reported by Ryan, 2026-09-28):**
+- Branded confirm-signup email: tested by Ryan in an incognito window,
+  arrives in the inbox and renders correctly. The reset-password template
+  is not reported tested yet.
+- The three sponsors (Nomadica, All American Tattoo Supply, WholeLife) have
+  their contacts entered in /admin/sponsorships. **Their accounts are still
+  not linked:** a read of production on 2026-09-28 shows an email on all
+  three and `user_id` NULL on all three. The portal reads sponsorships by
+  `user_id` only, so none of them can see their invoice yet (open-items).
+- Tooth Gem Seminar: price $400 and 50 seats, confirmed by the same read
+  (`cost` 40000, `max_capacity` 50). **Its signup type is still `none`**,
+  not "AATC invoice", so the seat cap is not enforced (080 caps a panel only
+  when it is `aatc_invoice` or `hard_cap`). Ryan: set it in /admin/panels.
+
+**In flight:** `feat/apply-hub-buttons` (/apply cards redesign), preview
+approved by Ryan 2026-09-28; being rebased onto develop for its PR.
 
 **Queued, in order, each its own PR, report before building:**
-1. Panel `max_capacity` enforcement (today a planning target; free
-   registrations have no gate - `/api/panel-register` says so).
-2. Branded Supabase Auth email templates (signup, magic link, reset) matching
-   `src/lib/email-templates.ts`, plus a deliverability check. DMARC is
-   `p=none` with `rua` to accounting@; decide on quarantine after a clean
-   reporting window.
-3. Admin "link account" action for in-person applications (`user_id` NULL):
+1. Sponsor price visibility: hide prices on sponsorship packages, keep them
+   on individual items, per-tier show/hide setting in admin. The
+   package/item split goes to Ryan for confirmation before building.
+2. Admin "link account" action for in-person applications (`user_id` NULL):
    the admin enters or selects the exhibitor's email; the system links an
    existing account or sends an invite, then sets `user_id`, respecting the
    one-active-application index.
-4. Admin audit log (who changed a panel's signup_type, who comped, who
+3. Admin audit log (who changed a panel's signup_type, who comped, who
    verified) - a design note in this folder only, not built.
 
-**Test data left live on purpose:** none.
+**Dated (Ryan):** review DMARC reports around 2026-10-12, then
+`p=quarantine; pct=25`; set `SPONSOR_REMINDERS_ENABLED=true` in Vercel
+before 2026-12-01. Details in [open-items.md](handoff/open-items.md).
+
+**Test data left live on purpose:** none. (The `ZZ TEST` RLS-harness
+sponsorships are standing fixtures, excluded by 083 and the reminder query.)
 
 ## How to write handoff notes (so parallel branches stop conflicting)
 

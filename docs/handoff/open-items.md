@@ -47,10 +47,11 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
   most once" check always sees them empty and a SECOND recorded payment
   overwrites the first deposit/final timestamps. Money path; fix with the
   Square option. Owner: unassigned.
-- **Link the three sponsors to accounts** (added 2026-09-26): none of
-  Nomadica, AATS, WholeLife has `user_id` or an email on the row, so the
-  portal cannot show them their invoice until each is linked in
-  /admin/sponsorships. Owner: Ryan.
+- **Link the three sponsors to accounts** (added 2026-09-26; updated
+  2026-09-28): contacts are entered (an email on all three rows), but
+  `user_id` is still NULL on Nomadica, AATS and WholeLife (production read,
+  2026-09-28), so the portal cannot show them their invoice. Each sponsor
+  needs an account, then the link in /admin/sponsorships. Owner: Ryan.
 - **Rate limiting for public form routes** (NOT BUILT): add Vercel WAF
   rate-limit rules before launch on `POST /api/pinup-entry`,
   `POST /api/panel-register`, `POST /api/aatc/*` if any accept anonymous
