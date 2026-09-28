@@ -12,12 +12,9 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
   `sponsor_reminders.would_send` should list the three real sponsors only.
   Owner: Ryan.
 - **`sponsor_tier_counts()` counts the RLS-harness sponsorships** (added
-  2026-09-26): gold shows 6 taken with 5 real gold sponsors, brass 4 with 3.
-  No public effect today - only Title and Collectible Coin have sell limits
-  and the harness rows are gold and brass - but if gold or brass ever gets a
-  limit, a harness row could mark it Sold. Fix when that happens (or at
-  cutover, when the harness is removed): exclude `sponsor_name ilike 'ZZ %'`
-  in the function. Owner: unassigned.
+  2026-09-26): gold read 6 taken with 5 real gold sponsors. Fixed by migration
+  083 (excludes `'ZZ %'` rows), delivered 2026-09-27, NOT APPLIED. Owner: Ryan
+  (apply 083, paste verify_083.sql).
 - **Re-scope "applications: own read" to authenticated** (added 2026-09-26).
   Live it is still roles {public}, qual `auth.uid() = user_id` (Ryan read it
   from verify_079b block B). Harmless, since anon has no uid, but it is the last
