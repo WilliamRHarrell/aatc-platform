@@ -309,3 +309,63 @@ export function sponsorDueReminderEmail(v: { sponsorName: string; balanceCents: 
     </p>` : ''}
   `)
 }
+
+/**
+ * Supabase Auth email templates (4c). Supabase sends these itself, through the
+ * custom SMTP (Resend), so they are pasted into Dashboard -> Authentication ->
+ * Email Templates; they are not sent by this app. The HTML is GENERATED from
+ * emailWrapper so the branding has one home: auth-email-templates.test.ts
+ * writes supabase/templates/*.html and fails when a committed file is stale
+ * (WRITE_AUTH_TEMPLATES=1 regenerates). {{ .ConfirmationURL }} is Supabase's
+ * Go-template variable, left literal on purpose.
+ */
+const AUTH_URL = '{{ .ConfirmationURL }}'
+
+function authButtonBlock(label: string) {
+  return `<p style="margin:28px 0 0; text-align:center;">
+      <a href="${AUTH_URL}" style="display:inline-block; background:#8B7355; color:#ffffff; text-decoration:none; font-size:14px; font-weight:700; letter-spacing:1px; padding:14px 32px; border-radius:10px;">${label}</a>
+    </p>
+    <p style="margin:24px 0 0; font-size:12px; line-height:1.6; color:#777777; word-break:break-all;">
+      If the button does not work, paste this link into your browser:<br />
+      <a href="${AUTH_URL}" style="color:#8B7355;">${AUTH_URL}</a>
+    </p>`
+}
+
+export function authConfirmSignupEmail() {
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#C4A882;">
+      Confirm your email
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      Welcome to AATC 2027
+    </h2>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Thanks for creating your All American Tattoo Convention account. Confirm this
+      email address to finish setting up your portal, where you apply, pay and
+      manage everything for the show.
+    </p>
+    ${authButtonBlock('Confirm My Email →')}
+    <p style="margin:24px 0 0; font-size:13px; line-height:1.6; color:#999999;">
+      If you did not create an account, you can ignore this email.
+    </p>
+  `)
+}
+
+export function authResetPasswordEmail() {
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#C4A882;">
+      Password reset
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      Choose a new password
+    </h2>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      We received a request to reset the password for your AATC 2027 portal account.
+      The link works once and expires after a short time.
+    </p>
+    ${authButtonBlock('Choose a New Password →')}
+    <p style="margin:24px 0 0; font-size:13px; line-height:1.6; color:#999999;">
+      If you did not ask for this, ignore this email and your password will not change.
+    </p>
+  `)
+}
