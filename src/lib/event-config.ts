@@ -67,6 +67,7 @@ export const SOCIAL = {
   facebook: 'https://www.facebook.com/allamericantattooconvention',
   tiktok: 'https://www.tiktok.com/@theaatc',
   x: 'https://x.com/officialaatc',
+  youtube: 'https://www.youtube.com/@allamericantattooconvention',
   xHandle: '@officialaatc',
 } as const
 
