@@ -24,13 +24,20 @@ export interface HomeEvent {
   href: string
   /** Presentation credit, where the item has a presenting sponsor. */
   presentedBy?: string
+  /**
+   * Take `day` from the schedule instead of the literal above: the day and time
+   * of that schedule row (lib/contest-schedule.ts), or nothing if the row is
+   * missing. Never a typed-in time.
+   */
+  dayFromSchedule?: 'bestInShow'
 }
 
 export const HOME_EVENTS: HomeEvent[] = [
   {
     name: 'Daily Tattoo Contests',
     day: 'All weekend',
-    // Registration opens 1:00 PM all three days; judging begins 4:00 PM.
+    // Registration 1:00 PM; the first category is called at 4:00 PM and the
+    // rest follow one at a time (schedule rows; /events/tattoo-contests).
     description:
       'Categories across three days, from Best Military Tattoo to Best in Show. On-site registration opens daily at 1:00 PM.',
     href: '/events/tattoo-contests',
@@ -70,11 +77,12 @@ export const HOME_EVENTS: HomeEvent[] = [
     href: '/events/strongest-sideshow',
   },
   {
-    name: 'Best of Show',
-    day: 'Sunday',
-    // Sun 7:00 PM - "Tattoo of the Day & Best of Show", Main Stage.
+    name: 'Best in Show',
+    // Day and time from the Sunday "Tattoo of the Day & Best in Show" row.
+    day: '',
+    dayFromSchedule: 'bestInShow',
     description:
-      'The weekend’s top work judged on the main stage Sunday at 7:00 PM, alongside the final Tattoo of the Day.',
+      'The weekend’s top work, judged on the main stage alongside the final Tattoo of the Day.',
     href: '/events/tattoo-contests',
   },
   {
