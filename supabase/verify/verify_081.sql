@@ -26,4 +26,5 @@ select s.sponsor_name, i.due_date, (i.amount - i.amount_paid) / 100.0 as balance
        (coalesce(s.email, '') <> '' or s.user_id is not null) as reminders_can_reach
   from public.invoices i join public.sponsorships s on s.id = i.sponsorship_id
  where i.due_date is not null and i.status in ('pending', 'overdue')
+   and s.sponsor_name not ilike 'ZZ %'  -- test rows (RLS harness, verify fixtures) are never reminded
  order by i.due_date, s.sponsor_name;

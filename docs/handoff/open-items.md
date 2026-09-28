@@ -4,6 +4,20 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
 
 ### OPEN ITEMS (one line each, with the owner)
 
+- **Enable `SPONSOR_REMINDERS_ENABLED=true` in Vercel before 2026-12-01**
+  (added 2026-09-26). The first reminders fall due 2026-12-02 (30 days before
+  the Nomadica and AATS due date, 2027-01-01); WholeLife's 30-day reminder is
+  2027-01-01. A late switch-on still catches up the 30-day reminder until 8
+  days before the due date. Check `/api/cron/lifecycle-sweep?dry_run=1` first:
+  `sponsor_reminders.would_send` should list the three real sponsors only.
+  Owner: Ryan.
+- **`sponsor_tier_counts()` counts the RLS-harness sponsorships** (added
+  2026-09-26): gold shows 6 taken with 5 real gold sponsors, brass 4 with 3.
+  No public effect today - only Title and Collectible Coin have sell limits
+  and the harness rows are gold and brass - but if gold or brass ever gets a
+  limit, a harness row could mark it Sold. Fix when that happens (or at
+  cutover, when the harness is removed): exclude `sponsor_name ilike 'ZZ %'`
+  in the function. Owner: unassigned.
 - **Re-scope "applications: own read" to authenticated** (added 2026-09-26).
   Live it is still roles {public}, qual `auth.uid() = user_id` (Ryan read it
   from verify_079b block B). Harmless, since anon has no uid, but it is the last
