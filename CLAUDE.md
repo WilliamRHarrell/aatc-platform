@@ -22,6 +22,12 @@ after something is merged or applied, on their own docs PR.
 
 ## Standing rules
 
+- **Claude works in its own git worktree, `../aatc-platform-claude`**, never
+  in `aatc-platform/` (Ryan's checkout): no branch switches, commits or
+  builds there. Commit and push work in progress before leaving a branch.
+  Setup if missing: `git worktree add --detach ../aatc-platform-claude
+  origin/develop`, then in it `npm ci` (a symlinked node_modules breaks
+  Turbopack) and `ln -s ../aatc-platform/.env.local .env.local`.
 - **Report before building.** Summarize what you will change and wait for a go.
 - **No stacked PRs.** Base every PR on `develop`. If it needs another open PR's
   code, wait for that merge.
