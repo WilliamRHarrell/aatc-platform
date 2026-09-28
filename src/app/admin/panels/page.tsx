@@ -24,6 +24,7 @@ interface Panel {
   host_email: string | null
   max_capacity: number | null
   hard_cap: boolean
+  signup_closed: boolean
   is_published: boolean
   image_url: string | null
 }
@@ -60,6 +61,7 @@ interface PanelFormState {
   host_email: string
   max_capacity: string
   hard_cap: boolean
+  signup_closed: boolean
   is_published: boolean
 }
 
@@ -77,6 +79,7 @@ const EMPTY_FORM: PanelFormState = {
   host_email: '',
   max_capacity: '',
   hard_cap: false,
+  signup_closed: false,
   is_published: false,
 }
 
@@ -199,6 +202,7 @@ export default function AdminPanelsPage() {
       host_email: panel.host_email ?? '',
       max_capacity: panel.max_capacity ? String(panel.max_capacity) : '',
       hard_cap: panel.hard_cap,
+      signup_closed: panel.signup_closed ?? false,
       is_published: panel.is_published,
     })
     setEditingPanel(panel)
@@ -249,6 +253,8 @@ export default function AdminPanelsPage() {
       max_capacity: form.max_capacity ? parseInt(form.max_capacity, 10) : null,
       // panels_hard_cap_needs_capacity: a hard cap without a number is refused.
       hard_cap: form.hard_cap && !!form.max_capacity,
+      // 085: only email-host panels are closed by hand; the others close on their count.
+      signup_closed: form.signup_type === 'email_host' && form.signup_closed,
       is_published: form.is_published,
     }
 
@@ -507,6 +513,14 @@ export default function AdminPanelsPage() {
                     >
                       {SIGNUP_TYPE_LABELS[panel.signup_type]}
                     </span>
+                    {panel.signup_type === 'email_host' && panel.signup_closed && (
+                      <span
+                        className="inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase"
+                        style={{ backgroundColor: 'rgba(239,68,68,0.15)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)' }}
+                      >
+                        Full
+                      </span>
+                    )}
                   </div>
 
                   {/* Date / Time / Location */}
@@ -772,7 +786,9 @@ export default function AdminPanelsPage() {
                   style={inputStyle}
                 />
                 <p className="mt-1 text-[11px]" style={{ color: '#666' }}>
-                  {form.signup_type === 'aatc_invoice'
+                  {form.signup_type === 'email_host'
+                    ? 'Email host: signups go to the host, so the site cannot count them. Use Full / closed below when the host says so.'
+                    : form.signup_type === 'aatc_invoice'
                     ? 'Paid panel: this is a cap. Registration closes when the seats are taken (unpaid checkouts hold a seat for about 35 minutes).'
                     : form.hard_cap
                       ? 'Hard cap: registration closes when this many have registered.'
@@ -839,6 +855,18 @@ export default function AdminPanelsPage() {
                     className={inputBase}
                     style={inputStyle}
                   />
+                  <label className="mt-3 flex items-start gap-2 text-xs" style={{ color: '#ccc' }}>
+                    <input
+                      type="checkbox"
+                      checked={form.signup_closed}
+                      onChange={e => setForm({ ...form, signup_closed: e.target.checked })}
+                      className="mt-0.5"
+                    />
+                    <span>
+                      Full / closed: the public pages show &quot;Full&quot; and hide the contact link.
+                      Turn on when the host tells you the session is full.
+                    </span>
+                  </label>
                 </div>
               )}
 
