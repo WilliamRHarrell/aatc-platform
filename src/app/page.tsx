@@ -11,7 +11,7 @@ import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
 import Countdown from '@/components/home/Countdown'
 import VideoFacade from '@/components/home/VideoFacade'
-import { HOME_EVENTS, cardWhen } from '@/lib/homepage-content'
+import { HOME_EVENTS, cardWhen, cardText } from '@/lib/homepage-content'
 import { getSchedule } from '@/lib/schedule-data'
 import { getAfterParties } from '@/lib/after-parties-data'
 import { mapsUrl, nightLabel } from '@/lib/venues'
@@ -395,7 +395,7 @@ export default async function HomePage() {
                     {cardDay(ev)}
                   </span>
                 </div>
-                <p className="mt-2 text-sm leading-relaxed" style={{ color: '#999999' }}>{ev.descriptionKey ? c[ev.descriptionKey] : ev.description}</p>
+                <p className="mt-2 text-sm leading-relaxed" style={{ color: '#999999' }}>{cardText(ev, c)}</p>
                 {/* Presentation credit reads at the weight of the thing it
                     presents, not as a footnote - same treatment as the pinup
                     prize sponsors. One source: src/lib/event-config.ts. */}
