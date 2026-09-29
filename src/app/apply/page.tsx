@@ -215,25 +215,6 @@ export default async function ApplyPage() {
         </div>
       </section>
 
-      {/* ── Footer ── */}
-      <footer className="border-t px-4 py-10 text-center" style={{ borderColor: '#2a2a2a' }}>
-        <div className="mb-3 flex justify-center gap-2 text-sm" style={{ color: '#8B7355' }}>
-          {['★', '★', '★', '★', '★'].map((s, i) => (
-            <span key={i}>{s}</span>
-          ))}
-        </div>
-
-        <p className="font-display text-lg font-bold text-white">
-          <span className="text-emboss">{c.footer_name}</span>
-        </p>
-        <p className="mt-1 text-sm" style={{ color: '#999999' }}>
-          <span className="text-emboss">{c.footer_location}</span>
-        </p>
-
-        <p className="mt-6 text-xs" style={{ color: '#555555' }}>
-          <span className="text-emboss">© 2027 All American Tattoo Convention LLC. All rights reserved.</span>
-        </p>
-      </footer>
     </div>
   )
 }

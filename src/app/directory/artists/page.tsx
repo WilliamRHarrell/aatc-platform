@@ -194,13 +194,6 @@ export default function FindArtistPage() {
         )}
       </div>
 
-      {/* Footer */}
-      <footer className="border-t px-4 py-10 text-center" style={{ borderColor: '#2a2a2a' }}>
-        <p className="font-display text-sm font-bold text-white"><span className="text-emboss">ALL AMERICAN TATTOO CONVENTION</span></p>
-        <p className="mt-1 text-xs" style={{ color: '#555' }}>
-          <span className="text-emboss">Crown Complex Event Center · Fayetteville, NC</span>
-        </p>
-      </footer>
 
       {/* Lightbox */}
       {lightbox && (
