@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { HOME_EVENTS, cardWhen } from './homepage-content'
+import { defaultsFor } from '@/content/registry'
 
 const DAYS = [
   { day: 'Friday, April 16', items: [
@@ -34,9 +35,16 @@ describe('homepage cards: days and times from the schedule', () => {
   it('a missing row shows no time, not a stale one', () => {
     expect(cardWhen(card('Tattoo Dating Game'), [])).toBe('')
   })
-  it('cards that read the schedule carry no clock time in their copy', () => {
+  it('cards that read the schedule carry no clock time in their copy (code or registry default)', () => {
+    const home = defaultsFor('homepage')
     for (const ev of HOME_EVENTS.filter(e => e.scheduleTitle)) {
-      expect(ev.description, ev.name).not.toMatch(/\d{1,2}(:\d{2})?\s?(AM|PM)/i)
+      const text = ev.descriptionKey ? home[ev.descriptionKey] : ev.description
+      expect(text, ev.name).toBeTruthy()
+      expect(text, ev.name).not.toMatch(/\d{1,2}(:\d{2})?\s?(AM|PM)/i)
     }
+  })
+  it('the Tattoo Battle card text is in the registry', () => {
+    expect(card('The All American Tattoo Battle').descriptionKey).toBe('event_battle_description')
+    expect(defaultsFor('homepage').event_battle_description).toMatch(/^Kicks off on the main stage Friday/)
   })
 })

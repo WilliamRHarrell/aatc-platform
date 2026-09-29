@@ -80,6 +80,15 @@ export const REGISTRY: PageDef[] = [
       events_title: { label: 'Events section title', type: 'text', default: 'What Happens at AATC' },
       events_empty: { label: 'Events "announced soon" copy', type: 'markdown', default: 'The full 2027 schedule of events is being finalized now - check back soon, or follow us for announcements as they drop.' },
 
+      // Event card copy. A card whose description is here reads it from here
+      // (HomeEvent.descriptionKey in src/lib/homepage-content.ts); its day and
+      // time come from the schedule, so keep clock times out of this text.
+      event_battle_description: {
+        label: 'Events: Tattoo Battle card text',
+        help: 'The card\'s day and time come from the schedule (/admin/schedule); do not type times here.',
+        type: 'text',
+        default: 'Kicks off on the main stage Friday, then artists race the clock at their own booths. Finished tattoos hit the stage for judging, fans vote all weekend, and the champion is crowned Sunday.',
+      },
       // ── Seminars & panels ──
       panels_title: { label: 'Seminars section title', type: 'text', default: 'Seminars & Panels' },
       panels_empty: { label: 'Seminars "announced soon" copy', type: 'markdown', default: 'The 2027 seminar and panel lineup will be announced soon. Past sessions have covered black & grey technique, the art of the consult, and color theory in tattooing.' },

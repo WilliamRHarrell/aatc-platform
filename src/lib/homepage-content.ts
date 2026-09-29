@@ -18,7 +18,10 @@ import { TATTOO_BATTLE_PRESENTER, ROOMS } from './event-config'
 export interface HomeEvent {
   name: string
   day: string
-  description: string
+  /** Hand-written card text. Omitted when `descriptionKey` is set. */
+  description?: string
+  /** The card text lives in the page-content registry (homepage) under this key, editable in /admin/content. */
+  descriptionKey?: 'event_battle_description'
   href: string
   /** Presentation credit, where the item has a presenting sponsor. */
   presentedBy?: string
@@ -57,8 +60,7 @@ export const HOME_EVENTS: HomeEvent[] = [
     day: '',
     // The start and the crowning; not "Battle Ends - Voting Opens".
     scheduleTitle: /tattoo battle (begins|champion crowned)/i,
-    description:
-      'Artists battle live on the main stage, then voting opens and the champion is crowned.',
+    descriptionKey: 'event_battle_description',
     href: '/tattoo-battle',
   },
   {

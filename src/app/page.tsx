@@ -395,7 +395,7 @@ export default async function HomePage() {
                     {cardDay(ev)}
                   </span>
                 </div>
-                <p className="mt-2 text-sm leading-relaxed" style={{ color: '#999999' }}>{ev.description}</p>
+                <p className="mt-2 text-sm leading-relaxed" style={{ color: '#999999' }}>{ev.descriptionKey ? c[ev.descriptionKey] : ev.description}</p>
                 {/* Presentation credit reads at the weight of the thing it
                     presents, not as a footnote - same treatment as the pinup
                     prize sponsors. One source: src/lib/event-config.ts. */}
