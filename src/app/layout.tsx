@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { CANONICAL_ORIGIN, ROBOTS_META } from '@/lib/site'
 import { ASSETS } from '@/lib/event-config'
-import { Playfair_Display, Inter, Oswald } from 'next/font/google'
+import { Playfair_Display, Inter } from 'next/font/google'
+import { oswaldSite as oswald } from '@/fonts/oswald'
 import { Toaster } from 'react-hot-toast'
 import SiteFooter from '@/components/SiteFooter'
 import FooterSponsors from '@/components/FooterSponsors'
@@ -20,15 +21,6 @@ const inter = Inter({
   display: 'swap',
 })
 
-// The footer's condensed caps (docs/design/site-footer). Only the weights the
-// footer uses: 300 copy, 400 links and address, 600 headings and buttons, 700
-// titles. Distinct from /tattoo-battle's own --font-oswald (500/700).
-const oswald = Oswald({
-  variable: '--font-oswald-site',
-  weight: ['300', '400', '600', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   // Absolute OG and canonical URLs on the canonical host, whatever host built this.

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Rubik_Dirt, Oswald } from 'next/font/google'
+import { Rubik_Dirt } from 'next/font/google'
+import { oswaldBattle as oswald } from '@/fonts/oswald'
 import JSZip from 'jszip'
 import { BUCKET_COUNT, QR_BASE_URL, VETERAN_INK } from '@/lib/tattoo-battle-config'
 import { TATTOO_BATTLE_PRESENTER } from '@/lib/event-config'
@@ -13,7 +14,6 @@ import { qrSvg } from '@/lib/tattoo-battle-qr'
 // Same faces as /tattoo-battle, loaded here because /admin is outside that
 // segment. Tokens in globals.css resolve once these variables are on an ancestor.
 const rubikDirt = Rubik_Dirt({ weight: '400', subsets: ['latin'], variable: '--font-rubik-dirt', display: 'swap' })
-const oswald = Oswald({ weight: ['500', '700'], subsets: ['latin'], variable: '--font-oswald', display: 'swap' })
 
 /**
  * One 4x6 in label per bucket, print-optimised. The URL is fixed
