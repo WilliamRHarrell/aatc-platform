@@ -337,11 +337,12 @@ export default async function HomePage() {
       </section>
 
       {/* ── 3. Promo video - renders only when an ID is configured ──
-          The footage is vertical (9:16), so it sits in a width-capped column
-          beside the copy rather than being pillarboxed into a 16:9 frame. */}
+          Vertical (9:16) footage sits in a width-capped column beside the copy
+          rather than being pillarboxed into a 16:9 frame. Landscape (16:9)
+          footage takes the full width with the copy below it. */}
       {PROMO_VIDEO.youTubeId && (
         <section className="border-t px-4 py-14" style={{ borderColor: '#2a2a2a' }}>
-          <div className="mx-auto flex max-w-4xl flex-col items-center gap-8 md:flex-row md:items-center md:gap-12">
+          <div className={`mx-auto flex max-w-4xl flex-col items-center gap-8 ${PROMO_VIDEO.orientation === 'vertical' ? 'md:flex-row md:items-center md:gap-12' : ''}`}>
             <div className="w-full shrink-0" style={{ maxWidth: PROMO_VIDEO.orientation === 'vertical' ? 400 : undefined }}>
               <VideoFacade
                 youTubeId={PROMO_VIDEO.youTubeId}
@@ -351,7 +352,7 @@ export default async function HomePage() {
               />
             </div>
 
-            <div className="w-full text-center md:text-left">
+            <div className={`w-full text-center ${PROMO_VIDEO.orientation === 'vertical' ? 'md:text-left' : ''}`}>
               <h2 className="font-display text-2xl font-bold text-white sm:text-3xl">
                 <span className="text-emboss">{c.video_heading}</span>
               </h2>
