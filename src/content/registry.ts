@@ -80,6 +80,52 @@ export const REGISTRY: PageDef[] = [
       events_title: { label: 'Events section title', type: 'text', default: 'What Happens at AATC' },
       events_empty: { label: 'Events "announced soon" copy', type: 'markdown', default: 'The full 2027 schedule of events is being finalized now - check back soon, or follow us for announcements as they drop.' },
 
+      // Event card copy: every homepage event card reads its text from here
+      // (HomeEvent.descriptionKey in src/lib/homepage-content.ts). Cards with a
+      // schedule row take their day and time from the schedule, so keep clock
+      // times out of their text.
+      event_battle_description: {
+        label: 'Events: Tattoo Battle card text',
+        help: 'The card\'s day and time come from the schedule (/admin/schedule); do not type times here.',
+        type: 'text',
+        default: 'Kicks off on the main stage Friday, then artists race the clock at their own booths. Finished tattoos hit the stage for judging, fans vote all weekend, and the champion is crowned Sunday.',
+      },
+      event_contests_description: {
+        label: 'Events: Daily Tattoo Contests card text',
+        type: 'text',
+        default: 'Categories across three days, from Best Military Tattoo to Best in Show. On-site registration opens daily at 1:00 PM.',
+      },
+      event_pinup_description: {
+        label: 'Events: Pin-Up Contest card text',
+        type: 'text',
+        default: 'Our most famous event, now in its 10th year - classic Americana on the main stage.',
+      },
+      event_dating_description: {
+        label: 'Events: Tattoo Dating Game card text',
+        type: 'text',
+        default: 'Live on the main stage. Exactly what it sounds like, and it gets out of hand every year.',
+      },
+      event_strongest_description: {
+        label: 'Events: Strongest at the Sideshow card text',
+        help: '`{ballroom}` is replaced with the room name from event-config.',
+        type: 'text',
+        default: 'Team strongman competition in the {ballroom}.',
+      },
+      event_best_in_show_description: {
+        label: 'Events: Best in Show card text',
+        type: 'text',
+        default: 'The weekend’s top work, judged on the main stage alongside the final Tattoo of the Day.',
+      },
+      event_gold_star_description: {
+        label: 'Events: Gold Star VIP Meet & Greet card text',
+        type: 'text',
+        default: 'Before doors open Saturday, we host Gold Star families for a private meet & greet with our featured artists.',
+      },
+      event_food_truck_description: {
+        label: 'Events: Food Truck Rodeo card text',
+        type: 'text',
+        default: 'Fayetteville’s largest food truck rodeo, right out front. Free and open to the public - no ticket required.',
+      },
       // ── Seminars & panels ──
       panels_title: { label: 'Seminars section title', type: 'text', default: 'Seminars & Panels' },
       panels_empty: { label: 'Seminars "announced soon" copy', type: 'markdown', default: 'The 2027 seminar and panel lineup will be announced soon. Past sessions have covered black & grey technique, the art of the consult, and color theory in tattooing.' },
