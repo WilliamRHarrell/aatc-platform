@@ -117,9 +117,11 @@ export const PROMO_VIDEO: {
    */
   posterUrl: string | null
 } = {
-  youTubeId: 'gAZ5Y5Mqh6k',
-  title: '2025 AATC East Tattoo Convention - Fayetteville, Ft Bragg NC Highlights',
-  orientation: 'vertical',
+  // Swapped 2026-09-28 (Ryan). 16:9, so the facade uses YouTube's
+  // maxresdefault poster (1280x720, present); frame0 does not exist for it.
+  youTubeId: 'dk43imvJqds',
+  title: 'This Is the All American Tattoo Convention | AATC 2027 Is Coming',
+  orientation: 'landscape',
   posterUrl: null,
 }
 
