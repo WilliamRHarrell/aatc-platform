@@ -124,3 +124,11 @@ describe('tickets short venue note (approved 2026-09-29)', () => {
     expect(page).toContain('href="/info/policies"')
   })
 })
+
+describe('/apply step 3 claims only what the portal has (Ryan, 2026-09-29)', () => {
+  it('no printable confirmation or floor plan until the portal has them', () => {
+    const c = defaultsFor('applyHub')
+    expect(c.expect_step3_desc).not.toMatch(/printable|floor plan/i)
+    expect(c.expect_step3_desc).toMatch(/receipt is emailed/)
+  })
+})
