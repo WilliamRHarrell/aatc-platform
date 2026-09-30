@@ -75,7 +75,10 @@ begin
   values (v_event, null, 'vendor', 'ZZ VERIFY 087 A (DELETE ME)', 'ZZ', 'zz-verify-087-a@example.com', 100000, 'approved', 1, 0) returning id into v_a;
   insert into public.applications (event_id, user_id, exhibitor_type, business_name, contact_name, email, total_amount, status, vendor_double_qty, artist_count)
   values (v_event, null, 'vendor', 'ZZ VERIFY 087 B (DELETE ME)', 'ZZ', 'zz-verify-087-b@example.com', 100000, 'approved', 1, 0) returning id into v_b;
-  insert into public.sponsorships (event_id, sponsor_name) values (v_event, 'ZZ VERIFY 087 SPONSOR (DELETE ME)') returning id into v_sp;
+  -- tier is NOT NULL with no default (sponsor_tier enum); amount must be >= 0.
+  -- Checked against a schema replayed from every migration (2026-09-30).
+  insert into public.sponsorships (event_id, sponsor_name, tier, amount)
+  values (v_event, 'ZZ VERIFY 087 SPONSOR (DELETE ME)', 'gold', 0) returning id into v_sp;
 
   -- B1. non-admin refused
   perform set_config('request.jwt.claims', json_build_object('sub', v_harness, 'role', 'authenticated')::text, true);

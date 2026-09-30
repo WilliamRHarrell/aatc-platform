@@ -74,3 +74,26 @@ where 087 is not applied. After applying it:
   hold);
 - assign it to the linked exhibitor (it should succeed and the hold clears);
 - release a hold.
+
+## 2026-09-30: verify_087 failed live, fixed
+Ryan ran verify_087 after applying 087 and got `23502: null value in column
+"tier" of relation "sponsorships"`. The sponsorship fixture lacked `tier`
+(NOT NULL, sponsor_tier enum, no default). The minimal hand-written PGlite
+schema had no such column, so the pre-delivery run could not catch it.
+- **Fix:** the fixture sets `tier = 'gold', amount = 0`. The "ZZ " name
+  already keeps it out of sponsor_tier_counts (083) and the reminders, and
+  the row is deleted in the same block.
+- **New local check:** the schema is now **replayed from every migration**
+  (001-087; 015 and 047 skipped, as in migrations.md) in PGlite, on stand-ins
+  for Supabase's auth/storage schemas and roles, instead of a hand-written
+  minimal schema. On it:
+  - the old verify_087 reproduces the live error exactly;
+  - the fixed verify_087 and verify_086 pass.
+  NOT NULL columns agree with production's PostgREST OpenAPI for
+  sponsorships, events, applications and booths.
+- **Every verify fixture checked:** a scan of all 102 INSERTs in
+  supabase/verify/*.sql against the replayed schema's NOT NULL-without-default
+  columns. The only hits are contest_votes.vote_date (verify_053/061), which
+  the set_vote_date trigger fills (053): false positives.
+- **Still not covered locally:** a true production schema dump. It needs the
+  database connection string, which this environment does not have.
