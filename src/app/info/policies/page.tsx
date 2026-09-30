@@ -1,39 +1,26 @@
-'use client'
-
 import PublicNav from '@/components/PublicNav'
+import Markdown from '@/components/Markdown'
+import { getContent } from '@/content/getContent'
+import { CONTACT_EMAIL, VENUE_POLICIES_URL } from '@/lib/event-config'
 
+// Re-entry, weapons, smoking and animals live in the venue policies section
+// (registry 'policies'), not here: one home per rule.
 const POLICIES = [
   {
     title: 'Age Policy',
     description: 'All ages are welcome at the convention. Attendees under the age of 16 must be accompanied by a parent or legal guardian at all times. You must be 18 years of age or older to receive tattoo services. Valid photo ID is required for tattoo services.',
   },
   {
-    title: 'Weapons',
-    description: 'No weapons of any kind are permitted inside the convention. This includes firearms, knives, and any items that could be used as a weapon. Exceptions are made only for authorized medieval combat performers who are part of the official entertainment program.',
-  },
-  {
     title: 'Photography',
     description: 'Personal photography and video are welcome throughout the convention. Please be respectful and ask permission before photographing artists at work or other attendees. Flash photography is not permitted during tattoo contest judging. Professional media must obtain a press pass in advance.',
-  },
-  {
-    title: 'Re-Entry',
-    description: 'Your wristband allows same-day re-entry to the convention. Do not remove your wristband if you plan to leave and return. Wristbands that have been cut, torn, or tampered with will not be honored for re-entry.',
   },
   {
     title: 'Refund Policy',
     description: 'All ticket sales are final. No refunds or exchanges will be issued. In the event of a convention cancellation, ticket holders will be notified via email with information about credits or rescheduled dates.',
   },
   {
-    title: 'Pets & Service Animals',
-    description: 'Only trained service animals as defined by the ADA are permitted inside the convention venue. Emotional support animals, therapy animals, and pets are not allowed. Service animals must be leashed or harnessed at all times.',
-  },
-  {
     title: 'Alcohol',
     description: 'Alcoholic beverages are available for purchase at designated areas within the convention. You must be 21 years of age or older with a valid photo ID to purchase or consume alcohol. Drink responsibly - visibly intoxicated attendees may be asked to leave.',
-  },
-  {
-    title: 'Smoking',
-    description: 'Smoking, vaping, and the use of tobacco products are prohibited inside the convention venue. Designated outdoor smoking areas are clearly marked near the entrance. Please dispose of cigarette butts in the provided receptacles.',
   },
 ]
 
@@ -62,7 +49,17 @@ const CONDUCT_RULES = [
   'Violations of the code of conduct may result in immediate removal from the convention without refund.',
 ]
 
-export default function PoliciesPage() {
+const CARD = { backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' } as const
+
+export default async function PoliciesPage() {
+  const c = await getContent('policies')
+  const venue = [
+    { title: c.venue_bags_title, body: c.venue_bags_body },
+    { title: c.venue_food_title, body: c.venue_food_body },
+    { title: c.venue_reentry_title, body: c.venue_reentry_body },
+    { title: c.venue_other_title, body: c.venue_other_body },
+  ]
+
   return (
     <div className="min-h-screen">
       <PublicNav />
@@ -80,8 +77,42 @@ export default function PoliciesPage() {
         </p>
       </div>
 
-      {/* General Rules */}
+      {/* Crown Complex venue policies - editable at /admin/content ("Policies").
+          Bags, drinks and re-entry first. */}
       <section className="px-4 py-12">
+        <div className="mx-auto max-w-5xl">
+          <h2 className="mb-2 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
+            <span className="text-emboss">{c.venue_title}</span>
+          </h2>
+          <div className="mx-auto mb-8 max-w-2xl text-center text-xs leading-relaxed" style={{ color: '#999' }}>
+            <Markdown>{c.venue_intro}</Markdown>
+            <p className="mt-2">
+              <a
+                href={VENUE_POLICIES_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2"
+                style={{ color: '#C4A882' }}
+              >
+                Crown Complex venue policies (official)
+              </a>
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {venue.map((item) => (
+              <div key={item.title} className="rounded-2xl p-6" style={CARD}>
+                <h3 className="text-sm font-bold text-white">{item.title}</h3>
+                <div className="mt-3 space-y-3 text-xs leading-relaxed" style={{ color: '#999' }}>
+                  <Markdown>{item.body}</Markdown>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* General Rules */}
+      <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-2 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
             <span className="text-emboss">General Rules</span>
@@ -225,8 +256,8 @@ export default function PoliciesPage() {
               <p>
                 Every marketing email has an unsubscribe option, or you can reply to any of
                 them with UNSUBSCRIBE, or email{' '}
-                <a href="mailto:info@allamericantattooconvention.com" style={{ color: '#C4A882' }}>
-                  info@allamericantattooconvention.com
+                <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#C4A882' }}>
+                  {CONTACT_EMAIL}
                 </a>
                 . Unsubscribing stops event and presale email. It does not stop messages about
                 a contest you have entered - those carry your check-in time and any schedule
@@ -244,8 +275,8 @@ export default function PoliciesPage() {
         </p>
         <p className="text-sm" style={{ color: '#999' }}>
           <span className="text-emboss">Contact us at{' '}
-          <a href="mailto:info@allamericantattooconvention.com" style={{ color: '#C4A882' }}>
-            info@allamericantattooconvention.com
+          <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#C4A882' }}>
+            {CONTACT_EMAIL}
           </a></span>
         </p>
       </div>

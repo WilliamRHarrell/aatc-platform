@@ -32,6 +32,9 @@ export const VENUE_CITY = 'Fayetteville'
 export const VENUE_STATE = 'NC'
 export const VENUE_POSTAL = '28306'
 export const VENUE_MAP_URL = 'https://share.google/vRhsv0xqNzDRTPtGC'
+// The Crown's own venue policies page; /info/policies links it as the official
+// source (its rules can change; ours are a summary).
+export const VENUE_POLICIES_URL = 'https://www.crowncomplexnc.com/visit/venue-policies'
 
 /**
  * Rooms at the Crown Complex, as the show refers to them. Confirmed by Ryan

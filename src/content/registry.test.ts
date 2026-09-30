@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { defaultsFor, REGISTRY, PAGE_ROUTE, routesFor } from '@/content/registry'
 import { ALLOWED_PATHS } from '@/lib/revalidate-paths'
+import { VENUE_POLICIES_URL } from '@/lib/event-config'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 /**
  * After parties are data (schedule rows + venues, migration 070). The homepage
@@ -67,5 +70,42 @@ describe('booth application forms registry', () => {
   })
   it('purges both apply form routes', () => {
     expect(routesFor('applyForms')).toEqual(['/apply/artist', '/apply/vendor'])
+  })
+})
+
+/**
+ * Crown Complex venue policies on /info/policies (Ryan, 2026-09-29). Our own
+ * summary, linked to the Crown's page as the official source; bags, drinks and
+ * re-entry first; the page's General Rules no longer carry a second copy of
+ * re-entry, weapons, smoking or animals.
+ */
+describe('policies page venue section', () => {
+  const c = defaultsFor('policies')
+  const page = readFileSync(join(process.cwd(), 'src/app/info/policies/page.tsx'), 'utf8')
+
+  it('registers every venue block with copy', () => {
+    for (const key of [
+      'venue_title', 'venue_intro',
+      'venue_bags_title', 'venue_bags_body', 'venue_food_title', 'venue_food_body',
+      'venue_reentry_title', 'venue_reentry_body', 'venue_other_title', 'venue_other_body',
+    ]) expect(c[key], key).toBeTruthy()
+    expect(PAGE_ROUTE.policies).toBe('/info/policies')
+  })
+  it('says the Crown sets the rules and can change them, and links the official page', () => {
+    expect(c.venue_intro).toMatch(/can change/)
+    expect(VENUE_POLICIES_URL).toBe('https://www.crowncomplexnc.com/visit/venue-policies')
+    expect(page).toContain('href={VENUE_POLICIES_URL}')
+  })
+  it('renders bags, then food and drinks, then re-entry, then the rest', () => {
+    const order = ['c.venue_bags_title', 'c.venue_food_title', 'c.venue_reentry_title', 'c.venue_other_title'].map(k => page.indexOf(k))
+    expect(order.every(i => i > 0)).toBe(true)
+    expect([...order].sort((a, b) => a - b)).toEqual(order)
+  })
+  it('states the Pepsi rule and the wristband rule', () => {
+    expect(c.venue_food_body).toMatch(/Pepsi/)
+    expect(c.venue_reentry_body).toMatch(/not be replaced/)
+  })
+  it('General Rules no longer repeat what the venue section states', () => {
+    for (const t of ["'Re-Entry'", "'Weapons'", "'Smoking'", "'Pets & Service Animals'"]) expect(page, t).not.toContain(`title: ${t}`)
   })
 })
