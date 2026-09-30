@@ -1,10 +1,20 @@
-'use client'
-
 import Image from 'next/image'
 import PublicNav from '@/components/PublicNav'
 import { ASSETS } from '@/lib/event-config'
+import { getSchedule } from '@/lib/schedule-data'
+import { DATING_GAME_TITLE, scheduleSlots } from '@/lib/homepage-content'
 
-export default function DatingGamePage() {
+export default async function DatingGamePage() {
+  // Days and times come from schedule_items (/admin/schedule), every published
+  // Dating Game row, the same rows the homepage card shows. None published:
+  // no "When" card, rather than a stale time.
+  const slots = scheduleSlots(DATING_GAME_TITLE, await getSchedule())
+  const details = [
+    ...(slots.length > 0 ? [{ label: 'When', value: slots.map(s => `${s.day} at ${s.time}`) }] : []),
+    { label: 'Where', value: ['Main Stage'] },
+    { label: 'Cost', value: ['Free with Convention Admission'] },
+  ]
+
   return (
     <div className="min-h-screen">
       <PublicNav />
@@ -29,7 +39,7 @@ export default function DatingGamePage() {
           <span className="text-emboss">Find Your Ink Match</span>
         </p>
         <p className="mx-auto mt-0 max-w-xl text-sm" style={{ color: '#999' }}>
-          <span className="text-emboss">One of the most entertaining events of the weekend. The Tattoo Dating Game brings audience participation, laughs, and a little romance to the main stage on Saturday evening.</span>
+          <span className="text-emboss">One of the most entertaining events of the weekend. The Tattoo Dating Game brings audience participation, laughs, and a little romance to the main stage.</span>
         </p>
       </div>
 
@@ -40,19 +50,17 @@ export default function DatingGamePage() {
             <span className="text-emboss">Event Details</span>
           </h2>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            {[
-              { label: 'When', value: 'Saturday, April 17 at 6:00 PM' },
-              { label: 'Where', value: 'Main Stage' },
-              { label: 'Cost', value: 'Free with Convention Admission' },
-            ].map(item => (
+          <div className={`grid gap-4 ${details.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+            {details.map(item => (
               <div
                 key={item.label}
                 className="rounded-2xl p-5 text-center"
                 style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
               >
                 <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#666' }}>{item.label}</p>
-                <p className="mt-2 text-sm font-medium text-white">{item.value}</p>
+                {item.value.map(v => (
+                  <p key={v} className="mt-2 text-sm font-medium text-white">{v}</p>
+                ))}
               </div>
             ))}
           </div>

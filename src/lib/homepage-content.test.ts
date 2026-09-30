@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { HOME_EVENTS, cardWhen, cardText } from './homepage-content'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { HOME_EVENTS, cardWhen, cardText, scheduleSlots, DATING_GAME_TITLE } from './homepage-content'
 import { ROOMS } from './event-config'
 import { defaultsFor } from '@/content/registry'
 
@@ -49,5 +51,24 @@ describe('homepage cards: days and times from the schedule', () => {
     for (const ev of HOME_EVENTS.filter(e => e.scheduleTitle)) {
       expect(cardText(ev, home), ev.name).not.toMatch(/\d{1,2}(:\d{2})?\s?(AM|PM)/i)
     }
+  })
+})
+
+describe('scheduleSlots (shared by homepage cards and event pages)', () => {
+  it('returns every matching row with its full day label, in order', () => {
+    const days = [
+      { day: 'Friday, April 16', items: [{ title: 'Tattoo Dating Game', time: '6:00 PM' }, { title: 'Other', time: '7:00 PM' }] },
+      { day: 'Saturday, April 17', items: [{ title: ' Tattoo Dating Game ', time: '5:30 PM' }] },
+    ]
+    expect(scheduleSlots(DATING_GAME_TITLE, days)).toEqual([
+      { day: 'Friday, April 16', time: '6:00 PM' },
+      { day: 'Saturday, April 17', time: '5:30 PM' },
+    ])
+    expect(scheduleSlots(DATING_GAME_TITLE, [])).toEqual([])
+  })
+  it('the Dating Game page reads the schedule, and types no day or time', () => {
+    const page = readFileSync(join(process.cwd(), 'src/app/events/dating-game/page.tsx'), 'utf8')
+    expect(page).toContain('scheduleSlots(DATING_GAME_TITLE')
+    expect(page).not.toMatch(/(Friday|Saturday|Sunday),? April|\d:\d\d [AP]M'/)
   })
 })
