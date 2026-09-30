@@ -227,7 +227,7 @@ export const REGISTRY: PageDef[] = [
         label: 'Step 3 description',
         type: 'markdown',
         default:
-          'Pay your invoice online via Stripe. A printable confirmation and floor plan are available in your exhibitor portal.',
+          'Pay your invoice online via Stripe. Your receipt is emailed to you, and your balance and booth assignment are in your exhibitor portal.',
       },
       booth_info_link_text: {
         label: 'Booth info link line',
