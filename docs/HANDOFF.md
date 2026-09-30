@@ -8,20 +8,28 @@ This file is the index and the current state. Everything else lives in
 - [open-items.md](handoff/open-items.md) - open items, deferred minors, the three sponsors, deferred work with triggers.
 - [sessions/](handoff/sessions/) - one file per dated session, history.
 
-## START HERE - state as of 2026-09-28 (evening)
+## START HERE - state as of 2026-09-29 (evening)
 
-**Merged and deployed (develop = 0534bd7):** everything through #38. Since the
-morning refresh: #32 START HERE, #33 /apply cards, #34 sponsor price
-visibility (084, 084b), #35 panel Full / closed switch (085), #36 Invite &
-link, #37 new site footer + newsletter to GHL, #38 newsletter tagging fix +
-YouTube. Source: `gh pr list`, 2026-09-28.
+**Merged and deployed (develop = f581734):** everything through #44. Since
+the 2026-09-28 evening refresh: #39 START HERE, #40 tattoo contests Daily
+Contest Schedule from schedule rows + Best in Show, #41 homepage event cards
+read days and times from the schedule, #42 new homepage promo video, #43
+homepage event card text editable, #44 self-hosted Oswald (build fix).
+Source: `gh pr list --state merged`, 2026-09-29.
 
-**Applied in production (Ryan):** everything through **084b**, verified
-(verify_084 passed after 084b, Ryan 2026-09-28). **085** is live (a read of
-`panels_public.signup_closed` succeeded, 2026-09-28); its verify_085 result
-is not reported. 015 superseded by 079b; 047 still HELD (its body would also
-now drop 065's credit join and 085's `signup_closed`). Evidence per migration
-is in [migrations.md](handoff/migrations.md).
+**Applied in production (Ryan):** everything through **085**, verified
+(verify_085 "Success. No rows returned", Ryan 2026-09-29; no panel is marked
+Full yet). 015 superseded by 079b; 047 still HELD (its body would also now
+drop 065's credit join and 085's `signup_closed`). Evidence per migration is
+in [migrations.md](handoff/migrations.md). No migration is delivered and
+waiting.
+
+**Open PRs (2026-09-29):**
+- #45 `fix/page-level-footers`: removes the leftover page-level footers on
+  /apply, /contests, /directory, /directory/artists. Ready for review; build,
+  tests and a render-check of 39 public routes passed.
+- #46 `feat/venue-policies`: Crown Complex venue policies on /info/policies,
+  editable at /admin/content ("Policies").
 
 **Done outside the code (Ryan, 2026-09-28):**
 - Newsletter to GHL works on production for new and existing contacts, tag
@@ -30,7 +38,7 @@ is in [migrations.md](handoff/migrations.md).
 - Branded confirm-signup email tested. Reset-password: not reported yet.
 - Sponsor contacts entered; accounts still unlinked (use Invite & link, #36).
 - Tooth Gem: $400, 50 seats. **Signup type still `none`** in production
-  (read 2026-09-28); Ryan intends email host + host email.
+  (read 2026-09-28, not re-read since); Ryan intends email host + host email.
 
 **Admin tools:**
 - `GET /api/admin/newsletter-test?email=...` (admin role only; encode `+` as
@@ -40,12 +48,15 @@ is in [migrations.md](handoff/migrations.md).
   real contact: use test addresses, and delete them in GHL afterwards.
 
 **Queued, in order, each its own PR, report before building:**
-1. Tattoo contests "Daily Contest Schedule": rolling format, times only for
-   Tattoo of the Day, Best in Show and the Tattoo Battle, from schedule_items
-   (report sent 2026-09-28, awaiting decisions).
+1. Short venue-policies note (bags, Pepsi-only drinks, wristband re-entry)
+   for /tickets and the ticket confirmation email: wording sent to Ryan
+   2026-09-29, awaiting approval. Tickets sell through Ticketmaster; this
+   codebase sends no ticket confirmation email.
 2. Site-wide gold: the antique golds replace #8B7355 / #866f52 (plan sent;
    awaiting button-text and light-gold decisions).
 3. Admin audit log - a design note only, not built.
+
+**Domains:** Ryan's. The cutover is his; no domain work from this side.
 
 **Dated (Ryan):** DMARC reports ~2026-10-12 then `p=quarantine; pct=25`;
 `SPONSOR_REMINDERS_ENABLED=true` in Vercel before 2026-12-01. Details in
