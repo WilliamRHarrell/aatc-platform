@@ -15,18 +15,25 @@ Removed from: /apply, /contests, /directory, /directory/artists. Also removed
 the /apply registry keys footer_name, footer_location (no page_content rows,
 checked 2026-09-29). `git grep "<footer" src/app` now finds none.
 
-**Not yet done (disk full, 154 MB free):** local build and the render-check of
-every public route (order: content -> sponsor section -> site footer, exactly
-one <footer>, nothing footer-like in page content). The draft PR's Vercel
-preview build is the build check. Next session: run the render-check
-(scratchpad cdp-probe2.mjs pattern: list every <footer> with its text and
-whether it follows the sponsor section) on the preview or a local build.
+**Build and render-check (2026-09-29, after the disk was cleared):** `npm run
+build` passes (prebuild guards included), `npm test` 201/201. Render-check of
+every public route on a local `next start` with headless Chrome (39 routes:
+every page in the build output except /admin/*, /api/*, /auth/callback,
+/robots.txt; /directory/[id] with 13c265d7, /tattoo-battle/entry/1; /admin,
+/portal/* and /apply/artist|vendor redirect to /auth/login and were checked
+there): every page has exactly one `<footer>` (SiteFooter), the sponsor
+section directly before it, nothing visible after it, and no "All rights
+reserved" in page content. Three flags, none a footer:
+- `/` - "April 16-18, 2027 · Crown Complex Event Center" is the hero line.
+- `/directory/[id]` - the sidebar "Event" card. Content, not a footer, but it
+  hardcodes the dates and venue (one-home-per-fact follow-up, not this PR).
+- `/floorplan` - an empty `<div />` stub since the initial setup, linked from
+  nothing; sponsor section and footer render correctly under it.
 
 ## Domain
-www.allamericantattooconvention.com returns Vercel NOT_FOUND on every path
-(apex 308s to it); the site answers at aatc-platform.vercel.app. Expected if
-the domain cutover is still pending (docs/CUTOVER.md); otherwise the domain is
-not attached to this Vercel project.
+Retracted: an earlier note here said www returned Vercel NOT_FOUND. Ryan
+(2026-09-29): it loads in a browser (holding page on aatc-landing); the
+NOT_FOUND was this environment. Domains are Ryan's; nothing to do here.
 
 ## 2. QUEUED: /info/policies "Crown Complex Venue Policies" (Ryan, 2026-09-29)
 
