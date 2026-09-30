@@ -178,6 +178,12 @@ export default function BoothDetailPage() {
   }, [appId])
 
   // ── Booth assignment ─────────────────────────────────────────
+  // The write is assign_booths() (migration 086): one transaction, scoped to
+  // this application's event, refusing not-sellable booths, booths held by
+  // another application, duplicates and more booths than slots. Fewer booths
+  // than slots is allowed (half of a double now, the rest later). Its error
+  // messages are written for this toast. The corner checks stay here as
+  // confirm() warnings, as before.
   const saveBoothAssignment = async () => {
     if (!app) return
     if (!app.event_id) {
@@ -186,126 +192,62 @@ export default function BoothDetailPage() {
     }
 
     const nums = slotInputs.map(s => s.trim()).filter(Boolean)
-    if (nums.length === 0) {
-      // Clear all assignments
-      // Same as above: zero rows is normal when there was no prior assignment.
-      const { error: unassignErr } = await supabase
-        .from('booths').update({ application_id: null, status: 'available' }).eq('application_id', appId)
-      if (unassignErr) {
-        console.error(`[admin/booths] unassign failed for ${appId}: ${unassignErr.message}`)
-        toast.error('Could not release the previous booths.')
-        return
-      }
-      setAssignedBooths([])
-      toast.success('Booth assignment cleared')
-      return
-    }
-
     setSavingBooths(true)
+    try {
+      if (nums.length > 0) {
+        // This application's event only: every event has booths 1-267.
+        const { data: eventBooths, error: boothFetchError } = await supabase
+          .from('booths')
+          .select('booth_number, is_corner')
+          .eq('event_id', app.event_id)
+        if (boothFetchError || !eventBooths) {
+          toast.error('Failed to load booth data')
+          return
+        }
+        const chosen = eventBooths.filter(b => nums.includes(b.booth_number))
+        // 2027 applications record corners in corner_count; 2026 rows in is_corner.
+        const paidForCorner = app.is_corner || (app.corner_count ?? 0) > 0
 
-    // Fetch all booths then match client-side (avoids PostgREST .in() quirks)
-    const { data: allBooths, error: boothFetchError } = await supabase
-      .from('booths')
-      .select('id, booth_number, is_corner, application_id, status')
+        if (paidForCorner && !chosen.some(r => r.is_corner)) {
+          const proceed = window.confirm(
+            'Warning: This exhibitor paid for a corner booth, but none of the selected booths is marked as a corner. Assign anyway?'
+          )
+          if (!proceed) return
+        }
+        if (!paidForCorner && chosen.some(r => r.is_corner)) {
+          const cornerNums = chosen.filter(r => r.is_corner).map(r => `#${r.booth_number}`).join(', ')
+          const proceed = window.confirm(
+            `Warning: Booth ${cornerNums} is a corner booth, but this exhibitor did not pay for a corner. Assign anyway?`
+          )
+          if (!proceed) return
+        }
+      }
 
-    if (boothFetchError || !allBooths) {
-      toast.error('Failed to load booth data')
+      const { error } = await supabase.rpc('assign_booths', { p_application_id: appId, p_booth_numbers: nums })
+      if (error) {
+        console.error(`[admin/booths] assign_booths failed for ${appId}: ${error.code} ${error.message}`)
+        toast.error(error.code === 'PGRST202'
+          ? 'Booth assignment needs migration 086 applied in Supabase.'
+          : `Not saved: ${error.message}`)
+        return
+      }
+
+      // Read back what the database now holds, rather than trusting the inputs.
+      const { data: fresh } = await supabase
+        .from('booths')
+        .select('id, booth_number, is_corner, status')
+        .eq('application_id', appId)
+      setAssignedBooths((fresh ?? []) as AssignedBooth[])
+
+      const slots = boothSlotCount(app)
+      if (nums.length === 0) toast.success('Booth assignment cleared')
+      else toast.success(
+        `Booth${nums.length > 1 ? 's' : ''} ${nums.map(n => `#${n}`).join(', ')} assigned` +
+        (nums.length < slots ? ` (${nums.length} of ${slots} slots)` : '')
+      )
+    } finally {
       setSavingBooths(false)
-      return
     }
-
-    const boothRows = allBooths.filter(b => nums.includes(b.booth_number))
-
-    if (boothRows.length < nums.length) {
-      const found = boothRows.map(b => b.booth_number)
-      const missing = nums.filter(n => !found.includes(n))
-      if (allBooths.length === 0) {
-        toast.error('Booths table is empty - run migration 005_seed_booths.sql in Supabase SQL Editor first')
-      } else {
-        toast.error(`Booth #${missing.join(', #')} not found (${allBooths.length} booths in DB)`)
-      }
-      setSavingBooths(false)
-      return
-    }
-
-    // Check for conflicts
-    for (const row of boothRows) {
-      if (row.application_id && row.application_id !== appId) {
-        const { data: conflictApp } = await supabase
-          .from('applications')
-          .select('business_name')
-          .eq('id', row.application_id)
-          .single()
-        toast.error(`Booth #${row.booth_number} is assigned to ${conflictApp?.business_name ?? 'another exhibitor'}`)
-        setSavingBooths(false)
-        return
-      }
-    }
-
-    // Warn if exhibitor paid for a corner but none of the selected booths is a corner
-    if (app.is_corner && !boothRows.some(r => r.is_corner)) {
-      const proceed = window.confirm(
-        'Warning: This exhibitor paid for a corner booth, but none of the selected booths is marked as a corner. Assign anyway?'
-      )
-      if (!proceed) {
-        setSavingBooths(false)
-        return
-      }
-    }
-
-    // Warn if exhibitor did NOT pay for a corner but a corner booth was selected
-    if (!app.is_corner && boothRows.some(r => r.is_corner)) {
-      const cornerNums = boothRows.filter(r => r.is_corner).map(r => `#${r.booth_number}`).join(', ')
-      const proceed = window.confirm(
-        `Warning: Booth ${cornerNums} is a corner booth, but this exhibitor did not pay for a corner. Assign anyway?`
-      )
-      if (!proceed) {
-        setSavingBooths(false)
-        return
-      }
-    }
-
-    // Clear previous assignments for this app.
-    //
-    // NOT guarded on row count, deliberately, and this is the one exception in
-    // the sweep: zero rows here is the NORMAL case - an exhibitor with no prior
-    // assignment has nothing to clear. Only a real error matters.
-    const { error: clearErr } = await supabase
-      .from('booths').update({ application_id: null, status: 'available' }).eq('application_id', appId)
-    if (clearErr) {
-      console.error(`[admin/booths] clearing previous assignment for ${appId}: ${clearErr.message}`)
-      toast.error('Could not clear the previous booth assignment. Nothing was changed.')
-      return
-    }
-
-    // Assign new booths. Each is checked for zero rows as well as for an error:
-    // a booth id that no longer exists updates nothing and returns no error, so
-    // the screen would show a booth assigned that nobody holds - and the booth
-    // itself would still read as available to the next person assigning.
-    const results = await Promise.all(
-      boothRows.map(row =>
-        supabase.from('booths')
-          .update({ application_id: appId, status: 'reserved' })
-          .eq('id', row.id)
-          .select('id')
-      )
-    )
-    const failed = results.filter(r => r.error || !r.data || r.data.length === 0)
-
-    if (failed.length > 0) {
-      console.error(`[admin/booths] ${failed.length} of ${boothRows.length} booth assignments affected no rows or errored (app=${appId})`)
-      toast.error(`${failed.length} of ${boothRows.length} booths were not assigned. Reload before trying again.`)
-    } else {
-      const freshBooths = boothRows.map(r => ({
-        id: r.id,
-        booth_number: r.booth_number,
-        is_corner: r.is_corner,
-        status: 'reserved' as const,
-      }))
-      setAssignedBooths(freshBooths)
-      toast.success(`Booth${nums.length > 1 ? 's' : ''} ${nums.map(n => `#${n}`).join(', ')} assigned`)
-    }
-    setSavingBooths(false)
   }
 
   // ── Profile save ─────────────────────────────────────────────
