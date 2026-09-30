@@ -1,26 +1,13 @@
 import type { Metadata } from 'next'
 import { CANONICAL_ORIGIN, ROBOTS_META } from '@/lib/site'
 import { ASSETS } from '@/lib/event-config'
-import { Playfair_Display, Inter } from 'next/font/google'
+import { inter, playfair } from '@/fonts/site'
 import { oswaldSite as oswald } from '@/fonts/oswald'
 import { Toaster } from 'react-hot-toast'
 import SiteFooter from '@/components/SiteFooter'
 import FooterSponsors from '@/components/FooterSponsors'
 import PublicBottom from '@/components/PublicBottom'
 import './globals.css'
-
-const playfair = Playfair_Display({
-  variable: '--font-playfair',
-  subsets: ['latin'],
-  display: 'swap',
-})
-
-const inter = Inter({
-  variable: '--font-inter',
-  subsets: ['latin'],
-  display: 'swap',
-})
-
 
 export const metadata: Metadata = {
   // Absolute OG and canonical URLs on the canonical host, whatever host built this.
