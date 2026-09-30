@@ -105,6 +105,10 @@ describe('policies page venue section', () => {
     expect(c.venue_food_body).toMatch(/Pepsi/)
     expect(c.venue_reentry_body).toMatch(/not be replaced/)
   })
+  it('names the two designated outdoor smoking areas (Ryan, 2026-09-29)', () => {
+    expect(c.venue_other_body).toMatch(/within 25 feet of any entrance/)
+    expect(c.venue_other_body).toMatch(/one at the Food Truck Rodeo, and a cigar lounge area out back/)
+  })
   it('General Rules no longer repeat what the venue section states', () => {
     for (const t of ["'Re-Entry'", "'Weapons'", "'Smoking'", "'Pets & Service Animals'"]) expect(page, t).not.toContain(`title: ${t}`)
   })

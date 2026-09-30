@@ -610,7 +610,7 @@ export const REGISTRY: PageDef[] = [
         label: 'Venue policies - weapons, smoking, animals',
         type: 'markdown',
         default:
-          '- **No weapons of any kind**, pocketknives included. The only exception is authorized medieval combat performers in the official entertainment program.\n- **Smoke- and tobacco-free.** No smoking, vaping or tobacco inside, or within 25 feet of an entrance.\n- **Service animals only.** Trained service animals as defined by the ADA, leashed or harnessed. Emotional support animals, therapy animals and pets are not allowed.',
+          '- **No weapons of any kind**, pocketknives included. The only exception is authorized medieval combat performers in the official entertainment program.\n- The Crown Complex is **smoke- and tobacco-free**, inside the building and within 25 feet of any entrance. Two designated outdoor smoking areas are available: one at the Food Truck Rodeo, and a cigar lounge area out back, where our cigar vendor will be set up. Keep your wristband on to get back inside.\n- **Service animals only.** Trained service animals as defined by the ADA, leashed or harnessed. Emotional support animals, therapy animals and pets are not allowed.',
       },
     },
   },
