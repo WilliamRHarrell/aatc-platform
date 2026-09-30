@@ -44,7 +44,7 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **083** | **APPLIED + VERIFIED** (Ryan, 2026-09-28: verify_083 passed) | `sponsor_tier_counts()` excludes `'ZZ %'` test sponsorships. |
 | **084** | **APPLIED + VERIFIED** (Ryan, 2026-09-28: verify_084 first failed on `bronze`, then passed after 084b) | `sponsor_tier_settings`: per-tier show_price, seeded packages hidden / items shown. |
 | **084b** | **APPLIED + VERIFIED** (Ryan, 2026-09-28: verify_084b passed, verify_084 re-run passed) | hidden `bronze` row (leftover enum value from 001). |
-| **085** | **LIVE, VERIFY NOT REPORTED** (column read from production 2026-09-28; verify_085 result not reported) | `panels.signup_closed`, appended to `panels_public`. |
+| **085** | **APPLIED + VERIFIED** (column read from production 2026-09-28; Ryan, 2026-09-29: verify_085 "Success. No rows returned", no panel marked Full yet) | `panels.signup_closed`, appended to `panels_public`. |
 
 **What this audit could and could not see.** It reads the live schema through
 PostgREST's OpenAPI document, which exposes tables, views, columns and callable
