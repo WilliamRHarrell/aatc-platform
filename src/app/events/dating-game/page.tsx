@@ -1,6 +1,8 @@
 'use client'
 
+import Image from 'next/image'
 import PublicNav from '@/components/PublicNav'
+import { ASSETS } from '@/lib/event-config'
 
 export default function DatingGamePage() {
   return (
@@ -9,12 +11,23 @@ export default function DatingGamePage() {
 
       {/* Header */}
       <div className="border-b px-4 pb-10 pt-8 text-center" style={{ borderColor: '#2a2a2a' }}>
-        <p className="mb-2 text-xs font-bold uppercase tracking-[0.3em]" style={{ color: '#8B7355' }}>
+        {/* The logo is the visible title, exactly as /events/pinup-contest and
+            /contests do it. The h1 stays in the HTML for crawlers and screen
+            readers but is hidden so the page does not read the title twice. */}
+        <Image
+          src={ASSETS.tattooDatingGameLogo}
+          alt=""
+          aria-hidden="true"
+          width={1467}
+          height={989}
+          priority
+          sizes="(min-width: 640px) 420px, 80vw"
+          className="mx-auto h-auto w-4/5 max-w-[420px]"
+        />
+        <h1 className="sr-only">The Tattoo Dating Game</h1>
+        <p className="mt-2 text-xs font-bold uppercase tracking-[0.3em]" style={{ color: '#8B7355' }}>
           <span className="text-emboss">Find Your Ink Match</span>
         </p>
-        <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">
-          <span className="text-emboss">Tattoo Dating Game</span>
-        </h1>
         <p className="mx-auto mt-0 max-w-xl text-sm" style={{ color: '#999' }}>
           <span className="text-emboss">One of the most entertaining events of the weekend. The Tattoo Dating Game brings audience participation, laughs, and a little romance to the main stage on Saturday evening.</span>
         </p>

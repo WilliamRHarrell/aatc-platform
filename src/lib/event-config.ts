@@ -86,6 +86,9 @@ export const ASSETS = {
   /** Miss AATC Pinup script logo, white on transparent, 1467x477. Same header
    *  pattern as collectorsChoiceLogo on /contests. */
   missAatcPinupLogo: '/images/miss-aatc-pinup/logo.png',
+  /** Tattoo Dating Game logo, gold on transparent, 1467x989. Same header
+   *  pattern as missAatcPinupLogo. */
+  tattooDatingGameLogo: '/images/tattoo-dating-game/logo.png',
   /** Tattoo Battle share card, 1200x630, composed from the lockup and the
    *  presenter/date facts by scripts/og/tattoo-battle-og.html. Served from
    *  /public; absolute via metadataBase. */
