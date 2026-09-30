@@ -9,9 +9,9 @@ This file is the index and the current state. Everything else lives in
 - [pre-show-email.md](handoff/pre-show-email.md) - approved pre-show venue-policies copy (Ryan sends it: box office / GHL).
 - [sessions/](handoff/sessions/) - one file per dated session, history.
 
-## START HERE - state as of 2026-09-30 (early morning)
+## START HERE - state as of 2026-09-30 (morning)
 
-**Merged and deployed (develop = 5682184):** everything through #58. Since
+**Merged and deployed (develop = 5f7aa7e):** everything through #60. Since
 the 2026-09-29 evening refresh:
 - #45 leftover page-level footers removed
 - #46 Crown Complex venue policies on /info/policies
@@ -28,38 +28,44 @@ the 2026-09-29 evening refresh:
 - #56 Tattoo Dating Game logo
 - #57 floor plan / holds / booth map design note
 - #58 Assign Booth through `assign_booths()` (086)
+- #59 Dating Game page times from the schedule (Fri 6:00 PM, Sat 5:30 PM;
+  Ryan confirmed Saturday 5:30 is correct)
+- #60 booth holds (087)
 
 Source: `gh pr list --state merged`, 2026-09-30.
 
-**Applied in production (Ryan):** everything through **086**.
-- **086** is live: `assign_booths` exists, and anon is refused with 42501
-  (read 2026-09-30). **verify_086's result and the two manual checks (one
-  real save, booth 108 refused) were not reported**; the report came back
-  with the template placeholders unfilled.
-- As of 2026-09-30: no ZZ VERIFY 086 fixtures remain, no booth is assigned
-  yet, and 108/241/166/233 are unassigned and not sellable.
-- 085 is verified. 015 is superseded by 079b. 047 is still HELD.
-- Evidence per migration: [migrations.md](handoff/migrations.md).
+**Applied in production (Ryan):** everything through **087**, verified.
+- **086:** verify_086 passed. A real save (booth 126 to Skin Reserve)
+  worked, and booth 108 was refused (Ryan, 2026-09-30).
+- **087:**
+  - The first verify_087 run failed on its own fixture (sponsorships.tier);
+    that was fixed in #60.
+  - The re-run passed.
+  - Hold tests all worked: hold set; assigning it to another exhibitor
+    refused; assigning it to the linked exhibitor worked and cleared the
+    hold; release worked (Ryan, 2026-09-30).
+- 015 is superseded by 079b. 047 is still HELD.
+- Evidence per migration: [migrations.md](handoff/migrations.md). No
+  migration is delivered and waiting.
 
 **Open PRs (2026-09-30):**
-- #59 `fix/dating-game-times`: the Dating Game page reads its days and times
-  from the schedule (Fri 6:00 PM, Sat 5:30 PM). The page used to say
-  Sat 6:00 PM.
-- #60 `feat/booth-holds`: booth holds. **Migration 087 is delivered, not
-  applied. Apply 087 and run verify_087 before merging.**
+- #62 `chore/verify-local`: `npm run verify:local` replays every migration
+  into PGlite and runs verify SQL against it (`--audit` for fixtures,
+  `--dump-schema` for a production diff). CLAUDE.md makes it a
+  pre-delivery step.
 
-**Floor plan / booth map, in this order** (design:
-[docs/superpowers/plans/2026-09-29-floor-plan-and-booth-map.md](superpowers/plans/2026-09-29-floor-plan-and-booth-map.md)):
-1. ~~Assign Booth fix (086)~~, merged in #58
-2. booth holds (087), #60
-3. Stage 1: upload and show the plan in admin, the portal and an optional
-   public page (off at launch). Restore the /apply "floor plan in your
-   portal" clause in the same PR.
-4. booth positions: extraction from the PDF plus placement mode
-5. Stage 2: the admin booth map
-6. later: the public booth map
+**Next, in order:**
+1. Docs PR (after #62 merges): point rules.md's fixture check at `npm run
+   verify:local -- --audit` and delete `scripts/check-sql-fixtures.py` (23
+   false positives on today's tree; Ryan approved 2026-09-30).
+2. **Floor plan Stage 1**, once Ryan sends the vector PDF: upload and show
+   the plan in admin, the portal and an optional public page (off at
+   launch). Restore the /apply "floor plan in your portal" clause in the
+   same PR.
+3. Booth positions (extraction plus placement mode), then Stage 2 (the
+   admin booth map), then later the public booth map.
 
-Stage 1 needs the current floor plan from Ryan (a vector PDF is best).
+Design: [docs/superpowers/plans/2026-09-29-floor-plan-and-booth-map.md](superpowers/plans/2026-09-29-floor-plan-and-booth-map.md).
 
 **Done outside the code (Ryan, 2026-09-28):**
 - Newsletter to GHL works on production for new and existing contacts, tag
@@ -76,8 +82,8 @@ Stage 1 needs the current floor plan from Ryan (a vector PDF is best).
   response, and the contact's tags read back (token has contacts.readonly).
   `&version=` overrides the Version header for one run. Creates or updates a
   real contact: use test addresses, and delete them in GHL afterwards.
-- `/api/cron/lifecycle-sweep?dry_run=1` also reports `booth_holds` once #60
-  is merged.
+- `/api/cron/lifecycle-sweep?dry_run=1` also reports `booth_holds` (expired
+  holds that would be cleared; #60).
 
 **Queued, besides the floor plan, each its own PR, report before building:**
 1. Site-wide gold: the antique golds replace #8B7355 / #866f52 (plan sent;

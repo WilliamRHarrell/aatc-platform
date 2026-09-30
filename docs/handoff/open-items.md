@@ -11,10 +11,11 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
   confirms first, then `update booths set is_sellable = true, house_use =
   null where booth_number = 'N' and event_id = (select id from events where
   is_active);`. Every other booth assigns normally. Owner: Ryan.
-- **Report verify_086 and the Assign Booth checks** (added 2026-09-30):
-  verify_086's result, one real save, and booth 108 refused with its
-  message. The 086 function is confirmed live; these three were not
-  reported. Owner: Ryan.
+- **Run the production schema-only dump** (added 2026-09-30) so it can be
+  diffed against the migration replay (`npm run verify:local --
+  --dump-schema`). The command is in the header of scripts/verify-local.mjs
+  (#62). Save the output to supabase/.schema-dumps/ (gitignored). Owner:
+  Ryan, later.
 - **Send the current floor plan** (added 2026-09-30) for floor plan Stage 1
   and booth positions. Best is the original vector PDF (CAD or Illustrator
   export, one page, booth numbers as real text); otherwise a PNG or JPG at
@@ -110,6 +111,11 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
 
 ### CLOSED (kept one line each, with the evidence)
 
+- **Assign Booth checks for 086.** DONE - verify_086 passed; booth 126
+  assigned to Skin Reserve; booth 108 refused (Ryan, 2026-09-30).
+- **Booth holds (087).** DONE - verify_087 passed on the re-run; hold,
+  refuse-other, linked assign (hold cleared) and release checked by hand
+  (Ryan, 2026-09-30).
 - **Short venue note on /tickets.** DONE - #49 merged 2026-09-30 (the
   three approved bullets plus a link to /info/policies).
 - **`sponsor_tier_counts()` counted the RLS-harness sponsorships.** DONE -
