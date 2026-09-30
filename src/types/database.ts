@@ -225,6 +225,12 @@ export type Database = {
           is_corner: boolean
           is_sellable: boolean
           house_use: string | null
+          held_for: string | null
+          held_for_application_id: string | null
+          held_for_sponsorship_id: string | null
+          held_until: string | null
+          held_by: string | null
+          held_at: string | null
           size: Database["public"]["Enums"]["booth_size"]
           status: Database["public"]["Enums"]["booth_status"]
           updated_at: string
@@ -242,6 +248,12 @@ export type Database = {
           is_corner?: boolean
           is_sellable?: boolean
           house_use?: string | null
+          held_for?: string | null
+          held_for_application_id?: string | null
+          held_for_sponsorship_id?: string | null
+          held_until?: string | null
+          held_by?: string | null
+          held_at?: string | null
           size: Database["public"]["Enums"]["booth_size"]
           status?: Database["public"]["Enums"]["booth_status"]
           updated_at?: string
@@ -259,6 +271,12 @@ export type Database = {
           is_corner?: boolean
           is_sellable?: boolean
           house_use?: string | null
+          held_for?: string | null
+          held_for_application_id?: string | null
+          held_for_sponsorship_id?: string | null
+          held_until?: string | null
+          held_by?: string | null
+          held_at?: string | null
           size?: Database["public"]["Enums"]["booth_size"]
           status?: Database["public"]["Enums"]["booth_status"]
           updated_at?: string
@@ -1640,6 +1658,11 @@ export type Database = {
       comp_application: { Args: { p_application_id: string }; Returns: undefined }
       /** Migration 086 - admin only; returns the application's booth numbers after the change. */
       assign_booths: { Args: { p_application_id: string; p_booth_numbers: string[] }; Returns: string[] }
+      /** Migration 087 - admin only. held_until must be in the future; at most one link. */
+      hold_booth: { Args: { p_booth_id: string; p_held_for: string; p_held_until: string; p_application_id?: string | null; p_sponsorship_id?: string | null }; Returns: undefined }
+      release_booth_hold: { Args: { p_booth_id: string }; Returns: undefined }
+      /** Migration 087 - service_role only (lifecycle-sweep cron); returns rows cleared. */
+      release_expired_booth_holds: { Args: Record<string, never>; Returns: number }
       uncomp_application: { Args: { p_application_id: string }; Returns: undefined }
       /** Migration 074 - capacity read from events.pinup_capacity; service_role only. */
       register_pinup_entry: {

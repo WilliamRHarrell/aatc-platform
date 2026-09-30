@@ -9,6 +9,8 @@ import { describeBooths, boothSlotCount } from '@/lib/booth-display'
 import { partitionAssignable, describeExclusions, type ExclusionReason } from '@/lib/comp'
 import toast from 'react-hot-toast'
 import { guardedWrite } from '@/lib/db-write'
+import BoothHoldDialog, { type HoldLinkOption } from '@/components/admin/BoothHoldDialog'
+import { activeHold, holdUntilLabel } from '@/lib/booth-holds'
 
 interface ApprovedApp {
   id: string
@@ -62,6 +64,11 @@ interface BoothRow {
   application_id: string | null
   is_sellable: boolean
   house_use: string | null
+  // Booth hold (087); a hold counts only while activeHold() is true.
+  held_for: string | null
+  held_until: string | null
+  held_for_application_id: string | null
+  held_for_sponsorship_id: string | null
 }
 
 /** Booth numbers are text ('1'..'267'); sort them as numbers, not '1','10','100'. */
@@ -84,6 +91,9 @@ export default function AdminBoothsPage() {
   // Approved applications that cannot be placed yet, with the reason (072).
   const [excluded, setExcluded] = useState<Array<{ reason: ExclusionReason }>>([])
   const [booths, setBooths] = useState<BoothRow[]>([])
+  const [eventId, setEventId] = useState<string | null>(null)
+  const [holdBooth, setHoldBooth] = useState<BoothRow | null>(null)
+  const [holdLinks, setHoldLinks] = useState<HoldLinkOption[]>([])
   const [invoiceStatus, setInvoiceStatus] = useState<Map<string, 'paid' | 'overdue' | 'pending' | 'cancelled'>>(new Map())
   const [loading, setLoading] = useState(true)
   const [gridOpen, setGridOpen] = useState(false)
@@ -255,6 +265,12 @@ export default function AdminBoothsPage() {
     window.location.reload()
   }
 
+  const reloadBooths = async () => {
+    if (!eventId) return
+    const { data } = await supabase.from('booths').select('id, booth_number, is_corner, status, application_id, is_sellable, house_use, held_for, held_until, held_for_application_id, held_for_sponsorship_id').eq('event_id', eventId)
+    setBooths(((data ?? []) as BoothRow[]).sort(byBoothNumber))
+  }
+
   useEffect(() => {
     const load = async () => {
       // Everything here is the active event's. Booths are re-seeded per event
@@ -277,7 +293,7 @@ export default function AdminBoothsPage() {
           .eq('event_id', activeEvent.id),
         supabase
           .from('booths')
-          .select('id, booth_number, is_corner, status, application_id, is_sellable, house_use')
+          .select('id, booth_number, is_corner, status, application_id, is_sellable, house_use, held_for, held_until, held_for_application_id, held_for_sponsorship_id')
           .eq('event_id', activeEvent.id),
         supabase
           .from('invoices')
@@ -295,6 +311,19 @@ export default function AdminBoothsPage() {
         .sort((a, b) => (a._depositPaidAt ?? '').localeCompare(b._depositPaidAt ?? ''))
       setApps(sortedApps as unknown as ApprovedApp[])
       setBooths(((boothData ?? []) as BoothRow[]).sort(byBoothNumber))
+      setEventId(activeEvent.id)
+
+      // Hold links: this event's open applications (any stage; only an
+      // approved one can then be assigned) and its sponsorships.
+      const [{ data: linkApps }, { data: linkSponsors }] = await Promise.all([
+        supabase.from('applications').select('id, business_name, status')
+          .eq('event_id', activeEvent.id).in('status', ['pending', 'approved', 'waitlisted']).order('business_name'),
+        supabase.from('sponsorships').select('id, sponsor_name').eq('event_id', activeEvent.id).order('sponsor_name'),
+      ])
+      setHoldLinks([
+        ...(linkApps ?? []).map(a => ({ value: `app:${a.id}`, label: `Application: ${a.business_name} (${a.status})` })),
+        ...(linkSponsors ?? []).map(sp => ({ value: `sp:${sp.id}`, label: `Sponsorship: ${sp.sponsor_name}` })),
+      ])
 
       // Build map: applicationId → most favorable invoice status (paid > overdue > pending > cancelled)
       const priority: Record<string, number> = { paid: 4, overdue: 3, pending: 2, cancelled: 1 }
@@ -550,7 +579,7 @@ export default function AdminBoothsPage() {
           <div>
             <p className="text-sm font-semibold text-white">Floor Plan Grid</p>
             <p className="text-xs" style={{ color: '#555' }}>
-              {booths.length} booths · {booths.filter(b => b.application_id).length} assigned · {booths.filter(b => !b.is_sellable).length} not sellable
+              {booths.length} booths · {booths.filter(b => b.application_id).length} assigned · {booths.filter(b => activeHold(b)).length} held · {booths.filter(b => !b.is_sellable).length} not sellable
             </p>
           </div>
           <svg
@@ -585,6 +614,29 @@ export default function AdminBoothsPage() {
                     </div>
                   )
                 }
+                if (!booth.application_id) {
+                  // Open or held: click to hold, change or release (087).
+                  const held = activeHold(booth)
+                  return (
+                    <button
+                      type="button"
+                      key={booth.id}
+                      onClick={() => setHoldBooth(booth)}
+                      title={held && booth.held_until
+                        ? `#${booth.booth_number} - Held for ${booth.held_for} until ${holdUntilLabel(booth.held_until)} ET (click to change)`
+                        : `#${booth.booth_number} - Available (click to hold)`}
+                      className="relative flex h-11 w-11 items-center justify-center rounded-lg text-xs font-bold"
+                      style={held
+                        ? { backgroundColor: 'rgba(245,197,66,0.12)', border: '2px solid #d4a017', color: '#f5c542' }
+                        : { backgroundColor: s.bg, border: `2px solid ${booth.is_corner ? 'rgba(139,115,85,0.4)' : s.border}`, color: s.text }}
+                    >
+                      {booth.booth_number}
+                      {booth.is_corner && (
+                        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full" style={{ backgroundColor: '#8B7355' }} />
+                      )}
+                    </button>
+                  )
+                }
                 return (
                   <div
                     key={booth.id}
@@ -615,6 +667,7 @@ export default function AdminBoothsPage() {
               {[
                 { label: 'Available', dot: '#888' },
                 { label: 'Taken (greyed out)', dot: '#2a2a2a' },
+                { label: 'Held (amber; click a booth to hold or release)', dot: '#d4a017' },
                 { label: 'Not sellable (struck through; hover for why)', dot: '#333' },
                 { label: 'Corner booth', dot: '#8B7355' },
               ].map(l => (
@@ -627,6 +680,15 @@ export default function AdminBoothsPage() {
           </div>
         )}
       </div>
+
+      {holdBooth && (
+        <BoothHoldDialog
+          booth={holdBooth}
+          linkOptions={holdLinks}
+          onClose={() => setHoldBooth(null)}
+          onSaved={async () => { setHoldBooth(null); await reloadBooths() }}
+        />
+      )}
 
       {/* Add A Booth Modal */}
       {showAddModal && (
