@@ -6,7 +6,7 @@
  */
 export const ALLOWED_PATHS = new Set([
   '/', '/apply', '/apply/artist', '/apply/vendor', '/apply/sponsor', '/tickets', '/contests', '/sponsors', '/sponsors/packages', '/tattoo-battle',
-  '/events/after-parties', '/events/schedule', '/events/kids-contest', '/events/tattoo-contests', '/events/pinup-contest', '/info/about',
+  '/events/after-parties', '/events/schedule', '/events/kids-contest', '/events/tattoo-contests', '/events/pinup-contest', '/info/about', '/info/policies',
 ])
 // Entry pages are dynamic: /tattoo-battle/entry/<n>. Pattern-matched so an
 // admin publish can purge exactly the bucket it touched.

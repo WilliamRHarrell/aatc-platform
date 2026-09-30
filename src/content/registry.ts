@@ -567,6 +567,54 @@ export const REGISTRY: PageDef[] = [
       },
     },
   },
+  {
+    key: 'policies',
+    title: 'Policies (/info/policies)',
+    sections: {
+      // ── Crown Complex venue policies (Ryan, 2026-09-29) ──
+      // Our own words, not the Crown's text. The link to the Crown's official
+      // page is VENUE_POLICIES_URL (event-config) and is rendered in code after
+      // the intro. Bags, drinks and re-entry come first: they are what turns
+      // people around at the door. The General Rules cards no longer repeat
+      // re-entry, weapons, smoking or animals; this section is their one home.
+      venue_title: { label: 'Venue policies - section title', type: 'text', default: 'Crown Complex Venue Policies' },
+      venue_intro: {
+        label: 'Venue policies - intro',
+        help: 'A link to the Crown\'s official venue policies page follows this automatically.',
+        type: 'markdown',
+        default:
+          'AATC is held at the Crown Complex, and the Crown\'s venue rules apply to everyone at the show. Here is what they mean for your visit. The Crown sets these rules and can change them, so check its official page before you come.',
+      },
+      venue_bags_title: { label: 'Venue policies - bags title', type: 'text', default: 'Clear Bags Only' },
+      venue_bags_body: {
+        label: 'Venue policies - bags',
+        type: 'markdown',
+        default:
+          'The Crown\'s clear bag policy is in effect for AATC. The show uses the whole Expo Center, including the ballroom and the Artist Lounge on the upper deck overlooking the Coliseum, so it applies everywhere you go.\n\n**You can bring:**\n\n- A clear plastic, vinyl or PVC bag up to 12" x 6" x 12"\n- A one-gallon clear freezer bag\n- A small clutch, up to about 4.5" x 6.5"\n- Medically necessary items, after inspection\n\n**Not allowed:** backpacks, fanny packs, drawstring bags, purses larger than a clutch, briefcases, luggage, and laptop or camera bags.\n\nAny bag may be searched.',
+      },
+      venue_food_title: { label: 'Venue policies - food and drinks title', type: 'text', default: 'Food and Drinks' },
+      venue_food_body: {
+        label: 'Venue policies - food and drinks',
+        type: 'markdown',
+        default:
+          'The Crown normally does not allow outside food. AATC holds the food truck rights for the show, so food from the Food Truck Rodeo can come inside with you.\n\nThe Crown is a Pepsi facility. Coke and other non-Pepsi drinks cannot come inside, even if you bought them at the rodeo.',
+      },
+      venue_reentry_title: { label: 'Venue policies - re-entry title', type: 'text', default: 'Re-Entry and Wristbands' },
+      venue_reentry_body: {
+        label: 'Venue policies - re-entry',
+        type: 'markdown',
+        default:
+          'Your wristband lets you come and go all day on the day it is for. To get in on another day you need that day\'s wristband, or a weekend or VIP wristband.\n\nKeep it on: a wristband that is broken, damaged or removed will not be replaced.',
+      },
+      venue_other_title: { label: 'Venue policies - also title', type: 'text', default: 'Also at the Crown' },
+      venue_other_body: {
+        label: 'Venue policies - weapons, smoking, animals',
+        type: 'markdown',
+        default:
+          '- **No weapons of any kind**, pocketknives included. The only exception is authorized medieval combat performers in the official entertainment program.\n- **Smoke- and tobacco-free.** No smoking, vaping or tobacco inside, or within 25 feet of an entrance.\n- **Service animals only.** Trained service animals as defined by the ADA, leashed or harnessed. Emotional support animals, therapy animals and pets are not allowed.',
+      },
+    },
+  },
 ]
 
 /**
@@ -586,6 +634,7 @@ export const PAGE_ROUTE: Record<string, string | string[]> = {
   sponsorPricing: ['/sponsors/packages', '/apply/sponsor'],
   tattooContests: '/events/tattoo-contests',
   about: '/info/about',
+  policies: '/info/policies',
   applyForms: ['/apply/artist', '/apply/vendor'],
 }
 
