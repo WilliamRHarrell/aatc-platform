@@ -6,30 +6,60 @@ This file is the index and the current state. Everything else lives in
 - [rules.md](handoff/rules.md) - how to verify anything, the rules index, the full rule entries, no placeholder humans.
 - [migrations.md](handoff/migrations.md) - migration and seed status. The one home for "is it applied".
 - [open-items.md](handoff/open-items.md) - open items, deferred minors, the three sponsors, deferred work with triggers.
+- [pre-show-email.md](handoff/pre-show-email.md) - approved pre-show venue-policies copy (Ryan sends it: box office / GHL).
 - [sessions/](handoff/sessions/) - one file per dated session, history.
 
-## START HERE - state as of 2026-09-29 (evening)
+## START HERE - state as of 2026-09-30 (early morning)
 
-**Merged and deployed (develop = f581734):** everything through #44. Since
-the 2026-09-28 evening refresh: #39 START HERE, #40 tattoo contests Daily
-Contest Schedule from schedule rows + Best in Show, #41 homepage event cards
-read days and times from the schedule, #42 new homepage promo video, #43
-homepage event card text editable, #44 self-hosted Oswald (build fix).
-Source: `gh pr list --state merged`, 2026-09-29.
+**Merged and deployed (develop = 5682184):** everything through #58. Since
+the 2026-09-29 evening refresh:
+- #45 leftover page-level footers removed
+- #46 Crown Complex venue policies on /info/policies
+- #47 START HERE
+- #48 smoke-free wording with the designated smoking areas
+- #49 /tickets short venue note (the approved email copy is in
+  [pre-show-email.md](handoff/pre-show-email.md))
+- #50 phone header (menu toggle)
+- #51 /directory/[id] Event card from event-config
+- #52 /floorplan removed (404)
+- #53 /sitemap.xml
+- #54 /apply step 3 wording
+- #55 self-hosted fonts
+- #56 Tattoo Dating Game logo
+- #57 floor plan / holds / booth map design note
+- #58 Assign Booth through `assign_booths()` (086)
 
-**Applied in production (Ryan):** everything through **085**, verified
-(verify_085 "Success. No rows returned", Ryan 2026-09-29; no panel is marked
-Full yet). 015 superseded by 079b; 047 still HELD (its body would also now
-drop 065's credit join and 085's `signup_closed`). Evidence per migration is
-in [migrations.md](handoff/migrations.md). No migration is delivered and
-waiting.
+Source: `gh pr list --state merged`, 2026-09-30.
 
-**Open PRs (2026-09-29):**
-- #45 `fix/page-level-footers`: removes the leftover page-level footers on
-  /apply, /contests, /directory, /directory/artists. Ready for review; build,
-  tests and a render-check of 39 public routes passed.
-- #46 `feat/venue-policies`: Crown Complex venue policies on /info/policies,
-  editable at /admin/content ("Policies").
+**Applied in production (Ryan):** everything through **086**.
+- **086** is live: `assign_booths` exists, and anon is refused with 42501
+  (read 2026-09-30). **verify_086's result and the two manual checks (one
+  real save, booth 108 refused) were not reported**; the report came back
+  with the template placeholders unfilled.
+- As of 2026-09-30: no ZZ VERIFY 086 fixtures remain, no booth is assigned
+  yet, and 108/241/166/233 are unassigned and not sellable.
+- 085 is verified. 015 is superseded by 079b. 047 is still HELD.
+- Evidence per migration: [migrations.md](handoff/migrations.md).
+
+**Open PRs (2026-09-30):**
+- #59 `fix/dating-game-times`: the Dating Game page reads its days and times
+  from the schedule (Fri 6:00 PM, Sat 5:30 PM). The page used to say
+  Sat 6:00 PM.
+- #60 `feat/booth-holds`: booth holds. **Migration 087 is delivered, not
+  applied. Apply 087 and run verify_087 before merging.**
+
+**Floor plan / booth map, in this order** (design:
+[docs/superpowers/plans/2026-09-29-floor-plan-and-booth-map.md](superpowers/plans/2026-09-29-floor-plan-and-booth-map.md)):
+1. ~~Assign Booth fix (086)~~, merged in #58
+2. booth holds (087), #60
+3. Stage 1: upload and show the plan in admin, the portal and an optional
+   public page (off at launch). Restore the /apply "floor plan in your
+   portal" clause in the same PR.
+4. booth positions: extraction from the PDF plus placement mode
+5. Stage 2: the admin booth map
+6. later: the public booth map
+
+Stage 1 needs the current floor plan from Ryan (a vector PDF is best).
 
 **Done outside the code (Ryan, 2026-09-28):**
 - Newsletter to GHL works on production for new and existing contacts, tag
@@ -46,17 +76,17 @@ waiting.
   response, and the contact's tags read back (token has contacts.readonly).
   `&version=` overrides the Version header for one run. Creates or updates a
   real contact: use test addresses, and delete them in GHL afterwards.
+- `/api/cron/lifecycle-sweep?dry_run=1` also reports `booth_holds` once #60
+  is merged.
 
-**Queued, in order, each its own PR, report before building:**
-1. Short venue-policies note (bags, Pepsi-only drinks, wristband re-entry)
-   for /tickets and the ticket confirmation email: wording sent to Ryan
-   2026-09-29, awaiting approval. Tickets sell through Ticketmaster; this
-   codebase sends no ticket confirmation email.
-2. Site-wide gold: the antique golds replace #8B7355 / #866f52 (plan sent;
+**Queued, besides the floor plan, each its own PR, report before building:**
+1. Site-wide gold: the antique golds replace #8B7355 / #866f52 (plan sent;
    awaiting button-text and light-gold decisions).
-3. Admin audit log - a design note only, not built.
+2. Admin audit log - a design note only, not built.
 
 **Domains:** Ryan's. The cutover is his; no domain work from this side.
+At cutover, the `NEXT_PUBLIC_SITE_URL` flip also makes robots.txt list
+/sitemap.xml (#53).
 
 **Dated (Ryan):** DMARC reports ~2026-10-12 then `p=quarantine; pct=25`;
 `SPONSOR_REMINDERS_ENABLED=true` in Vercel before 2026-12-01. Details in

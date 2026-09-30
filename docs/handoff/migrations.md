@@ -45,6 +45,7 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **084** | **APPLIED + VERIFIED** (Ryan, 2026-09-28: verify_084 first failed on `bronze`, then passed after 084b) | `sponsor_tier_settings`: per-tier show_price, seeded packages hidden / items shown. |
 | **084b** | **APPLIED + VERIFIED** (Ryan, 2026-09-28: verify_084b passed, verify_084 re-run passed) | hidden `bronze` row (leftover enum value from 001). |
 | **085** | **APPLIED + VERIFIED** (column read from production 2026-09-28; Ryan, 2026-09-29: verify_085 "Success. No rows returned", no panel marked Full yet) | `panels.signup_closed`, appended to `panels_public`. |
+| **086** | **APPLIED, VERIFY NOT REPORTED** (read 2026-09-30: `assign_booths(uuid, text[])` exists, anon refused 42501; no ZZ VERIFY 086 fixtures left. Ryan's report of verify_086 and the manual save / booth-108 checks came back with placeholders unfilled) | `assign_booths()`: Assign Booth in one transaction, event-scoped, not-sellable refused, count capped at slots (fewer allowed). |
 
 **What this audit could and could not see.** It reads the live schema through
 PostgREST's OpenAPI document, which exposes tables, views, columns and callable

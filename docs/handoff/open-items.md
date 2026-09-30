@@ -4,6 +4,25 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
 
 ### OPEN ITEMS (one line each, with the owner)
 
+- **Confirm the 2027 not-sellable booths and the 165/166 labelling**
+  (added 2026-09-30). 108 (Help Desk), 241 (Merch & Contest Registration),
+  166 and 233 ("does not exist on the floor plan") come from the 2024 plan.
+  `assign_booths()` and `hold_booth()` refuse them. To sell one, Ryan
+  confirms first, then `update booths set is_sellable = true, house_use =
+  null where booth_number = 'N' and event_id = (select id from events where
+  is_active);`. Every other booth assigns normally. Owner: Ryan.
+- **Report verify_086 and the Assign Booth checks** (added 2026-09-30):
+  verify_086's result, one real save, and booth 108 refused with its
+  message. The 086 function is confirmed live; these three were not
+  reported. Owner: Ryan.
+- **Send the current floor plan** (added 2026-09-30) for floor plan Stage 1
+  and booth positions. Best is the original vector PDF (CAD or Illustrator
+  export, one page, booth numbers as real text); otherwise a PNG or JPG at
+  least 4000px on the long side. Owner: Ryan.
+- **Send the pre-show venue-policies email** (added 2026-09-30) through the
+  box office / Ticketmaster or a GHL pre-show email. The approved copy is in
+  [pre-show-email.md](pre-show-email.md). This codebase sends no ticket
+  confirmation. Owner: Ryan.
 - **Review DMARC aggregate reports around 2026-10-12, then move to
   `p=quarantine; pct=25`** (added 2026-09-28) - only if every legitimate
   sender passes (Google Workspace, Resend/`send.` subdomain, and any tool the
@@ -91,6 +110,8 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
 
 ### CLOSED (kept one line each, with the evidence)
 
+- **Short venue note on /tickets.** DONE - #49 merged 2026-09-30 (the
+  three approved bullets plus a link to /info/policies).
 - **`sponsor_tier_counts()` counted the RLS-harness sponsorships.** DONE -
   migration 083 applied, verify_083 passed (Ryan, 2026-09-28).
 - **Re-run verify_074** (PR #8 fixed its fixture). DONE - Ryan, 2026-09-26.
@@ -202,6 +223,8 @@ VIP poster copy, unrelated.
 
 | item | blocked on / revisit when |
 |---|---|
+| **/floorplan (public floor plan page)** | **Intentionally absent** (removed in #52; it 404s). Re-add it only with a real floor plan: floor plan Stage 1, with `show_public` off at launch. When it is turned on, add it to `ROUTES`, the nav, the footer and the sitemap. See the design note in docs/superpowers/plans/2026-09-29-floor-plan-and-booth-map.md. |
+| **Booth and application reads that span every event** | /admin/print, /directory and /directory/[id] read booths (and /directory reads applications_public) without an event filter. They are harmless while only 2027 has booths and approved applications. **Fix before any 2028 booth seed or 2028 approvals**, or last year's rows show and booth numbers 1-267 collide. /admin/booths and Assign Booth are already scoped (#58). |
 | **payments ledger** | Revisit BEFORE on-site pre-registration. 2027 is Stripe-dominant; Ryan takes ~20-25% of next year's bookings as cash/card at a table during the show. Estimate 1-1.5 days. See the entry below on why a mis-recorded manual payment is undetectable. |
 | **In Memoriam photos** | Blocked on the WordPress media harvest, CUTOVER section A. Building against URLs that die is wasted work, and it is where "no placeholder humans" matters most. |
 | **After-party venues** | **Venues and times DONE** (read live 2026-09-26): three `venues` rows (Uptown's Chicken & Waffles, Group Therapy Pub & Playground, Club Luna) and three published After Party rows - Thu 2027-04-15 18:00 Uptown's, Fri 04-16 20:00 Group Therapy, Sat 04-17 20:00 Club Luna. **Still open:** Sunday Brunch (04-18, Uptown's) is unpublished with no start time; act and door price are not columns on `schedule_items`, so if they are to appear they need a home first. Owner: Ryan. |
