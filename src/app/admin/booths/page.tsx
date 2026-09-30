@@ -60,6 +60,13 @@ interface BoothRow {
   is_corner: boolean
   status: 'available' | 'reserved' | 'sold'
   application_id: string | null
+  is_sellable: boolean
+  house_use: string | null
+}
+
+/** Booth numbers are text ('1'..'267'); sort them as numbers, not '1','10','100'. */
+function byBoothNumber(a: { booth_number: string }, b: { booth_number: string }): number {
+  return a.booth_number.localeCompare(b.booth_number, undefined, { numeric: true })
 }
 
 const SLOTS: Record<string, number> = { single: 1, double: 2, triple: 3, quad: 4 }
@@ -250,6 +257,14 @@ export default function AdminBoothsPage() {
 
   useEffect(() => {
     const load = async () => {
+      // Everything here is the active event's. Booths are re-seeded per event
+      // with the same numbers (1-267), so an unfiltered read mixes years.
+      const { data: activeEvent } = await supabase.from('events').select('id').eq('is_active', true).single()
+      if (!activeEvent) {
+        toast.error('No active event')
+        setLoading(false)
+        return
+      }
       const [{ data: appData }, { data: boothData }, { data: invoiceData }] = await Promise.all([
         supabase
           .from('applications')
@@ -258,11 +273,12 @@ export default function AdminBoothsPage() {
           // not here instead of "no approved exhibitors". A comped application
           // has both milestones set by comp_application() (072) and is assignable.
           .select('id, business_name, contact_name, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, is_corner, artist_count, artists, artists_ids_later, comped_at, invoices(deposit_paid_at)')
-          .eq('status', 'approved'),
+          .eq('status', 'approved')
+          .eq('event_id', activeEvent.id),
         supabase
           .from('booths')
-          .select('id, booth_number, is_corner, status, application_id')
-          .order('booth_number', { ascending: true }),
+          .select('id, booth_number, is_corner, status, application_id, is_sellable, house_use')
+          .eq('event_id', activeEvent.id),
         supabase
           .from('invoices')
           .select('application_id, status'),
@@ -278,7 +294,7 @@ export default function AdminBoothsPage() {
         })
         .sort((a, b) => (a._depositPaidAt ?? '').localeCompare(b._depositPaidAt ?? ''))
       setApps(sortedApps as unknown as ApprovedApp[])
-      setBooths((boothData ?? []) as BoothRow[])
+      setBooths(((boothData ?? []) as BoothRow[]).sort(byBoothNumber))
 
       // Build map: applicationId → most favorable invoice status (paid > overdue > pending > cancelled)
       const priority: Record<string, number> = { paid: 4, overdue: 3, pending: 2, cancelled: 1 }
@@ -534,7 +550,7 @@ export default function AdminBoothsPage() {
           <div>
             <p className="text-sm font-semibold text-white">Floor Plan Grid</p>
             <p className="text-xs" style={{ color: '#555' }}>
-              267 booths - available / reserved / sold
+              {booths.length} booths · {booths.filter(b => b.application_id).length} assigned · {booths.filter(b => !b.is_sellable).length} not sellable
             </p>
           </div>
           <svg
@@ -551,6 +567,24 @@ export default function AdminBoothsPage() {
               {booths.map(booth => {
                 const taken = booth.status !== 'available'
                 const s = STATUS_COLOR[booth.status]
+                if (!booth.is_sellable) {
+                  // Not sellable (042): house booths and numbers not on the floor.
+                  // assign_booths() refuses these.
+                  return (
+                    <div
+                      key={booth.id}
+                      title={`#${booth.booth_number} - Not sellable${booth.house_use ? `: ${booth.house_use}` : ''}`}
+                      className="relative flex h-11 w-11 items-center justify-center rounded-lg text-xs font-bold line-through"
+                      style={{
+                        backgroundColor: '#0d0d0d',
+                        border: '2px dashed #333',
+                        color: '#555',
+                      }}
+                    >
+                      {booth.booth_number}
+                    </div>
+                  )
+                }
                 return (
                   <div
                     key={booth.id}
@@ -581,6 +615,7 @@ export default function AdminBoothsPage() {
               {[
                 { label: 'Available', dot: '#888' },
                 { label: 'Taken (greyed out)', dot: '#2a2a2a' },
+                { label: 'Not sellable (struck through; hover for why)', dot: '#333' },
                 { label: 'Corner booth', dot: '#8B7355' },
               ].map(l => (
                 <div key={l.label} className="flex items-center gap-1.5">

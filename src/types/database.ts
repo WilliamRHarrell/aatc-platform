@@ -223,6 +223,8 @@ export type Database = {
           height: number
           id: string
           is_corner: boolean
+          is_sellable: boolean
+          house_use: string | null
           size: Database["public"]["Enums"]["booth_size"]
           status: Database["public"]["Enums"]["booth_status"]
           updated_at: string
@@ -238,6 +240,8 @@ export type Database = {
           height?: number
           id?: string
           is_corner?: boolean
+          is_sellable?: boolean
+          house_use?: string | null
           size: Database["public"]["Enums"]["booth_size"]
           status?: Database["public"]["Enums"]["booth_status"]
           updated_at?: string
@@ -253,6 +257,8 @@ export type Database = {
           height?: number
           id?: string
           is_corner?: boolean
+          is_sellable?: boolean
+          house_use?: string | null
           size?: Database["public"]["Enums"]["booth_size"]
           status?: Database["public"]["Enums"]["booth_status"]
           updated_at?: string
@@ -1632,6 +1638,8 @@ export type Database = {
       cancel_application: { Args: { p_application_id: string }; Returns: undefined }
       /** Migration 072 - admin only, atomic across application + invoice. */
       comp_application: { Args: { p_application_id: string }; Returns: undefined }
+      /** Migration 086 - admin only; returns the application's booth numbers after the change. */
+      assign_booths: { Args: { p_application_id: string; p_booth_numbers: string[] }; Returns: string[] }
       uncomp_application: { Args: { p_application_id: string }; Returns: undefined }
       /** Migration 074 - capacity read from events.pinup_capacity; service_role only. */
       register_pinup_entry: {
