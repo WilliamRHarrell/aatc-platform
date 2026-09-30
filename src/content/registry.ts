@@ -291,8 +291,7 @@ export const REGISTRY: PageDef[] = [
           'Booth applications, Pin-Up Contest entries, and Wall of Honor submissions all close March 15, 2027, but booths and Pin-Up spots close early when they’re gone. Every year they go before the deadline - apply early.',
       },
 
-      footer_name: { label: 'Footer name', type: 'text', default: 'ALL AMERICAN TATTOO CONVENTION' },
-      footer_location: { label: 'Footer location', type: 'text', default: 'Crown Complex Event Center · Fayetteville, NC' },
+      // footer_name / footer_location removed 2026-09-29 with /apply's own footer: the site footer covers it.
     },
   },
   {
