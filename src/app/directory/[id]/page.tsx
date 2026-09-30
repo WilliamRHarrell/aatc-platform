@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import PublicNav from '@/components/PublicNav'
 import { describeBooths } from '@/lib/booth-display'
+import { EVENT_NAME, EVENT_YEAR, EVENT_DATES_LABEL, VENUE_NAME, VENUE_CITY, VENUE_STATE } from '@/lib/event-config'
 
 interface ArtistInfo {
   name: string
@@ -416,9 +417,9 @@ export default function DirectoryDetailPage() {
             {/* Event info */}
             <div className="rounded-2xl p-5" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
               <p className="mb-2 text-xs font-bold uppercase tracking-widest" style={{ color: '#8B7355' }}>Event</p>
-              <p className="text-sm font-semibold text-white">All American Tattoo Convention 2027</p>
+              <p className="text-sm font-semibold text-white">{EVENT_NAME} {EVENT_YEAR}</p>
               <p className="mt-0.5 text-xs" style={{ color: '#999' }}>
-                April 16-18, 2027 · Crown Complex Event Center · Fayetteville, NC
+                {EVENT_DATES_LABEL} · {VENUE_NAME} · {VENUE_CITY}, {VENUE_STATE}
               </p>
             </div>
 
