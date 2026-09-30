@@ -113,3 +113,14 @@ describe('policies page venue section', () => {
     for (const t of ["'Re-Entry'", "'Weapons'", "'Smoking'", "'Pets & Service Animals'"]) expect(page, t).not.toContain(`title: ${t}`)
   })
 })
+
+describe('tickets short venue note (approved 2026-09-29)', () => {
+  const c = defaultsFor('tickets')
+  const page = readFileSync(join(process.cwd(), 'src/app/tickets/page.tsx'), 'utf8')
+  it('Good to Know carries the three approved bullets, and the page links the full policies', () => {
+    expect(c.goodtoknow_body).toMatch(/\*\*Clear bags only\.\*\*/)
+    expect(c.goodtoknow_body).toMatch(/\*\*Pepsi facility\.\*\*/)
+    expect(c.goodtoknow_body).toMatch(/\*\*Keep your wristband on\.\*\*/)
+    expect(page).toContain('href="/info/policies"')
+  })
+})

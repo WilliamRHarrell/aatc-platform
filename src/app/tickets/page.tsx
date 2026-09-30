@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { getContent } from '@/content/getContent'
 import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
@@ -206,6 +207,11 @@ export default async function TicketsPage() {
           </h2>
           <div className="rounded-2xl p-6 text-sm leading-relaxed" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a', color: '#999' }}>
             <Markdown>{c.goodtoknow_body}</Markdown>
+            <p className="mt-4">
+              <Link href="/info/policies" className="underline underline-offset-2" style={{ color: '#C4A882' }}>
+                Full venue policies
+              </Link>
+            </p>
           </div>
         </div>
       </section>

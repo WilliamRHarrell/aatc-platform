@@ -342,9 +342,10 @@ export const REGISTRY: PageDef[] = [
       goodtoknow_title: { label: '"Good to Know" title', type: 'text', default: 'Good to Know' },
       goodtoknow_body: {
         label: '"Good to Know" body',
+        help: 'A "Full venue policies" link to /info/policies follows this automatically. The last three bullets are the approved short venue note (Ryan, 2026-09-29); the full rules are on /info/policies.',
         type: 'markdown',
         default:
-          '- **Do I need a ticket to get tattooed?** Yes - admission is separate from your tattoo appointment.\n- **Kids under 16 are free.**\n- Contestants in the Miss All American Pin-Up Contest must hold a Saturday ticket.\n- The food truck rodeo out front is free and open to the public - no ticket required.',
+          '- **Do I need a ticket to get tattooed?** Yes - admission is separate from your tattoo appointment.\n- **Kids under 16 are free.**\n- Contestants in the Miss All American Pin-Up Contest must hold a Saturday ticket.\n- The food truck rodeo out front is free and open to the public - no ticket required.\n- **Clear bags only.** A clear bag up to 12" x 6" x 12", a one-gallon clear freezer bag, or a small clutch. No backpacks, fanny packs or larger purses.\n- **Pepsi facility.** Food from the Food Truck Rodeo can come inside; Coke and other non-Pepsi drinks can\'t, even from the rodeo.\n- **Keep your wristband on.** It gets you in and out all day on its day. Broken, damaged or removed wristbands are not replaced.',
       },
 
       questions_title: { label: 'Questions title', type: 'text', default: 'Questions about tickets?' },
