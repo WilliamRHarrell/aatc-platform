@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { boothSlotCount } from '@/lib/booth-display'
 
@@ -9,7 +9,11 @@ import { boothSlotCount } from '@/lib/booth-display'
  * inputs on /admin/booths/[id]. If the two drift, the page offers slots the
  * database refuses (or the reverse). This pins them together.
  */
-const sql = readFileSync(join(process.cwd(), 'supabase/migrations/086_assign_booths.sql'), 'utf8').toLowerCase()
+// The LIVE definition is the highest-numbered migration that (re)creates it.
+const MIG = join(process.cwd(), 'supabase/migrations')
+const latest = readdirSync(MIG).filter(f => /^\d{3}.*\.sql$/.test(f)).sort()
+  .filter(f => /function public\.assign_booths\(/i.test(readFileSync(join(MIG, f), 'utf8'))).pop()!
+const sql = readFileSync(join(MIG, latest), 'utf8').toLowerCase()
 const page = readFileSync(join(process.cwd(), 'src/app/admin/booths/[id]/page.tsx'), 'utf8')
 
 const base = { booth_size: null, artist_single_qty: 0, artist_double_qty: 0, vendor_single_qty: 0, vendor_double_qty: 0 }
@@ -36,8 +40,11 @@ describe('Assign Booth writes only through assign_booths()', () => {
     expect(page).toContain(".rpc('assign_booths'")
     expect(page).not.toMatch(/from\('booths'\)\s*\.update\(/)
   })
-  it('the function is event-scoped and refuses not-sellable booths', () => {
+  it('the live function is event-scoped, refuses not-sellable booths and respects active holds', () => {
+    expect(latest).toMatch(/^08[7-9]|^09/)
     expect(sql).toContain('b.event_id = v_app.event_id')
     expect(sql).toContain('not b.is_sellable')
+    expect(sql).toContain('b.held_until > now()')
+    expect(sql).toContain('b.held_for_application_id is distinct from p_application_id')
   })
 })

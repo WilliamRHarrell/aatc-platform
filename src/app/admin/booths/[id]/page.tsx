@@ -6,6 +6,7 @@ import Image from 'next/image'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
+import { activeHold, holdUntilLabel } from '@/lib/booth-holds'
 import { describeBooths, boothSlotCount } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 import type { Database } from '@/types/database'
@@ -86,6 +87,8 @@ export default function BoothDetailPage() {
 
   const [app, setApp] = useState<Application | null>(null)
   const [assignedBooths, setAssignedBooths] = useState<AssignedBooth[]>([])
+  // Booths on an active hold linked to this application (087): only it can take them.
+  const [heldForThis, setHeldForThis] = useState<Array<{ booth_number: string; held_until: string }>>([])
   const [eventId, setEventId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
@@ -150,6 +153,11 @@ export default function BoothDetailPage() {
       const a = appData as unknown as Application
       setApp(a)
       setAssignedBooths((boothData ?? []) as AssignedBooth[])
+      const { data: heldRows } = await supabase
+        .from('booths')
+        .select('booth_number, held_for, held_until, held_for_application_id, held_for_sponsorship_id')
+        .eq('held_for_application_id', appId)
+      setHeldForThis((heldRows ?? []).filter(h => activeHold(h)).map(h => ({ booth_number: h.booth_number, held_until: h.held_until! })))
       setEventId(eventData?.id ?? null)
 
       const slotCount = boothSlotCount(a)
@@ -552,6 +560,11 @@ export default function BoothDetailPage() {
 
       {/* ── Booth number assignment ── */}
       <Section title="Booth Number Assignment">
+        {heldForThis.length > 0 && (
+          <p className="mb-3 rounded-lg px-3 py-2 text-xs" style={{ color: '#f5c542', backgroundColor: 'rgba(245,197,66,0.08)', border: '1px solid rgba(212,160,23,0.4)' }}>
+            Held for this exhibitor: {heldForThis.map(h => `#${h.booth_number} (until ${holdUntilLabel(h.held_until)} ET)`).join(', ')}. Assigning it here uses the hold.
+          </p>
+        )}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {slotInputs.map((val, i) => (
             <div key={i}>

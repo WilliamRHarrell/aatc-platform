@@ -285,6 +285,30 @@ async function dryRunReport(supabase: ReturnType<typeof adminSupabase>, now: Dat
   }
 }
 
+/**
+ * Booth holds (087): an expired hold already counts as released everywhere
+ * (every reader checks held_until > now()); this only clears its columns.
+ * Not destructive, so it runs whether or not the booth sweep is armed.
+ * Dry run: counts what would be cleared.
+ */
+async function expiredBoothHolds(supabase: ReturnType<typeof adminSupabase>, apply: boolean): Promise<{ cleared: number } | { would_clear: number } | { error: string }> {
+  if (!apply) {
+    const { count, error } = await supabase
+      .from('booths')
+      .select('id', { count: 'exact', head: true })
+      .not('held_for', 'is', null)
+      .lte('held_until', new Date().toISOString())
+    if (error) return { error: `${error.code}: ${error.message}` }
+    return { would_clear: count ?? 0 }
+  }
+  const { data, error } = await supabase.rpc('release_expired_booth_holds')
+  if (error) {
+    console.error(`[lifecycle-sweep] release_expired_booth_holds failed (${error.code}): ${error.message}`)
+    return { error: `${error.code}: ${error.message}` }
+  }
+  return { cleared: data ?? 0 }
+}
+
 export async function GET(req: Request) {
   // Vercel Cron and manual callers both use Bearer auth.
   const auth = req.headers.get('authorization')
@@ -300,12 +324,14 @@ export async function GET(req: Request) {
     return NextResponse.json({
       ...(await dryRunReport(adminSupabase(), new Date())),
       sponsor_reminders: await sponsorReminders(adminSupabase(), new Date(), false),
+      booth_holds: await expiredBoothHolds(adminSupabase(), false),
     })
   }
 
   // Sponsor due-date reminders run whether or not the booth sweep is armed:
   // they never expire anything, so they do not wait on its review.
   const sponsor = await sponsorReminders(adminSupabase(), new Date(), process.env.SPONSOR_REMINDERS_ENABLED === 'true')
+  const boothHolds = await expiredBoothHolds(adminSupabase(), true)
 
   // ── Kill switch - default OFF ───────────────────────────────
   // This sweep does not merely send reminders: it flips applications to
@@ -321,6 +347,7 @@ export async function GET(req: Request) {
       skipped: true,
       reason: 'LIFECYCLE_SWEEP_ENABLED is not "true" - booth sweep disabled.',
       sponsor_reminders: sponsor,
+      booth_holds: boothHolds,
     })
   }
 
@@ -451,6 +478,7 @@ export async function GET(req: Request) {
     mode: destructive ? 'full' : 'reminders-only',
     placement,
     sponsor_reminders: sponsor,
+    booth_holds: boothHolds,
     ranAt: now.toISOString(),
     ...(destructive ? {} : {
       note: 'Expiry and cancellation were NOT performed. would_expire / would_cancel ' +
