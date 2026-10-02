@@ -24,7 +24,7 @@ begin
   v := public.application_list_price('artist', 1, 0, 0, 0, 0, 2, '[]'::jsonb, false);
   if v <> 90000 then raise exception 'FAIL MATRIX: artist single, 2 artists: got %, pricing.ts says 90000', v; end if;
   v := public.application_list_price('artist', 1, 0, 0, 0, 0, 9, '[]'::jsonb, false);
-  if v <> 100000 then raise exception 'FAIL MATRIX: artist single, artists over the cap (4 per booth) are clamped: got %, pricing.ts says 100000', v; end if;
+  if v <> 90000 then raise exception 'FAIL MATRIX: artist single, 9 artists: permits capped at 2 per single: got %, pricing.ts says 90000', v; end if;
   v := public.application_list_price('artist', 0, 1, 0, 0, 1, 4, '[]'::jsonb, false);
   if v <> 150000 then raise exception 'FAIL MATRIX: artist double, 4 artists, corner: got %, pricing.ts says 150000', v; end if;
   v := public.application_list_price('artist', 1, 1, 0, 0, 2, 6, '[]'::jsonb, false);
@@ -46,8 +46,14 @@ begin
   v := public.application_list_price('artist', 1, 0, 0, 0, 0, 1, '[{"kind":"extra_chairs","qty":0,"term":null}]'::jsonb, false);
   if v <> 85000 then raise exception 'FAIL MATRIX: add-on qty 0 is ignored: got %, pricing.ts says 85000', v; end if;
   v := public.application_list_price('artist', 1, 1, 0, 0, 2, 8, '[{"kind":"extra_table","qty":1,"term":null},{"kind":"tattoo_bed","qty":1,"term":"weekend"},{"kind":"arm_rest","qty":2,"term":"daily"}]'::jsonb, true);
-  if v <> 273000 then raise exception 'FAIL MATRIX: everything: artist single + double, 8 artists, 2 corners, add-ons, veteran: got %, pricing.ts says 273000', v; end if;
+  if v <> 263000 then raise exception 'FAIL MATRIX: everything: artist single + double, 8 artists, 2 corners, add-ons, veteran: got %, pricing.ts says 263000', v; end if;
+  v := public.application_list_price('artist', 1, 0, 0, 0, 0, 3, '[]'::jsonb, false);
+  if v <> 90000 then raise exception 'FAIL MATRIX: artist single, 3 artists: permits capped at 2: got %, pricing.ts says 90000', v; end if;
+  v := public.application_list_price('artist', 0, 1, 0, 0, 0, 5, '[]'::jsonb, false);
+  if v <> 140000 then raise exception 'FAIL MATRIX: artist double, 5 artists: permits capped at 4: got %, pricing.ts says 140000', v; end if;
+  v := public.application_list_price('artist', 2, 1, 0, 0, 0, 9, '[]'::jsonb, false);
+  if v <> 320000 then raise exception 'FAIL MATRIX: artist 2 singles + 1 double, 9 artists: permits capped at 8: got %, pricing.ts says 320000', v; end if;
   v := public.application_list_price('artist', 0, 0, 0, 0, 3, 3, '[]'::jsonb, false);
   if v <> 0 then raise exception 'FAIL MATRIX: zero booths, everything else set: zero base, permits clamped to 0, corners 0: got %, pricing.ts says 0', v; end if;
-  raise notice 'PASS MATRIX: application_list_price() equals calculatePricing() on 22 cases';
+  raise notice 'PASS MATRIX: application_list_price() equals calculatePricing() on 25 cases';
 end $$;

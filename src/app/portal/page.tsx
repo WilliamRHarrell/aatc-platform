@@ -4,6 +4,8 @@ import { useEffect, useState, Suspense } from 'react'
 import { guardedWrite } from '@/lib/db-write'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { artistCapacity, isIdVerified } from '@/lib/artist-roster'
+import { CONTACT_EMAIL } from '@/lib/event-config'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { describeBooths } from '@/lib/booth-display'
@@ -18,6 +20,8 @@ interface PortalArtist {
   id_url: string | null
   id_later?: boolean
   portfolio_urls?: string[]
+  /** Set by AATC (088); the database then locks name and ID. */
+  id_verified_at?: string | null
 }
 
 interface Application {
@@ -390,7 +394,8 @@ function PortalContent() {
       .select('id')
 
     if (error) {
-      toast.error('Failed to save artist info')
+      // 23514: the roster guard (088) refused, with a message written for the exhibitor.
+      toast.error(error.code === '23514' ? error.message : 'Failed to save artist info')
     } else if (!rows || rows.length === 0) {
       // Zero rows with no error = RLS filtered it (see migration 041).
       console.error('[portal] artist edit affected 0 rows - no error returned')
@@ -916,7 +921,7 @@ function PortalContent() {
                 <SectionLabel>
                   Artist Roster{' '}
                   <span className="normal-case font-normal" style={{ color: '#555' }}>
-                    ({application.artist_count} artist{application.artist_count !== 1 ? 's' : ''})
+                    ({application.artist_count} of {artistCapacity(application)} artist permits · 2 per single booth, 4 per double)
                   </span>
                 </SectionLabel>
                 <div className="space-y-3">
@@ -952,7 +957,7 @@ function PortalContent() {
                           <div className="flex items-center gap-3">
                             {!isEditing && (
                               <span className="text-xs font-semibold" style={{ color: a.id_url ? '#4ade80' : '#555' }}>
-                                {a.id_url ? 'ID ✓' : 'No ID'}
+                                {isIdVerified(a) ? 'ID verified ✓' : a.id_url ? 'ID ✓' : 'No ID'}
                               </span>
                             )}
                             {canEdit && !isEditing && (
@@ -984,6 +989,8 @@ function PortalContent() {
                                 <input
                                   type="text"
                                   value={artistDraft.name}
+                                  readOnly={isIdVerified(a)}
+                                  title={isIdVerified(a) ? 'Verified by AATC: contact us to change this artist' : undefined}
                                   onChange={e => setArtistDraft(d => d ? { ...d, name: e.target.value } : d)}
                                   placeholder="Full legal name"
                                   className="w-full rounded-lg px-3 py-2 text-sm text-white outline-none"
@@ -1037,6 +1044,12 @@ function PortalContent() {
                               </div>
                             </div>
 
+                            {isIdVerified(a) ? (
+                              <p className="rounded-lg px-3 py-2 text-xs" style={{ color: '#4ade80', backgroundColor: 'rgba(74,222,128,0.06)', border: '1px solid rgba(74,222,128,0.25)' }}>
+                                ID verified by AATC. This artist&apos;s name and ID are locked; to change this artist, contact us at{' '}
+                                <a href={`mailto:${CONTACT_EMAIL}`} className="underline">{CONTACT_EMAIL}</a>.
+                              </p>
+                            ) : (
                             <div>
                               <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>
                                 Government-issued ID {a.id_url ? <span style={{ color: '#4ade80' }}>(on file - upload to replace)</span> : '(optional)'}
@@ -1056,6 +1069,7 @@ function PortalContent() {
                                 {artistDraft.id_file ? `✓ ${artistDraft.id_file.name}` : 'Upload ID'}
                               </label>
                             </div>
+                            )}
 
                             <div>
                               <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Portfolio Images</label>

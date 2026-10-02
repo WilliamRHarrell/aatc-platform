@@ -162,9 +162,12 @@ export function calculatePricing(o: PricingOptions): PricingBreakdown {
     }
   }
 
+  // Permits are capped at the county rule: 2 artists per single (10x10), 4 per
+  // double (getMaxArtists; Ryan, 2026-10-02). application_list_price (088) caps
+  // the same way; pricing-sql.test.ts runs it against this function.
   const totalBooths =
     o.artistSingleQty + o.artistDoubleQty + o.vendorSingleQty + o.vendorDoubleQty
-  const maxPermitArtists = Math.max(0, totalBooths * 4)
+  const maxPermitArtists = getMaxArtists({ artistSingleQty: o.artistSingleQty, artistDoubleQty: o.artistDoubleQty })
   const clampedArtistCount =
     o.exhibitorType === 'artist'
       ? Math.min(Math.max(0, o.artistCount), maxPermitArtists)
@@ -218,6 +221,12 @@ export function calculatePricing(o: PricingOptions): PricingBreakdown {
   }
 }
 
+/**
+ * How many artists a booth set can permit: 2 per single (10x10), 4 per double.
+ * The county permits at most 2 artists per 10x10 (Ryan, 2026-10-02). The one
+ * home of this rule in code; migration 088 enforces it in the database
+ * (applications_artist_capacity, application_list_price).
+ */
 export function getMaxArtists(opts: {
   artistSingleQty: number
   artistDoubleQty: number

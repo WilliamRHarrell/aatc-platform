@@ -16,6 +16,7 @@ import CompControls, { type CompPatch } from '@/components/admin/CompControls'
 import ReceiptStatus from '@/components/admin/ReceiptStatus'
 import DuplicateWarning from '@/components/admin/DuplicateWarning'
 import InviteLinkControl from '@/components/admin/InviteLinkControl'
+import { artistCapacity } from '@/lib/artist-roster'
 import { approvePayload, SEND_BACK_PAYLOAD, isComped, discountedInvoiceUpdate, discountSummary } from '@/lib/comp'
 
 // The `artists` column is stored as JSON; describe its real shape here so the
@@ -350,7 +351,7 @@ function DetailDrawer({
             <div className="grid grid-cols-2 gap-4">
               <Field label="Size"          value={describeBooths(app)} />
               {app.exhibitor_type === 'artist' && (
-                <Field label="Artists" value={app.artist_count} />
+                <Field label="Artists (2 per single, 4 per double)" value={app.exhibitor_type === 'artist' ? `${app.artist_count} of ${artistCapacity(app)}` : app.artist_count} />
               )}
               <Field label="Corner booth"  value={app.is_corner} />
               <Field label="Veteran discount" value={app.is_veteran ? 'Claimed' : 'Not claimed'} />

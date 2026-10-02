@@ -1661,6 +1661,8 @@ export type Database = {
       /** Migration 087 - admin only. held_until must be in the future; at most one link. */
       hold_booth: { Args: { p_booth_id: string; p_held_for: string; p_held_until: string; p_application_id?: string | null; p_sponsorship_id?: string | null }; Returns: undefined }
       release_booth_hold: { Args: { p_booth_id: string }; Returns: undefined }
+      /** Migration 088 - admin only; the only writer of artists[].id_verified_at/by. Returns the artist entry. */
+      set_artist_id_verified: { Args: { p_application_id: string; p_index: number; p_verified: boolean }; Returns: Json }
       /** Migration 087 - service_role only (lifecycle-sweep cron); returns rows cleared. */
       release_expired_booth_holds: { Args: Record<string, never>; Returns: number }
       uncomp_application: { Args: { p_application_id: string }; Returns: undefined }
