@@ -43,3 +43,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 *.swp
+
+# production schema-only dumps for diffing against the migration replay (scripts/verify-local.mjs)
+supabase/.schema-dumps/
