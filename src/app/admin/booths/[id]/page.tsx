@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { activeHold, holdUntilLabel } from '@/lib/booth-holds'
+import { artistCapacity, isIdVerified } from '@/lib/artist-roster'
 import { describeBooths, boothSlotCount } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 import type { Database } from '@/types/database'
@@ -430,8 +431,25 @@ export default function BoothDetailPage() {
       'Artist not saved',
       `admin/booths/${appId} saveArtist idx=${i}`,
     )
-    if (!saveRes.ok) { toast.error(saveRes.error) } else { toast.success('Artist saved'); void docs.refresh() }
+    if (!saveRes.ok) { toast.error(saveRes.error) } else {
+      // Read the roster back: the database decides the verification keys (088).
+      const { data: fresh } = await supabase.from('applications').select('artists').eq('id', appId).single()
+      if (fresh) setApp(prev => prev ? { ...prev, artists: fresh.artists as unknown as ArtistEntry[] } : prev)
+      toast.success('Artist saved'); void docs.refresh()
+    }
     setSavingArtist(null)
+  }
+
+  // ── Per-artist ID verification (088: only this function writes it) ──
+  const [verifyingArtist, setVerifyingArtist] = useState<number | null>(null)
+  const setArtistVerified = async (i: number, verified: boolean) => {
+    if (!app) return
+    setVerifyingArtist(i)
+    const { data, error } = await supabase.rpc('set_artist_id_verified', { p_application_id: appId, p_index: i, p_verified: verified })
+    setVerifyingArtist(null)
+    if (error) { toast.error(error.code === 'PGRST202' ? 'ID verification needs migration 088 applied in Supabase.' : `Not saved: ${error.message}`); return }
+    setApp(prev => prev ? { ...prev, artists: (prev.artists ?? []).map((ar, idx) => idx === i ? (data as unknown as ArtistEntry) : ar) } : prev)
+    toast.success(verified ? `Artist ${i + 1}: ID verified` : `Artist ${i + 1}: verification removed`)
   }
 
   // ── Per-artist portfolio upload ───────────────────────────────
@@ -831,6 +849,24 @@ export default function BoothDetailPage() {
                       </span>
                     )}
                   </p>
+                  <div className="flex items-center gap-2">
+                  {isIdVerified(artist) ? (
+                    <>
+                      <span className="rounded-full px-2 py-0.5 text-xs font-semibold" style={{ backgroundColor: 'rgba(74,222,128,0.12)', color: '#4ade80' }}>
+                        ID verified{typeof artist.id_verified_at === 'string' ? ` ${new Date(artist.id_verified_at).toLocaleDateString('en-US')}` : ''}
+                      </span>
+                      <button type="button" disabled={verifyingArtist === i} onClick={() => setArtistVerified(i, false)}
+                        className="rounded-lg px-2.5 py-1.5 text-xs font-semibold disabled:opacity-50" style={{ color: '#999', border: '1px solid #2a2a2a' }}>
+                        Unverify
+                      </button>
+                    </>
+                  ) : artist.id_url ? (
+                    <button type="button" disabled={verifyingArtist === i} onClick={() => setArtistVerified(i, true)}
+                      className="rounded-lg px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+                      style={{ backgroundColor: 'rgba(196,168,130,0.12)', color: '#C4A882', border: '1px solid rgba(196,168,130,0.35)' }}>
+                      Mark ID verified
+                    </button>
+                  ) : null}
                   {hasIdDoc && (
                     <button type="button" onClick={() => docs.open(`artist-${i + 1}`)}
                       className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold"
@@ -838,6 +874,7 @@ export default function BoothDetailPage() {
                       View ID ↗
                     </button>
                   )}
+                  </div>
                 </div>
 
                 <div className="p-5 space-y-5" style={{ backgroundColor: '#1a1a1a' }}>
@@ -1040,7 +1077,7 @@ export default function BoothDetailPage() {
           <ReadField label="Booth size" value={describeBooths(app)} />
           <ReadField label="Corner booth" value={app.is_corner} />
           <ReadField label="Veteran" value={app.is_veteran} />
-          {app.exhibitor_type === 'artist' && <ReadField label="Artist count" value={app.artist_count} />}
+          {app.exhibitor_type === 'artist' && <ReadField label="Artists (2 per single, 4 per double)" value={`${app.artist_count} of ${artistCapacity(app)}`} />}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#555' }}>Total invoiced</p>
             <p className="mt-0.5 text-sm font-bold" style={{ color: '#C4A882' }}>{formatCurrency(app.total_amount)}</p>

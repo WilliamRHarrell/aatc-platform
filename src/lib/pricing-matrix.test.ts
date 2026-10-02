@@ -29,7 +29,7 @@ const CASES: Case[] = [
   { label: 'vendor ignores artist quantities', exhibitorType: 'vendor', as: 3, ad: 0, vs: 1, vd: 0, corners: 0, artists: 5, addOns: [], veteran: false },
   { label: 'artist single, 1 artist', exhibitorType: 'artist', as: 1, ad: 0, vs: 0, vd: 0, corners: 0, artists: 1, addOns: [], veteran: false },
   { label: 'artist single, 2 artists', exhibitorType: 'artist', as: 1, ad: 0, vs: 0, vd: 0, corners: 0, artists: 2, addOns: [], veteran: false },
-  { label: 'artist single, artists over the cap (4 per booth) are clamped', exhibitorType: 'artist', as: 1, ad: 0, vs: 0, vd: 0, corners: 0, artists: 9, addOns: [], veteran: false },
+  { label: 'artist single, 9 artists: permits capped at 2 per single', exhibitorType: 'artist', as: 1, ad: 0, vs: 0, vd: 0, corners: 0, artists: 9, addOns: [], veteran: false },
   { label: 'artist double, 4 artists, corner', exhibitorType: 'artist', as: 0, ad: 1, vs: 0, vd: 0, corners: 1, artists: 4, addOns: [], veteran: false },
   { label: 'artist single + double, 6 artists, 2 corners', exhibitorType: 'artist', as: 1, ad: 1, vs: 0, vd: 0, corners: 2, artists: 6, addOns: [], veteran: false },
   { label: 'artist veteran', exhibitorType: 'artist', as: 1, ad: 0, vs: 0, vd: 0, corners: 0, artists: 1, addOns: [], veteran: true },
@@ -41,6 +41,10 @@ const CASES: Case[] = [
   { label: 'add-on with an unpriced term is ignored', exhibitorType: 'artist', as: 1, ad: 0, vs: 0, vd: 0, corners: 0, artists: 1, addOns: [A('tattoo_bed', 1, 'weekly')], veteran: false },
   { label: 'add-on qty 0 is ignored', exhibitorType: 'artist', as: 1, ad: 0, vs: 0, vd: 0, corners: 0, artists: 1, addOns: [A('extra_chairs', 0)], veteran: false },
   { label: 'everything: artist single + double, 8 artists, 2 corners, add-ons, veteran', exhibitorType: 'artist', as: 1, ad: 1, vs: 0, vd: 0, corners: 2, artists: 8, addOns: [A('extra_table', 1), A('tattoo_bed', 1, 'weekend'), A('arm_rest', 2, 'daily')], veteran: true },
+  // 088: permits cap at 2 per single, 4 per double (the county rule).
+  { label: 'artist single, 3 artists: permits capped at 2', exhibitorType: 'artist', as: 1, ad: 0, vs: 0, vd: 0, corners: 0, artists: 3, addOns: [], veteran: false },
+  { label: 'artist double, 5 artists: permits capped at 4', exhibitorType: 'artist', as: 0, ad: 1, vs: 0, vd: 0, corners: 0, artists: 5, addOns: [], veteran: false },
+  { label: 'artist 2 singles + 1 double, 9 artists: permits capped at 8', exhibitorType: 'artist', as: 2, ad: 1, vs: 0, vd: 0, corners: 0, artists: 9, addOns: [], veteran: false },
   { label: 'zero booths, everything else set: zero base, permits clamped to 0, corners 0', exhibitorType: 'artist', as: 0, ad: 0, vs: 0, vd: 0, corners: 3, artists: 3, addOns: [], veteran: false },
 ]
 
