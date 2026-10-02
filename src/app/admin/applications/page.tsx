@@ -16,7 +16,7 @@ import CompControls, { type CompPatch } from '@/components/admin/CompControls'
 import ReceiptStatus from '@/components/admin/ReceiptStatus'
 import DuplicateWarning from '@/components/admin/DuplicateWarning'
 import InviteLinkControl from '@/components/admin/InviteLinkControl'
-import { approvePayload, SEND_BACK_PAYLOAD, isComped, discountedInvoiceUpdate } from '@/lib/comp'
+import { approvePayload, SEND_BACK_PAYLOAD, isComped, discountedInvoiceUpdate, discountSummary } from '@/lib/comp'
 
 // The `artists` column is stored as JSON; describe its real shape here so the
 // regenerated Json type doesn't break array access throughout this file.
@@ -128,6 +128,11 @@ function DetailDrawer({
     ? Math.round(Math.max(0, parseFloat(discountDollars) || 0) * 100)
     : 0
   const invoiceAmount = comped ? 0 : Math.max(0, app.total_amount - discountCents)
+  // Safeguard (Ryan, 2026-10-02): the invoice is shown before Approve, and a
+  // discount over half the list price needs a second click.
+  const discount = discountSummary(app.total_amount, comped ? 0 : discountCents)
+  const [ackLargeDiscount, setAckLargeDiscount] = useState<number | null>(null)
+  const largeDiscountAcked = ackLargeDiscount === discount.discountCents
 
 
 
@@ -153,6 +158,11 @@ function DetailDrawer({
   const updateStatus = async (newStatus: Application['status']) => {
     if (newStatus === 'approved' && unverified && !ackUnverified) {
       setAckUnverified(true)
+      return
+    }
+    // Acknowledged for this exact amount only: changing the discount asks again.
+    if (newStatus === 'approved' && discount.needsConfirm && !largeDiscountAcked) {
+      setAckLargeDiscount(discount.discountCents)
       return
     }
     setWorking(true)
@@ -456,6 +466,28 @@ function DetailDrawer({
               )}
             </div>}
 
+            {/* What Approve will invoice, always visible before the click */}
+            {!comped && (
+              <div className="flex items-center justify-between rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
+                <span style={{ color: '#999' }}>
+                  Invoice on approval
+                  {discount.discountCents > 0 && (
+                    <span className="ml-1 text-xs" style={{ color: '#666' }}>
+                      ({formatCurrency(app.total_amount)} list − {formatCurrency(discount.discountCents)} discount, {Math.round(discount.share * 100)}% off)
+                    </span>
+                  )}
+                </span>
+                <span className="font-bold" style={{ color: '#C4A882' }}>{formatCurrency(discount.invoiceCents)}</span>
+              </div>
+            )}
+
+            {discount.needsConfirm && largeDiscountAcked && (
+              <div className="rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.4)', color: '#eab308' }}>
+                This discount is {Math.round(discount.share * 100)}% of the list price: the invoice will be {formatCurrency(discount.invoiceCents)} instead of {formatCurrency(app.total_amount)}.
+                {discount.invoiceCents === 0 ? ' A $0 invoice is what Comp is for.' : ''} Press Approve again to confirm.
+              </div>
+            )}
+
             {unverified && ackUnverified && (
               <div className="rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.4)', color: '#eab308' }}>
                 This application claims the veteran discount and its document is not marked verified.
@@ -489,7 +521,9 @@ function DetailDrawer({
               >
                 {working
                   ? 'Saving…'
-                  : `Approve${unverified && ackUnverified ? ' without verified document' : ''}`}
+                  : discount.needsConfirm && largeDiscountAcked
+                    ? `Approve at ${formatCurrency(discount.invoiceCents)} (${Math.round(discount.share * 100)}% off)`
+                    : `Approve${unverified && ackUnverified ? ' without verified document' : ''}`}
               </button>
             </div>
             <button
