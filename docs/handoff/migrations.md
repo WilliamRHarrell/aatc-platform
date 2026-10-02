@@ -45,6 +45,8 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **084** | **APPLIED + VERIFIED** (Ryan, 2026-09-28: verify_084 first failed on `bronze`, then passed after 084b) | `sponsor_tier_settings`: per-tier show_price, seeded packages hidden / items shown. |
 | **084b** | **APPLIED + VERIFIED** (Ryan, 2026-09-28: verify_084b passed, verify_084 re-run passed) | hidden `bronze` row (leftover enum value from 001). |
 | **085** | **APPLIED + VERIFIED** (column read from production 2026-09-28; Ryan, 2026-09-29: verify_085 "Success. No rows returned", no panel marked Full yet) | `panels.signup_closed`, appended to `panels_public`. |
+| **086** | **APPLIED + VERIFIED** (Ryan, 2026-09-30: verify_086 passed; real save booth 126 to Skin Reserve worked; booth 108 refused) | `assign_booths()`: Assign Booth in one transaction, event-scoped, not-sellable refused, count capped at slots (fewer allowed). |
+| **087** | **APPLIED + VERIFIED** (Ryan, 2026-09-30: first verify_087 run failed on its own fixture, sponsorships.tier NOT NULL, fixed in #60; re-run passed; hold / refuse-other / linked-assign clears hold / release all checked by hand) | booth holds: `booths.held_for`, optional application or sponsorship link, required `held_until`; `hold_booth()`, `release_booth_hold()`, `release_expired_booth_holds()` (service_role, daily cron); `assign_booths()` refuses active holds except for the linked application. |
 
 **What this audit could and could not see.** It reads the live schema through
 PostgREST's OpenAPI document, which exposes tables, views, columns and callable
