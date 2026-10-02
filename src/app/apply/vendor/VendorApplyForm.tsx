@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { calculatePricing, type AddOn, type AddOnTerm } from '@/lib/pricing'
 import { ACTIVE_STATUSES, DUPLICATE_MESSAGE, isDuplicateApplicationError } from '@/lib/duplicate-application'
+import { PRICE_CHANGED_MESSAGE, isPriceMismatchError } from '@/lib/price-mismatch'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import type { Event } from '@/types'
@@ -349,7 +350,9 @@ export default function VendorApplyForm({ content }: { content: ApplyFormContent
     }).select('id')
 
     if (error) {
-      toast.error(isDuplicateApplicationError(error) ? DUPLICATE_MESSAGE : 'Failed to submit application. Please try again.')
+      toast.error(isDuplicateApplicationError(error) ? DUPLICATE_MESSAGE
+        : isPriceMismatchError(error) ? PRICE_CHANGED_MESSAGE
+        : 'Failed to submit application. Please try again.')
       setSubmitting(false)
       return
     }

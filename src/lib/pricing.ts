@@ -39,7 +39,8 @@ export const CORNER_FEE = 10000
 export const PERMIT_FEE_PER_ARTIST = 5000
 export const VETERAN_DISCOUNT = 15000
 
-const ADDON_PRICES: Record<AddOnKind, Record<string, number>> = {
+/** Exported for the SQL drift guard (pricing-matrix.test.ts); add-on prices live here only. */
+export const ADDON_PRICES: Record<AddOnKind, Record<string, number>> = {
   extra_table: { _flat: 5000 },
   extra_chairs: { _flat: 5000 },
   tattoo_bed: { daily: 5000, weekend: 15000 },
@@ -215,30 +216,6 @@ export function calculatePricing(o: PricingOptions): PricingBreakdown {
     total,
     itemized,
   }
-}
-
-// Legacy shim - given a 2026 application row's stored fields, return its total.
-// Used by admin views / reports that read historical (pre-2027) applications.
-export function legacyPriceFor(opts: {
-  exhibitorType: ExhibitorType
-  boothSize: BoothSize
-  artistCount: number
-  isCorner: boolean
-  isVeteran: boolean
-}): number {
-  const PRICES: Record<ExhibitorType, Record<BoothSize, number>> = {
-    artist: { single: 70000, double: 110000, triple: 180000, quad: 220000 },
-    vendor: { single: 40000, double: 70000, triple: 110000, quad: 140000 },
-  }
-  const max: Record<BoothSize, number> = { single: 2, double: 4, triple: 6, quad: 8 }
-  const base = PRICES[opts.exhibitorType][opts.boothSize]
-  const permit =
-    opts.exhibitorType === 'artist'
-      ? Math.min(opts.artistCount, max[opts.boothSize]) * 5000
-      : 0
-  const corner = opts.isCorner ? 5000 : 0
-  const vet = opts.isVeteran ? 15000 : 0
-  return base + permit + corner - vet
 }
 
 export function getMaxArtists(opts: {

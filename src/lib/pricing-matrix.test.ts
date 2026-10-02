@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { calculatePricing, type AddOn } from '@/lib/pricing'
+import {
+  calculatePricing, ADDON_PRICES, ARTIST_SINGLE_PRICE, ARTIST_DOUBLE_PRICE, VENDOR_SINGLE_PRICE, VENDOR_DOUBLE_PRICE,
+  CORNER_FEE, PERMIT_FEE_PER_ARTIST, VETERAN_DISCOUNT, type AddOn,
+} from '@/lib/pricing'
 
 /**
  * ONE HOME for prices is src/lib/pricing.ts. Migration 079 mirrors it in SQL
@@ -58,10 +61,32 @@ describe('pricing matrix', () => {
     expect(existsSync(OUT), 'verify_079_matrix.sql missing - run with WRITE_PRICING_MATRIX=1').toBe(true)
     expect(readFileSync(OUT, 'utf8')).toBe(expected)
   })
-  it('the SQL function carries the same price constants as pricing.ts (source check)', () => {
-    const sql = readFileSync(join(process.cwd(), 'supabase/migrations/079_server_price_and_one_active_application.sql'), 'utf8')
-    for (const [name, value] of [['c_artist_single', 80000], ['c_artist_double', 120000], ['c_vendor_single', 50000], ['c_vendor_double', 80000], ['c_corner', 10000], ['c_permit', 5000], ['c_veteran', 15000]] as const) {
-      expect(sql, name).toMatch(new RegExp(`${name}\\s+constant int := ${value};`))
+  it('the LIVE application_list_price carries the same prices as pricing.ts (source check, no typed numbers)', () => {
+    // The live definition is the highest-numbered migration that (re)creates it.
+    const MIG = join(process.cwd(), 'supabase/migrations')
+    const latest = readdirSync(MIG).filter(f => /^\d{3}.*\.sql$/.test(f)).sort()
+      .filter(f => /function public\.application_list_price\(/i.test(readFileSync(join(MIG, f), 'utf8'))).pop()!
+    const sql = readFileSync(join(MIG, latest), 'utf8')
+    const constant = (name: string) => {
+      const m = sql.match(new RegExp(`${name}\\s+constant int := (\\d+);`))
+      expect(m, `${latest}: ${name}`).not.toBeNull()
+      return Number(m![1])
+    }
+    expect(constant('c_artist_single'), 'c_artist_single').toBe(ARTIST_SINGLE_PRICE)
+    expect(constant('c_artist_double'), 'c_artist_double').toBe(ARTIST_DOUBLE_PRICE)
+    expect(constant('c_vendor_single'), 'c_vendor_single').toBe(VENDOR_SINGLE_PRICE)
+    expect(constant('c_vendor_double'), 'c_vendor_double').toBe(VENDOR_DOUBLE_PRICE)
+    expect(constant('c_corner'), 'c_corner').toBe(CORNER_FEE)
+    expect(constant('c_permit'), 'c_permit').toBe(PERMIT_FEE_PER_ARTIST)
+    expect(constant('c_veteran'), 'c_veteran').toBe(VETERAN_DISCOUNT)
+    // Add-ons: every kind and term in ADDON_PRICES appears in the SQL case with the same cents.
+    for (const [kind, prices] of Object.entries(ADDON_PRICES)) {
+      const arm = sql.match(new RegExp(`when '${kind}'\\s+then ([^\\n]+)`))
+      expect(arm, `${latest}: add-on ${kind}`).not.toBeNull()
+      for (const [term, cents] of Object.entries(prices)) {
+        if (term === '_flat') expect(arm![1].trim(), `${kind} flat`).toMatch(new RegExp(`^${cents}\\b`))
+        else expect(arm![1], `${kind} ${term}`).toMatch(new RegExp(`when '${term}' then ${cents}\\b`))
+      }
     }
   })
 })

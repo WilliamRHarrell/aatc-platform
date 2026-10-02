@@ -6,8 +6,9 @@ import { guardedWrite } from '@/lib/db-write'
 import { ARTIST_BOOTH_OPTIONS as ARTIST_BOOTHS, addOnOptions, VETERAN_DISCOUNT_LABEL, PERMIT_FEE_LABEL, CORNER_FEE_LABEL } from '@/lib/pricing'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
-import { calculatePricing, getMaxArtists, type AddOn, type AddOnTerm } from '@/lib/pricing'
+import { calculatePricing, getMaxArtists, PERMIT_FEE_PER_ARTIST, type AddOn, type AddOnTerm } from '@/lib/pricing'
 import { ACTIVE_STATUSES, DUPLICATE_MESSAGE, isDuplicateApplicationError } from '@/lib/duplicate-application'
+import { PRICE_CHANGED_MESSAGE, isPriceMismatchError } from '@/lib/price-mismatch'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import type { Event } from '@/types'
@@ -466,7 +467,9 @@ export default function ArtistApplyForm({ content }: { content: ApplyFormContent
     }).select('id').single()
 
     if (error || !appRow) {
-      toast.error(isDuplicateApplicationError(error) ? DUPLICATE_MESSAGE : 'Failed to submit application. Please try again.')
+      toast.error(isDuplicateApplicationError(error) ? DUPLICATE_MESSAGE
+        : isPriceMismatchError(error) ? PRICE_CHANGED_MESSAGE
+        : 'Failed to submit application. Please try again.')
       setSubmitting(false)
       return
     }
@@ -861,7 +864,7 @@ export default function ArtistApplyForm({ content }: { content: ApplyFormContent
                       style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a', color: '#8B7355' }}
                     >+</button>
                     <span className="text-sm" style={{ color: '#999' }}>
-                      × ${PERMIT_FEE_LABEL} permit fee each = {formatCurrency(booth.artist_count * 5000)}
+                      × ${PERMIT_FEE_LABEL} permit fee each = {formatCurrency(booth.artist_count * PERMIT_FEE_PER_ARTIST)}
                     </span>
                   </div>
                 </div>
