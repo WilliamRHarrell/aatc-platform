@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  discountSummary,
   isComped, approvePayload, SEND_BACK_PAYLOAD, sweepEligible, partitionAssignable, describeExclusions,
   compEmailKind, restoredDepositDueAt, discountedInvoiceUpdate,
 } from '@/lib/comp'
@@ -128,5 +129,22 @@ describe('discountedInvoiceUpdate', () => {
   it('refused on a paid or cancelled invoice', () => {
     expect(discountedInvoiceUpdate({ amount: 0, amount_paid: 0, status: 'paid' }, 60000, 15000)).toHaveProperty('refused')
     expect(discountedInvoiceUpdate({ amount: 60000, amount_paid: 0, status: 'cancelled' }, 60000, 15000)).toHaveProperty('refused')
+  })
+})
+
+describe('discountSummary (approval safeguard)', () => {
+  it('Chop Shop: $2,650 list, $2,425 off -> $225 invoice, 92%, confirm', () => {
+    const s = discountSummary(265000, 242500)
+    expect(s.invoiceCents).toBe(22500)
+    expect(Math.round(s.share * 100)).toBe(92)
+    expect(s.needsConfirm).toBe(true)
+  })
+  it('exactly half does not ask; more than half does', () => {
+    expect(discountSummary(100000, 50000).needsConfirm).toBe(false)
+    expect(discountSummary(100000, 50001).needsConfirm).toBe(true)
+  })
+  it('no discount, and a discount above the list price', () => {
+    expect(discountSummary(80000, 0)).toEqual({ invoiceCents: 80000, discountCents: 0, share: 0, needsConfirm: false })
+    expect(discountSummary(80000, 90000)).toMatchObject({ invoiceCents: 0, share: 1, needsConfirm: true })
   })
 })

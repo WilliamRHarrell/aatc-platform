@@ -101,3 +101,24 @@ export function discountedInvoiceUpdate(
   if (inv.status !== 'pending' && inv.status !== 'overdue') return { refused: `This invoice is ${inv.status} and cannot be re-priced.` }
   return { amount: Math.max(0, totalAmount - discountCents) }
 }
+
+/** Above this share of the list price, Approve asks for a second click (Ryan, 2026-10-02). */
+export const LARGE_DISCOUNT_SHARE = 0.5
+
+/**
+ * What Approve will invoice, for the summary shown before the click and the
+ * large-discount confirmation. The invoice is never below $0; a discount at or
+ * above the list price produces a $0 invoice, which is what Comp is for.
+ */
+export function discountSummary(listCents: number, discountCents: number): {
+  invoiceCents: number
+  discountCents: number
+  /** Share of the list price taken off, 0..1 (1 when the list price is 0 and a discount is entered). */
+  share: number
+  needsConfirm: boolean
+} {
+  const d = Math.max(0, discountCents)
+  const invoiceCents = Math.max(0, listCents - d)
+  const share = listCents > 0 ? Math.min(1, d / listCents) : d > 0 ? 1 : 0
+  return { invoiceCents, discountCents: d, share, needsConfirm: share > LARGE_DISCOUNT_SHARE }
+}
