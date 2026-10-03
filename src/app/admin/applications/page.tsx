@@ -17,6 +17,7 @@ import ReceiptStatus from '@/components/admin/ReceiptStatus'
 import DuplicateWarning from '@/components/admin/DuplicateWarning'
 import InviteLinkControl from '@/components/admin/InviteLinkControl'
 import { artistCapacity } from '@/lib/artist-roster'
+import DirectoryOverrideControl from '@/components/admin/DirectoryOverrideControl'
 import { approvePayload, SEND_BACK_PAYLOAD, isComped, discountedInvoiceUpdate, discountSummary } from '@/lib/comp'
 
 // The `artists` column is stored as JSON; describe its real shape here so the
@@ -418,6 +419,11 @@ function DetailDrawer({
         </div>
 
         {/* Action buttons */}
+        {/* Directory listing override (admin only; 032) */}
+        <div className="px-6 py-5" style={{ borderTop: '1px solid #2a2a2a' }}>
+          <DirectoryOverrideControl app={app} onPatch={patch => onPatch(app.id, patch)} />
+        </div>
+
         {app.status === 'pending' && (
           <div className="px-6 py-5 space-y-4" style={{ borderTop: '1px solid #2a2a2a' }}>
 
