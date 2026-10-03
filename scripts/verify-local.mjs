@@ -6,6 +6,9 @@
  *   npm run verify:local -- supabase/verify/verify_087.sql [more.sql ...]
  *   npm run verify:local -- --audit                 # every verify's fixture INSERTs vs NOT NULL columns
  *   npm run verify:local -- --dump-schema out.sql   # schema-only dump of the replay, to diff against production
+ *   npm run verify:local -- --before 089 pre.sql supabase/migrations/089_x.sql check.sql
+ *                                                   # replay only migrations below 089, then run the files in
+ *                                                   # order: test a data mapping against rows that predate it
  *
  * PRODUCTION SIDE of that diff (Ryan runs it; the connection string never
  * enters this repo or .env.local). Session pooler, port 5432, schema only,
@@ -123,13 +126,14 @@ function migrationFiles() {
   return readdirSync(MIGRATIONS).filter(f => /^\d{3}[a-z]?_.*\.sql$/.test(f)).sort()
 }
 
-export async function buildReplay({ seed = true, log = console.log } = {}) {
+export async function buildReplay({ seed = true, log = console.log, before = null } = {}) {
   const db = new PGlite()
   await db.exec(PRELUDE)
   let n = 0
   const skipped = []
   for (const f of migrationFiles()) {
     if (/^\d{3}_/.test(f) && SKIP.has(f.slice(0, 3))) { skipped.push(f); continue }
+    if (before && f.slice(0, 3) >= before) continue
     try {
       await db.exec(readFileSync(join(MIGRATIONS, f), 'utf8'))
       n++
@@ -139,7 +143,7 @@ export async function buildReplay({ seed = true, log = console.log } = {}) {
       throw err
     }
   }
-  log(`[verify-local] replayed ${n} migrations (skipped: ${skipped.join(', ')})`)
+  log(`[verify-local] replayed ${n} migrations${before ? ` (below ${before})` : ''} (skipped: ${skipped.join(', ')})`)
   if (seed) {
     await db.exec(SEED)
     log('[verify-local] seeded: admin, RLS harness user, Live Exhibitor on booth 2')
@@ -230,14 +234,16 @@ async function main() {
   const doAudit = args.includes('--audit')
   const di = args.indexOf('--dump-schema')
   const dumpTo = di >= 0 ? args[di + 1] : null
-  const files = args.filter((a, i) => !a.startsWith('--') && (di < 0 || i !== di + 1))
+  const bi = args.indexOf('--before')
+  const before = bi >= 0 ? args[bi + 1] : null
+  const files = args.filter((a, i) => !a.startsWith('--') && (di < 0 || i !== di + 1) && (bi < 0 || i !== bi + 1))
   if (!doAudit && !dumpTo && files.length === 0) {
     console.log('usage: npm run verify:local -- <verify.sql ...> | --audit | --dump-schema <out.sql>  [--no-seed]')
     process.exit(1)
   }
   let db
   try {
-    db = await buildReplay({ seed: seed && !dumpTo })
+    db = await buildReplay({ seed: seed && !dumpTo, before })
   } catch (e) {
     console.log(`[verify-local] ${e.message}`)
     process.exit(2)

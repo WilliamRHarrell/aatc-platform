@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  discountSummary,
+  discountSummary, compInvoiceAmount, permitFeesFor, owesNothing,
   isComped, approvePayload, SEND_BACK_PAYLOAD, sweepEligible, partitionAssignable, describeExclusions,
   compEmailKind, restoredDepositDueAt, discountedInvoiceUpdate,
 } from '@/lib/comp'
@@ -146,5 +146,35 @@ describe('discountSummary (approval safeguard)', () => {
   it('no discount, and a discount above the list price', () => {
     expect(discountSummary(80000, 0)).toEqual({ invoiceCents: 80000, discountCents: 0, share: 0, needsConfirm: false })
     expect(discountSummary(80000, 90000)).toMatchObject({ invoiceCents: 0, share: 1, needsConfirm: true })
+  })
+})
+
+describe('comp split (089): compInvoiceAmount mirrors set_comp()', () => {
+  const chopShop = { exhibitor_type: 'artist', artist_single_qty: 0, artist_double_qty: 2, vendor_single_qty: 0, vendor_double_qty: 0, corner_count: 2, artist_count: 4, is_veteran: true, add_ons: [], total_amount: 265000 }
+  const jane = { exhibitor_type: 'artist', artist_single_qty: 1, artist_double_qty: 0, vendor_single_qty: 0, vendor_double_qty: 0, corner_count: 0, artist_count: 1, is_veteran: false, add_ons: [], total_amount: 85000 }
+  const vendor = { exhibitor_type: 'vendor', artist_single_qty: 0, artist_double_qty: 0, vendor_single_qty: 1, vendor_double_qty: 0, corner_count: 1, artist_count: 0, is_veteran: false, add_ons: [], total_amount: 60000 }
+  it('Chop Shop: comp booth, permits charged -> $200 (4 x $50); owes, so due dates apply', () => {
+    const a = { ...chopShop, comped_at: '2026-10-03', permits_comped_at: null }
+    expect(permitFeesFor(a)).toBe(20000)
+    expect(compInvoiceAmount(a)).toBe(20000)
+    expect(owesNothing(a)).toBe(false)
+    expect(approvePayload(a, NOW, FINAL)).toHaveProperty('deposit_due_at')
+  })
+  it('Jane Ink: booth + permits comped -> $0, no due dates', () => {
+    const a = { ...jane, comped_at: '2026-09-30', permits_comped_at: '2026-09-30' }
+    expect(compInvoiceAmount(a)).toBe(0)
+    expect(owesNothing(a)).toBe(true)
+    expect(approvePayload(a, NOW, FINAL)).not.toHaveProperty('deposit_due_at')
+  })
+  it('vendors: a booth comp leaves $0 (no permits)', () => {
+    expect(compInvoiceAmount({ ...vendor, comped_at: '2026-09-24', permits_comped_at: null })).toBe(0)
+  })
+  it('permits only -> total minus permits; none -> the total', () => {
+    expect(compInvoiceAmount({ ...chopShop, comped_at: null, permits_comped_at: '2026-10-03' })).toBe(245000)
+    expect(compInvoiceAmount({ ...chopShop, comped_at: null, permits_comped_at: null })).toBe(265000)
+  })
+  it('Assign Booth: a comped booth is assignable with no deposit', () => {
+    const { assignable } = partitionAssignable([{ id: 'x', comped_at: '2026-10-03', invoices: [{ deposit_paid_at: null }] }])
+    expect(assignable).toHaveLength(1)
   })
 })

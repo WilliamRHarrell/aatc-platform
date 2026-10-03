@@ -15,7 +15,7 @@ export default function DirectoryOverrideControl({
   app,
   onPatch,
 }: {
-  app: { id: string; status: string; needs_roster: boolean; directory_override: boolean }
+  app: { id: string; status: string; needs_roster: boolean; directory_override: boolean; comped_at?: string | null }
   onPatch: (patch: { directory_override: boolean }) => void
 }) {
   const supabase = createClient()

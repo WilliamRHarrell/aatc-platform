@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
+import { owesNothing, hasAnyComp, compInvoiceAmount } from '@/lib/comp'
 import { Resend } from 'resend'
 import { describeBooths } from '@/lib/booth-display'
 import { minDepositCents } from '@/lib/pricing'
@@ -15,7 +16,10 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
 // ── Email HTML templates (wrapper shared with the intake routes: src/lib/email-templates.ts) ──
 
-function approvedEmail(businessName: string, exhibitorType: string, boothSize: string, totalAmount: number, depositDueAt: string | null) {
+// boothComped (089): the booth fee is comped and only artist permit fees are
+// due. Same billing rules, but a comped booth is never released, so the
+// release sentence is replaced and the amount is labelled as permit fees.
+function approvedEmail(businessName: string, exhibitorType: string, boothSize: string, totalAmount: number, depositDueAt: string | null, boothComped = false) {
   const dollars = (totalAmount / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
   const minDeposit = minDepositCents(totalAmount)
   const formattedDeadline = depositDueAt
@@ -24,11 +28,11 @@ function approvedEmail(businessName: string, exhibitorType: string, boothSize: s
 
   const depositParagraph = formattedDeadline
     ? `<p style="margin:16px 0; font-size:15px; line-height:1.7; color:#cccccc;">
-      To secure your booth, please pay at least 25% of the total
+      ${boothComped ? 'Your booth fee is comped. Your artist permit fees are still due: please pay at least 25%' : 'To secure your booth, please pay at least 25% of the total'}
       (<strong style="color:#ffffff;">$${(minDeposit / 100).toFixed(2)}</strong>) by <strong style="color:#ffffff;">${formattedDeadline}</strong>.
       The remaining balance is due by <strong style="color:#ffffff;">${FINAL_DUE_LABEL}</strong>.
-      If the deposit is not received by the deadline, the booth will be
-      released to the next applicant.
+      ${boothComped ? '' : `If the deposit is not received by the deadline, the booth will be
+      released to the next applicant.`}
     </p>`
     : ''
 
@@ -52,7 +56,7 @@ function approvedEmail(businessName: string, exhibitorType: string, boothSize: s
           <td align="right" style="font-size:13px; font-weight:600; color:#ffffff; padding-bottom:8px; text-transform:capitalize;">${boothSize} (10×10 ft)</td>
         </tr>
         <tr>
-          <td style="font-size:13px; color:#999999; border-top:1px solid #2a2a2a; padding-top:8px;">Invoice total</td>
+          <td style="font-size:13px; color:#999999; border-top:1px solid #2a2a2a; padding-top:8px;">${boothComped ? 'Artist permit fees due (booth comped)' : 'Invoice total'}</td>
           <td align="right" style="font-size:16px; font-weight:700; color:#C4A882; border-top:1px solid #2a2a2a; padding-top:8px;">${dollars}</td>
         </tr>
       </table>
@@ -149,6 +153,42 @@ function compNoticeEmail(businessName: string) {
         <tr>
           <td style="font-size:13px; color:#999999;">Balance due</td>
           <td align="right" style="font-size:16px; font-weight:700; color:#4ade80;">$0.00</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="margin:24px 0 0; text-align:center;">
+      <a href="${SITE_URL}/portal"
+         style="display:inline-block; background:#8B7355; color:#ffffff; text-decoration:none;
+                font-size:14px; font-weight:700; letter-spacing:1px; padding:14px 32px;
+                border-radius:10px;">
+        View My Portal →
+      </a>
+    </p>
+  `)
+}
+
+// Comp booth with permits still charged (089).
+function compBoothPermitsDueEmail(businessName: string, permitsDue: number) {
+  const dollars = (permitsDue / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+  return emailWrapper(`
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#4ade80;">
+      Booth Comped
+    </p>
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      Your booth fee is comped, ${businessName}
+    </h2>
+
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Your AATC 2027 booth fee has been <strong style="color:#ffffff;">comped</strong>. The county artist permit fees
+      are still due, and your invoice has been updated to that amount. You can pay it in your portal.
+    </p>
+
+    <div style="background:#0a0a0a; border:1px solid #2a2a2a; border-radius:12px; padding:20px 24px; margin:20px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="font-size:13px; color:#999999;">Artist permit fees due</td>
+          <td align="right" style="font-size:16px; font-weight:700; color:#C4A882;">${dollars}</td>
         </tr>
       </table>
     </div>
@@ -521,7 +561,7 @@ export async function POST(req: Request) {
     // and this returns nothing.
     const { data: app } = await adminFetchClient
       .from('applications')
-      .select('business_name, email, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, total_amount, deposit_due_at, comped_at')
+      .select('business_name, email, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, total_amount, deposit_due_at, comped_at, permits_comped_at, artist_count, add_ons, is_veteran')
       .eq('id', applicationId)
       .single()
 
@@ -537,15 +577,24 @@ export async function POST(req: Request) {
       subject = `🎉 Your AATC 2027 application is approved - ${app.business_name}`
       // A comped application is told it owes nothing; the priced variant would
       // quote the list price and a deposit deadline that do not apply.
-      html = app.comped_at
+      // 089: "nothing owed" only when the comp leaves $0; a booth comp that
+      // still owes permits gets the priced email for the permit fees.
+      html = owesNothing(app)
         ? approvedCompedEmail(app.business_name, app.exhibitor_type, describeBooths(app))
-        : approvedEmail(app.business_name, app.exhibitor_type, describeBooths(app), app.total_amount, app.deposit_due_at)
+        : hasAnyComp(app)
+          ? approvedEmail(app.business_name, app.exhibitor_type, describeBooths(app), compInvoiceAmount(app), app.deposit_due_at, !!app.comped_at)
+          : approvedEmail(app.business_name, app.exhibitor_type, describeBooths(app), app.total_amount, app.deposit_due_at)
     } else if (resolvedKind === 'comp_notice') {
       if (!app.comped_at) {
         return NextResponse.json({ error: 'Application is not comped' }, { status: 400 })
       }
-      subject = `Your AATC 2027 booth is comped - no balance due - ${app.business_name}`
-      html = compNoticeEmail(app.business_name)
+      if (owesNothing(app)) {
+        subject = `Your AATC 2027 booth is comped - no balance due - ${app.business_name}`
+        html = compNoticeEmail(app.business_name)
+      } else {
+        subject = `Your AATC 2027 booth fee is comped - artist permit fees due - ${app.business_name}`
+        html = compBoothPermitsDueEmail(app.business_name, compInvoiceAmount(app))
+      }
     } else if (resolvedKind === 'rejected') {
       subject = `Update on your AATC 2027 application - ${app.business_name}`
       html = rejectedEmail(app.business_name, app.exhibitor_type)

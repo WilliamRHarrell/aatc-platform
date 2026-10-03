@@ -473,7 +473,7 @@ export default function AdminBoothsPage() {
                       <p className="truncate text-sm font-semibold text-white">
                         {app.business_name}
                         {app.comped_at && (
-                          <span className="ml-2 rounded-full px-2 py-0.5 text-xs font-bold tracking-widest align-middle" style={{ backgroundColor: 'rgba(74,222,128,0.15)', color: '#4ade80' }} title="Comped - balance $0">COMP</span>
+                          <span className="ml-2 rounded-full px-2 py-0.5 text-xs font-bold tracking-widest align-middle" style={{ backgroundColor: 'rgba(74,222,128,0.15)', color: '#4ade80' }} title="Booth comped (artist permit fees may still be due)">COMP</span>
                         )}
                       </p>
                       <p className="truncate text-xs" style={{ color: '#666' }}>{app.contact_name}</p>

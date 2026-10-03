@@ -236,7 +236,7 @@ async function dryRunReport(supabase: ReturnType<typeof adminSupabase>, now: Dat
   const target = new Date(now.getTime() + 7 * ONE_DAY_MS)
   const { data: depositReminder, error: e3 } = await supabase.from('applications')
     .select('id, business_name, email, deposit_due_at, invoices!inner(deposit_paid_at)')
-    .eq('status', 'approved').is('comped_at', null)
+    .eq('status', 'approved')  // reminders: no comp filter (089), as in the live branch
     .gte('deposit_due_at', new Date(target.getTime() - MS_TOLERANCE).toISOString())
     .lte('deposit_due_at', new Date(target.getTime() + MS_TOLERANCE).toISOString())
     .is('invoices.deposit_paid_at', null)
@@ -247,7 +247,7 @@ async function dryRunReport(supabase: ReturnType<typeof adminSupabase>, now: Dat
     const t = new Date(now.getTime() + daysOut * ONE_DAY_MS)
     const { data, error: e4 } = await supabase.from('applications')
       .select('id, business_name, email, final_due_at, invoices!inner(final_paid_at)')
-      .eq('status', 'approved').is('comped_at', null)
+      .eq('status', 'approved')  // reminders: no comp filter (089)
       .gte('final_due_at', new Date(t.getTime() - MS_TOLERANCE).toISOString())
       .lte('final_due_at', new Date(t.getTime() + MS_TOLERANCE).toISOString())
       .is('invoices.final_paid_at', null)
@@ -376,6 +376,8 @@ export async function GET(req: Request) {
   }
 
   // ── 1. Expire un-deposited applications past deposit_due_at ──
+  // `comped_at is null` stays on expiry and cancellation: a comped booth is
+  // never expired or cancelled, even while it owes permit fees (Ryan, 2026-10-03).
   // DESTRUCTIVE - releases booths. Counted but not acted on until the flag is set.
   const { data: toExpire } = await supabase
     .from('applications')
@@ -439,7 +441,9 @@ export async function GET(req: Request) {
     .from('applications')
     .select('id, invoices!inner(deposit_paid_at)')
     .eq('status', 'approved')
-    .is('comped_at', null)
+    // No comp filter (089): a booth-comped exhibitor who still owes permits
+    // gets reminders. A fully comped one has a settled $0 invoice, so the
+    // deposit_paid_at filter below already leaves it out.
     .gte('deposit_due_at', reminderLow)
     .lte('deposit_due_at', reminderHigh)
     .is('invoices.deposit_paid_at', null)
@@ -459,7 +463,7 @@ export async function GET(req: Request) {
       .from('applications')
       .select('id, invoices!inner(final_paid_at)')
       .eq('status', 'approved')
-      .is('comped_at', null)
+      // No comp filter (089), as for the deposit reminder.
       .gte('final_due_at', low)
       .lte('final_due_at', high)
       .is('invoices.final_paid_at', null)

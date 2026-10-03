@@ -16,4 +16,8 @@ describe('directoryListing', () => {
     expect(directoryListing(app({ directory_override: true, status: 'pending' }), true).listed).toBe(false)
     expect(directoryListing(app({ directory_override: true, needs_roster: true }), true).listed).toBe(false)
   })
+  it('a comped booth is listed with no deposit and no override (089)', () => {
+    expect(directoryListing({ ...app(), comped_at: '2026-10-03' }, false)).toEqual({ listed: true, reason: 'Listed: booth comped.' })
+    expect(directoryListing({ ...app({ needs_roster: true }), comped_at: '2026-10-03' }, false).listed).toBe(false)
+  })
 })
