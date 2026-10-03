@@ -47,7 +47,7 @@ export default function AdminPrintPage() {
         .from('booths')
         .select(`
           booth_number, is_corner, application_id,
-          application:applications (
+          application:applications!booths_application_id_fkey (
             id, business_name, contact_name, email, phone, website, instagram,
             exhibitor_type, booth_size, artist_single_qty, artist_double_qty,
             vendor_single_qty, vendor_double_qty, corner_count, artist_count,
