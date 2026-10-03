@@ -63,9 +63,12 @@ export async function GET() {
   const depositPaid = rosterComplete.filter(a => depositApps.has(a.id))
   const overridden = rosterComplete.filter(a => a.directory_override === true && !depositApps.has(a.id))
 
-  // The real measurement.
+  // The real measurement: the view the public directory pages read. Since
+  // 075, anon has no grant on the applications table at all ("permission
+  // denied for table applications"); applications_public is the public surface
+  // (approved, roster complete, deposit or override).
   const { data: publicRows, error: publicErr } = await anon
-    .from('applications')
+    .from('applications_public')
     .select('id')
     .eq('status', 'approved')
 

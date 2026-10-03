@@ -552,6 +552,20 @@ function DetailDrawer({
               <CompControls app={app} unverified={unverified} onPatch={(patch: CompPatch) => onPatch(app.id, patch)} />
             </div>
             {app.status === 'approved' && (
+              // The per-exhibitor page (artist IDs, "Mark ID verified", booths). The
+              // /admin/booths list links here only once a deposit is recorded.
+              <Link
+                href={`/admin/booths/${app.id}`}
+                className="flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold transition-opacity"
+                style={{ backgroundColor: 'rgba(196,168,130,0.12)', color: '#C4A882', border: '1px solid rgba(196,168,130,0.3)' }}
+              >
+                Exhibitor page: artists, ID verification, booths
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </Link>
+            )}
+            {app.status === 'approved' && (
               <Link
                 href="/admin/booths"
                 className="flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold transition-opacity"
