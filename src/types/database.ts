@@ -107,6 +107,8 @@ export type Database = {
           veteran_doc_verified_by: string | null
           comped_at: string | null
           comped_by: string | null
+          permits_comped_at: string | null
+          permits_comped_by: string | null
           submission_receipt_sent_at: string | null
           website: string | null
         }
@@ -154,6 +156,8 @@ export type Database = {
           veteran_doc_verified_by?: string | null
           comped_at?: string | null
           comped_by?: string | null
+          permits_comped_at?: string | null
+          permits_comped_by?: string | null
           submission_receipt_sent_at?: string | null
           website?: string | null
         }
@@ -201,6 +205,8 @@ export type Database = {
           veteran_doc_verified_by?: string | null
           comped_at?: string | null
           comped_by?: string | null
+          permits_comped_at?: string | null
+          permits_comped_by?: string | null
           submission_receipt_sent_at?: string | null
           website?: string | null
         }
@@ -438,6 +444,7 @@ export type Database = {
           end_date: string
           id: string
           is_active: boolean
+          permit_submission_date: string | null
           name: string
           pinup_capacity: number
           registration_open_date: string | null
@@ -452,6 +459,7 @@ export type Database = {
           end_date: string
           id?: string
           is_active?: boolean
+          permit_submission_date?: string | null
           name: string
           pinup_capacity?: number
           registration_open_date?: string | null
@@ -466,6 +474,7 @@ export type Database = {
           end_date?: string
           id?: string
           is_active?: boolean
+          permit_submission_date?: string | null
           name?: string
           pinup_capacity?: number
           registration_open_date?: string | null
@@ -1661,6 +1670,9 @@ export type Database = {
       /** Migration 087 - admin only. held_until must be in the future; at most one link. */
       hold_booth: { Args: { p_booth_id: string; p_held_for: string; p_held_until: string; p_application_id?: string | null; p_sponsorship_id?: string | null }; Returns: undefined }
       release_booth_hold: { Args: { p_booth_id: string }; Returns: undefined }
+      /** Migration 089 - admin only. Sets Comp booth / Comp permits and re-prices the invoice; returns the new invoice amount. */
+      set_comp: { Args: { p_application_id: string; p_booth: boolean; p_permits: boolean }; Returns: number }
+      application_permit_fees: { Args: { p_application_id: string }; Returns: number }
       /** Migration 088 - admin only; the only writer of artists[].id_verified_at/by. Returns the artist entry. */
       set_artist_id_verified: { Args: { p_application_id: string; p_index: number; p_verified: boolean }; Returns: Json }
       /** Migration 087 - service_role only (lifecycle-sweep cron); returns rows cleared. */

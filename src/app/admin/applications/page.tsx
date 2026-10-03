@@ -18,7 +18,7 @@ import DuplicateWarning from '@/components/admin/DuplicateWarning'
 import InviteLinkControl from '@/components/admin/InviteLinkControl'
 import { artistCapacity } from '@/lib/artist-roster'
 import DirectoryOverrideControl from '@/components/admin/DirectoryOverrideControl'
-import { approvePayload, SEND_BACK_PAYLOAD, isComped, discountedInvoiceUpdate, discountSummary } from '@/lib/comp'
+import { approvePayload, SEND_BACK_PAYLOAD, hasAnyComp, compInvoiceAmount, discountedInvoiceUpdate, discountSummary } from '@/lib/comp'
 
 // The `artists` column is stored as JSON; describe its real shape here so the
 // regenerated Json type doesn't break array access throughout this file.
@@ -123,13 +123,15 @@ function DetailDrawer({
   const [discountDollars, setDiscountDollars]   = useState('')
   // Comp is no longer a checkbox on Approve: it is its own action (CompControls,
   // 072) so it holds in any order of approve / send back / comp.
-  const comped = isComped(app)
+  // Any comp (089: Comp booth and/or Comp permits). set_comp() owns the
+  // invoice of a comped application; the discount box is hidden for it.
+  const comped = hasAnyComp(app)
 
   // Computed invoice amount (cents)
   const discountCents = discountEnabled && discountDollars
     ? Math.round(Math.max(0, parseFloat(discountDollars) || 0) * 100)
     : 0
-  const invoiceAmount = comped ? 0 : Math.max(0, app.total_amount - discountCents)
+  const invoiceAmount = comped ? compInvoiceAmount(app) : Math.max(0, app.total_amount - discountCents)
   // Safeguard (Ryan, 2026-10-02): the invoice is shown before Approve, and a
   // discount over half the list price needs a second click.
   const discount = discountSummary(app.total_amount, comped ? 0 : discountCents)
@@ -190,15 +192,16 @@ function DetailDrawer({
 
       // Invoice: create if absent; re-price an existing unpaid one when a
       // discount was entered (approve, send back, discount, approve used to
-      // drop the discount silently). A comped row's invoice is already settled
-      // by comp_application() and is left alone.
+      // drop the discount silently). A comped row's invoice is set by
+      // set_comp() (089) and is left alone; a booth comp that still owes
+      // permits and has no invoice yet gets one here, for the permit fees.
       const { data: existing } = await supabase
         .from('invoices')
         .select('id, amount, amount_paid, status')
         .eq('application_id', app.id)
         .maybeSingle()
 
-      if (!existing && !comped) {
+      if (!existing && (!comped || invoiceAmount > 0)) {
         // Guarded too: an invoice that silently fails to insert leaves an
         // APPROVED application with no invoice, which reads as paid-in-full
         // nowhere and simply never gets billed.

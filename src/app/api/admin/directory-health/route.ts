@@ -47,7 +47,7 @@ export async function GET() {
 
   const { data: apps } = await service
     .from('applications')
-    .select('id, status, needs_roster, directory_override')
+    .select('id, status, needs_roster, directory_override, comped_at')
 
   const { data: invoices } = await service
     .from('invoices')
@@ -61,7 +61,8 @@ export async function GET() {
   const approved = rows.filter(a => a.status === 'approved')
   const rosterComplete = approved.filter(a => a.needs_roster === false)
   const depositPaid = rosterComplete.filter(a => depositApps.has(a.id))
-  const overridden = rosterComplete.filter(a => a.directory_override === true && !depositApps.has(a.id))
+  // Listed without a deposit: the admin override, or a comped booth (089).
+  const overridden = rosterComplete.filter(a => (a.directory_override === true || !!a.comped_at) && !depositApps.has(a.id))
 
   // The real measurement.
   const { data: publicRows, error: publicErr } = await anon

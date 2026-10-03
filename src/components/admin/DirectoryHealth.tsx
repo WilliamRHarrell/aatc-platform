@@ -83,7 +83,7 @@ export default function DirectoryHealth() {
 
       {data && data.overridden > 0 && (
         <p className="mt-4 text-xs" style={{ color: '#999' }}>
-          {data.overridden} listed by admin override (no recorded deposit).
+          {data.overridden} listed without a recorded deposit (admin override or comped booth).
         </p>
       )}
 

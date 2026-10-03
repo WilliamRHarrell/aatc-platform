@@ -5,10 +5,66 @@
  * lives on the invoice. total_amount stays the list price. These helpers are
  * what the drawer, the sweep and Assign Booth call so the rules have one home.
  */
+import { calculatePricing, type AddOn } from '@/lib/pricing'
+
 const DAY_MS = 24 * 60 * 60 * 1000
 
 export function isComped(app: { comped_at: string | null }): boolean {
   return !!app.comped_at
+}
+
+/**
+ * The comp split (migration 089, Ryan 2026-10-02). comped_at is COMP BOOTH
+ * (booth fees waived); permits_comped_at is COMP PERMITS (artist permit fees
+ * waived). Each is set separately, through set_comp(), which re-prices the
+ * invoice. These mirror its arithmetic for the drawer and the emails.
+ */
+export interface CompPricingApp {
+  comped_at: string | null
+  permits_comped_at?: string | null
+  total_amount?: number
+  exhibitor_type?: string
+  artist_single_qty?: number
+  artist_double_qty?: number
+  vendor_single_qty?: number
+  vendor_double_qty?: number
+  corner_count?: number
+  artist_count?: number
+  is_veteran?: boolean
+  add_ons?: unknown
+}
+
+/** Artist permit fees on this application (2 per single / 4 per double cap): calculatePricing's permit line. */
+export function permitFeesFor(app: CompPricingApp): number {
+  if (app.exhibitor_type !== 'artist' || !app.artist_count) return 0
+  return calculatePricing({
+    exhibitorType: 'artist',
+    artistSingleQty: app.artist_single_qty ?? 0,
+    artistDoubleQty: app.artist_double_qty ?? 0,
+    vendorSingleQty: app.vendor_single_qty ?? 0,
+    vendorDoubleQty: app.vendor_double_qty ?? 0,
+    cornerCount: app.corner_count ?? 0,
+    artistCount: app.artist_count ?? 0,
+    isVeteran: !!app.is_veteran,
+    addOns: Array.isArray(app.add_ons) ? (app.add_ons as AddOn[]) : [],
+  }).permitFees
+}
+
+/** What set_comp() leaves on the invoice: booth part unless booth comped, plus permits unless permits comped. */
+export function compInvoiceAmount(app: CompPricingApp): number {
+  const permits = permitFeesFor(app)
+  const booth = app.comped_at ? 0 : Math.max(0, (app.total_amount ?? 0) - permits)
+  return booth + (app.permits_comped_at ? 0 : permits)
+}
+
+/** Any comp set. */
+export function hasAnyComp(app: CompPricingApp): boolean {
+  return !!app.comped_at || !!app.permits_comped_at
+}
+
+/** A comp that leaves nothing to pay: no due dates, the "no balance due" emails. */
+export function owesNothing(app: CompPricingApp): boolean {
+  return hasAnyComp(app) && compInvoiceAmount(app) === 0
 }
 
 export type ApprovePayload = {
@@ -19,9 +75,11 @@ export type ApprovePayload = {
 }
 
 /** What Approve writes. A comped application gets no due dates, ever. */
-export function approvePayload(app: { comped_at: string | null }, now: Date, finalDueAt: string): ApprovePayload {
+export function approvePayload(app: CompPricingApp, now: Date, finalDueAt: string): ApprovePayload {
   const base: ApprovePayload = { status: 'approved', approved_at: now.toISOString() }
-  if (isComped(app)) return base
+  // Only a comp that leaves $0 skips due dates. A booth comp that still owes
+  // permits follows the normal billing rules (Ryan, 2026-10-03).
+  if (owesNothing(app)) return base
   return { ...base, deposit_due_at: new Date(now.getTime() + 30 * DAY_MS).toISOString(), final_due_at: finalDueAt }
 }
 
@@ -52,11 +110,12 @@ export function restoredDepositDueAt(approvedAt: string, now: Date): string {
 export type ExclusionReason = 'no_invoice' | 'deposit_not_recorded'
 type InvoiceJoin = Array<{ deposit_paid_at: string | null }> | { deposit_paid_at: string | null } | null
 
-/** Assign Booth: who can be placed, and why each of the others cannot. */
-export function partitionAssignable<T extends { invoices: InvoiceJoin }>(apps: T[]): { assignable: T[]; excluded: Array<{ app: T; reason: ExclusionReason }> } {
+/** Assign Booth: who can be placed, and why each of the others cannot. A comped booth counts as secured (089). */
+export function partitionAssignable<T extends { invoices: InvoiceJoin; comped_at?: string | null }>(apps: T[]): { assignable: T[]; excluded: Array<{ app: T; reason: ExclusionReason }> } {
   const assignable: T[] = []
   const excluded: Array<{ app: T; reason: ExclusionReason }> = []
   for (const app of apps) {
+    if (app.comped_at) { assignable.push(app); continue }
     const list = app.invoices == null ? [] : Array.isArray(app.invoices) ? app.invoices : [app.invoices]
     if (list.length === 0) { excluded.push({ app, reason: 'no_invoice' }); continue }
     if (list.some(i => i.deposit_paid_at)) assignable.push(app)
