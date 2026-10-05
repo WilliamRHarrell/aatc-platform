@@ -5,20 +5,12 @@ import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { truckInvoiceRepriceable } from '@/lib/food-truck-invoice'
+import { foodTruckPrice } from '@/lib/food-truck-pricing'
 import { guardedWrite } from '@/lib/db-write'
 
 const DAY_OPTIONS = ['friday', 'saturday', 'sunday'] as const
 const DAY_LABELS: Record<string, string> = { friday: 'Fri', saturday: 'Sat', sunday: 'Sun' }
-// ⚠  A RECONCILIATION QUERY DEPENDS ON THIS MAP.
-// supabase/verify/reconcile_approved_without_invoice.sql block G recompares
-// every food truck invoice against these prices to catch amounts that silently
-// failed to update when a truck changed its day count. SQL cannot import a
-// TypeScript constant, so the map is duplicated there.
-//
-// Change these numbers and block G does not stop working - it starts reporting
-// every correctly-priced truck as a billing error, and the query that exists to
-// find mistakes becomes the one making them. Update both.
-const PRICING: Record<number, number> = { 1: 6000, 2: 12000, 3: 16000 }
+// Prices: src/lib/food-truck-pricing.ts (reconcile block G is pinned to it by a test).
 
 const INVOICE_STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   pending:   { bg: 'rgba(234,179,8,0.15)',   color: '#eab308' },
@@ -249,7 +241,7 @@ export default function AdminFoodTrucksPage() {
           // disagree and nothing says so.
           const amtRes = await guardedWrite(
             supabase.from('invoices')
-              .update({ amount: PRICING[newDayCount] })
+              .update({ amount: foodTruckPrice(newDayCount) })
               .eq('id', invoice.id)
               .select('id'),
             'Days changed but the invoice amount was not updated',
@@ -318,7 +310,7 @@ export default function AdminFoodTrucksPage() {
         .from('invoices')
         .insert({
           food_truck_id: truck.id,
-          amount: PRICING[form.days.length],
+          amount: foodTruckPrice(form.days.length),
           amount_paid: 0,
           status: 'pending',
         }).select('id'),
@@ -714,7 +706,7 @@ export default function AdminFoodTrucksPage() {
                 </div>
                 {form.days.length > 0 && (
                   <p className="mt-2 text-sm font-medium" style={{ color: '#C4A882' }}>
-                    Price: {formatCurrency(PRICING[form.days.length])}
+                    Price: {form.days.length > 0 ? formatCurrency(foodTruckPrice(form.days.length)) : 'select days'}
                   </p>
                 )}
               </div>

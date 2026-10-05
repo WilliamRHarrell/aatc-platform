@@ -106,11 +106,12 @@ select t.id, t.business_name, t.email, t.days, t.created_at
 --    invoice update silently affected zero rows, and it is billed for 2. No
 --    other query surfaces it and nobody notices until the money is short.
 --
---    ⚠  The mapping below duplicates PRICING in
---    src/app/admin/food-trucks/page.tsx. If the prices change there, change
---    them here. This is a known duplication, called out rather than hidden.
+--    ⚠  The mapping below duplicates FOOD_TRUCK_PRICE_BY_DAYS in
+--    src/lib/food-truck-pricing.ts ($100 / $200 / $250 since 2026-10-05).
+--    food-truck-pricing.test.ts fails if the two disagree. Square imports keep
+--    their invoiced amount and are skipped.
 --
---    AND KNOW HOW IT FAILS: if PRICING changes and this does not, block G does
+--    AND KNOW HOW IT FAILS: if the prices change and this does not, block G does
 --    not go quiet - it goes CONFIDENTLY WRONG. Every correctly-priced truck
 --    starts reporting as a mismatch, and the query that exists to find billing
 --    errors becomes the thing generating them. A reconciliation nobody trusts
@@ -120,9 +121,9 @@ select t.id,
        array_length(t.days, 1)          as day_count,
        i.amount                         as invoiced_cents,
        case array_length(t.days, 1)
-         when 1 then 6000
-         when 2 then 12000
-         when 3 then 16000
+         when 1 then 10000
+         when 2 then 20000
+         when 3 then 25000
        end                              as expected_cents,
        i.status,
        i.amount_paid
@@ -132,9 +133,9 @@ select t.id,
  where coalesce(i.payment_reference, '') not like 'Square #%'
    and i.amount is distinct from (
          case array_length(t.days, 1)
-           when 1 then 6000
-           when 2 then 12000
-           when 3 then 16000
+           when 1 then 10000
+           when 2 then 20000
+           when 3 then 25000
          end)
  order by t.business_name;
 
