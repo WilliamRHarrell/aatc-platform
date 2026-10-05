@@ -15,7 +15,7 @@
   list; deleting a protected sponsor says why.
 - Seed `protect_2026_09_26.sql`: Skin Reserve application 13c265d7 (owner
   ryan@skinreserve.com), its in-kind sponsorship 3c393126, and The Pinback
-  Button Club application 44c185e8 (owner jeremyharrell79@yahoo.com, comped).
+  Button Club application 44c185e8 (owner email on file, comped).
   Matched by id, trimmed name and owner.
 
 **Order:** merge, apply 082, run `protect_2026_09_26.sql`, paste
