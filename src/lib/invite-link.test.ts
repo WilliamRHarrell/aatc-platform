@@ -64,3 +64,11 @@ describe('emails', () => {
     expect(html).toContain('booth application')
   })
 })
+
+describe('food truck invites (090)', () => {
+  it('admin only', () => {
+    expect(canInvite('food_truck', 'admin')).toBe(true)
+    expect(canInvite('food_truck', 'content_editor')).toBe(false)
+    expect(canInvite('food_truck', 'sponsorship_manager')).toBe(false)
+  })
+})

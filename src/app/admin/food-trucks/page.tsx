@@ -6,6 +6,7 @@ import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import { truckInvoiceRepriceable } from '@/lib/food-truck-invoice'
 import { foodTruckPrice } from '@/lib/food-truck-pricing'
+import InviteLinkControl from '@/components/admin/InviteLinkControl'
 import { guardedWrite } from '@/lib/db-write'
 
 const DAY_OPTIONS = ['friday', 'saturday', 'sunday'] as const
@@ -754,6 +755,24 @@ export default function AdminFoodTrucksPage() {
                   {logoFile ? logoFile.name : 'Upload logo'}
                 </label>
               </div>
+
+              {/* Portal access (Invite & link, 090) */}
+              {editingId && (() => {
+                const truck = trucks.find(t => t.id === editingId)
+                if (!truck) return null
+                return (
+                  <div className="rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Portal access</p>
+                    <InviteLinkControl
+                      kind="food_truck"
+                      id={truck.id}
+                      linked={!!truck.user_id}
+                      defaultEmail={truck.email}
+                      onChange={userId => setTrucks(prev => prev.map(t => t.id === truck.id ? { ...t, user_id: userId } : t))}
+                    />
+                  </div>
+                )
+              })()}
 
               {/* Actions */}
               <div className="flex items-center gap-3 pt-2">
