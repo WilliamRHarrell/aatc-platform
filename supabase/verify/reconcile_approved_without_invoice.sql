@@ -128,7 +128,9 @@ select t.id,
        i.amount_paid
   from public.food_trucks t
   join public.invoices i on i.food_truck_id = t.id
- where i.amount is distinct from (
+ -- Square imports keep their invoiced amount (grandfathered, 2026-10-05).
+ where coalesce(i.payment_reference, '') not like 'Square #%'
+   and i.amount is distinct from (
          case array_length(t.days, 1)
            when 1 then 6000
            when 2 then 12000
