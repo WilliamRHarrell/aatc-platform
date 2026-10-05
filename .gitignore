@@ -46,3 +46,6 @@ next-env.d.ts
 
 # production schema-only dumps for diffing against the migration replay (scripts/verify-local.mjs)
 supabase/.schema-dumps/
+
+# Square import working files: generated SQL and overrides hold customer data (scripts/import-square-2027.mjs)
+supabase/.imports/

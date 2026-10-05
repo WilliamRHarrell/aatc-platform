@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { truckInvoiceRepriceable } from '@/lib/food-truck-invoice'
 import { guardedWrite } from '@/lib/db-write'
 
 const DAY_OPTIONS = ['friday', 'saturday', 'sunday'] as const
@@ -51,6 +52,7 @@ interface FoodTruckInvoice {
   food_truck_id: string
   amount: number
   amount_paid: number
+  payment_reference: string | null
   status: 'pending' | 'paid' | 'overdue' | 'cancelled'
 }
 
@@ -117,7 +119,7 @@ export default function AdminFoodTrucksPage() {
 
     const { data: invoices } = await supabase
       .from('invoices')
-      .select('id, food_truck_id, amount, amount_paid, status')
+      .select('id, food_truck_id, amount, amount_paid, status, payment_reference')
       .not('food_truck_id', 'is', null)
 
     const map = new Map<string, FoodTruckInvoice>()
@@ -234,7 +236,11 @@ export default function AdminFoodTrucksPage() {
       // If days changed and invoice is pending, update invoice amount
       const existingTruck = trucks.find(t => t.id === editingId)
       const invoice = invoiceMap.get(editingId)
-      if (existingTruck && invoice && invoice.status === 'pending') {
+      if (existingTruck && invoice && existingTruck.days.length !== form.days.length && !truckInvoiceRepriceable(invoice)) {
+        // Imported from Square, or a payment is recorded: the amount stays.
+        toast(`Days changed; the invoice amount was not changed (${/^Square #/.test(invoice.payment_reference ?? '') ? 'imported from Square' : 'payments recorded or not pending'}). Adjust it in Invoices if needed.`)
+      }
+      if (existingTruck && invoice && truckInvoiceRepriceable(invoice)) {
         const oldDayCount = existingTruck.days.length
         const newDayCount = form.days.length
         if (oldDayCount !== newDayCount) {
