@@ -1,6 +1,7 @@
 /**
- * Invite & link: connect a sponsorship or an in-person application to a portal
- * account, creating the account by invitation when none exists.
+ * Invite & link: connect a sponsorship, an in-person application or a food
+ * truck (090, 2026-10-05) to a portal account, creating the account by
+ * invitation when none exists.
  *
  * REVERSES A DECISION (Ryan, 2026-09-28). /api/admin/link-sponsor refused to
  * create accounts ("minting a login the sponsor never asked for"). Ryan wants
@@ -8,12 +9,13 @@
  * for the address the admin types, linked at once, and only usable by whoever
  * opens the emailed link. Pure rules here; the route does the I/O.
  */
-export type LinkKind = 'sponsorship' | 'application'
+export type LinkKind = 'sponsorship' | 'application' | 'food_truck'
 
-/** admin + sponsorship_manager on sponsorships; admin only on applications. */
+/** admin + sponsorship_manager on sponsorships; admin only on applications and food trucks. */
 export const INVITE_ROLES: Record<LinkKind, readonly string[]> = {
   sponsorship: ['admin', 'sponsorship_manager'],
   application: ['admin'],
+  food_truck: ['admin'],
 }
 
 export function canInvite(kind: LinkKind, role: string | null | undefined): boolean {

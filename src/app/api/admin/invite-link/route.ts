@@ -12,7 +12,7 @@ import { ACTIVE_APPLICATION_STATUSES, canInvite, planInviteLink, type AccountFac
  * or an in-person application. Replaces /api/admin/link-sponsor, which could
  * only link an account that already existed. Rules: lib/invite-link.ts.
  *
- * body: { kind: 'sponsorship' | 'application', id, email }  or  { kind: 'sponsorship', id, unlink: true }
+ * body: { kind: 'sponsorship' | 'application' | 'food_truck', id, email }  or  { kind: 'sponsorship' | 'food_truck', id, unlink: true }
  *
  * - An account with that email that has been used: link it and send the short
  *   "now in your portal" email.
@@ -30,7 +30,7 @@ import { ACTIVE_APPLICATION_STATUSES, canInvite, planInviteLink, type AccountFac
  * (emailSent: false), never undone: the admin can press it again to resend.
  */
 const EMAIL = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]{2,}$/
-const WHAT: Record<LinkKind, string> = { sponsorship: 'sponsorship', application: 'booth application' }
+const WHAT: Record<LinkKind, string> = { sponsorship: 'sponsorship', application: 'booth application', food_truck: 'food truck' }
 
 const admin = () => createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
   const { data: profile } = await userClient.from('profiles').select('role').eq('id', user.id).single()
 
   const body = (await req.json().catch(() => ({}))) as { kind?: string; id?: string; email?: string; unlink?: boolean }
-  const kind = body.kind === 'sponsorship' || body.kind === 'application' ? body.kind : null
+  const kind = body.kind === 'sponsorship' || body.kind === 'application' || body.kind === 'food_truck' ? body.kind : null
   if (!kind || !body.id) return NextResponse.json({ error: 'kind and id are required' }, { status: 400 })
   if (!canInvite(kind, profile?.role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
@@ -64,12 +64,17 @@ export async function POST(req: Request) {
     const { data } = await svc.from('sponsorships').select('id, sponsor_name, user_id, email, event_id, status').eq('id', body.id).single()
     if (!data) return NextResponse.json({ error: 'Sponsorship not found' }, { status: 404 })
     row = { id: data.id, name: data.sponsor_name, user_id: data.user_id, email: data.email, event_id: data.event_id, status: data.status }
+  } else if (kind === 'food_truck') {
+    // Food trucks have no status; the one-active-application rule does not apply.
+    const { data } = await svc.from('food_trucks').select('id, business_name, user_id, email, event_id').eq('id', body.id).single()
+    if (!data) return NextResponse.json({ error: 'Food truck not found' }, { status: 404 })
+    row = { id: data.id, name: data.business_name.trim(), user_id: data.user_id, email: data.email, event_id: data.event_id, status: 'approved' }
   } else {
     const { data } = await svc.from('applications').select('id, business_name, user_id, email, event_id, status').eq('id', body.id).single()
     if (!data) return NextResponse.json({ error: 'Application not found' }, { status: 404 })
     row = { id: data.id, name: data.business_name.trim(), user_id: data.user_id, email: data.email, event_id: data.event_id, status: data.status }
   }
-  const table = kind === 'sponsorship' ? 'sponsorships' : 'applications'
+  const table = kind === 'sponsorship' ? 'sponsorships' : kind === 'food_truck' ? 'food_trucks' : 'applications'
 
   // ── Unlink ────────────────────────────────────────────────
   if (body.unlink) {
