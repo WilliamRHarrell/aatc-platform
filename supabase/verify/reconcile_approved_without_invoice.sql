@@ -88,14 +88,17 @@ select
   (select count(*) from public.food_trucks where is_published)             as published,
   (select count(*) from public.invoices where food_truck_id is not null)   as food_truck_invoices;
 
--- ── F. Food trucks with no invoice
+-- ── F. Approved food trucks with no invoice
 --    want: 0 rows, PROVIDED E showed food_trucks > 0.
 --    Same gap as the approve path and the bulk booth create: the truck exists,
---    was never invoiced, and appears in no queue.
+--    was never invoiced, and appears in no queue. Since 091 an applicant is
+--    invoiced on approval, so pending / waitlisted / not selected trucks have
+--    no invoice by design and are left out.
 select t.id, t.business_name, t.email, t.days, t.created_at
   from public.food_trucks t
   left join public.invoices i on i.food_truck_id = t.id
  where i.id is null
+   and t.status = 'approved'
  order by t.created_at;
 
 -- ── G. Food truck invoices whose amount disagrees with the day count
