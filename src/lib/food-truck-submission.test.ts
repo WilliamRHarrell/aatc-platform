@@ -85,6 +85,11 @@ describe('paths and labels', () => {
   it('describes days in show order', () => {
     expect(describeDays(['sunday', 'friday'])).toBe('Friday, Sunday')
   })
+  it('trucks CAN sell Coke; it just cannot go inside (Ryan, 2026-10-08)', () => {
+    const drinks = FOOD_TRUCK_REQUIREMENTS.find(r => r.startsWith('Drinks:'))
+    expect(drinks).toBe("Drinks: The Crown Complex is a Pepsi facility. You can sell any drinks, but Coke and other non-Pepsi drinks can't be taken inside the building; customers have to finish them outside. Please let your customers know when they order.")
+    for (const r of FOOD_TRUCK_REQUIREMENTS) expect(r).not.toMatch(/may not sell|non-soda drinks only/i)
+  })
   it('the deposit line reads the deposit constant and FINAL_DUE_LABEL', () => {
     const last = FOOD_TRUCK_REQUIREMENTS[FOOD_TRUCK_REQUIREMENTS.length - 1]
     expect(last).toContain('$100 deposit')

@@ -22,9 +22,13 @@ applied (Ryan runs it).
     setup or upload them ahead of time. Not required to apply.
   - Trucks are responsible for their own inspection fees.
   - No exclusivity for a food type, but we aim for variety.
-  - The Crown Complex is a Pepsi facility: trucks may not sell Coke products
-    (Pepsi products or non-soda drinks only), since attendees bring rodeo
-    food and drinks inside.
+  - Drinks: The Crown Complex is a Pepsi facility. You can sell any drinks,
+    but Coke and other non-Pepsi drinks can't be taken inside the building;
+    customers have to finish them outside. Please let your customers know
+    when they order.
+    (CORRECTED by Ryan 2026-10-08. The first version said trucks may not sell
+    Coke products; that was wrong and must not come back. Trucks CAN sell
+    Coke.)
   - The $100 deposit holds your space but does not guarantee it. Full
     payment is due by January 1 to confirm your spot.
 - **Payment:** the first payment is $100 (or the full amount if the total is
