@@ -172,7 +172,7 @@ async function runFiles(db, files) {
  * Every INSERT in supabase/verify against the replayed catalog: columns that
  * are NOT NULL, have no default, are not generated, and are not assigned by a
  * BEFORE INSERT trigger on the same table (contest_votes.vote_date). Unlike
- * scripts/check-sql-fixtures.py this reads the real schema, so a later
+ * the removed scripts/check-sql-fixtures.py (2026-10-07) this reads the real schema, so a later
  * `drop not null` (applications.booth_size, 021) is not a false positive.
  */
 async function audit(db) {

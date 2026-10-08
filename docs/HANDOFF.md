@@ -9,63 +9,74 @@ This file is the index and the current state. Everything else lives in
 - [pre-show-email.md](handoff/pre-show-email.md) - approved pre-show venue-policies copy (Ryan sends it: box office / GHL).
 - [sessions/](handoff/sessions/) - one file per dated session, history.
 
-## START HERE - state as of 2026-09-30 (morning)
+## START HERE - state as of 2026-10-07
 
-**Merged and deployed (develop = 5f7aa7e):** everything through #60. Since
-the 2026-09-29 evening refresh:
-- #45 leftover page-level footers removed
-- #46 Crown Complex venue policies on /info/policies
-- #47 START HERE
-- #48 smoke-free wording with the designated smoking areas
-- #49 /tickets short venue note (the approved email copy is in
-  [pre-show-email.md](handoff/pre-show-email.md))
-- #50 phone header (menu toggle)
-- #51 /directory/[id] Event card from event-config
-- #52 /floorplan removed (404)
-- #53 /sitemap.xml
-- #54 /apply step 3 wording
-- #55 self-hosted fonts
-- #56 Tattoo Dating Game logo
-- #57 floor plan / holds / booth map design note
-- #58 Assign Booth through `assign_booths()` (086)
-- #59 Dating Game page times from the schedule (Fri 6:00 PM, Sat 5:30 PM;
-  Ryan confirmed Saturday 5:30 is correct)
-- #60 booth holds (087)
+**Merged and deployed (develop = b2c9f84):** everything through #73. Since
+the 2026-09-30 refresh:
+- #62 `npm run verify:local` (migration replay harness; CLAUDE.md requires
+  it before delivering a verify)
+- #63 pricing drift guards
+- #64 approval discount safeguard
+- #65 artist capacity 2/4 + roster guard + artist ID verification (088)
+- #66 "Show in directory before deposit" toggle
+- #67 directory funnel fix + drawer link to the exhibitor page
+- #68 /admin/print fix (PGRST201 after 087)
+- #69 comp split (089)
+- #70 Square import generator + food-truck re-price guard
+- #71 food-truck pricing
+- #72 personal email removed from a session note
+- #73 food-truck portal access (090)
 
-Source: `gh pr list --state merged`, 2026-09-30.
+Source: `gh pr list --state merged`, 2026-10-07.
 
-**Applied in production (Ryan):** everything through **087**, verified.
-- **086:** verify_086 passed. A real save (booth 126 to Skin Reserve)
-  worked, and booth 108 was refused (Ryan, 2026-09-30).
-- **087:**
-  - The first verify_087 run failed on its own fixture (sponsorships.tier);
-    that was fixed in #60.
-  - The re-run passed.
-  - Hold tests all worked: hold set; assigning it to another exhibitor
-    refused; assigning it to the linked exhibitor worked and cleared the
-    hold; release worked (Ryan, 2026-09-30).
+**Applied in production (Ryan):** everything through **090**.
+- **088 and 089 are applied, verify not reported.** Read 2026-10-07:
+  - `set_artist_id_verified` and `set_comp` exist (anon refused, 42501);
+  - `events.permit_submission_date` = 2027-03-01;
+  - comps are split (Jane Ink booth + permits; Skin Reserve, Pinback and
+    Chop Shop booth only).
+- **090 is applied and verified:** verify_090 passed, and
+  `scripts/verify-food-truck-owner.mjs` gave 4 PASS (Ryan, 2026-10-06).
 - 015 is superseded by 079b. 047 is still HELD.
-- Evidence per migration: [migrations.md](handoff/migrations.md). No
-  migration is delivered and waiting.
+- Evidence per migration: [migrations.md](handoff/migrations.md).
 
-**Open PRs (2026-09-30):**
-- #62 `chore/verify-local`: `npm run verify:local` replays every migration
-  into PGlite and runs verify SQL against it (`--audit` for fixtures,
-  `--dump-schema` for a production diff). CLAUDE.md makes it a
-  pre-delivery step.
+**Data operations run by Ryan:**
+- **Square 2027 import (2026-10-05):**
+  - 12 applications, 3 food trucks and 15 invoices: invoiced $10,230.00,
+    paid $2,382.50;
+  - booth 126 assigned to Cuitlahuac Palacios;
+  - no emails sent; the read-back matched the dry run.
+  - Generator: `scripts/import-square-2027.mjs`.
+  - **Teardown:** `supabase/.imports/square-2027-teardown.sql` in Claude's
+    worktree (`../aatc-platform-claude`, gitignored: it holds customer
+    data). It deletes exactly the imported ids, and **stops working (it
+    refuses) once a payment, amount, comp or linked portal account changes
+    any of those rows.** So it is unusable after Invite & link.
+- **Chop Shop Tattoo invoice set to $200** (booth comped, 4 permits;
+  `supabase/seeds/chopshop_invoice_2026_10_02.sql`). It is now
+  "Comp booth, permits charged".
 
-**Next, in order:**
-1. Docs PR (after #62 merges): point rules.md's fixture check at `npm run
-   verify:local -- --audit` and delete `scripts/check-sql-fixtures.py` (23
-   false positives on today's tree; Ryan approved 2026-09-30).
-2. **Floor plan Stage 1**, once Ryan sends the vector PDF: upload and show
-   the plan in admin, the portal and an optional public page (off at
-   launch). Restore the /apply "floor plan in your portal" clause in the
-   same PR.
-3. Booth positions (extraction plus placement mode), then Stage 2 (the
-   admin booth map), then later the public booth map.
+**Prices now in force:** food trucks **$100 for 1 day / $200 for 2 / $250
+for the full weekend** (`src/lib/food-truck-pricing.ts`; existing invoices
+unchanged). Artist permits are $50, capped at 2 per single / 4 per double.
 
-Design: [docs/superpowers/plans/2026-09-29-floor-plan-and-booth-map.md](superpowers/plans/2026-09-29-floor-plan-and-booth-map.md).
+**Queued, in order, each its own PR, report before building:**
+1. **Public food truck application** (`/apply/food-truck`): 3 PRs (091 +
+   the form, route, emails and admin review with cap and switch; the $100
+   deposit rule + January 1 handling; optional portal permit uploads).
+   **Decisions 1-10 pending** (report sent 2026-10-06).
+2. **Floor plan Stage 1:** waiting on the vector PDF.
+3. **Site-wide gold:** the antique golds replace #8B7355 / #866f52, waiting
+   on the button-text and light-gold decisions.
+4. **Domain cutover runbook:** sent 2026-09-30. Pre-cutover PRs (redirect
+   map, host-aware noindex, webhook dedupe) await Ryan's go and his answers
+   on AATC West and the redirect targets.
+
+Also queued (smaller):
+- the add-artist flow (PR 3 of the artist plan: requests, payment, swaps;
+  design in docs/superpowers/plans/2026-09-29-floor-plan-and-booth-map.md
+  and the 2026-10-02 sessions);
+- release-on-send-back for booths (proposed 2026-10-03).
 
 **Done outside the code (Ryan, 2026-09-28):**
 - Newsletter to GHL works on production for new and existing contacts, tag
@@ -84,13 +95,12 @@ Design: [docs/superpowers/plans/2026-09-29-floor-plan-and-booth-map.md](superpow
   real contact: use test addresses, and delete them in GHL afterwards.
 - `/api/cron/lifecycle-sweep?dry_run=1` also reports `booth_holds` (expired
   holds that would be cleared; #60).
+- `npm run verify:local -- <verify.sql>` / `--audit` / `--before NNN` /
+  `--dump-schema`: verifies against a replay of every migration (#62).
 
-**Queued, besides the floor plan, each its own PR, report before building:**
-1. Site-wide gold: the antique golds replace #8B7355 / #866f52 (plan sent;
-   awaiting button-text and light-gold decisions).
-2. Admin audit log - a design note only, not built.
-
-**Domains:** Ryan's. The cutover is his; no domain work from this side.
+**Domains:** Ryan does every Vercel, Cloudflare, Supabase and Stripe dashboard
+step (runbook, 2026-09-30); Claude's part is only the runbook's pre-cutover
+code PRs, on Ryan's go.
 At cutover, the `NEXT_PUBLIC_SITE_URL` flip also makes robots.txt list
 /sitemap.xml (#53).
 

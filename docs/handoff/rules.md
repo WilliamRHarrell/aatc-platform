@@ -5,7 +5,8 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
 ## 5. HOW TO VERIFY ANYTHING
 
     python3 -c "import pglast; pglast.parse_sql(open('FILE.sql').read())"   # parse
-    python3 scripts/check-sql-fixtures.py                                   # fixture columns
+    npm run verify:local -- --audit                                         # fixture columns (real replayed schema)
+    npm run verify:local -- supabase/verify/verify_NNN.sql                  # run a verify before delivering it
     node scripts/check-no-em-dashes.mjs                                     # dashes + harness literals
     npx tsc --noEmit && npm run build                                       # types + build
     curl -s https://aatc-platform.vercel.app/PATH | grep -c 'thing'         # what RENDERS

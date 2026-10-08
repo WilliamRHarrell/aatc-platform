@@ -4,6 +4,19 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
 
 ### OPEN ITEMS (one line each, with the owner)
 
+- **Report verify_088 and verify_089 results** (added 2026-10-07). Both
+  migrations are live (functions read 2026-10-07); their verify results were
+  not reported. Owner: Ryan.
+- **Public food truck application: decisions 1-10** (added 2026-10-07), from
+  the 2026-10-06 report: California Taco's terms, the January 1 handling,
+  auto-invite on approval, waitlist/rejection emails, the hard cap, where
+  the switch lives, a food-type pick-list, portal permit uploads, photo
+  limits, day changes. Owner: Ryan.
+- **Square import teardown expires on linking** (added 2026-10-07).
+  `supabase/.imports/square-2027-teardown.sql` (Claude's worktree,
+  gitignored) only runs while the 15 imported rows are unchanged; after
+  Invite & link it refuses by design. Undo after that point = row-by-row
+  admin edits. Owner: Ryan / Claude.
 - **Confirm the 2027 not-sellable booths and the 165/166 labelling**
   (added 2026-09-30). 108 (Help Desk), 241 (Merch & Contest Registration),
   166 and 233 ("does not exist on the floor plan") come from the 2024 plan.
@@ -58,10 +71,6 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
   It also settles whether "schedule_items: admin all" and "contests: admin
   write" are live (070's header said so; 054 drops both). DONE 2026-09-26:
   Ryan ran it, 48 PASS, 0 DIFFERS; recorded in migrations.md.
-- **/admin/invoices "Record payment" has no Square option** (added
-  2026-09-26): the dropdown offers stripe_external, cash, check,
-  bank_transfer, other; 068 made `square` part of the convention but the UI
-  was never updated. Owner: unassigned (small code change).
 - **/admin/invoices never loads `deposit_paid_at` / `final_paid_at`**
   (added 2026-09-26): `load()` selects neither, so recordPayment's "fires at
   most once" check always sees them empty and a SECOND recorded payment
@@ -111,6 +120,11 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
 
 ### CLOSED (kept one line each, with the evidence)
 
+- **/admin/invoices "Record payment" has no Square option.** DONE - the
+  payment method select offers `square` (src/app/admin/invoices/page.tsx,
+  checked 2026-10-07); the Square import used it.
+- **Square 2027 import.** DONE - 12 applications, 3 food trucks, 15
+  invoices, booth 126 to Palacios (Ryan, 2026-10-05).
 - **Assign Booth checks for 086.** DONE - verify_086 passed; booth 126
   assigned to Skin Reserve; booth 108 refused (Ryan, 2026-09-30).
 - **Booth holds (087).** DONE - verify_087 passed on the re-run; hold,
