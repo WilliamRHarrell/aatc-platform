@@ -609,6 +609,20 @@ export const REGISTRY: PageDef[] = [
         default:
           'Thank you for applying to the Food Truck Rodeo at AATC 2027. Our food truck spots are full for now, so your truck is on our waitlist.\n\nIf a spot opens, we will email you.',
       },
+      // ── Balance reminders, 30/14/7/1 days before the due date (092, Ryan 2026-10-08) ──
+      email_reminder_subject: {
+        label: 'Balance reminder: subject',
+        help: 'The due date is added after it automatically.',
+        type: 'text',
+        default: 'Reminder: your AATC 2027 food truck balance',
+      },
+      email_reminder_body: {
+        label: 'Balance reminder: body',
+        help: 'Plain paragraphs, separated by a blank line. The email adds the balance, the due date and the pay button. Sent 30, 14, 7 and 1 days before the due date.',
+        type: 'markdown',
+        default:
+          'A reminder that the balance for your truck at the Food Truck Rodeo is due soon. Your spot is confirmed once it is paid in full.\n\nYou can pay online from your portal.',
+      },
       email_not_selected_subject: { label: 'Not selected email: subject', type: 'text', default: 'Your AATC 2027 food truck application' },
       email_not_selected_body: {
         label: 'Not selected email: body',

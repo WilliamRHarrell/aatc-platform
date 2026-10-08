@@ -7,14 +7,14 @@ import { sendTransactional } from '@/lib/transactional-email'
 import { foodTruckSelectedEmail, foodTruckDecisionEmail } from '@/lib/email-templates'
 import { foodTruckPrice, FOOD_TRUCK_DEPOSIT_CENTS } from '@/lib/food-truck-pricing'
 import { describeDays } from '@/lib/food-truck-submission'
-import { DECISION_EMAIL_KEYS, decisionRefusal, isDecision } from '@/lib/food-truck-decision'
+import { DECISION_EMAIL_KEYS, decisionRefusal, isDecision, releaseRefusal } from '@/lib/food-truck-decision'
 import { linkAccount } from '@/lib/invite-link-server'
 
 /**
  * POST /api/admin/food-trucks/decision - Approve, Waitlist or Not selected on
  * a food truck application (091). Admin only.
  *
- * body: { id, decision: 'approved' | 'waitlisted' | 'not_selected' }
+ * body: { id, decision: 'approved' | 'waitlisted' | 'not_selected' | 'released' }
  *
  * Approve (Ryan's decisions 3 and 5):
  *   1. status -> approved. 091's trigger refuses it past events.food_truck_cap
@@ -24,6 +24,11 @@ import { linkAccount } from '@/lib/invite-link-server'
  *   4. ONE email: "you're selected, set up your account to pay".
  * Waitlist / Not selected: the status, then the content editor's email
  * unless the truck's "don't send" box (decision_email_opt_out) is ticked.
+ * Release (092; selected trucks only): released + unpublished, which frees
+ * the slot; every unpaid invoice of the truck is cancelled. Payments already
+ * made stay on record and are not refunded (the deposit holds the space but
+ * does not guarantee it; a refund is a manual exception). No email: Ryan
+ * contacts the truck (decision 4, 2026-10-08).
  *
  * Each step after the status is reported, not undone: a failed invoice or
  * invite leaves an approved truck the admin can finish by hand (reconcile
@@ -39,11 +44,12 @@ export async function POST(req: Request) {
   if (profile?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = (await req.json().catch(() => ({}))) as { id?: unknown; decision?: unknown }
-  if (typeof body.id !== 'string' || !isDecision(body.decision)) {
+  if (typeof body.id !== 'string' || !(isDecision(body.decision) || body.decision === 'released')) {
     return NextResponse.json({ error: 'id and decision are required' }, { status: 400 })
   }
-  const decision = body.decision
   const db = svc()
+  if (body.decision === 'released') return release(db, body.id)
+  const decision = body.decision
 
   const { data: truck } = await db.from('food_trucks')
     .select('id, event_id, user_id, business_name, contact_name, email, cuisine_type, days, status, decision_email_opt_out')
@@ -84,7 +90,7 @@ export async function POST(req: Request) {
     const { data: existing } = await db.from('invoices').select('id').eq('food_truck_id', truck.id).limit(1)
     if (!existing?.length) {
       const { error: invErr } = await db.from('invoices')
-        .insert({ food_truck_id: truck.id, amount: facts.price, amount_paid: 0, status: 'pending' })
+        .insert({ food_truck_id: truck.id, amount: facts.price, amount_paid: 0, status: 'pending', deposit_rule: 'food_truck_flat' })
       if (invErr) problems.push(`the invoice was not created (${invErr.message}); add it in Invoices`)
     }
 
@@ -120,4 +126,25 @@ export async function POST(req: Request) {
     await db.from('food_trucks').update({ decision_email_sent_at: new Date().toISOString() }).eq('id', truck.id)
   }
   return NextResponse.json({ ok: true, status: decision, emailSent, problems })
+}
+
+async function release(db: ReturnType<typeof svc>, id: string) {
+  const { data: truck } = await db.from('food_trucks').select('id, status').eq('id', id).single()
+  if (!truck) return NextResponse.json({ error: 'Food truck not found' }, { status: 404 })
+  const refusal = releaseRefusal(truck.status)
+  if (refusal) return NextResponse.json({ error: refusal }, { status: 409 })
+
+  const { data: moved, error } = await db.from('food_trucks')
+    .update({ status: 'released', is_published: false, decided_at: new Date().toISOString() })
+    .eq('id', id).eq('status', 'approved').select('id')
+  if (error) return NextResponse.json({ error: `The release did not save: ${error.message}` }, { status: 500 })
+  if (!moved?.length) return NextResponse.json({ error: 'This truck changed in the meantime. Reload and try again.' }, { status: 409 })
+
+  // A paid invoice stays paid (the money is on record); anything else stops
+  // being payable and stops the reminders.
+  const problems: string[] = []
+  const { error: invErr } = await db.from('invoices').update({ status: 'cancelled' })
+    .eq('food_truck_id', id).in('status', ['pending', 'overdue'])
+  if (invErr) problems.push(`the invoice was not cancelled (${invErr.message}); cancel it in Invoices`)
+  return NextResponse.json({ ok: true, status: 'released', emailSent: false, problems })
 }

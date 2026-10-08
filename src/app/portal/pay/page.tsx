@@ -16,6 +16,7 @@ interface InvoiceData {
   amount_paid: number
   status: string
   deposit_paid_at: string | null
+  deposit_rule?: string | null
   final_paid_at: string | null
   application_id: string | null
   sponsorship_id: string | null
@@ -36,7 +37,7 @@ function PayContent() {
     if (!invoiceId) { setLoading(false); return }
     supabase
       .from('invoices')
-      .select('id, amount, amount_paid, status, deposit_paid_at, final_paid_at, application_id, sponsorship_id, due_date')
+      .select('id, amount, amount_paid, status, deposit_paid_at, final_paid_at, application_id, sponsorship_id, due_date, deposit_rule')
       .eq('id', invoiceId)
       .single()
       .then(({ data }) => {
@@ -76,8 +77,9 @@ function PayContent() {
   }
 
   const balance = invoice.amount - invoice.amount_paid
-  // Sponsors have no 25% first-payment minimum (negotiated terms); booth
-  // invoices do until the deposit is recorded. One rule, shared with
+  // Sponsors have no first-payment minimum (negotiated terms); booth and
+  // food-truck invoices have the deposit (25%, or the food-truck flat deposit,
+  // 092) until it is recorded. One rule, shared with
   // /api/create-checkout: nextPaymentMinimumCents.
   const isSponsor = !!invoice.sponsorship_id
   const minimumCents = nextPaymentMinimumCents(invoice)
@@ -153,7 +155,7 @@ function PayContent() {
             {isSponsor
               ? `Pay any amount up to ${formatCurrency(balance)}.${invoice.due_date ? ` Balance due ${formatDateOnly(invoice.due_date)}.` : ''}`
               : isFirstPayment
-                ? `Minimum first payment: ${formatCurrency(minimumCents)} (25%). Remaining balance is due by ${FINAL_DUE_LABEL}.`
+                ? `Minimum first payment: ${formatCurrency(minimumCents)} (${invoice.deposit_rule === 'food_truck_flat' ? 'deposit' : '25%'}). Remaining balance is due by ${FINAL_DUE_LABEL}.`
                 : `Pay any amount up to ${formatCurrency(balance)}.`}
           </p>
         </div>

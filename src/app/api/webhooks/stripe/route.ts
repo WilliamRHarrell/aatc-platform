@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
-import { minDepositCents } from '@/lib/pricing'
+import { depositCents } from '@/lib/invoice-payment'
 import type { Database } from '@/types/database'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -101,7 +101,7 @@ export async function POST(req: Request) {
       // Fetch current invoice state
       const { data: inv } = await supabase
         .from('invoices')
-        .select('id, amount, amount_paid, status, deposit_paid_at, final_paid_at')
+        .select('id, amount, amount_paid, status, deposit_paid_at, final_paid_at, deposit_rule')
         .eq('id', invoiceId)
         .single()
 
@@ -116,7 +116,8 @@ export async function POST(req: Request) {
       const fullyPaid = newAmountPaid >= inv.amount
 
       // Milestone tracking - both fire at most once (idempotent on Stripe retries)
-      const minDeposit = minDepositCents(inv.amount)
+      // One rule with the portal and admin (092): 25%, or the food-truck flat deposit.
+      const minDeposit = depositCents(inv)
       const justCrossedDeposit = !inv.deposit_paid_at && newAmountPaid >= minDeposit
       const justCrossedFinal = !inv.final_paid_at && newAmountPaid >= inv.amount
       const nowIso = new Date().toISOString()

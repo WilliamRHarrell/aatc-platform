@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import Stripe from 'stripe'
-import { nextPaymentMinimumCents } from '@/lib/invoice-payment'
+import { nextPaymentMinimumCents, depositRuleLabel } from '@/lib/invoice-payment'
 import type { Database } from '@/types/database'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     // Fetch the invoice - RLS ensures this user owns it
     const { data: inv } = await supabase
       .from('invoices')
-      .select('id, amount, amount_paid, status, application_id, sponsorship_id, food_truck_id, deposit_paid_at')
+      .select('id, amount, amount_paid, status, application_id, sponsorship_id, food_truck_id, deposit_paid_at, deposit_rule')
       .eq('id', invoiceId)
       .single()
 
@@ -53,15 +53,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Payment must be between $0.01 and ${(balance / 100).toFixed(2)}` }, { status: 400 })
     }
 
-    // Booth invoices: the first payment must reach the 25% deposit. Sponsor
-    // invoices: no deposit minimum, ever (negotiated terms, due on due_date).
+    // Booth and food-truck invoices: the first payment must reach the deposit
+    // (25%, or the food-truck flat deposit, 092). Sponsor invoices: no deposit
+    // minimum, ever (negotiated terms, due on due_date).
     // One rule, shared with /portal/pay: nextPaymentMinimumCents.
     const minNext = nextPaymentMinimumCents(inv)
     if (payAmount < minNext) {
       return NextResponse.json(
         { error: inv.sponsorship_id
             ? `Payment must be at least $${(minNext / 100).toFixed(2)}`
-            : `First payment must be at least $${(minNext / 100).toFixed(2)} (25% of $${(inv.amount / 100).toFixed(2)})` },
+            : `First payment must be at least $${(minNext / 100).toFixed(2)} (${depositRuleLabel(inv)})` },
         { status: 400 },
       )
     }
