@@ -11,24 +11,31 @@ This file is the index and the current state. Everything else lives in
 
 ## START HERE - state as of 2026-10-08
 
-**Merged and deployed (develop = 3052458):** everything through #77. Since
+**Merged and deployed (develop = 822656b):** everything through #80. Since
 the 2026-10-07 refresh (#62-#74 are in the 2026-10-07 block of git history):
 - #75 public food truck application, PR 1 of 3 (091): `/apply/food-truck`,
   intake route, admin approve / waitlist / not selected, cap and switch
 - #76 styled file pickers on the food truck form
 - #77 food truck PR 2 of 3 (092): $100 first payment for new truck
   invoices, 30/14/7/1 balance reminders, January 2 unpaid list, Release
+- #78 food trucks CAN sell any drinks; Coke and other non-Pepsi drinks just
+  can't go inside (the first requirement text was wrong; a test pins it)
+- #79 START HERE refresh (088/089 verified, 091/092, Pennyboy and Adu Ink comps)
+- #80 food truck PR 3 of 3 (093): health permit and business license uploads
+  (form, portal, admin Docs column and verified check), private bucket
 
-Open: #78 (food trucks CAN sell Coke; the requirement text was wrong).
+Open PRs: none.
 
-Source: `gh pr list --state merged`, 2026-10-08.
+Source: `gh pr list --state merged` and `gh pr list --state open`, 2026-10-08.
 
-**Applied in production (Ryan):** everything through **092**, each verified:
+**Applied in production (Ryan):** everything through **093**, each verified:
 - 088: verify_088 passed, then verify_079_matrix passed (Ryan, 2026-10-07).
 - 089: verify_089 passed (Ryan, 2026-10-07).
 - 090: verify_090 + `scripts/verify-food-truck-owner.mjs` 4 PASS (2026-10-06).
 - 091 and 092: verify_091 and verify_092 passed, each applied before its
   PR merged (Ryan, 2026-10-08).
+- 093: verify_093 passed and `scripts/verify-food-truck-docs.mjs` all PASS,
+  applied before #80 merged (Ryan, 2026-10-08).
 - 015 is superseded by 079b. 047 is still HELD.
 - Evidence per migration: [migrations.md](handoff/migrations.md).
 
@@ -38,12 +45,16 @@ Pinback and Chop Shop booth only (Chop Shop pays $200 permits);
 permits (fully comped)** (Pennyboy and Adu Ink recorded 2026-10-07). A
 reconcile or audit that flags these comps is not finding an error.
 
-**Food trucks now:** applications are CLOSED (switch on /admin/food-trucks,
-default off; open it when ready, PR 2 has shipped). Cap 8, the 3 imports
-count as selected and stay on their 25% Square terms; trucks invoiced from
-#77 on pay $100 first, balance due January 1. Reminders are OFF until
-`FOOD_TRUCK_REMINDERS_ENABLED=true` (see Dated). Plan:
-docs/superpowers/plans/2026-10-07-food-truck-application.md.
+**Food trucks now (Ryan, 2026-10-08):**
+- **Applications are OPEN** at /apply/food-truck (switch on /admin/food-trucks).
+- Ryan checked /admin/food-trucks and the truck portal after #80: looks right.
+- Cap 8; the 3 imports count as selected and stay on their 25% Square terms.
+- Trucks invoiced from #77 on pay $100 first, balance due January 1.
+- Permit and license: optional on the form, uploadable in the portal,
+  verified by an admin.
+- Reminders are OFF until `FOOD_TRUCK_REMINDERS_ENABLED=true` (see Dated).
+- The 3-PR plan is complete:
+  docs/superpowers/plans/2026-10-07-food-truck-application.md.
 
 **Data operations run by Ryan:**
 - **Square 2027 import (2026-10-05):**
@@ -66,13 +77,11 @@ for the full weekend** (`src/lib/food-truck-pricing.ts`; existing invoices
 unchanged). Artist permits are $50, capped at 2 per single / 4 per double.
 
 **Queued, in order, each its own PR, report before building:**
-1. **Food truck PR 3 of 3:** permit and license uploads (form and portal),
-   private storage, admin "verified" check. Plan reported 2026-10-08.
-2. **Floor plan Stage 1:** waiting on the vector PDF.
-3. **Site-wide gold:** the antique golds replace #8B7355 / #866f52, waiting
+1. **Floor plan Stage 1:** waiting on the vector PDF.
+2. **Site-wide gold:** the antique golds replace #8B7355 / #866f52, waiting
    on the button-text and light-gold decisions.
-4. **Domain cutover runbook:** sent 2026-09-30. Pre-cutover PRs (redirect
-   map, host-aware noindex, webhook dedupe) await Ryan's go and his answers
+3. **Domain cutover runbook:** sent 2026-09-30. Pre-cutover PRs (redirect
+   map, host-aware noindex, webhook dedupe) await Ryan's go and Ryan's answers
    on AATC West and the redirect targets.
 
 Also queued (smaller):

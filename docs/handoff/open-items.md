@@ -10,10 +10,6 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
   `/api/cron/lifecycle-sweep?dry_run=1` first: `food_truck_reminders.would_send`
   should list only selected trucks with a balance. The January 2 internal
   "not paid in full" list is not behind this switch. Owner: Ryan.
-- **Open food truck applications when ready** (added 2026-10-08). The switch
-  on /admin/food-trucks is off; PR 2 (#77) has shipped, so nothing in the code
-  is waiting. Edit the drafted copy first (content editor, "Food truck
-  application"). Owner: Ryan.
 - **Square import teardown expires on linking** (added 2026-10-07).
   `supabase/.imports/square-2027-teardown.sql` (Claude's worktree,
   gitignored) only runs while the 15 imported rows are unchanged; after
@@ -100,7 +96,10 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
 - **Tick "Document verified"** on a veteran test application (neither live
   application claims the discount yet). Owner: Ryan.
 - **ID document retention** - decide the windows in the plan above, then build
-  it as a sweep branch. Owner: Ryan (decision), unassigned (build).
+  it as a sweep branch. Food-truck health permits and business licenses
+  (private bucket `food-truck-docs`, 093) follow the same decision (Ryan,
+  2026-10-08); nothing is deleted until it is made. Owner: Ryan (decision),
+  unassigned (build).
 - **Orphan cleanup** - review the dry-run list, then
   `node scripts/cleanup-application-docs-orphans.mjs --delete --allow-mass-delete`
   (the flag is needed this once: 51 of 53 files are candidates, above the
