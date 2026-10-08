@@ -50,7 +50,8 @@ export const FOOD_TRUCK_REQUIREMENTS: readonly string[] = [
   'A valid health permit and business license are required. Show them at setup or upload them ahead of time. They are not required to apply.',
   'Trucks are responsible for their own inspection fees.',
   'No exclusivity for a food type, but we aim for variety.',
-  'The Crown Complex is a Pepsi facility: trucks may not sell Coke products (Pepsi products or non-soda drinks only), since attendees bring rodeo food and drinks inside.',
+  // Corrected by Ryan 2026-10-08: trucks MAY sell Coke; it just cannot go inside.
+  "Drinks: The Crown Complex is a Pepsi facility. You can sell any drinks, but Coke and other non-Pepsi drinks can't be taken inside the building; customers have to finish them outside. Please let your customers know when they order.",
   `The ${dollarsWhole(FOOD_TRUCK_DEPOSIT_CENTS)} deposit holds your space but does not guarantee it. Full payment is due by ${FINAL_DUE_LABEL} to confirm your spot.`,
 ]
 
