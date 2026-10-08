@@ -9,36 +9,41 @@ This file is the index and the current state. Everything else lives in
 - [pre-show-email.md](handoff/pre-show-email.md) - approved pre-show venue-policies copy (Ryan sends it: box office / GHL).
 - [sessions/](handoff/sessions/) - one file per dated session, history.
 
-## START HERE - state as of 2026-10-07
+## START HERE - state as of 2026-10-08
 
-**Merged and deployed (develop = b2c9f84):** everything through #73. Since
-the 2026-09-30 refresh:
-- #62 `npm run verify:local` (migration replay harness; CLAUDE.md requires
-  it before delivering a verify)
-- #63 pricing drift guards
-- #64 approval discount safeguard
-- #65 artist capacity 2/4 + roster guard + artist ID verification (088)
-- #66 "Show in directory before deposit" toggle
-- #67 directory funnel fix + drawer link to the exhibitor page
-- #68 /admin/print fix (PGRST201 after 087)
-- #69 comp split (089)
-- #70 Square import generator + food-truck re-price guard
-- #71 food-truck pricing
-- #72 personal email removed from a session note
-- #73 food-truck portal access (090)
+**Merged and deployed (develop = 3052458):** everything through #77. Since
+the 2026-10-07 refresh (#62-#74 are in the 2026-10-07 block of git history):
+- #75 public food truck application, PR 1 of 3 (091): `/apply/food-truck`,
+  intake route, admin approve / waitlist / not selected, cap and switch
+- #76 styled file pickers on the food truck form
+- #77 food truck PR 2 of 3 (092): $100 first payment for new truck
+  invoices, 30/14/7/1 balance reminders, January 2 unpaid list, Release
 
-Source: `gh pr list --state merged`, 2026-10-07.
+Open: #78 (food trucks CAN sell Coke; the requirement text was wrong).
 
-**Applied in production (Ryan):** everything through **090**.
-- **088 and 089 are applied, verify not reported.** Read 2026-10-07:
-  - `set_artist_id_verified` and `set_comp` exist (anon refused, 42501);
-  - `events.permit_submission_date` = 2027-03-01;
-  - comps are split (Jane Ink booth + permits; Skin Reserve, Pinback and
-    Chop Shop booth only).
-- **090 is applied and verified:** verify_090 passed, and
-  `scripts/verify-food-truck-owner.mjs` gave 4 PASS (Ryan, 2026-10-06).
+Source: `gh pr list --state merged`, 2026-10-08.
+
+**Applied in production (Ryan):** everything through **092**, each verified:
+- 088: verify_088 passed, then verify_079_matrix passed (Ryan, 2026-10-07).
+- 089: verify_089 passed (Ryan, 2026-10-07).
+- 090: verify_090 + `scripts/verify-food-truck-owner.mjs` 4 PASS (2026-10-06).
+- 091 and 092: verify_091 and verify_092 passed, each applied before its
+  PR merged (Ryan, 2026-10-08).
 - 015 is superseded by 079b. 047 is still HELD.
 - Evidence per migration: [migrations.md](handoff/migrations.md).
+
+**Comps (intentional, Ryan):** Jane Ink booth + permits; Skin Reserve,
+Pinback and Chop Shop booth only (Chop Shop pays $200 permits);
+**Pennyboy Tattoo booth only (permits still charged)**; **Adu Ink booth +
+permits (fully comped)** (Pennyboy and Adu Ink recorded 2026-10-07). A
+reconcile or audit that flags these comps is not finding an error.
+
+**Food trucks now:** applications are CLOSED (switch on /admin/food-trucks,
+default off; open it when ready, PR 2 has shipped). Cap 8, the 3 imports
+count as selected and stay on their 25% Square terms; trucks invoiced from
+#77 on pay $100 first, balance due January 1. Reminders are OFF until
+`FOOD_TRUCK_REMINDERS_ENABLED=true` (see Dated). Plan:
+docs/superpowers/plans/2026-10-07-food-truck-application.md.
 
 **Data operations run by Ryan:**
 - **Square 2027 import (2026-10-05):**
@@ -61,10 +66,8 @@ for the full weekend** (`src/lib/food-truck-pricing.ts`; existing invoices
 unchanged). Artist permits are $50, capped at 2 per single / 4 per double.
 
 **Queued, in order, each its own PR, report before building:**
-1. **Public food truck application** (`/apply/food-truck`): 3 PRs (091 +
-   the form, route, emails and admin review with cap and switch; the $100
-   deposit rule + January 1 handling; optional portal permit uploads).
-   **Decisions 1-10 pending** (report sent 2026-10-06).
+1. **Food truck PR 3 of 3:** permit and license uploads (form and portal),
+   private storage, admin "verified" check. Plan reported 2026-10-08.
 2. **Floor plan Stage 1:** waiting on the vector PDF.
 3. **Site-wide gold:** the antique golds replace #8B7355 / #866f52, waiting
    on the button-text and light-gold decisions.
@@ -105,7 +108,8 @@ At cutover, the `NEXT_PUBLIC_SITE_URL` flip also makes robots.txt list
 /sitemap.xml (#53).
 
 **Dated (Ryan):** DMARC reports ~2026-10-12 then `p=quarantine; pct=25`;
-`SPONSOR_REMINDERS_ENABLED=true` in Vercel before 2026-12-01. Details in
+`SPONSOR_REMINDERS_ENABLED=true` and `FOOD_TRUCK_REMINDERS_ENABLED=true` in
+Vercel before 2026-12-01 (first truck reminder 2026-12-02). Details in
 [open-items.md](handoff/open-items.md).
 
 **Test data left live on purpose:** none. (ZZ TEST RLS-harness
