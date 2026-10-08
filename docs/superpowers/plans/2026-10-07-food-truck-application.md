@@ -77,3 +77,58 @@ applied (Ryan runs it).
    (decision 8).
 
 The detailed plan for each PR is added here when it is reported.
+
+## PR 1 plan (reported 2026-10-07, not yet approved)
+
+**Today:** `food_trucks` has no status column and no public insert path
+(no anon or owner INSERT policy; anon cannot read the table). Admin "Add"
+creates the invoice at once. `events` has no switch or cap. The `/apply` hub
+shows a non-link "Opening soon"; the rodeo page's CTA is a mailto.
+
+**Migration 091 (delivered, not applied):**
+- `food_trucks.status` text NOT NULL, CHECK in (pending, approved,
+  waitlisted, not_selected, released); `released` is used from PR 2.
+  Existing rows backfilled to `approved` (the 3 imports and any admin-added
+  truck); new rows default `pending`.
+- New `food_trucks` columns: `photos` text[] (max 5, storage paths),
+  `acknowledged_at`, `applied_at` (NULL for admin-added), `decided_at`,
+  `decision_email_opt_out` bool, `decision_email_sent_at`.
+- `events.food_truck_applications_open` bool NOT NULL default false and
+  `events.food_truck_cap` int NOT NULL default 8, CHECK > 0.
+- Cap as a trigger, so admin Add and approval both hit it: a move into
+  `approved` locks the event row, counts approved trucks for the event and
+  refuses over the cap.
+- A truck can be published only while `approved` (same trigger).
+- The 090 staff-columns trigger also protects status, the decision columns
+  and `applied_at`/`acknowledged_at`.
+- `food-truck-logos` bucket limit raised from 5 MB to 10 MB (photos); the
+  app still limits logos to 5 MB.
+- Policies enumerated from `pg_policies` first and listed in the header;
+  none are added or loosened for anon.
+- `verify_091.sql`, run with `verify:local` and `--audit` before delivery.
+
+**Public form and route:**
+- `/apply/food-truck` (public, no sign-in): the spec's fields, the
+  food-type pick-list with "Other", days with the live price from
+  `foodTruckPrice`, the requirements list, the acknowledgment, and logo +
+  photos. Closed message from the content editor when the switch is off.
+- `POST /api/food-truck-apply`: bot trap (`website` honeypot +
+  `elapsedMs`), validation in `src/lib/food-truck-submission.ts` (unit
+  tested), open check, service-role insert (pending, unpublished, no user),
+  receipt to the applicant and notice to `CONTACT_EMAIL`.
+- Files go straight to Storage through signed upload URLs that the route
+  issues for the new truck's folder. Vercel caps a request body at about
+  4.5 MB, so 5 photos of 10 MB cannot pass through the route.
+- Links from `/apply` (replacing "Opening soon") and the rodeo page CTA.
+
+**Admin (`/admin/food-trucks`):**
+- Switch and cap editor (event row), "X of 8 selected", status column and
+  filter, applicant details (photos, acknowledgment, applied date).
+- Approve / Waitlist / Not selected through an admin route. Approve creates
+  the invoice from `foodTruckPrice` and sends one "you're selected, set up
+  your account to pay" email carrying the Invite & link invitation
+  (decision 3). Waitlist and Not selected send their email unless the
+  per-truck "don't send" box is ticked (decision 4).
+- Email copy, form intro, requirements and closed message live in a new
+  content-editor page.
+
