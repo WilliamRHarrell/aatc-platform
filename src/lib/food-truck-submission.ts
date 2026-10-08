@@ -6,7 +6,9 @@
  * Files never pass through the route (Vercel caps a request body at about
  * 4.5 MB; five 10 MB photos cannot). The form posts a manifest of the files it
  * will send; the route checks it here and answers with one signed upload URL
- * per file, into the new truck's folder of the public food-truck-logos bucket.
+ * per file, into the new truck's folder: logo and photos in the public
+ * food-truck-logos bucket, the health permit and business license in the
+ * PRIVATE food-truck-docs bucket (093).
  */
 import { FOOD_TRUCK_DEPOSIT_CENTS, foodTruckPrice } from '@/lib/food-truck-pricing'
 import { FINAL_DUE_LABEL } from '@/lib/event-config'
@@ -41,6 +43,19 @@ export const TRUCK_IMAGE_TYPES: Record<string, string> = { 'image/jpeg': 'jpg', 
 export const TRUCK_IMAGE_ACCEPT = Object.keys(TRUCK_IMAGE_TYPES).join(',')
 
 /**
+ * Health permit and business license (093; Ryan, 2026-10-08): PDF, JPG or
+ * PNG, up to 10 MB, exactly the private bucket's limits. Optional to apply.
+ */
+export const TRUCK_DOC_KINDS = ['permit', 'license'] as const
+export type TruckDocKind = (typeof TRUCK_DOC_KINDS)[number]
+export const TRUCK_DOC_LABELS: Record<TruckDocKind, string> = { permit: 'Health permit', license: 'Business license' }
+export const TRUCK_DOC_MAX_BYTES = 10 * 1024 * 1024
+export const TRUCK_DOC_TYPES: Record<string, string> = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png' }
+export const TRUCK_DOC_ACCEPT = Object.keys(TRUCK_DOC_TYPES).join(',')
+export const TRUCK_LOGOS_BUCKET = 'food-truck-logos'
+export const TRUCK_DOCS_BUCKET = 'food-truck-docs'
+
+/**
  * The requirements shown on the form, which the acknowledgment covers (Ryan's
  * spec, 2026-10-07). Built here so the deposit and the due date come from
  * their one home rather than being restated.
@@ -59,7 +74,7 @@ function dollarsWhole(cents: number): string {
   return `$${(cents / 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}`
 }
 
-export type FileKind = 'logo' | 'photo'
+export type FileKind = 'logo' | 'photo' | TruckDocKind
 export interface FileManifestEntry { kind: FileKind; type: string; size: number }
 export interface PlannedFile { kind: FileKind; ext: string; contentType: string }
 
@@ -88,6 +103,12 @@ const str = (v: unknown, max = 200) => (typeof v === 'string' ? v.trim().slice(0
 
 /** Checks one file against the bucket's types and the per-kind size. */
 export function checkTruckFile(f: { type: string; size: number }, kind: FileKind): { ok: true; ext: string } | { ok: false; error: string } {
+  if (kind === 'permit' || kind === 'license') {
+    const docExt = TRUCK_DOC_TYPES[f.type]
+    if (!docExt) return { ok: false, error: `${TRUCK_DOC_LABELS[kind]} must be a PDF, JPG or PNG.` }
+    if (!(f.size > 0) || f.size > TRUCK_DOC_MAX_BYTES) return { ok: false, error: `${TRUCK_DOC_LABELS[kind]} must be ${TRUCK_DOC_MAX_BYTES / 1024 / 1024} MB or smaller.` }
+    return { ok: true, ext: docExt }
+  }
   const ext = TRUCK_IMAGE_TYPES[f.type]
   const what = kind === 'logo' ? 'Logo' : 'Each photo'
   if (!ext) return { ok: false, error: `${what} must be a JPG, PNG or WebP image.` }
@@ -131,13 +152,18 @@ export function validateFoodTruckSubmission(body: Record<string, unknown>): Food
   const files: PlannedFile[] = []
   const logos = manifest.filter((f): f is FileManifestEntry => !!f && typeof f === 'object' && (f as FileManifestEntry).kind === 'logo')
   const photos = manifest.filter((f): f is FileManifestEntry => !!f && typeof f === 'object' && (f as FileManifestEntry).kind === 'photo')
-  if (logos.length + photos.length !== manifest.length) fieldErrors.files = 'Could not read the attached files. Please try again.'
+  const permits = manifest.filter((f): f is FileManifestEntry => !!f && typeof f === 'object' && (f as FileManifestEntry).kind === 'permit')
+  const licenses = manifest.filter((f): f is FileManifestEntry => !!f && typeof f === 'object' && (f as FileManifestEntry).kind === 'license')
+  if (logos.length + photos.length + permits.length + licenses.length !== manifest.length) fieldErrors.files = 'Could not read the attached files. Please try again.'
   if (logos.length > 1) fieldErrors.logo = 'Please attach one logo.'
+  if (permits.length > 1) fieldErrors.permit = 'Please attach one health permit.'
+  if (licenses.length > 1) fieldErrors.license = 'Please attach one business license.'
   if (photos.length > PHOTO_MAX_COUNT) fieldErrors.photos = `Please attach up to ${PHOTO_MAX_COUNT} photos.`
-  for (const [kind, list] of [['logo', logos], ['photo', photos]] as const) {
+  // Order matters: the route's upload `index` follows it (logo, photos, permit, license).
+  for (const [kind, list] of [['logo', logos], ['photo', photos], ['permit', permits], ['license', licenses]] as const) {
     for (const f of list) {
       const c = checkTruckFile({ type: String(f.type), size: Number(f.size) }, kind)
-      if (!c.ok) { fieldErrors[kind === 'logo' ? 'logo' : 'photos'] = c.error; continue }
+      if (!c.ok) { fieldErrors[kind === 'photo' ? 'photos' : kind] = c.error; continue }
       files.push({ kind, ext: c.ext, contentType: String(f.type) })
     }
   }
@@ -168,7 +194,20 @@ export function validateFoodTruckSubmission(body: Record<string, unknown>): Food
  * names (Ryan's decision 3: unlisted paths in the public bucket).
  */
 export function applicantFilePath(truckId: string, f: PlannedFile, rand: string): string {
-  return f.kind === 'logo' ? `${truckId}/logo-${rand}.${f.ext}` : `${truckId}/photos/${rand}.${f.ext}`
+  if (f.kind === 'photo') return `${truckId}/photos/${rand}.${f.ext}`
+  return `${truckId}/${f.kind}-${rand}.${f.ext}`
+}
+
+/** Documents go in the private bucket; pictures in the public one. */
+export function bucketFor(kind: FileKind): string {
+  return kind === 'permit' || kind === 'license' ? TRUCK_DOCS_BUCKET : TRUCK_LOGOS_BUCKET
+}
+
+export type TruckDocState = 'missing' | 'uploaded' | 'verified'
+/** For the admin Docs column and the portal. */
+export function truckDocState(path: string | null | undefined, verifiedAt: string | null | undefined): TruckDocState {
+  if (!path) return 'missing'
+  return verifiedAt ? 'verified' : 'uploaded'
 }
 
 /** "Friday, Saturday" from the stored day keys, in show order. */

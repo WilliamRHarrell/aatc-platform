@@ -14,6 +14,7 @@ import { TRUCK_STATUS_LABELS, capLabel, type Decision } from '@/lib/food-truck-d
 import { truckBalancePastDue, truckPaymentState } from '@/lib/food-truck-reminders'
 import { todayEastern } from '@/lib/date-only'
 import { FINAL_DUE_LABEL } from '@/lib/event-config'
+import { TRUCK_DOC_KINDS, TRUCK_DOC_LABELS, truckDocState, type TruckDocKind, type TruckDocState } from '@/lib/food-truck-submission'
 
 const DAY_OPTIONS = ['friday', 'saturday', 'sunday'] as const
 const DAY_LABELS: Record<string, string> = { friday: 'Fri', saturday: 'Sat', sunday: 'Sun' }
@@ -65,7 +66,22 @@ interface FoodTruck {
   decided_at?: string | null
   decision_email_opt_out?: boolean
   decision_email_sent_at?: string | null
+  // 093; absent until it is applied
+  permit_path?: string | null
+  permit_uploaded_at?: string | null
+  permit_verified_at?: string | null
+  license_path?: string | null
+  license_uploaded_at?: string | null
+  license_verified_at?: string | null
 }
+
+// Docs column and panel (093): missing / uploaded / verified per document.
+const DOC_STATE_STYLE: Record<TruckDocState, { color: string; short: string }> = {
+  missing:  { color: '#666',    short: 'missing' },
+  uploaded: { color: '#eab308', short: 'uploaded' },
+  verified: { color: '#4ade80', short: 'verified' },
+}
+const docState = (t: FoodTruck, kind: TruckDocKind) => truckDocState(t[`${kind}_path`], t[`${kind}_verified_at`])
 
 interface EventSettings { open: boolean; cap: number }
 
@@ -125,6 +141,7 @@ export default function AdminFoodTrucksPage() {
   const [capDraft, setCapDraft] = useState('')
   const [filter, setFilter] = useState<StatusFilter>('all')
   const [deciding, setDeciding] = useState(false)
+  const [docBusy, setDocBusy] = useState(false)
 
   const loadData = async () => {
     const { data: event } = await supabase
@@ -246,6 +263,32 @@ export default function AdminFoodTrucksPage() {
       await loadData()
     } finally {
       setDeciding(false)
+    }
+  }
+
+  // ── Permit and license (093) ──────────────────────────────
+  // Signed URLs live five minutes, so each View asks for a fresh one.
+  const viewDoc = async (truck: FoodTruck, kind: TruckDocKind) => {
+    const tab = window.open('', '_blank')
+    const res = await fetch('/api/admin/food-truck-docs', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ truckId: truck.id }),
+    })
+    const json = (await res.json().catch(() => ({}))) as { urls?: Record<string, string | null>; error?: string }
+    const url = json.urls?.[kind]
+    if (!res.ok || !url) { tab?.close(); toast.error(json.error ?? `Could not open the ${TRUCK_DOC_LABELS[kind].toLowerCase()}`); return }
+    if (tab) tab.location.href = url
+    else window.location.href = url
+  }
+
+  const setDocVerified = async (truck: FoodTruck, kind: TruckDocKind, verified: boolean) => {
+    setDocBusy(true)
+    try {
+      const { data, error } = await supabase.rpc('set_food_truck_doc_verified', { p_truck_id: truck.id, p_kind: kind, p_verified: verified })
+      if (error) { toast.error(`${TRUCK_DOC_LABELS[kind]} not ${verified ? 'verified' : 'unverified'}: ${error.message}`); return }
+      setTrucks(prev => prev.map(t => t.id === truck.id ? { ...t, [`${kind}_verified_at`]: data ?? null } : t))
+      toast.success(`${TRUCK_DOC_LABELS[kind]} ${verified ? 'verified' : 'marked unverified'}`)
+    } finally {
+      setDocBusy(false)
     }
   }
 
@@ -630,6 +673,7 @@ export default function AdminFoodTrucksPage() {
               <div className="w-32 text-xs font-bold uppercase tracking-wider" style={{ color: '#666' }}>Days</div>
               <div className="w-12 text-xs font-bold uppercase tracking-wider" style={{ color: '#666' }}>Thu</div>
               {settings && <div className="w-24 text-xs font-bold uppercase tracking-wider text-center" style={{ color: '#666' }}>Status</div>}
+              {settings && <div className="w-24 text-xs font-bold uppercase tracking-wider" style={{ color: '#666' }}>Docs</div>}
               <div className="w-28 text-xs font-bold uppercase tracking-wider text-center" style={{ color: '#666' }}>Payment</div>
               <div className="w-20 text-xs font-bold uppercase tracking-wider text-center" style={{ color: '#666' }}>Published</div>
               <div className="w-16" />
@@ -711,6 +755,21 @@ export default function AdminFoodTrucksPage() {
                           {TRUCK_STATUS_LABELS[truck.status] ?? truck.status}
                         </span>
                       )}
+                    </div>
+                  )}
+
+                  {/* Docs: permit / license (093) */}
+                  {settings && (
+                    <div className="hidden w-24 sm:block text-xs leading-5">
+                      {TRUCK_DOC_KINDS.map(kind => {
+                        const st = docState(truck, kind)
+                        return (
+                          <div key={kind} title={`${TRUCK_DOC_LABELS[kind]}: ${DOC_STATE_STYLE[st].short}`}>
+                            <span style={{ color: '#666' }}>{kind === 'permit' ? 'Permit' : 'License'}</span>{' '}
+                            <span style={{ color: DOC_STATE_STYLE[st].color }}>{DOC_STATE_STYLE[st].short}</span>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
 
@@ -1070,6 +1129,52 @@ export default function AdminFoodTrucksPage() {
                         <p className="mt-2 text-xs" style={{ color: '#666' }}>Approve creates the invoice and sends the &quot;you&apos;re selected, set up your account to pay&quot; email.</p>
                       </>
                     )}
+                  </div>
+                )
+              })()}
+
+              {/* Health permit and business license (093) */}
+              {editingId && settings && (() => {
+                const truck = trucks.find(t => t.id === editingId)
+                if (!truck || truck.permit_path === undefined) return null
+                return (
+                  <div className="rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Permit and license</p>
+                    <div className="space-y-3">
+                      {TRUCK_DOC_KINDS.map(kind => {
+                        const st = docState(truck, kind)
+                        const uploadedAt = truck[`${kind}_uploaded_at`]
+                        const verifiedAt = truck[`${kind}_verified_at`]
+                        return (
+                          <div key={kind} className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="text-sm">
+                              <span className="text-white">{TRUCK_DOC_LABELS[kind]}</span>{' '}
+                              <span className="text-xs font-semibold" style={{ color: DOC_STATE_STYLE[st].color }}>
+                                {st === 'missing' ? 'not uploaded'
+                                  : st === 'verified' ? `verified ${verifiedAt ? new Date(verifiedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}`
+                                  : `uploaded ${uploadedAt ? new Date(uploadedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}`}
+                              </span>
+                            </div>
+                            {st !== 'missing' && (
+                              <div className="flex gap-2">
+                                <button onClick={() => viewDoc(truck, kind)} className="rounded-lg px-3 py-1.5 text-xs font-semibold" style={{ color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}>View</button>
+                                <button
+                                  onClick={() => setDocVerified(truck, kind, st !== 'verified')}
+                                  disabled={docBusy}
+                                  className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity disabled:opacity-40"
+                                  style={st === 'verified'
+                                    ? { color: '#999', border: '1px solid #3a3a3a' }
+                                    : { backgroundColor: 'rgba(74,222,128,0.15)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }}
+                                >
+                                  {st === 'verified' ? 'Unverify' : 'Mark verified'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <p className="mt-3 text-xs" style={{ color: '#666' }}>The truck uploads these on the form or in its portal. A replacement clears the verification.</p>
                   </div>
                 )
               })()}

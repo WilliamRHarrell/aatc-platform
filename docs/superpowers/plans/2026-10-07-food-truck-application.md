@@ -150,3 +150,14 @@ shows a non-link "Opening soon"; the rodeo page's CTA is a mailto.
 Built as migration 092 (`invoices.deposit_rule`, 14/1-day reminder columns,
 `events.food_truck_unpaid_report_sent_at`); details in
 docs/handoff/sessions/2026-10-08-food-truck-deposit-and-due.md.
+
+## PR 3 decisions (Ryan, 2026-10-08)
+
+1. Health permit and business license: PDF, JPG or PNG, up to 10 MB.
+2. A small "Docs" column in the admin trucks list: permit / license, each
+   missing, uploaded or verified.
+3. Retention: food-truck documents follow the ID-documents retention decision
+   (open item "ID document retention"); nothing is deleted until it is made.
+
+Built as migration 093 (private bucket `food-truck-docs`); details in
+docs/handoff/sessions/2026-10-08-food-truck-documents.md.

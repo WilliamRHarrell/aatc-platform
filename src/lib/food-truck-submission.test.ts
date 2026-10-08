@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it, expect } from 'vitest'
 import {
-  validateFoodTruckSubmission, checkTruckFile, applicantFilePath, describeDays,
+  validateFoodTruckSubmission, checkTruckFile, applicantFilePath, describeDays, bucketFor, truckDocState,
   FOOD_TYPES, FOOD_TRUCK_REQUIREMENTS, PHOTO_MAX_BYTES, TRUCK_LOGO_MAX_BYTES,
 } from '@/lib/food-truck-submission'
 import { FINAL_DUE_LABEL } from '@/lib/event-config'
@@ -94,5 +96,37 @@ describe('paths and labels', () => {
     const last = FOOD_TRUCK_REQUIREMENTS[FOOD_TRUCK_REQUIREMENTS.length - 1]
     expect(last).toContain('$100 deposit')
     expect(last).toContain(FINAL_DUE_LABEL)
+  })
+})
+
+describe('permit and license (093)', () => {
+  const VALID2 = { businessName: 'T', contactName: 'S', phone: '(910) 555-0100', email: 's@example.com', foodType: 'BBQ', days: ['friday'], acknowledged: true }
+  it('PDF, JPG or PNG up to 10 MB; one of each', () => {
+    const ok = validateFoodTruckSubmission({ ...VALID2, files: [
+      { kind: 'license', type: 'image/png', size: 10 * 1024 * 1024 },
+      { kind: 'permit', type: 'application/pdf', size: 1000 },
+      { kind: 'logo', type: 'image/png', size: 1000 },
+    ] })
+    // logo, photos, permit, license: the order the route's upload index follows
+    expect(ok.ok && ok.values.files.map(f => `${f.kind}.${f.ext}`)).toEqual(['logo.png', 'permit.pdf', 'license.png'])
+    expect(checkTruckFile({ type: 'image/webp', size: 10 }, 'permit').ok).toBe(false)
+    expect(checkTruckFile({ type: 'application/pdf', size: 10 * 1024 * 1024 + 1 }, 'license').ok).toBe(false)
+    const two = validateFoodTruckSubmission({ ...VALID2, files: [{ kind: 'permit', type: 'application/pdf', size: 1 }, { kind: 'permit', type: 'application/pdf', size: 1 }] })
+    expect(!two.ok && two.fieldErrors.permit).toBeTruthy()
+  })
+  it('documents go to the private bucket, in the truck folder', () => {
+    expect(bucketFor('permit')).toBe('food-truck-docs')
+    expect(bucketFor('license')).toBe('food-truck-docs')
+    expect(bucketFor('photo')).toBe('food-truck-logos')
+    expect(applicantFilePath('T1', { kind: 'permit', ext: 'pdf', contentType: 'application/pdf' }, 'r')).toBe('T1/permit-r.pdf')
+  })
+  it('the private bucket limits in 093 match the app', () => {
+    const sql = readFileSync(join(process.cwd(), 'supabase/migrations/093_food_truck_documents.sql'), 'utf8')
+    expect(sql).toContain("'food-truck-docs', 'food-truck-docs', false, 10485760, array['application/pdf', 'image/jpeg', 'image/png']")
+  })
+  it('doc state', () => {
+    expect(truckDocState(null, null)).toBe('missing')
+    expect(truckDocState('T1/p.pdf', null)).toBe('uploaded')
+    expect(truckDocState('T1/p.pdf', 'x')).toBe('verified')
   })
 })

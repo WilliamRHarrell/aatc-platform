@@ -87,11 +87,20 @@ function walk(dir: string, out: string[] = []): string[] {
 const SRC = join(process.cwd(), 'src')
 
 describe('signing has one home', () => {
-  it('createSignedUrl is called from the admin application-docs route only', () => {
+  // One signing route per PRIVATE bucket, both admin-only and both reading the
+  // paths from the row, never the request: application-docs (071) and
+  // food-truck-docs (093). A third caller fails here until it is reviewed.
+  it('createSignedUrl is called from the two admin document routes only', () => {
     const offenders = walk(SRC)
       .filter(f => readFileSync(f, 'utf8').includes('createSignedUrl('))
       .map(f => f.replace(SRC, 'src'))
       .sort()
-    expect(offenders).toEqual(['src/app/api/admin/application-docs/route.ts'])
+    expect(offenders).toEqual(['src/app/api/admin/application-docs/route.ts', 'src/app/api/admin/food-truck-docs/route.ts'])
+  })
+  it('the food-truck-docs route signs only paths read from the truck row', () => {
+    const route = readFileSync(join(SRC, 'app/api/admin/food-truck-docs/route.ts'), 'utf8')
+    expect(route).toContain("select('id, permit_path, license_path')")
+    expect(route).toMatch(/const path = truck\[`\$\{kind\}_path`\]/)
+    expect(route).toContain("profile?.role !== 'admin'")
   })
 })

@@ -589,7 +589,15 @@ export type Database = {
           id: string
           instagram: string | null
           is_published: boolean
+          license_path: string | null
+          license_uploaded_at: string | null
+          license_verified_at: string | null
+          license_verified_by: string | null
           logo_url: string | null
+          permit_path: string | null
+          permit_uploaded_at: string | null
+          permit_verified_at: string | null
+          permit_verified_by: string | null
           phone: string | null
           photos: string[]
           status: string
@@ -616,7 +624,15 @@ export type Database = {
           id?: string
           instagram?: string | null
           is_published?: boolean
+          license_path?: string | null
+          license_uploaded_at?: string | null
+          license_verified_at?: string | null
+          license_verified_by?: string | null
           logo_url?: string | null
+          permit_path?: string | null
+          permit_uploaded_at?: string | null
+          permit_verified_at?: string | null
+          permit_verified_by?: string | null
           phone?: string | null
           photos?: string[]
           status?: string
@@ -643,7 +659,15 @@ export type Database = {
           id?: string
           instagram?: string | null
           is_published?: boolean
+          license_path?: string | null
+          license_uploaded_at?: string | null
+          license_verified_at?: string | null
+          license_verified_by?: string | null
           logo_url?: string | null
+          permit_path?: string | null
+          permit_uploaded_at?: string | null
+          permit_verified_at?: string | null
+          permit_verified_by?: string | null
           phone?: string | null
           photos?: string[]
           status?: string
@@ -1713,6 +1737,8 @@ export type Database = {
       set_comp: { Args: { p_application_id: string; p_booth: boolean; p_permits: boolean }; Returns: number }
       application_permit_fees: { Args: { p_application_id: string }; Returns: number }
       /** Migration 088 - admin only; the only writer of artists[].id_verified_at/by. Returns the artist entry. */
+      /** Migration 093 - admin only; returns the new verified_at (null when cleared). */
+      set_food_truck_doc_verified: { Args: { p_truck_id: string; p_kind: string; p_verified: boolean }; Returns: string | null }
       set_artist_id_verified: { Args: { p_application_id: string; p_index: number; p_verified: boolean }; Returns: Json }
       /** Migration 087 - service_role only (lifecycle-sweep cron); returns rows cleared. */
       release_expired_booth_holds: { Args: Record<string, never>; Returns: number }
