@@ -120,23 +120,20 @@ export default async function ApplyPage() {
               <span className="text-lg font-bold text-gold-light transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
             </Link>
 
-            {/* No food-truck application route exists yet - render as pending
-                rather than pointing at the vendor form, which has no food-truck mode. */}
-            <div
-              className="flex flex-1 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[#3a3a3a] px-6 py-4 text-center"
-              style={{ backgroundColor: 'rgba(42,42,42,0.5)' }}
-            >
-              <span className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: '#777' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {/* /apply/food-truck (091) shows the form or, while applications
+                are switched off, the closed message. */}
+            <Link href="/apply/food-truck" className={OPTION_CARD} aria-label={`${c.cta_food_truck}: apply with a food truck`}>
+              <span className="flex items-center gap-3">
+                <svg className="shrink-0 text-gold-light" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <rect x="1" y="6" width="14" height="10" rx="1"/>
                   <path d="M15 9h4l3 3v4h-7z"/>
                   <circle cx="6" cy="18" r="2"/>
                   <circle cx="18" cy="18" r="2"/>
                 </svg>
-                {c.cta_food_truck}
+                <span className="text-base font-semibold text-white">{c.cta_food_truck}</span>
               </span>
-              <span className="text-xs" style={{ color: '#666' }}>Opening soon</span>
-            </div>
+              <span className="text-lg font-bold text-gold-light transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
+            </Link>
           </div>
 
           {/* How it works */}

@@ -72,7 +72,7 @@ function walk(dir: string, out: string[] = []): string[] {
 describe('only owner, admin and server code reads the applications table', () => {
   it('no public-facing file reads the table directly', () => {
     // /apply/artist and /apply/vendor INSERT as the signed-in owner ("applications: own insert"); not a read.
-    const allowed = [/^src\/app\/admin\//, /^src\/app\/api\//, /^src\/app\/portal\//, /^src\/app\/apply\//, /^src\/components\/admin\//, /^src\/components\/portal\//, /^src\/lib\/db-write\.ts$/, /^src\/lib\/placement-check\.ts$/]
+    const allowed = [/^src\/app\/admin\//, /^src\/app\/api\//, /^src\/app\/portal\//, /^src\/app\/apply\//, /^src\/components\/admin\//, /^src\/components\/portal\//, /^src\/lib\/db-write\.ts$/, /^src\/lib\/placement-check\.ts$/, /^src\/lib\/invite-link-server\.ts$/]
     const offenders = walk(join(ROOT, 'src'))
       .map(f => f.replace(ROOT + '/', ''))
       .filter(f => readFileSync(join(ROOT, f), 'utf8').includes(".from('applications')"))

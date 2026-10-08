@@ -6,7 +6,7 @@
  * Money in these templates is the tier price from SPONSOR_TIERS, never a
  * client value. The internal notices go to CONTACT_EMAIL (one home).
  */
-import { CONTACT_EMAIL } from '@/lib/event-config'
+import { CONTACT_EMAIL, FINAL_DUE_LABEL } from '@/lib/event-config'
 import { SPONSOR_TIERS, sponsorLines, type ShownPrices, type SponsorTier } from '@/lib/sponsor-tiers'
 import type { ReceiptFacts } from '@/lib/application-receipt'
 import { formatDateOnly } from '@/lib/date-only'
@@ -437,6 +437,115 @@ export function portalLinkedEmail(v: { name: string; what: string }) {
       Sign in to see its details and any invoice, and to pay online.
     </p>
     ${ctaButton(`${SITE_URL}/auth/login?redirect=/portal`, 'Go to Your Portal →')}
+    ${contactLine}
+  `)
+}
+
+// ── Food truck applications (/api/food-truck-apply, 091) ──────
+
+const kicker = (label: string) => `
+    <p style="margin:0 0 4px; font-size:12px; font-weight:700; letter-spacing:3px; text-transform:uppercase; color:#C4A882;">
+      ${label}
+    </p>`
+
+/** Content-editor text: plain paragraphs separated by a blank line, escaped. */
+function paragraphs(text: string) {
+  return text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
+    .map(p => `<p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">${esc(p).replace(/\n/g, '<br />')}</p>`).join('')
+}
+
+export interface FoodTruckFacts { truckName: string; contactName: string; cuisine: string; days: string; price: number }
+
+function truckFactsTable(f: FoodTruckFacts) {
+  return `
+    <div style="background:#0a0a0a; border:1px solid #2a2a2a; border-radius:12px; padding:20px 24px; margin:20px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px; color:#cccccc;">
+        <tr><td style="padding:4px 0; color:#999999;">Food truck</td><td align="right" style="color:#ffffff;">${esc(f.truckName)}</td></tr>
+        <tr><td style="padding:4px 0; color:#999999;">Food</td><td align="right">${esc(f.cuisine)}</td></tr>
+        <tr><td style="padding:4px 0; color:#999999;">Days</td><td align="right">${esc(f.days)}</td></tr>
+        <tr><td style="padding:4px 0; color:#999999;">Fee for those days</td><td align="right" style="font-weight:700; color:#C4A882;">${dollars(f.price)}</td></tr>
+      </table>
+    </div>`
+}
+
+/** To the applicant, right after the form saves. Nothing is due yet. */
+export function foodTruckReceivedEmail(f: FoodTruckFacts) {
+  return emailWrapper(`
+    ${kicker('Application Received')}
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      Thank you, ${esc(f.contactName)}
+    </h2>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      We received your food truck application for the Food Truck Rodeo at AATC 2027. We review applications for a good mix of food and will email you with our decision.
+    </p>
+    ${truckFactsTable(f)}
+    <p style="margin:16px 0 0; font-size:15px; line-height:1.7; color:#cccccc;">
+      Nothing is due now. If your truck is selected, we will email you a link to set up your account and pay.
+    </p>
+  `)
+}
+
+/** To CONTACT_EMAIL, for each new food truck application. */
+export function internalNewFoodTruckEmail(f: FoodTruckFacts & { email: string; phone: string; photoCount: number; hasLogo: boolean; description: string }) {
+  return emailWrapper(`
+    ${kicker('New Food Truck Application')}
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:24px; font-weight:700; color:#ffffff;">
+      ${esc(f.truckName)}
+    </h2>
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px; color:#cccccc;">
+      <tr><td style="padding:4px 0; color:#999999;">Contact</td><td align="right">${esc(f.contactName)}</td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Email</td><td align="right"><a href="mailto:${esc(f.email)}" style="color:#C4A882;">${esc(f.email)}</a></td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Phone</td><td align="right">${esc(f.phone)}</td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Food</td><td align="right">${esc(f.cuisine)}</td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Days</td><td align="right">${esc(f.days)}</td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Fee</td><td align="right" style="color:#C4A882; font-weight:700;">${dollars(f.price)}</td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Files sent</td><td align="right">${f.hasLogo ? 'logo, ' : ''}${f.photoCount} photo${f.photoCount === 1 ? '' : 's'} (uploading after this email)</td></tr>
+    </table>
+    ${f.description ? `<p style="margin:16px 0 0; font-size:14px; line-height:1.6; color:#cccccc;"><span style="color:#999999;">Menu:</span> ${esc(f.description)}</p>` : ''}
+    ${ctaButton(`${SITE_URL}/admin/food-trucks`, 'Review in admin →')}
+  `)
+}
+
+/**
+ * Ryan's decision 3: selection and the account invitation are ONE email. The
+ * copy is the content editor's; the amounts and the due date are added here
+ * from their one home. `actionUrl` is the single-use set-password link for a
+ * new account; without it the truck already has an account and gets the
+ * portal link.
+ */
+export function foodTruckSelectedEmail(v: { body: string; facts: FoodTruckFacts; depositCents: number; actionUrl: string | null }) {
+  const first = Math.min(v.depositCents, v.facts.price)
+  return emailWrapper(`
+    ${kicker('Food Truck Rodeo')}
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      ${esc(v.facts.truckName)} is selected
+    </h2>
+    ${paragraphs(v.body)}
+    ${truckFactsTable(v.facts)}
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      ${first < v.facts.price
+        ? `A first payment of <strong style="color:#ffffff;">${dollars(first)}</strong> holds your space. The full ${dollars(v.facts.price)} is due by <strong style="color:#ffffff;">${esc(FINAL_DUE_LABEL)}</strong> to confirm it.`
+        : `The full ${dollars(v.facts.price)} is due by <strong style="color:#ffffff;">${esc(FINAL_DUE_LABEL)}</strong> to confirm your spot.`}
+    </p>
+    ${v.actionUrl
+      ? `${ctaButton(esc(v.actionUrl), 'Set Up Your Account →')}
+    <p style="margin:16px 0 0; font-size:13px; line-height:1.7; color:#999999; text-align:center;">
+      This link works once and expires. If it has expired, use "Forgot password" on the sign-in page with this email address.
+    </p>`
+      : ctaButton(`${SITE_URL}/auth/login?redirect=/portal`, 'Go to Your Portal →')}
+    ${contactLine}
+  `)
+}
+
+/** Waitlisted or not selected: the content editor's copy, nothing else. */
+export function foodTruckDecisionEmail(v: { truckName: string; contactName: string; body: string }) {
+  return emailWrapper(`
+    ${kicker('Food Truck Rodeo')}
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:24px; font-weight:700; color:#ffffff;">
+      Hi ${esc(v.contactName)},
+    </h2>
+    <p style="margin:0 0 16px; font-size:13px; color:#999999;">About ${esc(v.truckName)}</p>
+    ${paragraphs(v.body)}
     ${contactLine}
   `)
 }
