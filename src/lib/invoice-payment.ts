@@ -1,5 +1,36 @@
 import { minDepositCents } from '@/lib/pricing'
 import { formatCurrency } from '@/lib/utils'
+import { FOOD_TRUCK_DEPOSIT_CENTS } from '@/lib/food-truck-pricing'
+
+/**
+ * THE deposit rule (092), in one place. Read by /portal/pay, /api/create-checkout,
+ * the Stripe webhook and /admin/invoices (paymentUpdate).
+ *
+ * invoices.deposit_rule:
+ *   'percent_25'      - 25% of the total (minDepositCents). Every booth and
+ *                       sponsor invoice, and every food-truck invoice created
+ *                       before 092 (the 3 Square imports keep their terms).
+ *   'food_truck_flat' - FOOD_TRUCK_DEPOSIT_CENTS, or the whole total when it is
+ *                       less (Ryan, 2026-10-07). Food-truck invoices created by
+ *                       approval or admin Add from 092 on.
+ * A row read without the column (deposit_rule undefined) is treated as 25%.
+ */
+export interface DepositFacts {
+  amount: number
+  deposit_rule?: string | null
+}
+
+export function depositCents(inv: DepositFacts): number {
+  if (inv.deposit_rule === 'food_truck_flat') return Math.min(FOOD_TRUCK_DEPOSIT_CENTS, inv.amount)
+  return minDepositCents(inv.amount)
+}
+
+/** How the first payment's minimum is explained, e.g. "25% of $250" or "the $100 deposit". */
+export function depositRuleLabel(inv: DepositFacts): string {
+  return inv.deposit_rule === 'food_truck_flat'
+    ? (depositCents(inv) < inv.amount ? `the ${formatCurrency(depositCents(inv))} deposit` : 'the full amount')
+    : `25% of ${formatCurrency(inv.amount)}`
+}
 
 /**
  * A manual payment recorded in /admin/invoices, as a column update.
@@ -17,6 +48,7 @@ import { formatCurrency } from '@/lib/utils'
  */
 export interface InvoicePaymentState {
   amount: number
+  deposit_rule?: string | null
   amount_paid: number | null
   deposit_paid_at: string | null
   final_paid_at: string | null
@@ -45,7 +77,7 @@ export function paymentUpdate(
     payment_method: method,
     payment_reference: reference,
   }
-  if (!inv.deposit_paid_at && newAmountPaid >= minDepositCents(inv.amount)) update.deposit_paid_at = nowIso
+  if (!inv.deposit_paid_at && newAmountPaid >= depositCents(inv)) update.deposit_paid_at = nowIso
   if (!inv.final_paid_at && fullyPaid) update.final_paid_at = nowIso
   if (fullyPaid) {
     update.status = 'paid'
@@ -56,14 +88,15 @@ export function paymentUpdate(
 
 /**
  * The smallest amount the portal accepts for the NEXT payment, in cents.
- * Booth invoices: the first payment must reach the 25% deposit
- * (minDepositCents) until deposit_paid_at is set; after that, $1.
+ * Booth and food-truck invoices: the first payment must reach the deposit
+ * (depositCents: 25%, or the food-truck flat deposit) until deposit_paid_at
+ * is set; after that, $1.
  * Sponsor invoices: $1 always. Sponsors pay on negotiated terms with no
  * deposit requirement (2026-09-26); their balance is due on the invoice's
  * due_date. Read by /portal/pay (form validation) and /api/create-checkout
  * (the check that matters).
  */
-export function nextPaymentMinimumCents(inv: { amount: number; deposit_paid_at: string | null; sponsorship_id: string | null }): number {
+export function nextPaymentMinimumCents(inv: DepositFacts & { deposit_paid_at: string | null; sponsorship_id: string | null }): number {
   if (inv.sponsorship_id) return 100
-  return inv.deposit_paid_at ? 100 : minDepositCents(inv.amount)
+  return inv.deposit_paid_at ? 100 : depositCents(inv)
 }

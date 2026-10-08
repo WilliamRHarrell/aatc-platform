@@ -157,7 +157,7 @@ export default function AdminInvoicesPage() {
     // the database, not from what this screen loaded. See invoice-payment.ts.
     const { data: fresh, error: freshErr } = await supabase
       .from('invoices')
-      .select('amount, amount_paid, deposit_paid_at, final_paid_at')
+      .select('amount, amount_paid, deposit_paid_at, final_paid_at, deposit_rule')
       .eq('id', paymentModal.id)
       .single()
     if (freshErr || !fresh) {

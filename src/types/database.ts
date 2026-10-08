@@ -444,6 +444,7 @@ export type Database = {
           end_date: string
           food_truck_applications_open: boolean
           food_truck_cap: number
+          food_truck_unpaid_report_sent_at: string | null
           id: string
           is_active: boolean
           name: string
@@ -461,6 +462,7 @@ export type Database = {
           end_date: string
           food_truck_applications_open?: boolean
           food_truck_cap?: number
+          food_truck_unpaid_report_sent_at?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -478,6 +480,7 @@ export type Database = {
           end_date?: string
           food_truck_applications_open?: boolean
           food_truck_cap?: number
+          food_truck_unpaid_report_sent_at?: string | null
           id?: string
           is_active?: boolean
           name?: string
@@ -666,15 +669,18 @@ export type Database = {
           application_id: string | null
           created_at: string
           deposit_paid_at: string | null
+          deposit_rule: string
           due_date: string | null
+          due_reminder_14_sent_at: string | null
+          due_reminder_1_sent_at: string | null
           due_reminder_30_sent_at: string | null
           due_reminder_7_sent_at: string | null
           final_paid_at: string | null
-          payment_method: string | null
-          payment_reference: string | null
           food_truck_id: string | null
           id: string
           paid_at: string | null
+          payment_method: string | null
+          payment_reference: string | null
           sponsorship_id: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           stripe_invoice_id: string | null
@@ -687,15 +693,18 @@ export type Database = {
           application_id?: string | null
           created_at?: string
           deposit_paid_at?: string | null
+          deposit_rule?: string
           due_date?: string | null
+          due_reminder_14_sent_at?: string | null
+          due_reminder_1_sent_at?: string | null
           due_reminder_30_sent_at?: string | null
           due_reminder_7_sent_at?: string | null
           final_paid_at?: string | null
-          payment_method?: string | null
-          payment_reference?: string | null
           food_truck_id?: string | null
           id?: string
           paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
           sponsorship_id?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           stripe_invoice_id?: string | null
@@ -708,15 +717,18 @@ export type Database = {
           application_id?: string | null
           created_at?: string
           deposit_paid_at?: string | null
+          deposit_rule?: string
           due_date?: string | null
+          due_reminder_14_sent_at?: string | null
+          due_reminder_1_sent_at?: string | null
           due_reminder_30_sent_at?: string | null
           due_reminder_7_sent_at?: string | null
           final_paid_at?: string | null
-          payment_method?: string | null
-          payment_reference?: string | null
           food_truck_id?: string | null
           id?: string
           paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
           sponsorship_id?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           stripe_invoice_id?: string | null

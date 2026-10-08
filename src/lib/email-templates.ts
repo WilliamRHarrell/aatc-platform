@@ -549,3 +549,57 @@ export function foodTruckDecisionEmail(v: { truckName: string; contactName: stri
     ${contactLine}
   `)
 }
+
+/**
+ * Food truck balance reminder, 30/14/7/1 days before the due date (092). The
+ * copy is the content editor's; the balance, the due date and the pay link
+ * are added here. A truck with no portal account is told how to get one.
+ */
+export function foodTruckReminderEmail(v: { truckName: string; contactName: string; body: string; balanceCents: number; daysOut: number; hasAccount: boolean }) {
+  return emailWrapper(`
+    ${kicker('Food Truck Rodeo')}
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:24px; font-weight:700; color:#ffffff;">
+      ${v.daysOut === 1 ? 'Due tomorrow' : `Due in ${v.daysOut} days`}, ${esc(v.contactName)}
+    </h2>
+    <p style="margin:0 0 16px; font-size:13px; color:#999999;">About ${esc(v.truckName)}</p>
+    ${paragraphs(v.body)}
+    <div style="background:#0a0a0a; border:1px solid #2a2a2a; border-radius:12px; padding:20px 24px; margin:20px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px; color:#cccccc;">
+        <tr><td style="padding:4px 0; color:#999999;">Balance</td><td align="right" style="font-size:16px; font-weight:700; color:#C4A882;">${dollars(v.balanceCents)}</td></tr>
+        <tr><td style="padding:4px 0; color:#999999;">Due by</td><td align="right" style="color:#ffffff;">${esc(FINAL_DUE_LABEL)}</td></tr>
+      </table>
+    </div>
+    ${v.hasAccount
+      ? ctaButton(`${SITE_URL}/auth/login?redirect=/portal`, 'Pay in Your Portal →')
+      : `<p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">To pay online, email <a href="mailto:${CONTACT_EMAIL}" style="color:#8B7355;">${CONTACT_EMAIL}</a> and we will set up your portal account.</p>`}
+    ${contactLine}
+  `)
+}
+
+export interface UnpaidTruckLine { truckName: string; contactName: string; email: string; paidCents: number; amountCents: number }
+
+/** To CONTACT_EMAIL, once, the day after the due date (092): selected trucks not paid in full. */
+export function internalFoodTrucksUnpaidEmail(v: { depositOnly: UnpaidTruckLine[]; nothingPaid: UnpaidTruckLine[] }) {
+  const table = (rows: UnpaidTruckLine[]) => rows.length === 0
+    ? '<p style="margin:0 0 16px; font-size:14px; color:#999999;">None.</p>'
+    : `<table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px; color:#cccccc; margin:0 0 20px;">
+        ${rows.map(r => `<tr>
+          <td style="padding:6px 0; border-bottom:1px solid #2a2a2a;"><span style="color:#ffffff;">${esc(r.truckName)}</span><br /><span style="font-size:12px; color:#999999;">${esc(r.contactName)} · <a href="mailto:${esc(r.email)}" style="color:#C4A882;">${esc(r.email)}</a></span></td>
+          <td align="right" style="padding:6px 0; border-bottom:1px solid #2a2a2a; white-space:nowrap;">${dollars(r.paidCents)} of ${dollars(r.amountCents)}<br /><span style="font-size:12px; color:#f87171;">${dollars(r.amountCents - r.paidCents)} owed</span></td>
+        </tr>`).join('')}
+      </table>`
+  return emailWrapper(`
+    ${kicker('Food Trucks Not Paid in Full')}
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:24px; font-weight:700; color:#ffffff;">
+      Balance was due ${esc(FINAL_DUE_LABEL)}
+    </h2>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Selected food trucks that have not paid in full. Nothing has been cancelled; release a truck in admin to free its spot.
+    </p>
+    <h3 style="margin:16px 0 8px; font-size:14px; letter-spacing:2px; text-transform:uppercase; color:#C4A882;">Deposit only (${v.depositOnly.length})</h3>
+    ${table(v.depositOnly)}
+    <h3 style="margin:16px 0 8px; font-size:14px; letter-spacing:2px; text-transform:uppercase; color:#C4A882;">Nothing paid (${v.nothingPaid.length})</h3>
+    ${table(v.nothingPaid)}
+    ${ctaButton(`${SITE_URL}/admin/food-trucks`, 'Open Food Trucks in admin →')}
+  `)
+}

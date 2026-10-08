@@ -11,6 +11,9 @@ import { guardedWrite } from '@/lib/db-write'
 import { requestRevalidate } from '@/lib/revalidate'
 import { parseCapacity } from '@/lib/pinup-capacity'
 import { TRUCK_STATUS_LABELS, capLabel, type Decision } from '@/lib/food-truck-decision'
+import { truckBalancePastDue, truckPaymentState } from '@/lib/food-truck-reminders'
+import { todayEastern } from '@/lib/date-only'
+import { FINAL_DUE_LABEL } from '@/lib/event-config'
 
 const DAY_OPTIONS = ['friday', 'saturday', 'sunday'] as const
 const DAY_LABELS: Record<string, string> = { friday: 'Fri', saturday: 'Sat', sunday: 'Sun' }
@@ -68,6 +71,7 @@ interface EventSettings { open: boolean; cap: number }
 
 interface FoodTruckInvoice {
   id: string
+  deposit_paid_at: string | null
   food_truck_id: string
   amount: number
   amount_paid: number
@@ -157,7 +161,7 @@ export default function AdminFoodTrucksPage() {
 
     const { data: invoices } = await supabase
       .from('invoices')
-      .select('id, food_truck_id, amount, amount_paid, status, payment_reference')
+      .select('id, food_truck_id, amount, amount_paid, status, payment_reference, deposit_paid_at')
       .not('food_truck_id', 'is', null)
 
     const map = new Map<string, FoodTruckInvoice>()
@@ -176,8 +180,13 @@ export default function AdminFoodTrucksPage() {
     published: trucks.filter(t => t.is_published).length,
     unpublished: trucks.filter(t => !t.is_published).length,
     approved: trucks.filter(t => t.status === 'approved').length,
+    // A truck counts as confirmed only when paid in full (Ryan, 2026-10-07).
+    paidInFull: trucks.filter(t => t.status === 'approved' && truckPaymentState(invoiceMap.get(t.id)) === 'paid').length,
     byStatus: Object.fromEntries(STATUS_FILTERS.map(f => [f, f === 'all' ? trucks.length : trucks.filter(t => t.status === f).length])) as Record<StatusFilter, number>,
-  }), [trucks])
+  }), [trucks, invoiceMap])
+
+  // From the day after the due date, a selected truck with a balance is flagged (092).
+  const pastDue = truckBalancePastDue(todayEastern())
 
   const shown = useMemo(() => filter === 'all' ? trucks : trucks.filter(t => t.status === filter), [trucks, filter])
 
@@ -215,11 +224,13 @@ export default function AdminFoodTrucksPage() {
   }
 
   // ── Decisions (server route: invoice, invite and emails) ──
-  const decide = async (truck: FoodTruck, decision: Decision) => {
-    const verb = decision === 'approved' ? 'Select' : decision === 'waitlisted' ? 'Waitlist' : 'Mark as not selected'
+  const decide = async (truck: FoodTruck, decision: Decision | 'released') => {
+    const verb = decision === 'approved' ? 'Select' : decision === 'waitlisted' ? 'Waitlist' : decision === 'released' ? 'Release' : 'Mark as not selected'
     const mail = decision === 'approved'
       ? 'This creates the invoice and emails them to set up their account and pay.'
-      : truck.decision_email_opt_out ? 'No email will be sent (don\'t send is ticked).' : 'They will be emailed.'
+      : decision === 'released'
+        ? 'This unpublishes the truck, cancels its unpaid invoice and frees its spot. Payments already made stay on record and are not refunded. No email is sent.'
+        : truck.decision_email_opt_out ? 'No email will be sent (don\'t send is ticked).' : 'They will be emailed.'
     if (!window.confirm(`${verb} ${truck.business_name}? ${mail}`)) return
     setDeciding(true)
     try {
@@ -231,7 +242,7 @@ export default function AdminFoodTrucksPage() {
       const json = (await res.json().catch(() => ({}))) as { error?: string; emailSent?: boolean; problems?: string[] }
       if (!res.ok) { toast.error(json.error ?? 'The decision did not save'); return }
       if (json.problems?.length) toast.error(`Saved, but ${json.problems.join('; ')}.`, { duration: 10000 })
-      else toast.success(`${TRUCK_STATUS_LABELS[decision]}${json.emailSent ? ', email sent' : ''}`)
+      else toast.success(`${TRUCK_STATUS_LABELS[decision] ?? decision}${json.emailSent ? ', email sent' : ''}`)
       await loadData()
     } finally {
       setDeciding(false)
@@ -435,6 +446,8 @@ export default function AdminFoodTrucksPage() {
           amount: foodTruckPrice(form.days.length),
           amount_paid: 0,
           status: 'pending',
+          // A truck invoiced from 092 on takes the $100 deposit (Ryan, 2026-10-08).
+          deposit_rule: 'food_truck_flat',
         }).select('id'),
         'Food truck created but the invoice was not',
         `admin/food-trucks invoice truck=${truck.id}`,
@@ -529,7 +542,7 @@ export default function AdminFoodTrucksPage() {
           <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">Food Trucks</h1>
           <p className="mt-1 text-sm" style={{ color: '#999' }}>
             {counts.total} food truck{counts.total !== 1 ? 's' : ''} &middot; {counts.published} published &middot; {counts.unpublished} unpublished
-            {settings && <> &middot; <span style={{ color: counts.approved >= settings.cap ? '#eab308' : '#4ade80' }}>{capLabel(counts.approved, settings.cap)}</span></>}
+            {settings && <> &middot; <span style={{ color: counts.approved >= settings.cap ? '#eab308' : '#4ade80' }}>{capLabel(counts.approved, settings.cap)}</span> &middot; {counts.paidInFull} paid in full</>}
           </p>
         </div>
         <button
@@ -617,7 +630,7 @@ export default function AdminFoodTrucksPage() {
               <div className="w-32 text-xs font-bold uppercase tracking-wider" style={{ color: '#666' }}>Days</div>
               <div className="w-12 text-xs font-bold uppercase tracking-wider" style={{ color: '#666' }}>Thu</div>
               {settings && <div className="w-24 text-xs font-bold uppercase tracking-wider text-center" style={{ color: '#666' }}>Status</div>}
-              <div className="w-16 text-xs font-bold uppercase tracking-wider text-center" style={{ color: '#666' }}>Payment</div>
+              <div className="w-28 text-xs font-bold uppercase tracking-wider text-center" style={{ color: '#666' }}>Payment</div>
               <div className="w-20 text-xs font-bold uppercase tracking-wider text-center" style={{ color: '#666' }}>Published</div>
               <div className="w-16" />
             </div>
@@ -643,6 +656,9 @@ export default function AdminFoodTrucksPage() {
                         <span className="rounded-full px-2 py-0.5 text-xs font-bold" style={{ backgroundColor: TRUCK_STATUS_STYLE[truck.status]?.bg, color: TRUCK_STATUS_STYLE[truck.status]?.color }}>
                           {TRUCK_STATUS_LABELS[truck.status] ?? truck.status}
                         </span>
+                      )}
+                      {truck.status === 'approved' && pastDue && truckPaymentState(invoiceMap.get(truck.id)) !== 'paid' && (
+                        <span className="rounded-full px-2 py-0.5 text-xs font-bold" style={{ backgroundColor: 'rgba(248,113,113,0.15)', color: '#f87171' }}>Not paid in full</span>
                       )}
                       <span className="text-xs" style={{ color: '#999' }}>{truck.cuisine_type}</span>
                       {truck.days.map(d => (
@@ -699,17 +715,25 @@ export default function AdminFoodTrucksPage() {
                   )}
 
                   {/* Payment */}
-                  <div className="hidden w-16 sm:flex justify-center">
-                    {invoiceStatus ? (
-                      <span
-                        className="rounded-full px-2 py-0.5 text-xs font-bold"
-                        style={{
-                          backgroundColor: INVOICE_STATUS_STYLE[invoiceStatus].bg,
-                          color: INVOICE_STATUS_STYLE[invoiceStatus].color,
-                        }}
-                      >
-                        $
-                      </span>
+                  <div className="hidden w-28 sm:flex flex-col items-center gap-0.5">
+                    {invoice && invoiceStatus ? (
+                      <>
+                        <span
+                          className="rounded-full px-2 py-0.5 text-xs font-bold"
+                          style={{
+                            backgroundColor: INVOICE_STATUS_STYLE[invoiceStatus].bg,
+                            color: INVOICE_STATUS_STYLE[invoiceStatus].color,
+                          }}
+                          title={`Invoice ${invoiceStatus}`}
+                        >
+                          {formatCurrency(invoice.amount_paid ?? 0)} / {formatCurrency(invoice.amount)}
+                        </span>
+                        {truck.status === 'approved' && pastDue && truckPaymentState(invoice) !== 'paid' && (
+                          <span className="rounded-full px-2 py-0.5 text-xs font-bold" style={{ backgroundColor: 'rgba(248,113,113,0.15)', color: '#f87171' }}>
+                            Not paid in full
+                          </span>
+                        )}
+                      </>
                     ) : (
                       <span className="text-xs" style={{ color: '#555' }}>--</span>
                     )}
@@ -995,6 +1019,28 @@ export default function AdminFoodTrucksPage() {
                         ))}
                       </div>
                     )}
+                    {truck.status === 'approved' && (() => {
+                      const inv = invoiceMap.get(truck.id)
+                      const state = truckPaymentState(inv)
+                      return (
+                        <div className="mt-4">
+                          <p className="text-xs" style={{ color: state === 'paid' ? '#4ade80' : pastDue ? '#f87171' : '#999' }}>
+                            {state === 'paid' ? 'Paid in full: confirmed.'
+                              : state === 'none' ? 'No invoice.'
+                              : `${formatCurrency(inv?.amount_paid ?? 0)} of ${formatCurrency(inv?.amount ?? 0)} paid. ${pastDue ? 'Not paid in full' : 'Balance due'} by ${FINAL_DUE_LABEL}.`}
+                          </p>
+                          <button
+                            onClick={() => decide(truck, 'released')}
+                            disabled={deciding}
+                            className="mt-3 rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity disabled:opacity-40"
+                            style={{ backgroundColor: 'rgba(248,113,113,0.12)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)' }}
+                          >
+                            Release
+                          </button>
+                          <p className="mt-2 text-xs" style={{ color: '#666' }}>Unpublishes the truck, cancels its unpaid invoice and frees its spot. No email; payments made are kept.</p>
+                        </div>
+                      )
+                    })()}
                     {open && (
                       <>
                         <div className="mt-4 flex flex-wrap gap-2">

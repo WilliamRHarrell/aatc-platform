@@ -132,3 +132,17 @@ shows a non-link "Opening soon"; the rodeo page's CTA is a mailto.
 - Email copy, form intro, requirements and closed message live in a new
   content-editor page.
 
+
+## PR 2 decisions (Ryan, 2026-10-08)
+
+1. Trucks added by admin after PR 2 ships use the $100 rule too.
+2. The 3 imported trucks get the 30/14/7/1 reminders; their balance is due January 1.
+3. Release cancels the invoice. Payments already made stay on record; the
+   deposit is not refunded (it holds the space but does not guarantee it).
+   A refund is a manual exception.
+4. No email on release; Ryan contacts the truck.
+5. Reminder wording lives in the content editor, like the decision emails.
+
+Built as migration 092 (`invoices.deposit_rule`, 14/1-day reminder columns,
+`events.food_truck_unpaid_report_sent_at`); details in
+docs/handoff/sessions/2026-10-08-food-truck-deposit-and-due.md.

@@ -4,8 +4,13 @@ import type { Database } from '@/types/database'
 import { runPlacementCheck, diffFindings, type Finding } from '@/lib/placement-check'
 import { reminderStage, isTestSponsorship, TEST_SPONSOR_PREFIX } from '@/lib/sponsor-reminders'
 import { todayEastern } from '@/lib/date-only'
-import { sponsorDueReminderEmail } from '@/lib/email-templates'
+import { sponsorDueReminderEmail, foodTruckReminderEmail, internalFoodTrucksUnpaidEmail, type UnpaidTruckLine } from '@/lib/email-templates'
 import { sendTransactional } from '@/lib/transactional-email'
+import { CONTACT_EMAIL, FINAL_DUE_LABEL } from '@/lib/event-config'
+import { getContent } from '@/content/getContent'
+import {
+  TRUCK_BALANCE_DUE_DATE, TRUCK_REMINDER_COLUMN, truckReminderStage, truckBalancePastDue, truckBalance, truckPaymentState,
+} from '@/lib/food-truck-reminders'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://aatc-platform.vercel.app'
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
@@ -204,6 +209,116 @@ async function sponsorReminders(supabase: ReturnType<typeof adminSupabase>, now:
   return out
 }
 
+type Svc = ReturnType<typeof adminSupabase>
+
+/** Selected trucks of the active event with their invoice, test rows ("ZZ ") left out. */
+async function selectedTruckInvoices(supabase: Svc) {
+  const { data: event, error: evErr } = await supabase.from('events')
+    .select('id, food_truck_unpaid_report_sent_at').eq('is_active', true).single()
+  if (evErr || !event) return { error: evErr?.message ?? 'no active event' } as const
+  const { data, error } = await supabase
+    .from('invoices')
+    .select('id, amount, amount_paid, status, deposit_paid_at, due_reminder_30_sent_at, due_reminder_14_sent_at, due_reminder_7_sent_at, due_reminder_1_sent_at, truck:food_trucks!inner(id, business_name, contact_name, email, user_id, status, event_id)')
+    .not('food_truck_id', 'is', null)
+    .eq('truck.event_id', event.id)
+    .eq('truck.status', 'approved')
+    .not('truck.business_name', 'ilike', `${TEST_SPONSOR_PREFIX}%`)
+  // A query that errors returns null data, which would read as "nobody owes".
+  if (error) return { error: error.message } as const
+  type Truck = { id: string; business_name: string; contact_name: string; email: string; user_id: string | null; status: string; event_id: string }
+  return { event, rows: (data ?? []).map(r => ({ ...r, truck: r.truck as unknown as Truck })) } as const
+}
+
+/**
+ * Food truck balance reminders, 30/14/7/1 days before the due date (092,
+ * lib/food-truck-reminders.ts), to every selected truck with a balance,
+ * imports included. Behind its own switch, like the sponsor reminders:
+ * FOOD_TRUCK_REMINDERS_ENABLED=true sends; anything else reports what WOULD
+ * be sent. Claimed before sending, released if the send fails.
+ */
+async function foodTruckReminders(supabase: Svc, now: Date, send: boolean) {
+  const today = todayEastern(now)
+  const out = { mode: send ? 'send' : 'report-only', today, due: TRUCK_BALANCE_DUE_DATE, sent: [] as string[], would_send: [] as string[], no_email: [] as string[], failed: [] as string[], errors: [] as string[] }
+  const q = await selectedTruckInvoices(supabase)
+  if ('error' in q) { out.errors.push(q.error ?? 'unknown'); return out }
+  let copy: Record<string, string> | null = null
+
+  for (const inv of q.rows) {
+    const stage = truckReminderStage(inv, today)
+    if (!stage) continue
+    let to = inv.truck.email?.trim() || null
+    if (!to && inv.truck.user_id) {
+      const { data: prof } = await supabase.from('profiles').select('email').eq('id', inv.truck.user_id).maybeSingle()
+      to = prof?.email?.trim() || null
+    }
+    const label = `${inv.truck.business_name} (${stage}d)`
+    if (!to) { out.no_email.push(label); continue }
+    if (!send) { out.would_send.push(`${label} -> ${to}`); continue }
+
+    const col = TRUCK_REMINDER_COLUMN[stage]
+    const { data: claimed, error: claimErr } = await supabase.from('invoices')
+      .update({ [col]: now.toISOString() }).eq('id', inv.id).is(col, null).select('id')
+    if (claimErr) { out.errors.push(`${label}: ${claimErr.message}`); continue }
+    if (!claimed || claimed.length === 0) continue // claimed by a concurrent run
+
+    try {
+      copy ??= await getContent('foodTruckApply')
+      await sendTransactional(to, `${copy.email_reminder_subject} - due ${FINAL_DUE_LABEL}`, foodTruckReminderEmail({
+        truckName: inv.truck.business_name.trim(),
+        contactName: inv.truck.contact_name.trim(),
+        body: copy.email_reminder_body,
+        balanceCents: truckBalance(inv),
+        daysOut: stage,
+        hasAccount: !!inv.truck.user_id,
+      }))
+      out.sent.push(`${label} -> ${to}`)
+    } catch (e) {
+      console.error(`[sweep] food truck reminder ${inv.id} failed: ${String(e)}`)
+      await supabase.from('invoices').update({ [col]: null }).eq('id', inv.id)
+      out.failed.push(label)
+    }
+  }
+  return out
+}
+
+/**
+ * From the day after the due date: ONE internal email to CONTACT_EMAIL listing
+ * the selected trucks not paid in full (092). Claimed by a compare-and-set on
+ * events.food_truck_unpaid_report_sent_at, released if the send fails. It
+ * cancels nothing. Not behind a switch: it only tells us.
+ */
+async function foodTruckUnpaidReport(supabase: Svc, now: Date, send: boolean) {
+  const today = todayEastern(now)
+  if (!truckBalancePastDue(today)) return { state: 'not yet', due: TRUCK_BALANCE_DUE_DATE }
+  const q = await selectedTruckInvoices(supabase)
+  if ('error' in q) return { error: q.error }
+  if (q.event.food_truck_unpaid_report_sent_at) return { state: 'already sent', sent_at: q.event.food_truck_unpaid_report_sent_at }
+
+  const line = (r: (typeof q.rows)[number]): UnpaidTruckLine => ({
+    truckName: r.truck.business_name.trim(), contactName: r.truck.contact_name.trim(), email: r.truck.email,
+    paidCents: r.amount_paid ?? 0, amountCents: r.amount,
+  })
+  const depositOnly = q.rows.filter(r => truckPaymentState(r) === 'deposit_only').map(line)
+  const nothingPaid = q.rows.filter(r => truckPaymentState(r) === 'nothing_paid').map(line)
+  const summary = { deposit_only: depositOnly.map(l => l.truckName), nothing_paid: nothingPaid.map(l => l.truckName) }
+  if (!send) return { state: 'would send', ...summary }
+
+  const { data: claimed, error } = await supabase.from('events')
+    .update({ food_truck_unpaid_report_sent_at: now.toISOString() })
+    .eq('id', q.event.id).is('food_truck_unpaid_report_sent_at', null).select('id')
+  if (error) return { error: error.message }
+  if (!claimed?.length) return { state: 'claimed by another run' }
+  try {
+    await sendTransactional(CONTACT_EMAIL, `Food trucks not paid in full: ${depositOnly.length} deposit only, ${nothingPaid.length} nothing paid`,
+      internalFoodTrucksUnpaidEmail({ depositOnly, nothingPaid }))
+    return { state: 'sent', ...summary }
+  } catch (e) {
+    console.error(`[sweep] food truck unpaid report failed: ${String(e)}`)
+    await supabase.from('events').update({ food_truck_unpaid_report_sent_at: null }).eq('id', q.event.id)
+    return { state: 'failed', error: String(e) }
+  }
+}
+
 type DryRow = { id: string; business_name: string; email: string; due: string | null; days_out: number | null }
 const dayDiff = (iso: string | null, now: Date) => iso ? Math.round((new Date(iso).getTime() - now.getTime()) / ONE_DAY_MS) : null
 
@@ -324,6 +439,8 @@ export async function GET(req: Request) {
     return NextResponse.json({
       ...(await dryRunReport(adminSupabase(), new Date())),
       sponsor_reminders: await sponsorReminders(adminSupabase(), new Date(), false),
+      food_truck_reminders: await foodTruckReminders(adminSupabase(), new Date(), false),
+      food_truck_unpaid_report: await foodTruckUnpaidReport(adminSupabase(), new Date(), false),
       booth_holds: await expiredBoothHolds(adminSupabase(), false),
     })
   }
@@ -331,6 +448,10 @@ export async function GET(req: Request) {
   // Sponsor due-date reminders run whether or not the booth sweep is armed:
   // they never expire anything, so they do not wait on its review.
   const sponsor = await sponsorReminders(adminSupabase(), new Date(), process.env.SPONSOR_REMINDERS_ENABLED === 'true')
+  // Food trucks (092): reminders behind their own switch; the internal
+  // January 2 list always (it only informs). Neither cancels anything.
+  const truckReminders = await foodTruckReminders(adminSupabase(), new Date(), process.env.FOOD_TRUCK_REMINDERS_ENABLED === 'true')
+  const truckUnpaid = await foodTruckUnpaidReport(adminSupabase(), new Date(), true)
   const boothHolds = await expiredBoothHolds(adminSupabase(), true)
 
   // ── Kill switch - default OFF ───────────────────────────────
@@ -347,6 +468,8 @@ export async function GET(req: Request) {
       skipped: true,
       reason: 'LIFECYCLE_SWEEP_ENABLED is not "true" - booth sweep disabled.',
       sponsor_reminders: sponsor,
+      food_truck_reminders: truckReminders,
+      food_truck_unpaid_report: truckUnpaid,
       booth_holds: boothHolds,
     })
   }
@@ -482,6 +605,8 @@ export async function GET(req: Request) {
     mode: destructive ? 'full' : 'reminders-only',
     placement,
     sponsor_reminders: sponsor,
+    food_truck_reminders: truckReminders,
+    food_truck_unpaid_report: truckUnpaid,
     booth_holds: boothHolds,
     ranAt: now.toISOString(),
     ...(destructive ? {} : {
