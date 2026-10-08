@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { botTrapRejection } from '@/lib/bot-trap'
 import { CONTACT_EMAIL } from '@/lib/event-config'
-import { validateFoodTruckSubmission, applicantFilePath, describeDays } from '@/lib/food-truck-submission'
+import { validateFoodTruckSubmission, applicantFilePath, describeDays, bucketFor } from '@/lib/food-truck-submission'
 import { foodTruckReceivedEmail, internalNewFoodTruckEmail } from '@/lib/email-templates'
 import { sendTransactional } from '@/lib/transactional-email'
 import type { Database } from '@/types/database'
@@ -18,7 +18,9 @@ import type { Database } from '@/types/database'
 // FILES DO NOT PASS THROUGH HERE. Vercel caps a request body at about 4.5 MB
 // and an applicant may send five 10 MB photos. The body carries a manifest
 // (kind, type, size per file); the answer carries one signed upload URL per
-// file, into the new truck's folder of food-truck-logos. The form uploads,
+// file, into the new truck's folder: food-truck-logos for the logo and photos,
+// the PRIVATE food-truck-docs for the health permit and business license
+// (093). The form uploads,
 // then calls /api/food-truck-apply/files, which records what actually arrived.
 //
 // Applications are refused while events.food_truck_applications_open is off.
@@ -27,8 +29,6 @@ import type { Database } from '@/types/database'
 //
 // NOT RATE LIMITED - same standing gap as the other public form routes
 // (open item: Vercel WAF rules before launch).
-
-const BUCKET = 'food-truck-logos'
 
 const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -96,13 +96,14 @@ export async function POST(req: NextRequest) {
 
   // One signed upload URL per declared file. A failure here loses a picture,
   // never the application.
-  // `index` is the file's place in the manifest (logo first, then photos).
-  const uploads: { index: number; kind: string; path: string; token: string }[] = []
+  // `index` is the file's place in the validated list (logo, photos, permit, license).
+  const uploads: { index: number; kind: string; bucket: string; path: string; token: string }[] = []
   for (const [index, f] of s.files.entries()) {
     const path = applicantFilePath(id, f, crypto.randomUUID())
-    const { data, error } = await supabase.storage.from(BUCKET).createSignedUploadUrl(path)
-    if (error || !data) console.error(`[food-truck-apply] ${id}: no upload URL for ${path}: ${error?.message ?? 'none'}`)
-    else uploads.push({ index, kind: f.kind, path: data.path, token: data.token })
+    const bucket = bucketFor(f.kind)
+    const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path)
+    if (error || !data) console.error(`[food-truck-apply] ${id}: no upload URL for ${bucket}/${path}: ${error?.message ?? 'none'}`)
+    else uploads.push({ index, kind: f.kind, bucket, path: data.path, token: data.token })
   }
 
   // Receipts. The row is saved; a mail failure is logged, never surfaced as a
@@ -118,6 +119,7 @@ export async function POST(req: NextRequest) {
       internalNewFoodTruckEmail({
         ...facts, email: s.email, phone: s.phone, description: s.description,
         hasLogo: s.files.some(f => f.kind === 'logo'), photoCount: s.files.filter(f => f.kind === 'photo').length,
+        hasPermit: s.files.some(f => f.kind === 'permit'), hasLicense: s.files.some(f => f.kind === 'license'),
       }))
   } catch (e) {
     console.error(`[food-truck-apply] ${id} saved but the internal notice failed: ${String(e)}`)

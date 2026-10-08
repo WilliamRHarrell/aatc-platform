@@ -486,7 +486,7 @@ export function foodTruckReceivedEmail(f: FoodTruckFacts) {
 }
 
 /** To CONTACT_EMAIL, for each new food truck application. */
-export function internalNewFoodTruckEmail(f: FoodTruckFacts & { email: string; phone: string; photoCount: number; hasLogo: boolean; description: string }) {
+export function internalNewFoodTruckEmail(f: FoodTruckFacts & { email: string; phone: string; photoCount: number; hasLogo: boolean; hasPermit: boolean; hasLicense: boolean; description: string }) {
   return emailWrapper(`
     ${kicker('New Food Truck Application')}
     <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:24px; font-weight:700; color:#ffffff;">
@@ -499,7 +499,7 @@ export function internalNewFoodTruckEmail(f: FoodTruckFacts & { email: string; p
       <tr><td style="padding:4px 0; color:#999999;">Food</td><td align="right">${esc(f.cuisine)}</td></tr>
       <tr><td style="padding:4px 0; color:#999999;">Days</td><td align="right">${esc(f.days)}</td></tr>
       <tr><td style="padding:4px 0; color:#999999;">Fee</td><td align="right" style="color:#C4A882; font-weight:700;">${dollars(f.price)}</td></tr>
-      <tr><td style="padding:4px 0; color:#999999;">Files sent</td><td align="right">${f.hasLogo ? 'logo, ' : ''}${f.photoCount} photo${f.photoCount === 1 ? '' : 's'} (uploading after this email)</td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Files sent</td><td align="right">${[f.hasLogo ? 'logo' : '', `${f.photoCount} photo${f.photoCount === 1 ? '' : 's'}`, f.hasPermit ? 'health permit' : '', f.hasLicense ? 'business license' : ''].filter(Boolean).join(', ')} (uploading after this email)</td></tr>
     </table>
     ${f.description ? `<p style="margin:16px 0 0; font-size:14px; line-height:1.6; color:#cccccc;"><span style="color:#999999;">Menu:</span> ${esc(f.description)}</p>` : ''}
     ${ctaButton(`${SITE_URL}/admin/food-trucks`, 'Review in admin →')}

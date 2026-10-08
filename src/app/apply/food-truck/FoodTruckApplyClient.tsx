@@ -10,14 +10,15 @@ import { foodTruckPrice } from '@/lib/food-truck-pricing'
 import {
   FOOD_TYPES, FOOD_TYPE_OTHER, TRUCK_DAYS, TRUCK_DAY_LABELS, FOOD_TRUCK_REQUIREMENTS,
   DESCRIPTION_MAX, PHOTO_MAX_COUNT, TRUCK_IMAGE_ACCEPT, checkTruckFile, type TruckDay,
+  TRUCK_DOC_KINDS, TRUCK_DOC_LABELS, TRUCK_DOC_ACCEPT, type TruckDocKind,
 } from '@/lib/food-truck-submission'
 
 // /apply/food-truck (091). The route validates, inserts with the service role
 // and sends the receipts; nothing is inserted from here. Files go straight to
 // Storage through the signed upload URLs the route returns (a request body
-// cannot carry five 10 MB photos), then /files records what arrived.
-
-const BUCKET = 'food-truck-logos'
+// cannot carry five 10 MB photos), then /files records what arrived. Each URL
+// names its bucket: the health permit and business license go to the PRIVATE
+// food-truck-docs bucket (093).
 
 interface FormState {
   businessName: string
@@ -57,6 +58,7 @@ export default function FoodTruckApplyClient({ title, intro, ackLabel }: { title
   const [form, setForm] = useState<FormState>(INITIAL)
   const [logo, setLogo] = useState<File | null>(null)
   const [photos, setPhotos] = useState<File[]>([])
+  const [docs, setDocs] = useState<Record<TruckDocKind, File | null>>({ permit: null, license: null })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [honeypot, setHoneypot] = useState('')
   const [mountedAt] = useState(() => Date.now())
@@ -73,6 +75,14 @@ export default function FoodTruckApplyClient({ title, intro, ackLabel }: { title
     const c = checkTruckFile(file, 'logo')
     if (!c.ok) { toast.error(c.error); setLogo(null); return false }
     setLogo(file)
+    return true
+  }
+  /** False when the file is refused, so the input can be cleared. */
+  const pickDoc = (kind: TruckDocKind, file: File | undefined): boolean => {
+    if (!file) { setDocs(d => ({ ...d, [kind]: null })); return true }
+    const c = checkTruckFile(file, kind)
+    if (!c.ok) { toast.error(c.error); setDocs(d => ({ ...d, [kind]: null })); return false }
+    setDocs(d => ({ ...d, [kind]: file }))
     return true
   }
   const addPhotos = (list: FileList | null) => {
@@ -92,12 +102,14 @@ export default function FoodTruckApplyClient({ title, intro, ackLabel }: { title
     setSubmitting(true)
     setErrors({})
     try {
-      // Logo first, then photos: the route's upload `index` follows this order.
-      const files = [...(logo ? [logo] : []), ...photos]
-      const manifest = [
-        ...(logo ? [{ kind: 'logo', type: logo.type, size: logo.size }] : []),
-        ...photos.map(p => ({ kind: 'photo', type: p.type, size: p.size })),
+      // Logo, photos, permit, license: the route's upload `index` follows this order.
+      const chosen = [
+        ...(logo ? [{ kind: 'logo', file: logo }] : []),
+        ...photos.map(file => ({ kind: 'photo', file })),
+        ...TRUCK_DOC_KINDS.flatMap(kind => (docs[kind] ? [{ kind, file: docs[kind] as File }] : [])),
       ]
+      const files = chosen.map(c => c.file)
+      const manifest = chosen.map(c => ({ kind: c.kind, type: c.file.type, size: c.file.size }))
       const res = await fetch('/api/food-truck-apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -111,7 +123,7 @@ export default function FoodTruckApplyClient({ title, intro, ackLabel }: { title
       })
       const json = (await res.json().catch(() => ({}))) as {
         id?: string; error?: string; fieldErrors?: Record<string, string>; closed?: boolean
-        uploads?: { index: number; path: string; token: string }[]
+        uploads?: { index: number; bucket: string; path: string; token: string }[]
       }
       if (!res.ok || !json.id) {
         if (json.fieldErrors) setErrors(json.fieldErrors)
@@ -127,7 +139,7 @@ export default function FoodTruckApplyClient({ title, intro, ackLabel }: { title
         const results = await Promise.all((json.uploads ?? []).map(async u => {
           const file = files[u.index]
           if (!file) return false
-          const { error } = await sb.storage.from(BUCKET).uploadToSignedUrl(u.path, u.token, file, { contentType: file.type })
+          const { error } = await sb.storage.from(u.bucket).uploadToSignedUrl(u.path, u.token, file, { contentType: file.type })
           return !error
         }))
         uploaded = results.filter(Boolean).length
@@ -165,7 +177,7 @@ export default function FoodTruckApplyClient({ title, intro, ackLabel }: { title
           </p>
           {done.filesMissing > 0 && (
             <p className="mt-4 text-sm leading-relaxed" style={{ color: '#eab308' }}>
-              {done.filesMissing === 1 ? 'One of your images' : `${done.filesMissing} of your images`} did not upload. Your application is saved; we will ask you for them if we need them.
+              {done.filesMissing === 1 ? 'One of your files' : `${done.filesMissing} of your files`} did not upload. Your application is saved; we will ask you for them if we need them.
             </p>
           )}
         </div>
@@ -331,6 +343,27 @@ export default function FoodTruckApplyClient({ title, intro, ackLabel }: { title
                   </ul>
                 )}
               </div>
+            </div>
+          </section>
+
+          {/* ── Permit and license (093) ──────────────────── */}
+          <section className="rounded-xl p-6" style={sectionStyle}>
+            <h2 className="mb-1 text-base font-semibold text-white">Health permit and business license</h2>
+            <p className="mb-5 text-xs" style={{ color: '#777' }}>
+              Optional now: you can upload them later in your portal or show them at setup. PDF, JPG or PNG, up to 10 MB each. Kept private; only our team can see them.
+            </p>
+            <div className="space-y-5">
+              {TRUCK_DOC_KINDS.map(kind => (
+                <div key={kind}>
+                  <label htmlFor={`ft-${kind}`} className={labelClass} style={{ color: '#888' }}>{TRUCK_DOC_LABELS[kind]}</label>
+                  <input
+                    id={`ft-${kind}`} type="file" accept={TRUCK_DOC_ACCEPT}
+                    onChange={e => { if (!pickDoc(kind, e.target.files?.[0])) e.target.value = '' }}
+                    className={fileClass}
+                  />
+                  <FieldError msg={errors[kind]} />
+                </div>
+              ))}
             </div>
           </section>
 

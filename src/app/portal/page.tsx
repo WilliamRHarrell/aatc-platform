@@ -11,6 +11,7 @@ import { formatCurrency } from '@/lib/utils'
 import { describeBooths } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 import { RosterCompletionPanel } from '@/components/portal/RosterCompletionPanel'
+import { TruckDocumentsPanel } from '@/components/portal/TruckDocumentsPanel'
 import { formatDateOnly } from '@/lib/date-only'
 
 interface PortalArtist {
@@ -109,6 +110,13 @@ interface FoodTruck {
   logo_url: string | null
   days: string[]
   thursday_setup: boolean
+  // 093
+  permit_path: string | null
+  permit_uploaded_at: string | null
+  permit_verified_at: string | null
+  license_path: string | null
+  license_uploaded_at: string | null
+  license_verified_at: string | null
 }
 
 const DAY_LABELS: Record<string, string> = { friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday' }
@@ -1457,6 +1465,11 @@ function PortalContent() {
                 </Card>
               )
             })()}
+
+            <Card>
+              <SectionLabel>Health Permit &amp; Business License</SectionLabel>
+              <TruckDocumentsPanel truck={foodTruck} onChange={docs => setFoodTruck(t => t && { ...t, ...docs })} />
+            </Card>
 
             <Card>
               <SectionLabel>Vendor Profile</SectionLabel>
