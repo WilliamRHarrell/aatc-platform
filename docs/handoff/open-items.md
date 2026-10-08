@@ -4,14 +4,16 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
 
 ### OPEN ITEMS (one line each, with the owner)
 
-- **Report verify_088 and verify_089 results** (added 2026-10-07). Both
-  migrations are live (functions read 2026-10-07); their verify results were
-  not reported. Owner: Ryan.
-- **Public food truck application: decisions 1-10** (added 2026-10-07), from
-  the 2026-10-06 report: California Taco's terms, the January 1 handling,
-  auto-invite on approval, waitlist/rejection emails, the hard cap, where
-  the switch lives, a food-type pick-list, portal permit uploads, photo
-  limits, day changes. Owner: Ryan.
+- **Enable `FOOD_TRUCK_REMINDERS_ENABLED=true` in Vercel before 2026-12-01**
+  (added 2026-10-08, #77). The first 30-day food truck balance reminder
+  falls due 2026-12-02 (30 days before January 1). Check
+  `/api/cron/lifecycle-sweep?dry_run=1` first: `food_truck_reminders.would_send`
+  should list only selected trucks with a balance. The January 2 internal
+  "not paid in full" list is not behind this switch. Owner: Ryan.
+- **Open food truck applications when ready** (added 2026-10-08). The switch
+  on /admin/food-trucks is off; PR 2 (#77) has shipped, so nothing in the code
+  is waiting. Edit the drafted copy first (content editor, "Food truck
+  application"). Owner: Ryan.
 - **Square import teardown expires on linking** (added 2026-10-07).
   `supabase/.imports/square-2027-teardown.sql` (Claude's worktree,
   gitignored) only runs while the 15 imported rows are unchanged; after
