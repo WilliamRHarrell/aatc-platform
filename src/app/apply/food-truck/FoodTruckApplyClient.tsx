@@ -42,6 +42,7 @@ const INITIAL: FormState = {
 const inputClass = 'w-full rounded-lg px-4 py-3 text-sm text-white outline-none transition-colors focus:border-[#8B7355]'
 const inputStyle = { backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' } as const
 const labelClass = 'mb-1.5 block text-xs font-medium'
+const fileClass = 'block w-full text-sm text-[#999] file:mr-4 file:cursor-pointer file:rounded-lg file:border file:border-solid file:border-[#8B7355]/40 file:bg-[#8B7355]/15 file:px-4 file:py-2 file:text-xs file:font-semibold file:text-[#C4A882] hover:file:bg-[#8B7355]/25 disabled:opacity-50'
 const sectionStyle = { backgroundColor: '#111', border: '1px solid #1a1a1a' } as const
 
 function Req() {
@@ -66,11 +67,13 @@ export default function FoodTruckApplyClient({ title, intro, ackLabel }: { title
   const toggleDay = (d: TruckDay) =>
     setForm(f => ({ ...f, days: f.days.includes(d) ? f.days.filter(x => x !== d) : [...f.days, d] }))
 
-  const pickLogo = (file: File | undefined) => {
-    if (!file) return setLogo(null)
+  /** False when the file is refused, so the input can be cleared. */
+  const pickLogo = (file: File | undefined): boolean => {
+    if (!file) { setLogo(null); return true }
     const c = checkTruckFile(file, 'logo')
-    if (!c.ok) { toast.error(c.error); return }
+    if (!c.ok) { toast.error(c.error); setLogo(null); return false }
     setLogo(file)
+    return true
   }
   const addPhotos = (list: FileList | null) => {
     if (!list) return
@@ -297,7 +300,11 @@ export default function FoodTruckApplyClient({ title, intro, ackLabel }: { title
             <div className="space-y-5">
               <div>
                 <label htmlFor="ft-logo" className={labelClass} style={{ color: '#888' }}>Logo</label>
-                <input id="ft-logo" type="file" accept={TRUCK_IMAGE_ACCEPT} onChange={e => pickLogo(e.target.files?.[0])} className="block w-full text-sm" style={{ color: '#999' }} />
+                <input
+                  id="ft-logo" type="file" accept={TRUCK_IMAGE_ACCEPT}
+                  onChange={e => { if (!pickLogo(e.target.files?.[0])) e.target.value = '' }}
+                  className={fileClass}
+                />
                 <FieldError msg={errors.logo} />
               </div>
               <div>
@@ -306,7 +313,9 @@ export default function FoodTruckApplyClient({ title, intro, ackLabel }: { title
                   id="ft-photos" type="file" multiple accept={TRUCK_IMAGE_ACCEPT}
                   disabled={photos.length >= PHOTO_MAX_COUNT}
                   onChange={e => { addPhotos(e.target.files); e.target.value = '' }}
-                  className="block w-full text-sm disabled:opacity-50" style={{ color: '#999' }}
+                  // The list below names the chosen photos; the browser's own
+                  // "No file chosen" would contradict it once the input is reset.
+                  className={`${fileClass} text-transparent`}
                 />
                 <FieldError msg={errors.photos ?? errors.files} />
                 {photos.length > 0 && (
