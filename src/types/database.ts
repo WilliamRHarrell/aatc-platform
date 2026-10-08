@@ -442,10 +442,12 @@ export type Database = {
           city: string
           created_at: string
           end_date: string
+          food_truck_applications_open: boolean
+          food_truck_cap: number
           id: string
           is_active: boolean
-          permit_submission_date: string | null
           name: string
+          permit_submission_date: string | null
           pinup_capacity: number
           registration_open_date: string | null
           start_date: string
@@ -457,10 +459,12 @@ export type Database = {
           city: string
           created_at?: string
           end_date: string
+          food_truck_applications_open?: boolean
+          food_truck_cap?: number
           id?: string
           is_active?: boolean
-          permit_submission_date?: string | null
           name: string
+          permit_submission_date?: string | null
           pinup_capacity?: number
           registration_open_date?: string | null
           start_date: string
@@ -472,10 +476,12 @@ export type Database = {
           city?: string
           created_at?: string
           end_date?: string
+          food_truck_applications_open?: boolean
+          food_truck_cap?: number
           id?: string
           is_active?: boolean
-          permit_submission_date?: string | null
           name?: string
+          permit_submission_date?: string | null
           pinup_capacity?: number
           registration_open_date?: string | null
           start_date?: string
@@ -563,11 +569,16 @@ export type Database = {
       }
       food_trucks: {
         Row: {
+          acknowledged_at: string | null
+          applied_at: string | null
           business_name: string
           contact_name: string
           created_at: string
           cuisine_type: string
           days: string[]
+          decided_at: string | null
+          decision_email_opt_out: boolean
+          decision_email_sent_at: string | null
           description: string
           email: string
           event_id: string
@@ -577,17 +588,24 @@ export type Database = {
           is_published: boolean
           logo_url: string | null
           phone: string | null
+          photos: string[]
+          status: string
           thursday_setup: boolean
           updated_at: string
           user_id: string | null
           website: string | null
         }
         Insert: {
+          acknowledged_at?: string | null
+          applied_at?: string | null
           business_name: string
           contact_name: string
           created_at?: string
           cuisine_type?: string
           days?: string[]
+          decided_at?: string | null
+          decision_email_opt_out?: boolean
+          decision_email_sent_at?: string | null
           description?: string
           email: string
           event_id: string
@@ -597,17 +615,24 @@ export type Database = {
           is_published?: boolean
           logo_url?: string | null
           phone?: string | null
+          photos?: string[]
+          status?: string
           thursday_setup?: boolean
           updated_at?: string
           user_id?: string | null
           website?: string | null
         }
         Update: {
+          acknowledged_at?: string | null
+          applied_at?: string | null
           business_name?: string
           contact_name?: string
           created_at?: string
           cuisine_type?: string
           days?: string[]
+          decided_at?: string | null
+          decision_email_opt_out?: boolean
+          decision_email_sent_at?: string | null
           description?: string
           email?: string
           event_id?: string
@@ -617,6 +642,8 @@ export type Database = {
           is_published?: boolean
           logo_url?: string | null
           phone?: string | null
+          photos?: string[]
+          status?: string
           thursday_setup?: boolean
           updated_at?: string
           user_id?: string | null

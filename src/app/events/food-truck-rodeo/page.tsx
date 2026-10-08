@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
+import Link from 'next/link'
 import PublicNav from '@/components/PublicNav'
+import { CONTACT_EMAIL } from '@/lib/event-config'
 
 interface FoodTruck {
   id: string
@@ -258,10 +260,11 @@ export default function FoodTruckRodeoPage() {
           <span className="text-emboss">Interested in being a food vendor?</span>
         </p>
         <p className="text-sm" style={{ color: '#999' }}>
-          <span className="text-emboss">Contact us at{' '}
-          <a href="mailto:info@allamericantattooconvention.com" style={{ color: '#C4A882' }}>
-            info@allamericantattooconvention.com
-          </a></span>
+          <span className="text-emboss">
+            <Link href="/apply/food-truck" style={{ color: '#C4A882' }}>Apply for a spot</Link>
+            {' '}or contact us at{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#C4A882' }}>{CONTACT_EMAIL}</a>
+          </span>
         </p>
       </div>
     </div>

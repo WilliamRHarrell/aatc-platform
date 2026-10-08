@@ -8,10 +8,26 @@ import { truckInvoiceRepriceable } from '@/lib/food-truck-invoice'
 import { foodTruckPrice } from '@/lib/food-truck-pricing'
 import InviteLinkControl from '@/components/admin/InviteLinkControl'
 import { guardedWrite } from '@/lib/db-write'
+import { requestRevalidate } from '@/lib/revalidate'
+import { parseCapacity } from '@/lib/pinup-capacity'
+import { TRUCK_STATUS_LABELS, capLabel, type Decision } from '@/lib/food-truck-decision'
 
 const DAY_OPTIONS = ['friday', 'saturday', 'sunday'] as const
 const DAY_LABELS: Record<string, string> = { friday: 'Fri', saturday: 'Sat', sunday: 'Sun' }
 // Prices: src/lib/food-truck-pricing.ts (reconcile block G is pinned to it by a test).
+
+// Applications (091): status, the cap and the switch. See
+// docs/superpowers/plans/2026-10-07-food-truck-application.md.
+const TRUCK_STATUS_STYLE: Record<string, { bg: string; color: string }> = {
+  pending:      { bg: 'rgba(234,179,8,0.15)',   color: '#eab308' },
+  approved:     { bg: 'rgba(74,222,128,0.15)',  color: '#4ade80' },
+  waitlisted:   { bg: 'rgba(96,165,250,0.15)',  color: '#60a5fa' },
+  not_selected: { bg: 'rgba(153,153,153,0.15)', color: '#999' },
+  released:     { bg: 'rgba(153,153,153,0.15)', color: '#999' },
+}
+const STATUS_FILTERS = ['all', 'pending', 'approved', 'waitlisted', 'not_selected'] as const
+type StatusFilter = (typeof STATUS_FILTERS)[number]
+const publicImage = (path: string) => `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/food-truck-logos/${path}`
 
 const INVOICE_STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   pending:   { bg: 'rgba(234,179,8,0.15)',   color: '#eab308' },
@@ -38,7 +54,17 @@ interface FoodTruck {
   thursday_setup: boolean
   is_published: boolean
   created_at: string
+  // 091; absent until it is applied
+  status?: string
+  photos?: string[]
+  applied_at?: string | null
+  acknowledged_at?: string | null
+  decided_at?: string | null
+  decision_email_opt_out?: boolean
+  decision_email_sent_at?: string | null
 }
+
+interface EventSettings { open: boolean; cap: number }
 
 interface FoodTruckInvoice {
   id: string
@@ -89,6 +115,12 @@ export default function AdminFoodTrucksPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [working, setWorking] = useState(false)
+  // null = 091 not applied yet (the columns are missing): the application
+  // controls stay hidden and the page works as before.
+  const [settings, setSettings] = useState<EventSettings | null>(null)
+  const [capDraft, setCapDraft] = useState('')
+  const [filter, setFilter] = useState<StatusFilter>('all')
+  const [deciding, setDeciding] = useState(false)
 
   const loadData = async () => {
     const { data: event } = await supabase
@@ -99,6 +131,19 @@ export default function AdminFoodTrucksPage() {
 
     if (!event) { setLoading(false); return }
     setEventId(event.id)
+
+    const { data: es, error: esErr } = await supabase
+      .from('events')
+      .select('food_truck_applications_open, food_truck_cap')
+      .eq('id', event.id)
+      .single()
+    if (esErr || !es) {
+      if (esErr?.code !== '42703') console.error(`[admin/food-trucks] event settings: ${esErr?.message}`)
+      setSettings(null)
+    } else {
+      setSettings({ open: es.food_truck_applications_open, cap: es.food_truck_cap })
+      setCapDraft(String(es.food_truck_cap))
+    }
 
     const { data } = await supabase
       .from('food_trucks')
@@ -130,7 +175,79 @@ export default function AdminFoodTrucksPage() {
     total: trucks.length,
     published: trucks.filter(t => t.is_published).length,
     unpublished: trucks.filter(t => !t.is_published).length,
+    approved: trucks.filter(t => t.status === 'approved').length,
+    byStatus: Object.fromEntries(STATUS_FILTERS.map(f => [f, f === 'all' ? trucks.length : trucks.filter(t => t.status === f).length])) as Record<StatusFilter, number>,
   }), [trucks])
+
+  const shown = useMemo(() => filter === 'all' ? trucks : trucks.filter(t => t.status === filter), [trucks, filter])
+
+  // ── Switch and cap (events row, admin write) ─────────────
+  const saveSettings = async (patch: { food_truck_applications_open?: boolean; food_truck_cap?: number }) => {
+    if (!eventId) return
+    const res = await guardedWrite(
+      supabase.from('events').update(patch).eq('id', eventId).select('id'),
+      'Food truck settings not saved',
+      `admin/food-trucks settings event=${eventId}`,
+    )
+    if (!res.ok) { toast.error(res.error); return false }
+    setSettings(s => s && {
+      open: patch.food_truck_applications_open ?? s.open,
+      cap: patch.food_truck_cap ?? s.cap,
+    })
+    const purged = await requestRevalidate({ paths: ['/apply/food-truck'], tags: ['food-trucks'] })
+    if (!purged) toast('Saved. The public page may take up to a minute to update.')
+    return true
+  }
+
+  const toggleOpen = async () => {
+    if (!settings) return
+    const next = !settings.open
+    if (next && !window.confirm('Open food truck applications? The form at /apply/food-truck goes live.')) return
+    if (await saveSettings({ food_truck_applications_open: next })) {
+      toast.success(next ? 'Food truck applications are open' : 'Food truck applications are closed')
+    }
+  }
+
+  const saveCap = async () => {
+    const cap = parseCapacity(capDraft)
+    if (!cap.ok) { toast.error('Enter a whole number of trucks, 1 or more'); return }
+    if (await saveSettings({ food_truck_cap: cap.value })) toast.success(`Cap set to ${cap.value}`)
+  }
+
+  // ── Decisions (server route: invoice, invite and emails) ──
+  const decide = async (truck: FoodTruck, decision: Decision) => {
+    const verb = decision === 'approved' ? 'Select' : decision === 'waitlisted' ? 'Waitlist' : 'Mark as not selected'
+    const mail = decision === 'approved'
+      ? 'This creates the invoice and emails them to set up their account and pay.'
+      : truck.decision_email_opt_out ? 'No email will be sent (don\'t send is ticked).' : 'They will be emailed.'
+    if (!window.confirm(`${verb} ${truck.business_name}? ${mail}`)) return
+    setDeciding(true)
+    try {
+      const res = await fetch('/api/admin/food-trucks/decision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: truck.id, decision }),
+      })
+      const json = (await res.json().catch(() => ({}))) as { error?: string; emailSent?: boolean; problems?: string[] }
+      if (!res.ok) { toast.error(json.error ?? 'The decision did not save'); return }
+      if (json.problems?.length) toast.error(`Saved, but ${json.problems.join('; ')}.`, { duration: 10000 })
+      else toast.success(`${TRUCK_STATUS_LABELS[decision]}${json.emailSent ? ', email sent' : ''}`)
+      await loadData()
+    } finally {
+      setDeciding(false)
+    }
+  }
+
+  const toggleOptOut = async (truck: FoodTruck) => {
+    const next = !truck.decision_email_opt_out
+    const res = await guardedWrite(
+      supabase.from('food_trucks').update({ decision_email_opt_out: next }).eq('id', truck.id).select('id'),
+      '"Don\'t send" not saved',
+      `admin/food-trucks optout id=${truck.id}`,
+    )
+    if (!res.ok) { toast.error(res.error); return }
+    setTrucks(prev => prev.map(t => t.id === truck.id ? { ...t, decision_email_opt_out: next } : t))
+  }
 
   const startAdd = () => {
     setForm(EMPTY_FORM)
@@ -273,12 +390,16 @@ export default function AdminFoodTrucksPage() {
           days: form.days,
           thursday_setup: form.thursday_setup,
           is_published: false,
+          // A truck the admin adds is taken: approved, counted toward the cap (091).
+          ...(settings ? { status: 'approved' } : {}),
         })
         .select('*')
         .single()
 
       if (error || !newTruck) {
-        toast.error('Failed to add food truck')
+        toast.error(error?.hint === 'FOOD_TRUCK_CAP'
+          ? `All spots are taken (${settings ? capLabel(counts.approved, settings.cap) : 'cap reached'}). Raise the cap to add another.`
+          : error?.code === '23505' ? 'Another active truck already uses this email.' : 'Failed to add food truck')
         setWorking(false)
         return
       }
@@ -361,6 +482,10 @@ export default function AdminFoodTrucksPage() {
 
   const togglePublished = async (truck: FoodTruck) => {
     const newVal = !truck.is_published
+    if (newVal && truck.status && truck.status !== 'approved') {
+      toast.error('Only a selected truck can be published.')
+      return
+    }
     const res = await guardedWrite(
       supabase.from('food_trucks').update({ is_published: newVal }).eq('id', truck.id).select('id'),
       'Published status not saved',
@@ -404,6 +529,7 @@ export default function AdminFoodTrucksPage() {
           <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">Food Trucks</h1>
           <p className="mt-1 text-sm" style={{ color: '#999' }}>
             {counts.total} food truck{counts.total !== 1 ? 's' : ''} &middot; {counts.published} published &middot; {counts.unpublished} unpublished
+            {settings && <> &middot; <span style={{ color: counts.approved >= settings.cap ? '#eab308' : '#4ade80' }}>{capLabel(counts.approved, settings.cap)}</span></>}
           </p>
         </div>
         <button
@@ -414,6 +540,67 @@ export default function AdminFoodTrucksPage() {
           + Add Food Truck
         </button>
       </div>
+
+      {/* Applications: the switch and the cap (events row, 091) */}
+      {settings && (
+        <div className="mb-6 flex flex-wrap items-center gap-x-8 gap-y-4 rounded-2xl px-5 py-4" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+          <label className="flex cursor-pointer items-center gap-3">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={settings.open}
+              onClick={toggleOpen}
+              className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
+              style={{
+                backgroundColor: settings.open ? 'rgba(34,197,94,0.3)' : '#2a2a2a',
+                border: `1px solid ${settings.open ? 'rgba(34,197,94,0.5)' : '#3a3a3a'}`,
+              }}
+            >
+              <span className="absolute top-0.5 h-4 w-4 rounded-full transition-transform" style={{ backgroundColor: settings.open ? '#22c55e' : '#666', left: settings.open ? '22px' : '3px' }} />
+            </button>
+            <span className="text-sm text-white">Accepting food truck applications</span>
+            <span className="text-xs font-semibold" style={{ color: settings.open ? '#4ade80' : '#999' }}>{settings.open ? 'Open' : 'Closed'}</span>
+          </label>
+          <div className="flex items-center gap-2">
+            <label htmlFor="ft-cap" className="text-sm text-white">Most trucks</label>
+            <input
+              id="ft-cap"
+              inputMode="numeric"
+              value={capDraft}
+              onChange={e => setCapDraft(e.target.value)}
+              className="w-16 rounded-lg px-3 py-1.5 text-sm text-white outline-none"
+              style={inputStyle}
+            />
+            {capDraft !== String(settings.cap) && (
+              <button onClick={saveCap} className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white" style={{ backgroundColor: '#8B7355' }}>Save</button>
+            )}
+          </div>
+          <p className="text-xs" style={{ color: '#666' }}>
+            Wording and emails: Content editor, &quot;Food truck application&quot;. Public form: /apply/food-truck
+          </p>
+        </div>
+      )}
+
+      {settings && (
+        <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Filter by status">
+          {STATUS_FILTERS.map(f => (
+            <button
+              key={f}
+              role="tab"
+              aria-selected={filter === f}
+              onClick={() => setFilter(f)}
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold"
+              style={{
+                backgroundColor: filter === f ? 'rgba(139,115,85,0.2)' : 'transparent',
+                color: filter === f ? '#C4A882' : '#999',
+                border: `1px solid ${filter === f ? 'rgba(139,115,85,0.5)' : '#2a2a2a'}`,
+              }}
+            >
+              {f === 'all' ? 'All' : TRUCK_STATUS_LABELS[f]} ({counts.byStatus[f]})
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Table */}
       <div className="rounded-2xl" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
@@ -429,12 +616,16 @@ export default function AdminFoodTrucksPage() {
               <div className="w-28 text-xs font-bold uppercase tracking-wider" style={{ color: '#666' }}>Cuisine</div>
               <div className="w-32 text-xs font-bold uppercase tracking-wider" style={{ color: '#666' }}>Days</div>
               <div className="w-12 text-xs font-bold uppercase tracking-wider" style={{ color: '#666' }}>Thu</div>
+              {settings && <div className="w-24 text-xs font-bold uppercase tracking-wider text-center" style={{ color: '#666' }}>Status</div>}
               <div className="w-16 text-xs font-bold uppercase tracking-wider text-center" style={{ color: '#666' }}>Payment</div>
               <div className="w-20 text-xs font-bold uppercase tracking-wider text-center" style={{ color: '#666' }}>Published</div>
               <div className="w-16" />
             </div>
 
-            {trucks.map(truck => {
+            {shown.length === 0 && (
+              <div className="px-5 py-10 text-center text-sm" style={{ color: '#555' }}>No trucks with this status.</div>
+            )}
+            {shown.map(truck => {
               const invoice = invoiceMap.get(truck.id)
               const invoiceStatus = invoice?.status ?? null
 
@@ -443,8 +634,16 @@ export default function AdminFoodTrucksPage() {
                   {/* Business Name */}
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-white">{truck.business_name}</p>
+                    {truck.applied_at && (
+                      <p className="text-xs" style={{ color: '#666' }}>Applied {new Date(truck.applied_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                    )}
                     {/* Mobile-only info */}
                     <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:hidden">
+                      {settings && truck.status && (
+                        <span className="rounded-full px-2 py-0.5 text-xs font-bold" style={{ backgroundColor: TRUCK_STATUS_STYLE[truck.status]?.bg, color: TRUCK_STATUS_STYLE[truck.status]?.color }}>
+                          {TRUCK_STATUS_LABELS[truck.status] ?? truck.status}
+                        </span>
+                      )}
                       <span className="text-xs" style={{ color: '#999' }}>{truck.cuisine_type}</span>
                       {truck.days.map(d => (
                         <span
@@ -487,6 +686,17 @@ export default function AdminFoodTrucksPage() {
                       </span>
                     )}
                   </div>
+
+                  {/* Status */}
+                  {settings && (
+                    <div className="hidden w-24 sm:flex justify-center">
+                      {truck.status && (
+                        <span className="rounded-full px-2 py-0.5 text-xs font-bold" style={{ backgroundColor: TRUCK_STATUS_STYLE[truck.status]?.bg, color: TRUCK_STATUS_STYLE[truck.status]?.color }}>
+                          {TRUCK_STATUS_LABELS[truck.status] ?? truck.status}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Payment */}
                   <div className="hidden w-16 sm:flex justify-center">
@@ -755,6 +965,68 @@ export default function AdminFoodTrucksPage() {
                   {logoFile ? logoFile.name : 'Upload logo'}
                 </label>
               </div>
+
+              {/* Application and decision (091) */}
+              {editingId && settings && (() => {
+                const truck = trucks.find(t => t.id === editingId)
+                if (!truck?.status) return null
+                const open = truck.status !== 'approved' && truck.status !== 'released'
+                return (
+                  <div className="rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Application</p>
+                      <span className="rounded-full px-2 py-0.5 text-xs font-bold" style={{ backgroundColor: TRUCK_STATUS_STYLE[truck.status]?.bg, color: TRUCK_STATUS_STYLE[truck.status]?.color }}>
+                        {TRUCK_STATUS_LABELS[truck.status] ?? truck.status}
+                      </span>
+                    </div>
+                    <p className="text-xs leading-relaxed" style={{ color: '#999' }}>
+                      {truck.applied_at
+                        ? <>Applied {new Date(truck.applied_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}{truck.acknowledged_at ? ', requirements acknowledged' : ''}.</>
+                        : 'Added by an admin or imported (no application).'}
+                      {truck.decided_at && <> Decided {new Date(truck.decided_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}{truck.decision_email_sent_at ? ', email sent' : ', no email sent'}.</>}
+                    </p>
+                    {(truck.logo_url || (truck.photos?.length ?? 0) > 0) && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {[...(truck.logo_url ? [truck.logo_url] : []), ...(truck.photos ?? [])].map(path => (
+                          <a key={path} href={publicImage(path)} target="_blank" rel="noopener noreferrer">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={publicImage(path)} alt="" className="h-16 w-16 rounded-lg object-cover" style={{ border: '1px solid #2a2a2a' }} />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                    {open && (
+                      <>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {([['approved', 'Approve'], ['waitlisted', 'Waitlist'], ['not_selected', 'Not selected']] as const)
+                            .filter(([d]) => d !== truck.status)
+                            .map(([d, label]) => (
+                              <button
+                                key={d}
+                                onClick={() => decide(truck, d)}
+                                disabled={deciding || (d === 'approved' && counts.approved >= settings.cap)}
+                                className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity disabled:opacity-40"
+                                style={d === 'approved'
+                                  ? { backgroundColor: 'rgba(74,222,128,0.15)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }
+                                  : { backgroundColor: 'transparent', color: '#ccc', border: '1px solid #3a3a3a' }}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                        </div>
+                        {counts.approved >= settings.cap && (
+                          <p className="mt-2 text-xs" style={{ color: '#eab308' }}>{capLabel(counts.approved, settings.cap)}. Raise the cap to approve more.</p>
+                        )}
+                        <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs" style={{ color: '#999' }}>
+                          <input type="checkbox" checked={!!truck.decision_email_opt_out} onChange={() => toggleOptOut(truck)} style={{ accentColor: '#8B7355' }} />
+                          Don&apos;t send the waitlist / not selected email (I&apos;ll contact them myself)
+                        </label>
+                        <p className="mt-2 text-xs" style={{ color: '#666' }}>Approve creates the invoice and sends the &quot;you&apos;re selected, set up your account to pay&quot; email.</p>
+                      </>
+                    )}
+                  </div>
+                )
+              })()}
 
               {/* Portal access (Invite & link, 090) */}
               {editingId && (() => {

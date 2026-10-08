@@ -5,10 +5,10 @@
  * waits out the 60 s window.
  */
 export const ALLOWED_PATHS = new Set([
-  '/', '/apply', '/apply/artist', '/apply/vendor', '/apply/sponsor', '/tickets', '/contests', '/sponsors', '/sponsors/packages', '/tattoo-battle',
+  '/', '/apply', '/apply/artist', '/apply/vendor', '/apply/sponsor', '/apply/food-truck', '/tickets', '/contests', '/sponsors', '/sponsors/packages', '/tattoo-battle',
   '/events/after-parties', '/events/schedule', '/events/kids-contest', '/events/tattoo-contests', '/events/pinup-contest', '/info/about', '/info/policies',
 ])
 // Entry pages are dynamic: /tattoo-battle/entry/<n>. Pattern-matched so an
 // admin publish can purge exactly the bucket it touched.
 export const ALLOWED_PATH_PATTERNS = [/^\/tattoo-battle\/entry\/[1-9]\d{0,2}$/]
-export const ALLOWED_TAGS = new Set(['page_content', 'sponsors', 'panels', 'contests', 'tattoo-battle', 'after-parties', 'schedule', 'pinup'])
+export const ALLOWED_TAGS = new Set(['page_content', 'sponsors', 'panels', 'contests', 'tattoo-battle', 'after-parties', 'schedule', 'pinup', 'food-trucks'])

@@ -8,6 +8,14 @@
  */
 export const FOOD_TRUCK_PRICE_BY_DAYS: Readonly<Record<number, number>> = { 1: 10000, 2: 20000, 3: 25000 }
 
+/**
+ * The first payment that holds an applicant's space (Ryan, 2026-10-07): $100,
+ * or the full amount when the total is $100 or less. Shown on
+ * /apply/food-truck now; enforced at checkout from PR 2 of the food truck
+ * application plan. Imported Square invoices keep their 25% terms.
+ */
+export const FOOD_TRUCK_DEPOSIT_CENTS = 10000
+
 export function foodTruckPrice(dayCount: number): number {
   const p = FOOD_TRUCK_PRICE_BY_DAYS[dayCount]
   if (p === undefined) throw new Error(`no food truck price for ${dayCount} day(s)`)

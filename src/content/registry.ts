@@ -568,6 +568,58 @@ export const REGISTRY: PageDef[] = [
     },
   },
   {
+    key: 'foodTruckApply',
+    title: 'Food truck application (/apply/food-truck) and its emails',
+    sections: {
+      // Drafted 2026-10-07 from Ryan's spec, for Ryan to edit. The requirements
+      // list is NOT here: it carries the deposit and the due date, which come
+      // from their one home (src/lib/food-truck-submission.ts).
+      title: { label: 'Page title', type: 'text', default: 'Food Truck Application' },
+      intro: {
+        label: 'Intro',
+        type: 'markdown',
+        default:
+          'Bring your truck to the Food Truck Rodeo at AATC 2027. Tell us about your truck and the days you want to be there, and we will review applications for a good mix of food.\n\nNo payment is due to apply. If your truck is selected, we will email you to set up your account and pay.',
+      },
+      ack_label: { label: 'Acknowledgment checkbox', type: 'text', default: 'I have read the requirements above and agree to them.' },
+      closed_title: {
+        label: 'Applications closed: title',
+        help: 'Shown instead of the form while "Accepting food truck applications" is off (/admin/food-trucks).',
+        type: 'text',
+        default: 'Food truck applications are closed',
+      },
+      closed_body: {
+        label: 'Applications closed: body (the contact email follows it automatically)',
+        type: 'markdown',
+        default: 'We are not taking food truck applications right now. Questions? Contact us.',
+      },
+      email_selected_subject: { label: 'Selected email: subject', type: 'text', default: 'Your truck is in: AATC 2027 Food Truck Rodeo' },
+      email_selected_body: {
+        label: 'Selected email: body',
+        help: 'Plain paragraphs, separated by a blank line. The email adds the amounts, the due date and the set-up-your-account button.',
+        type: 'markdown',
+        default:
+          'Good news: your truck has been selected for the Food Truck Rodeo at AATC 2027.\n\nSet up your portal account with the button below to see your invoice and pay. Your spot is confirmed once it is paid in full.',
+      },
+      email_waitlisted_subject: { label: 'Waitlist email: subject', type: 'text', default: 'Your AATC 2027 food truck application' },
+      email_waitlisted_body: {
+        label: 'Waitlist email: body',
+        help: 'Plain paragraphs, separated by a blank line.',
+        type: 'markdown',
+        default:
+          'Thank you for applying to the Food Truck Rodeo at AATC 2027. Our food truck spots are full for now, so your truck is on our waitlist.\n\nIf a spot opens, we will email you.',
+      },
+      email_not_selected_subject: { label: 'Not selected email: subject', type: 'text', default: 'Your AATC 2027 food truck application' },
+      email_not_selected_body: {
+        label: 'Not selected email: body',
+        help: 'Plain paragraphs, separated by a blank line.',
+        type: 'markdown',
+        default:
+          'Thank you for applying to the Food Truck Rodeo at AATC 2027. We are not able to offer your truck a spot this year; we aim for a mix of food types across the weekend.\n\nWe hope you will apply again next year.',
+      },
+    },
+  },
+  {
     key: 'policies',
     title: 'Policies (/info/policies)',
     sections: {
@@ -636,6 +688,7 @@ export const PAGE_ROUTE: Record<string, string | string[]> = {
   about: '/info/about',
   policies: '/info/policies',
   applyForms: ['/apply/artist', '/apply/vendor'],
+  foodTruckApply: '/apply/food-truck',
 }
 
 /** Every public path a registry page renders on; the editor purges them all. */
