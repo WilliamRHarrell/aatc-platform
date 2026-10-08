@@ -6,7 +6,7 @@ Branch `feat/food-truck-deposit-and-due`. Plan and Ryan's PR 2 decisions:
 Also this session: screenshots of /apply/food-truck (closed live; open forced
 locally, not committed) at 390px and 1280px; the raw file pickers were fixed
 in #76. /admin/food-trucks was not screenshotted (needs an admin session;
-Ryan checks it himself).
+Ryan checks it).
 
 ## Delivered, NOT applied: migration 092
 
