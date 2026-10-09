@@ -13,6 +13,7 @@ import toast from 'react-hot-toast'
 import { RosterCompletionPanel } from '@/components/portal/RosterCompletionPanel'
 import { TruckDocumentsPanel } from '@/components/portal/TruckDocumentsPanel'
 import { formatDateOnly } from '@/lib/date-only'
+import { TATTOO_STYLES } from '@/lib/tattoo-styles'
 
 interface PortalArtist {
   name: string
@@ -62,12 +63,6 @@ interface ArtistDraft {
   portfolio_files: File[]
 }
 
-const TATTOO_STYLES = [
-  'American Traditional', 'Neo-Traditional', 'Japanese', 'Realism',
-  'Watercolor', 'Blackwork', 'Dotwork', 'Geometric', 'Tribal',
-  'New School', 'Illustrative', 'Fine Line', 'Surrealism', 'Horror / Dark Art',
-  'Biomechanical', 'Lettering / Script', 'Floral', 'Minimalist', 'Portrait', 'Cover-up',
-]
 
 interface Booth {
   booth_number: string | number

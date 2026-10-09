@@ -4,13 +4,8 @@ import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import PublicNav from '@/components/PublicNav'
+import { TATTOO_STYLES } from '@/lib/tattoo-styles'
 
-const TATTOO_STYLES = [
-  'American Traditional', 'Neo-Traditional', 'Japanese', 'Realism',
-  'Watercolor', 'Blackwork', 'Dotwork', 'Geometric', 'Tribal',
-  'New School', 'Illustrative', 'Fine Line', 'Surrealism', 'Horror / Dark Art',
-  'Biomechanical', 'Lettering / Script', 'Floral', 'Minimalist', 'Portrait', 'Cover-up',
-]
 
 interface ArtistCard {
   key: string
