@@ -4,35 +4,58 @@ import { useState, useEffect, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import { parseAuthLanding, AUTH_LINK_TIMEOUT_MS, type AuthLanding } from '@/lib/auth-link'
 import toast from 'react-hot-toast'
 
-// An admin invitation (/api/admin/invite-link) lands here with type=invite in
-// the URL hash. Read once at load, before the auth client consumes the hash;
-// cosmetic only (the heading), so a miss just shows the reset wording.
-const OPENED_FROM_INVITE = typeof window !== 'undefined' && /(^|[#&])type=invite(&|$)/.test(window.location.hash)
+// What the emailed link left in the URL, read once at load (lib/auth-link.ts
+// says why). Admin links (Reset password, Invite & link) bring the session in
+// the hash, which the PKCE browser client refuses, so the page sets it itself.
+const LANDING: AuthLanding = typeof window === 'undefined' ? { kind: 'none' } : parseAuthLanding(window.location.href)
+// An admin invitation lands with type=invite: cosmetic only (the heading).
+const OPENED_FROM_INVITE = LANDING.kind === 'tokens' && LANDING.type === 'invite'
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [ready, setReady] = useState(false)
+  // The link could not start a session: used, expired, or (a ?code= link)
+  // opened in a different browser from the one that asked for it.
+  const [failed, setFailed] = useState(false)
   // false on the server render, the load-time value on the client: no mismatch.
   const invited = useSyncExternalStore(() => () => {}, () => OPENED_FROM_INVITE, () => false)
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
+    let done = false
+    const ok = () => { done = true; setReady(true) }
+    const fail = (why: string) => {
+      if (done) return
+      done = true
+      console.warn(`[reset-password] link did not start a session: ${why}`)
+      setFailed(true)
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
-        setReady(true)
-      }
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) ok()
     })
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true)
-    })
+    if (LANDING.kind === 'error') {
+      fail(LANDING.code ?? LANDING.description ?? 'error in link')
+    } else if (LANDING.kind === 'tokens') {
+      // Keep the tokens out of the address bar (history, screenshots, sharing).
+      window.history.replaceState(null, '', window.location.pathname)
+      supabase.auth.setSession({ access_token: LANDING.accessToken, refresh_token: LANDING.refreshToken })
+        .then(({ data, error }) => (error || !data.session ? fail(error?.message ?? 'no session') : ok()))
+    } else {
+      // A ?code= link is exchanged by the client on load; or the visitor is
+      // already signed in. Either way a session shows up here or never does.
+      supabase.auth.getSession().then(({ data: { session } }) => { if (session) ok() })
+    }
 
-    return () => subscription.unsubscribe()
+    const timer = window.setTimeout(() => fail(`no session after ${AUTH_LINK_TIMEOUT_MS / 1000}s (${LANDING.kind})`), AUTH_LINK_TIMEOUT_MS)
+    return () => { window.clearTimeout(timer); subscription.unsubscribe() }
   }, [supabase])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,7 +104,9 @@ export default function ResetPasswordPage() {
         <p className="mb-6 text-sm" style={{ color: '#999999' }}>
           {ready
             ? 'Choose a new password for your account.'
-            : 'Verifying your reset link…'}
+            : failed
+              ? 'This link has expired or was already used.'
+              : 'Verifying your reset link…'}
         </p>
 
         {ready && (
@@ -139,7 +164,23 @@ export default function ResetPasswordPage() {
           </form>
         )}
 
-        {!ready && (
+        {!ready && failed && (
+          <div className="space-y-4">
+            <p className="text-sm leading-relaxed" style={{ color: '#999999' }}>
+              Links work once and expire. A link requested from this site also has to be opened in the
+              same browser that requested it.
+            </p>
+            <Link
+              href="/auth/forgot-password"
+              className="block w-full rounded-lg py-3 text-center text-sm font-semibold text-white"
+              style={{ backgroundColor: '#8B7355' }}
+            >
+              Send a new link
+            </Link>
+          </div>
+        )}
+
+        {!ready && !failed && (
           <div className="flex justify-center py-6">
             <div className="h-8 w-8 animate-spin rounded-full border-2" style={{ borderColor: '#8B7355', borderTopColor: 'transparent' }} />
           </div>

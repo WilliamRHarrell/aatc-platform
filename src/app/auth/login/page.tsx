@@ -7,6 +7,11 @@ import { createClient } from '@/lib/supabase'
 import { landingPath } from '@/lib/roles'
 import toast from 'react-hot-toast'
 
+const LOGIN_NOTICES: Record<string, string> = {
+  confirmed: 'Your email is confirmed. Sign in to continue.',
+  link_expired: 'That confirmation link has expired or was already used. If you confirmed already, sign in below; otherwise sign up again for a new link.',
+}
+
 function LoginContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -17,6 +22,8 @@ function LoginContent() {
   // An explicit ?redirect= still wins: it is how the proxy returns someone to
   // the page they were trying to reach before being asked to sign in.
   const requestedRedirect = searchParams.get('redirect')
+  // Set by /auth/callback when a confirmation link could not sign them in.
+  const notice = LOGIN_NOTICES[searchParams.get('notice') ?? '']
   const supabase = createClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,6 +83,11 @@ function LoginContent() {
         <p className="mb-6 text-sm" style={{ color: '#999999' }}>
           Access your exhibitor account
         </p>
+        {notice && (
+          <p role="status" className="mb-6 rounded-lg px-4 py-3 text-sm leading-relaxed" style={{ backgroundColor: 'rgba(139,115,85,0.12)', border: '1px solid rgba(139,115,85,0.3)', color: '#C4A882' }}>
+            {notice}
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Email */}
