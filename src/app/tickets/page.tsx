@@ -5,12 +5,13 @@ import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
 import PresentedBy from '@/components/PresentedBy'
 import { getSchedule } from '@/lib/schedule-data'
+import { pageMetadata } from '@/lib/page-meta'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata('/tickets', {
   title: 'Buy Tickets | All American Tattoo Convention 2027 | Fayetteville NC',
   description:
     'Tickets for AATC 2027, April 16-18 at the Crown Complex. Single-day, weekend, and VIP passes with military discounts. VIP includes swag bag and artist meet & greet.',
-}
+})
 
 /* The weekend schedule used to be a hand-typed SCHEDULE const here - a
    second copy of the whole programme, and the largest drift surface in the

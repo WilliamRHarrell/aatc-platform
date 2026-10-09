@@ -2,6 +2,13 @@ import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
 import { getContent } from '@/content/getContent'
 import { CONTACT_EMAIL, VENUE_POLICIES_URL } from '@/lib/event-config'
+import { pageMetadata, titled, atTheShow } from '@/lib/page-meta'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = pageMetadata('/info/policies', {
+  title: titled('Convention Policies'),
+  description: atTheShow('Convention and venue policies (bags, drinks, re-entry)'),
+})
 
 // Re-entry, weapons, smoking and animals live in the venue policies section
 // (registry 'policies'), not here: one home per rule.

@@ -2,6 +2,13 @@ import PageImage from '@/components/PageImage'
 import PinupContestClient from './PinupContestClient'
 import { unstable_cache } from 'next/cache'
 import { createClient } from '@supabase/supabase-js'
+import { pageMetadata, titled, atTheShow } from '@/lib/page-meta'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = pageMetadata('/events/pinup-contest', {
+  title: titled('Miss AATC Pinup'),
+  description: atTheShow('The Miss AATC Pinup contest'),
+})
 
 // The pinup cap (events.pinup_capacity, migration 074) read server-side with a
 // cookieless anon client, cached 60 s under the 'pinup' tag; /admin/events

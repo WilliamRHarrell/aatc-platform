@@ -1,5 +1,12 @@
 import { getContent } from '@/content/getContent'
 import ArtistApplyForm from './ArtistApplyForm'
+import { pageMetadata, titled, atTheShow } from '@/lib/page-meta'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = pageMetadata('/apply/artist', {
+  title: titled('Artist Booth Application'),
+  description: atTheShow('Apply for an artist booth'),
+})
 
 /**
  * Server wrapper: the form is a client component; the veteran upload wording

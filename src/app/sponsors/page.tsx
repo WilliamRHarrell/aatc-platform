@@ -7,12 +7,13 @@ import { getContent } from '@/content/getContent'
 import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
 import { excludeHarnessSponsors } from '@/lib/sponsor-display'
+import { pageMetadata } from '@/lib/page-meta'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata('/sponsors', {
   title: 'Our Sponsors | All American Tattoo Convention 2027',
   description:
     'Meet the sponsors who make the All American Tattoo Convention possible - supporting tattoo artists, veterans, and the Fayetteville & Fort Bragg community.',
-}
+})
 
 interface Sponsor {
   id: string

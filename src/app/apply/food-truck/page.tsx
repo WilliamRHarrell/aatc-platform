@@ -6,11 +6,12 @@ import { CONTACT_EMAIL } from '@/lib/event-config'
 import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
 import FoodTruckApplyClient from './FoodTruckApplyClient'
+import { pageMetadata } from '@/lib/page-meta'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata('/apply/food-truck', {
   title: 'Food Truck Application | All American Tattoo Convention 2027',
   description: 'Apply to bring your food truck to the Food Truck Rodeo at the All American Tattoo Convention 2027 in Fayetteville, NC.',
-}
+})
 
 // The switch (events.food_truck_applications_open, 091) read server-side with
 // a cookieless anon client, cached 60 s under the 'food-trucks' tag;

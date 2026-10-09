@@ -2,6 +2,13 @@ import { getContent } from '@/content/getContent'
 import { getPriceVisibility } from '@/lib/sponsor-price-visibility'
 import { shownPrices } from '@/lib/sponsor-prices'
 import SponsorApplyClient from './SponsorApplyClient'
+import { pageMetadata, titled, atTheShow } from '@/lib/page-meta'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = pageMetadata('/apply/sponsor', {
+  title: titled('Sponsor Application'),
+  description: atTheShow('Apply to sponsor'),
+})
 
 // Prices stay on the server; the form receives only shown tiers' prices (084).
 export const revalidate = 60
