@@ -1426,26 +1426,27 @@ export type Database = {
         Row: {
           additional_items: string[] | null
           amount: number
+          amount_locked: boolean
+          applicant_notes: string | null
           contact_name: string | null
           created_at: string
           email: string | null
           event_id: string
           facebook: string | null
           featured_footer: boolean
-          show_on_homepage: boolean
-          show_on_sponsors: boolean
-          show_on_vote_pages: boolean
-          is_custom: boolean
-          is_in_kind: boolean
-          amount_locked: boolean
           hold_expires_at: string | null
           homepage_order: number | null
           id: string
-          is_protected: boolean
           instagram: string | null
+          is_custom: boolean
+          is_in_kind: boolean
+          is_protected: boolean
           logo_url: string | null
           notes: string | null
           phone: string | null
+          show_on_homepage: boolean
+          show_on_sponsors: boolean
+          show_on_vote_pages: boolean
           sponsor_name: string
           status: Database["public"]["Enums"]["sponsor_status"]
           tier: Database["public"]["Enums"]["sponsor_tier"]
@@ -1456,26 +1457,27 @@ export type Database = {
         Insert: {
           additional_items?: string[] | null
           amount?: number
+          amount_locked?: boolean
+          applicant_notes?: string | null
           contact_name?: string | null
           created_at?: string
           email?: string | null
           event_id: string
           facebook?: string | null
           featured_footer?: boolean
-          show_on_homepage?: boolean
-          show_on_sponsors?: boolean
-          show_on_vote_pages?: boolean
-          is_custom?: boolean
-          is_in_kind?: boolean
-          amount_locked?: boolean
           hold_expires_at?: string | null
           homepage_order?: number | null
           id?: string
-          is_protected?: boolean
           instagram?: string | null
+          is_custom?: boolean
+          is_in_kind?: boolean
+          is_protected?: boolean
           logo_url?: string | null
           notes?: string | null
           phone?: string | null
+          show_on_homepage?: boolean
+          show_on_sponsors?: boolean
+          show_on_vote_pages?: boolean
           sponsor_name: string
           status?: Database["public"]["Enums"]["sponsor_status"]
           tier: Database["public"]["Enums"]["sponsor_tier"]
@@ -1486,26 +1488,27 @@ export type Database = {
         Update: {
           additional_items?: string[] | null
           amount?: number
+          amount_locked?: boolean
+          applicant_notes?: string | null
           contact_name?: string | null
           created_at?: string
           email?: string | null
           event_id?: string
           facebook?: string | null
           featured_footer?: boolean
-          show_on_homepage?: boolean
-          show_on_sponsors?: boolean
-          show_on_vote_pages?: boolean
-          is_custom?: boolean
-          is_in_kind?: boolean
-          amount_locked?: boolean
           hold_expires_at?: string | null
           homepage_order?: number | null
           id?: string
-          is_protected?: boolean
           instagram?: string | null
+          is_custom?: boolean
+          is_in_kind?: boolean
+          is_protected?: boolean
           logo_url?: string | null
           notes?: string | null
           phone?: string | null
+          show_on_homepage?: boolean
+          show_on_sponsors?: boolean
+          show_on_vote_pages?: boolean
           sponsor_name?: string
           status?: Database["public"]["Enums"]["sponsor_status"]
           tier?: Database["public"]["Enums"]["sponsor_tier"]

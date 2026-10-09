@@ -110,7 +110,8 @@ export async function POST(req: NextRequest) {
       tier: s.tier,
       amount: s.amount,
       logo_url,
-      notes: s.notes,
+      // 095: the applicant's text has its own column; sponsorships.notes is staff-only.
+      applicant_notes: s.notes,
       additional_items: s.additionalItems as never,
       status: 'pending',
     }).select('id'),
