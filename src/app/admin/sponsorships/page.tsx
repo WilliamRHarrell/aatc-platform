@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import { requestRevalidate } from '@/lib/revalidate'
 import { guardedWrite } from '@/lib/db-write'
 import InviteLinkControl from '@/components/admin/InviteLinkControl'
+import { socialUrl } from '@/lib/social-url'
 
 type SponsorStatus = 'pending' | 'confirmed' | 'cancelled'
 
@@ -1125,14 +1126,29 @@ export default function AdminSponsorshipsPage() {
                         </a>
                       )}
                     </div>
-                    {s.email && (
-                      <p className="text-xs" style={{ color: '#666' }}>{s.contact_name} · {s.email}</p>
-                    )}
-                    {s.additional_items && s.additional_items.length > 0 && (
-                      <p className="text-xs" style={{ color: '#8B7355' }}>
-                        + {s.additional_items.map(i => TIER_INFO[i as SponsorTier]?.label ?? i).join(', ')}
+                    {/* Contact on the overview (2026-10-09): was only in the edit form. */}
+                    {(s.contact_name || s.email || s.phone) && (
+                      <p className="text-xs" style={{ color: '#666' }}>
+                        {[s.contact_name, s.email, s.phone].filter(Boolean).join(' · ')}
                       </p>
                     )}
+                    {(s.instagram || s.facebook) && (
+                      <p className="flex flex-wrap gap-3 text-xs">
+                        {s.instagram && <a href={socialUrl('instagram', s.instagram)} target="_blank" rel="noopener noreferrer" style={{ color: '#8B7355' }}>Instagram</a>}
+                        {s.facebook && <a href={socialUrl('facebook', s.facebook)} target="_blank" rel="noopener noreferrer" style={{ color: '#8B7355' }}>Facebook</a>}
+                      </p>
+                    )}
+                    {(() => {
+                      // A form submission with no main tier stores its priciest item as `tier`
+                      // AND keeps it in additional_items (primaryTier); list it once (display only:
+                      // `amount` is computed once from the selection and was never doubled).
+                      const extras = (s.additional_items ?? []).filter(i => i !== s.tier)
+                      return extras.length > 0 ? (
+                        <p className="text-xs" style={{ color: '#8B7355' }}>
+                          + {extras.map(i => TIER_INFO[i as SponsorTier]?.label ?? i).join(', ')}
+                        </p>
+                      ) : null
+                    })()}
                   </div>
 
                   {/* Invoice status */}
