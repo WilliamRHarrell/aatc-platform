@@ -104,9 +104,53 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
   `node scripts/cleanup-application-docs-orphans.mjs --delete --allow-mass-delete`
   (the flag is needed this once: 51 of 53 files are candidates, above the
   script's half-bucket guard). Owner: Ryan.
-- **Domain cutover** from `aatc-landing` to this project, and production
-  `NEXT_PUBLIC_SITE_URL` = `https://www.allamericantattooconvention.com`.
-  Blocks printing the Tattoo Battle QR codes. Owner: Ryan.
+- **After the domain cutover** (cutover done 2026-10-08; checks by Claude
+  2026-10-08/09). Owner per line.
+  - **Search Console:** submit `https://www.allamericantattooconvention.com/sitemap.xml`
+    after #83 deploys (it adds `/apply/food-truck`). The live sitemap
+    already returns 200 on www (31 URLs, none on vercel.app); the 404 Ryan
+    saw did not reproduce. `/sitemap_index.xml` (the WordPress name) 404s:
+    remove any old Search Console entry for it. Owner: Ryan.
+  - **Stripe, live mode:** the platform webhook endpoint is still
+    `https://aatc-platform.vercel.app/api/webhooks/stripe` (works today).
+    Edit that endpoint's URL to `https://www.allamericantattooconvention.com/api/webhooks/stripe`
+    in place, so its signing secret (STRIPE_WEBHOOK_SECRET) stays the same,
+    BEFORE vercel.app is redirected or retired; Stripe does not follow
+    redirects. Owner: Ryan.
+  - **Stripe, live mode:** the old WordPress Gravity Forms endpoint
+    `https://allamericantattooconvention.com/?callback=gravityformsstripe`
+    is still enabled (177 events) and now gets a 308 from the apex, which
+    Stripe counts as a failed delivery. Disable it. Owner: Ryan.
+  - **Test checkout + webhook on www:** not run by Claude (a real payment).
+    Pay $1 toward a test invoice from /portal on www, then check the invoice
+    shows the payment. Owner: Ryan.
+  - **Newsletter on www:** not run by Claude (creates a real GHL contact).
+    `GET /api/admin/newsletter-test?email=...` on www, then delete the test
+    contact in GHL. Owner: Ryan.
+  - **vercel.app still serves the whole site** with 200, an allow-all
+    robots.txt and no noindex: duplicate of www. Proposed PR: redirect
+    vercel.app pages to www (keeping /api/webhooks/stripe until the Stripe
+    endpoint is moved), or noindex there. Owner: Claude, on Ryan's go.
+  - **WordPress redirect map:** only `/all-american-tattoo-battle-rules-signup`
+    is redirected (next.config). The old site's URL list is needed (WordPress
+    export, Search Console's indexed pages, or the Wayback Machine, which was
+    offline 2026-10-09). Owner: Ryan (list), Claude (PR).
+  - **Social previews:** `/` and `/tattoo-battle` have www og:image and
+    canonical; most other pages (tickets, directory, apply, food truck) have
+    no og:image, og:url or canonical. Proposed PR: site-wide defaults in the
+    root layout. Owner: Claude, on Ryan's go.
+  - **Code fallbacks:** /api/admin/reset-user-password and the lifecycle
+    sweep fall back to `https://aatc-platform.vercel.app` when
+    NEXT_PUBLIC_SITE_URL is unset (it is set in production). Fold into the
+    vercel.app PR: read SITE_URL from src/lib/site.ts. Owner: Claude.
+  - **In about two weeks (around 2026-10-22):** remove
+    `https://aatc-platform.vercel.app/**` from the Supabase redirect URLs,
+    and retire the `aatc-landing` project, after the Stripe endpoint has
+    moved. Owner: Ryan.
+  - Checked OK: Tattoo Battle QR target `/tattoo-battle/entry/1` returns 200
+    on www (QR codes encode the www origin, src/lib/site.ts); home og:image
+    loads; branded auth email templates use Supabase's `{{ .ConfirmationURL }}`,
+    so their links follow the www request origin.
 - **Pre-existing lint errors on develop** (22 errors in 16 untouched files).
   Separate cleanup branch; not fixed on the feature branches by design. Owner: unassigned.
 - **Site-wide Lighthouse accessibility pass**: no `<main>` landmark on most
