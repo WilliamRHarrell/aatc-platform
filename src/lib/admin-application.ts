@@ -10,8 +10,8 @@
  *   - at least one booth of the exhibitor's own type;
  *   - artist_count within the 2 per single / 4 per double cap (088), and the
  *     roster no longer than artist_count (088's roster guard);
- *   - needs_roster true until every listed artist has an ID (or is marked ID
- *     later); the directory only shows rows with needs_roster false.
+ *   - needs_roster true until every artist is listed (IDs do not count, Ryan
+ *     2026-10-09); the directory only shows rows with needs_roster false.
  * Document paths (vendor ID, veteran ID) and the application-level TV answer
  * are written only when the input carries the key, so an edit that does not
  * touch them keeps what is there.
@@ -238,15 +238,14 @@ export function planApplication(input: EditorInput, existing?: EditorExisting): 
 
   if (Object.keys(errors).length > 0) return { ok: false, errors }
 
-  // needs_roster: an artist roster is complete when it is full and every artist
-  // has an ID or "ID later"; a vendor when the vendor ID is on file (what the
-  // public form and the portal's roster completion require).
+  // needs_roster: the roster is complete when every artist the application is
+  // for is listed. ID documents do NOT count, for artists or vendors (Ryan,
+  // 2026-10-09: an ID never affects the directory, especially for the Square
+  // imports). A vendor has no roster, so it is always complete.
   // Editing only ever CLEARS it: 8 approved rows (2026-10-09) carry a value the
   // rule would overturn (listed rosters from before the rule, imports waiting
   // on documents), and a save that only adds a photo must not move them.
-  const rosterComplete = isArtist
-    ? artist_count > 0 && artists.length >= artist_count && artists.every(a => a.id_url || a.id_later)
-    : !!input.id_doc_url
+  const rosterComplete = !isArtist || (artist_count > 0 && artists.length >= artist_count)
   const needs_roster = existing ? existing.needs_roster && !rosterComplete : !rosterComplete
   // The application-level TV answer (094) is written only when sent: the editor
   // asks per artist, and an edit must not wipe an older application's answer.

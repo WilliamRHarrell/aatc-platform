@@ -2,7 +2,9 @@
 -- TEARDOWN: the application editor live test (editor PR 2, 2026-10-09).
 --   Up to two applications made in /admin/applications/new:
 --     "ZZ Editor Test Artist"  ryan+zzeditor1@ryanharrell.com
---     "ZZ Editor Test Vendor"  ryan+zzeditor2@ryanharrell.com
+--     "ZZ Joes Vendor"         ryan+zzeditor2@ryanharrell.com
+--   (the vendor was entered as "ZZ Joes Vendor", not the name in the PR steps;
+--   production read 2026-10-09)
 --   Their invoices cascade (001). A booth assigned to one is released
 --   (001: on delete set null); a hold linked to one is unlinked (087).
 --
@@ -14,7 +16,7 @@
 --     left join storage.objects o
 --       on (o.bucket_id = 'exhibitor-media'  and o.name like a.id::text || '/%')
 --       or (o.bucket_id = 'application-docs' and o.name like 'admin/' || a.id::text || '/%')
---    where a.business_name like 'ZZ Editor Test%'
+--    where a.business_name in ('ZZ Editor Test Artist', 'ZZ Joes Vendor')
 --    order by a.business_name, o.bucket_id, o.name;
 --
 -- STEP 2: paste this whole file into the SQL Editor. It ABORTS before
@@ -38,20 +40,20 @@ declare
   n int;
 begin
   select array_agg(id) into v_ids from public.applications
-   where business_name in ('ZZ Editor Test Artist', 'ZZ Editor Test Vendor');
+   where business_name in ('ZZ Editor Test Artist', 'ZZ Joes Vendor');
   n := coalesce(array_length(v_ids, 1), 0);
-  if n = 0 then raise exception 'ABORT: no ZZ Editor Test application found (already deleted?)'; end if;
-  if n > 2 then raise exception 'ABORT: % ZZ Editor Test applications, expected at most 2', n; end if;
+  if n = 0 then raise exception 'ABORT: no ZZ editor test application found (already deleted?)'; end if;
+  if n > 2 then raise exception 'ABORT: % ZZ editor test applications, expected at most 2', n; end if;
 
   if exists (select 1 from public.applications where id = any(v_ids)
               and lower(email) not in ('ryan+zzeditor1@ryanharrell.com', 'ryan+zzeditor2@ryanharrell.com')) then
-    raise exception 'ABORT: a ZZ Editor Test application has an unexpected email';
+    raise exception 'ABORT: a ZZ editor test application has an unexpected email';
   end if;
   if exists (select 1 from public.applications where id = any(v_ids) and user_id is not null) then
     raise exception 'ABORT: an account is linked (Invite & link was used); unlink it first or delete by hand';
   end if;
   if exists (select 1 from public.applications where id = any(v_ids) and is_protected) then
-    raise exception 'ABORT: a ZZ Editor Test application is protected (082)';
+    raise exception 'ABORT: a ZZ editor test application is protected (082)';
   end if;
   if exists (select 1 from public.invoices where application_id = any(v_ids)
               and coalesce(amount_paid, 0) > 0) then
@@ -66,12 +68,12 @@ begin
 
   if exists (select 1 from public.applications where id = any(v_ids)) then raise exception 'FAIL: application still present'; end if;
   if exists (select 1 from public.invoices where application_id = any(v_ids)) then raise exception 'FAIL: invoice still present'; end if;
-  raise notice 'DONE: removed % ZZ Editor Test application(s) and their invoices: %', n, v_ids;
+  raise notice 'DONE: removed % ZZ editor test application(s) and their invoices: %', n, v_ids;
 end $$;
 
 commit;
 
 -- Results grid 1: want zero rows.
 select 'application' as t, id::text, business_name from public.applications
- where business_name like 'ZZ Editor Test%'
+ where business_name in ('ZZ Editor Test Artist', 'ZZ Joes Vendor')
     or lower(email) in ('ryan+zzeditor1@ryanharrell.com', 'ryan+zzeditor2@ryanharrell.com');

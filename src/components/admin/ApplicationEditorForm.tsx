@@ -563,7 +563,7 @@ export default function ApplicationEditorForm({ initial }: { initial?: EditorIni
           </div>
           {errors.artists && <p className="mt-2 text-xs" style={{ color: '#ef4444' }}>{errors.artists}</p>}
           <p className="mt-2 text-xs" style={{ color: '#666' }}>
-            Leave a slot empty if you do not know the artist yet; the application stays off the directory until every artist has an ID or &quot;ID later&quot;.
+            Leave a slot empty if you do not know the artist yet; the application stays off the directory until every artist is listed. ID documents do not affect the directory.
           </p>
 
           <div className="mt-4 space-y-4">
