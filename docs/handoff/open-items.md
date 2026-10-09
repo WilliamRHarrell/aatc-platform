@@ -106,21 +106,16 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
   script's half-bucket guard). Owner: Ryan.
 - **After the domain cutover** (cutover done 2026-10-08; checks by Claude
   2026-10-08/09). Owner per line.
-  - **Search Console:** submit `https://www.allamericantattooconvention.com/sitemap.xml`
-    after #83 deploys (it adds `/apply/food-truck`). The live sitemap
-    already returns 200 on www (31 URLs, none on vercel.app); the 404 Ryan
-    saw did not reproduce. `/sitemap_index.xml` (the WordPress name) 404s:
-    remove any old Search Console entry for it. Owner: Ryan.
-  - **Stripe, live mode:** the platform webhook endpoint is still
-    `https://aatc-platform.vercel.app/api/webhooks/stripe` (works today).
-    Edit that endpoint's URL to `https://www.allamericantattooconvention.com/api/webhooks/stripe`
-    in place, so its signing secret (STRIPE_WEBHOOK_SECRET) stays the same,
-    BEFORE vercel.app is redirected or retired; Stripe does not follow
-    redirects. Owner: Ryan.
-  - **Stripe, live mode:** the old WordPress Gravity Forms endpoint
-    `https://allamericantattooconvention.com/?callback=gravityformsstripe`
-    is still enabled (177 events) and now gets a 308 from the apex, which
-    Stripe counts as a failed delivery. Disable it. Owner: Ryan.
+  - **Search Console:** sitemap SUBMITTED (Ryan, 2026-10-09, Domain
+    property); status was "Couldn't fetch" right after. Checked 2026-10-09:
+    Googlebot gets 200 `application/xml`, 32 URLs all on www, no
+    X-Robots-Tag, robots.txt allows it. If it still says "Couldn't fetch"
+    after a day or two, run URL Inspection on the sitemap URL.
+    `/sitemap_index.xml` (the WordPress name) 404s: remove any old entry for
+    it. Owner: Ryan.
+  - DONE (Ryan, 2026-10-09): the live Stripe platform webhook was edited in
+    place to `https://www.allamericantattooconvention.com/api/webhooks/stripe`
+    (same signing secret), and the old Gravity Forms endpoint was disabled.
   - **Test checkout + webhook on www:** not run by Claude (a real payment).
     Pay $1 toward a test invoice from /portal on www, then check the invoice
     shows the payment. Owner: Ryan.
@@ -129,8 +124,8 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
     contact in GHL. Owner: Ryan.
   - **vercel.app still serves the whole site** with 200, an allow-all
     robots.txt and no noindex: duplicate of www. Proposed PR: redirect
-    vercel.app pages to www (keeping /api/webhooks/stripe until the Stripe
-    endpoint is moved), or noindex there. Owner: Claude, on Ryan's go.
+    vercel.app pages to www, or noindex there (the Stripe webhook already
+    points at www). Owner: Claude, on Ryan's go.
   - **WordPress redirect map:** only `/all-american-tattoo-battle-rules-signup`
     is redirected (next.config). The old site's URL list is needed (WordPress
     export, Search Console's indexed pages, or the Wayback Machine, which was
@@ -145,12 +140,19 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
     vercel.app PR: read SITE_URL from src/lib/site.ts. Owner: Claude.
   - **In about two weeks (around 2026-10-22):** remove
     `https://aatc-platform.vercel.app/**` from the Supabase redirect URLs,
-    and retire the `aatc-landing` project, after the Stripe endpoint has
-    moved. Owner: Ryan.
+    and retire the `aatc-landing` project (the Stripe endpoint has moved, so
+    nothing else is waiting). Owner: Ryan.
   - Checked OK: Tattoo Battle QR target `/tattoo-battle/entry/1` returns 200
     on www (QR codes encode the www origin, src/lib/site.ts); home og:image
     loads; branded auth email templates use Supabase's `{{ .ConfirmationURL }}`,
     so their links follow the www request origin.
+- **Form audit, 2026-10-09** (Ryan: every field a public form collects
+  must be saved and visible in admin). Done: #85/#86 pinup, #87 booth
+  add-ons, #88 artist roster before approval and Other links, #89 TV show
+  Yes/No (094), #90 sponsor applicant notes (095), #91 contacts on overviews
+  and the repeated tier. Left as is, by design: the newsletter email lives
+  only in GoHighLevel (tag "newsletter"); panel registrations' system
+  columns (hold expiry, Stripe payment ID) are not shown. Owner: none.
 - **Pre-existing lint errors on develop** (22 errors in 16 untouched files).
   Separate cleanup branch; not fixed on the feature branches by design. Owner: unassigned.
 - **Site-wide Lighthouse accessibility pass**: no `<main>` landmark on most

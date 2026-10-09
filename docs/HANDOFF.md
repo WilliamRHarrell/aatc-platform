@@ -9,31 +9,35 @@ This file is the index and the current state. Everything else lives in
 - [pre-show-email.md](handoff/pre-show-email.md) - approved pre-show venue-policies copy (Ryan sends it: box office / GHL).
 - [sessions/](handoff/sessions/) - one file per dated session, history.
 
-## START HERE - state as of 2026-10-08
+## START HERE - state as of 2026-10-09
 
-**Merged and deployed (develop = e85859d):** everything through #81. Since
-the 2026-10-07 refresh (#62-#74 are in the 2026-10-07 block of git history):
-- #75 public food truck application, PR 1 of 3 (091): `/apply/food-truck`,
-  intake route, admin approve / waitlist / not selected, cap and switch
-- #76 styled file pickers on the food truck form
-- #77 food truck PR 2 of 3 (092): $100 first payment for new truck
-  invoices, 30/14/7/1 balance reminders, January 2 unpaid list, Release
-- #78 food trucks CAN sell any drinks; Coke and other non-Pepsi drinks just
-  can't go inside (the first requirement text was wrong; a test pins it)
-- #79 START HERE refresh (088/089 verified, 091/092, Pennyboy and Adu Ink comps)
-- #80 food truck PR 3 of 3 (093): health permit and business license uploads
-  (form, portal, admin Docs column and verified check), private bucket
-
-Open PRs (2026-10-08, after the cutover):
+**Merged and deployed (develop = dbce187):** everything through #91. No open
+PRs. Since the 2026-10-07 refresh (#62-#74 are in the 2026-10-07 block of git
+history):
+- #75-#80 food truck application, 3 PRs (091, 092, 093) + fixes: form,
+  admin decisions, cap and switch, $100 first payment, 30/14/7/1 reminders,
+  January 2 unpaid list, Release, permit/license uploads; #78 trucks CAN sell
+  any drinks (Coke just can't go inside)
+- #79, #81, #84 handoff refreshes (#84: domain cutover recorded)
 - #82 auth links: admin reset and Invite & link links spun forever (the PKCE
-  browser client refused their hash tokens); 10 s timeout and "expired or
-  already used" message; signup callback failures go to sign-in with a notice.
-- #83 sitemap: `/apply/food-truck` was missing; test that every public page
-  is listed.
+  browser client refused their hash tokens); 10 s timeout with "expired or
+  already used" and Send a new link; signup callback failures go to sign-in
+- #83 sitemap: `/apply/food-truck` listed; test that every public page is in it
+- #85, #86 /admin/pinup: every submitted field (detail panel, stage name
+  column, CSV export for the stage manager and announcer); empty Notes hidden
+- Form audit (Ryan, 2026-10-09: every collected field saved and visible):
+  - #87 booth add-ons shown (drawer and booth page);
+  - #88 artist roster in the applications drawer before approval, Other links
+    on the booth page;
+  - #89 TV show Yes/No saved (094);
+  - #90 sponsor applicant notes apart from internal notes (095);
+  - #91 contacts on the sponsor and food truck overviews, item-only
+    sponsor's tier listed once.
 
-Source: `gh pr list --state merged` and `gh pr list --state open`, 2026-10-08.
+Source: `gh pr list --state merged` and `gh pr list --state open`, 2026-10-09.
+Ryan spot-checked #84-#91 after merging: all OK (2026-10-09).
 
-**Applied in production (Ryan):** everything through **093**, each verified:
+**Applied in production (Ryan):** everything through **095**, each verified:
 - 088: verify_088 passed, then verify_079_matrix passed (Ryan, 2026-10-07).
 - 089: verify_089 passed (Ryan, 2026-10-07).
 - 090: verify_090 + `scripts/verify-food-truck-owner.mjs` 4 PASS (2026-10-06).
@@ -41,6 +45,8 @@ Source: `gh pr list --state merged` and `gh pr list --state open`, 2026-10-08.
   PR merged (Ryan, 2026-10-08).
 - 093: verify_093 passed and `scripts/verify-food-truck-docs.mjs` all PASS,
   applied before #80 merged (Ryan, 2026-10-08).
+- 094 and 095: verify_094 and verify_095 passed, each applied before its PR
+  merged (Ryan, 2026-10-09).
 - 015 is superseded by 079b. 047 is still HELD.
 - Evidence per migration: [migrations.md](handoff/migrations.md).
 
