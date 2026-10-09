@@ -18,8 +18,10 @@ const FILES: Array<[string, () => string]> = [
 describe('Supabase Auth email templates', () => {
   for (const [file, make] of FILES) {
     const html = make()
-    it(`${file}: uses Supabase's link variable and leaves no JS template residue`, () => {
-      expect(html.match(/\{\{ \.ConfirmationURL \}\}/g)?.length).toBe(3) // button href, fallback href, fallback text
+    it(`${file}: links to /auth/confirm with the token hash (any device, scanner-safe) and leaves no JS template residue`, () => {
+      // button href, fallback href, fallback text
+      expect(html.match(/\{\{ \.SiteURL \}\}\/auth\/confirm\?token_hash=\{\{ \.TokenHash \}\}&type=(email|recovery)&next=\//g)?.length).toBe(3)
+      expect(html).not.toContain('ConfirmationURL')
       expect(html).not.toMatch(/\$\{|undefined|NaN/)
       expect(html).not.toMatch(new RegExp(`[${String.fromCharCode(0x2014, 0x2013)}]`)) // em/en dash, built from code points because the prebuild guard scans src/ for every spelling
     })

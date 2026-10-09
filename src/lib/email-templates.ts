@@ -10,6 +10,7 @@ import { CONTACT_EMAIL, FINAL_DUE_LABEL } from '@/lib/event-config'
 import { SPONSOR_TIERS, sponsorLines, type ShownPrices, type SponsorTier } from '@/lib/sponsor-tiers'
 import type { ReceiptFacts } from '@/lib/application-receipt'
 import { formatDateOnly } from '@/lib/date-only'
+import { confirmTemplateUrl } from '@/lib/auth-confirm'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
@@ -330,12 +331,15 @@ export function sponsorDueReminderEmail(v: { sponsorName: string; balanceCents: 
  * Email Templates; they are not sent by this app. The HTML is GENERATED from
  * emailWrapper so the branding has one home: auth-email-templates.test.ts
  * writes supabase/templates/*.html and fails when a committed file is stale
- * (WRITE_AUTH_TEMPLATES=1 regenerates). {{ .ConfirmationURL }} is Supabase's
- * Go-template variable, left literal on purpose.
+ * (WRITE_AUTH_TEMPLATES=1 regenerates).
+ *
+ * The links go to /auth/confirm with Supabase's {{ .SiteURL }} and
+ * {{ .TokenHash }} (Go-template variables, left literal on purpose), NOT
+ * {{ .ConfirmationURL }}: a ConfirmationURL link is PKCE and only works in the
+ * browser that asked for it, and a mail scanner that opens it uses it up.
+ * /auth/confirm verifies on a button tap, on any device (lib/auth-confirm.ts).
  */
-const AUTH_URL = '{{ .ConfirmationURL }}'
-
-function authButtonBlock(label: string) {
+function authButtonBlock(label: string, AUTH_URL: string) {
   return `<p style="margin:28px 0 0; text-align:center;">
       <a href="${AUTH_URL}" style="display:inline-block; background:#8B7355; color:#ffffff; text-decoration:none; font-size:14px; font-weight:700; letter-spacing:1px; padding:14px 32px; border-radius:10px;">${label}</a>
     </p>
@@ -358,7 +362,7 @@ export function authConfirmSignupEmail() {
       email address to finish setting up your portal, where you apply, pay and
       manage everything for the show.
     </p>
-    ${authButtonBlock('Confirm My Email →')}
+    ${authButtonBlock('Confirm My Email →', confirmTemplateUrl('email', '/apply'))}
     <p style="margin:24px 0 0; font-size:13px; line-height:1.6; color:#999999;">
       If you did not create an account, you can ignore this email.
     </p>
@@ -377,7 +381,7 @@ export function authResetPasswordEmail() {
       We received a request to reset the password for your AATC 2027 portal account.
       The link works once and expires after a short time.
     </p>
-    ${authButtonBlock('Choose a New Password →')}
+    ${authButtonBlock('Choose a New Password →', confirmTemplateUrl('recovery', '/auth/reset-password'))}
     <p style="margin:24px 0 0; font-size:13px; line-height:1.6; color:#999999;">
       If you did not ask for this, ignore this email and your password will not change.
     </p>
