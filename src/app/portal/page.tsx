@@ -14,6 +14,7 @@ import { RosterCompletionPanel } from '@/components/portal/RosterCompletionPanel
 import { TruckDocumentsPanel } from '@/components/portal/TruckDocumentsPanel'
 import { formatDateOnly } from '@/lib/date-only'
 import { TATTOO_STYLES } from '@/lib/tattoo-styles'
+import { publicTvShows } from '@/lib/tv-show'
 
 interface PortalArtist {
   name: string
@@ -1159,7 +1160,7 @@ function PortalContent() {
                   { label: 'Booth size', value: describeBooths(application) },
                   { label: 'Corner booth', value: application.is_corner ? 'Requested' : null },
                   { label: 'Veteran',   value: application.is_veteran ? 'Discount applied' : null },
-                  { label: 'TV show',   value: application.tv_show },
+                  { label: 'TV show',   value: publicTvShows(application).join(', ') || null },
                   { label: 'Notes',     value: application.notes },
                 ].filter(r => r.value).map(r => (
                   <div key={r.label} className="flex gap-4 text-sm">

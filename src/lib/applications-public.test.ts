@@ -84,7 +84,7 @@ describe('only owner, admin and server code reads the applications table', () =>
 describe('admin sees the roster before approval (2026-10-09)', () => {
   it('the applications drawer renders the read-only roster for artist applications', () => {
     const drawer = readFileSync(join(process.cwd(), 'src/app/admin/applications/page.tsx'), 'utf8')
-    expect(drawer).toContain('<ArtistRosterReadOnly artists={app.artists} />')
+    expect(drawer).toContain('<ArtistRosterReadOnly artists={app.artists} app={app} />')
     const roster = readFileSync(join(process.cwd(), 'src/components/admin/ArtistRosterReadOnly.tsx'), 'utf8')
     for (const k of ['nickname', 'instagram', 'styles', 'portfolio_urls']) expect(roster).toContain(k)
   })

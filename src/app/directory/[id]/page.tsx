@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase'
 import PublicNav from '@/components/PublicNav'
 import { describeBooths } from '@/lib/booth-display'
 import { EVENT_NAME, EVENT_YEAR, EVENT_DATES_LABEL, VENUE_NAME, VENUE_CITY, VENUE_STATE } from '@/lib/event-config'
+import { artistTv, unattributedTv } from '@/lib/tv-show'
 
 interface ArtistInfo {
   name: string
@@ -193,9 +194,10 @@ export default function DirectoryDetailPage() {
                   : ''}</span>
               </p>
 
-              {e.tv_show && (
+              {/* Only an older application-level show no artist carries; artists show their own below. */}
+              {unattributedTv(e) && e.tv_show?.trim() && (
                 <p className="mt-2 text-sm font-semibold" style={{ color: '#8B7355' }}>
-                  <span className="text-emboss">★ Featured on {e.tv_show}</span>
+                  <span className="text-emboss">★ Featured on {e.tv_show.trim()}</span>
                 </p>
               )}
             </div>
@@ -240,6 +242,12 @@ export default function DirectoryDetailPage() {
                               <p className="text-sm font-medium text-white">
                                 {a.nickname || a.name || `Artist ${i + 1}`}
                               </p>
+                              {(() => {
+                                const tv = artistTv(e, i)
+                                return tv?.featured && tv.show
+                                  ? <p className="text-xs font-medium" style={{ color: '#8B7355' }}>★ Featured on {tv.show}</p>
+                                  : null
+                              })()}
                             </div>
                             <button
                               onClick={() => toggleArtist(i)}
