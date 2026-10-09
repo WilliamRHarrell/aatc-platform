@@ -134,10 +134,13 @@ function DetailDrawer({
   const discountCents = discountEnabled && discountDollars
     ? Math.round(Math.max(0, parseFloat(discountDollars) || 0) * 100)
     : 0
-  const invoiceAmount = comped ? compInvoiceAmount(app) : Math.max(0, app.total_amount - discountCents)
+  // An agreed total (096, set in the application editor, already confirmed
+  // there when below list) replaces the list price and the discount box.
+  const agreed = !comped && app.agreed_total != null ? app.agreed_total : null
+  const invoiceAmount = comped ? compInvoiceAmount(app) : agreed ?? Math.max(0, app.total_amount - discountCents)
   // Safeguard (Ryan, 2026-10-02): the invoice is shown before Approve, and a
   // discount over half the list price needs a second click.
-  const discount = discountSummary(app.total_amount, comped ? 0 : discountCents)
+  const discount = discountSummary(app.total_amount, comped || agreed !== null ? 0 : discountCents)
   const [ackLargeDiscount, setAckLargeDiscount] = useState<number | null>(null)
   const largeDiscountAcked = ackLargeDiscount === discount.discountCents
 
@@ -223,8 +226,10 @@ function DetailDrawer({
           setWorking(false)
           return
         }
-      } else if (existing && !comped && discountCents > 0) {
-        const change = discountedInvoiceUpdate(existing, app.total_amount, discountCents)
+      } else if (existing && !comped && (agreed !== null ? existing.amount !== agreed : discountCents > 0)) {
+        const change = agreed !== null
+          ? discountedInvoiceUpdate(existing, agreed, 0)
+          : discountedInvoiceUpdate(existing, app.total_amount, discountCents)
         if ('refused' in change) {
           toast.error(`Approved, but the discount was not applied: ${change.refused}`)
         } else {
@@ -448,8 +453,8 @@ function DetailDrawer({
 
             <CompControls app={app} unverified={unverified} onPatch={(patch: CompPatch) => onPatch(app.id, patch)} />
 
-            {/* Discount option (hidden while comped: the invoice is already $0) */}
-            {!comped && <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
+            {/* Discount option (hidden while comped, or when an agreed total is set) */}
+            {!comped && agreed === null && <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
               {/* Discount row */}
               <div className="flex items-center gap-3">
                 <input
@@ -497,13 +502,18 @@ function DetailDrawer({
               <div className="flex items-center justify-between rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>
                 <span style={{ color: '#999' }}>
                   Invoice on approval
+                  {agreed !== null && (
+                    <span className="ml-1 text-xs" style={{ color: '#666' }}>
+                      (agreed total; list {formatCurrency(app.total_amount)})
+                    </span>
+                  )}
                   {discount.discountCents > 0 && (
                     <span className="ml-1 text-xs" style={{ color: '#666' }}>
                       ({formatCurrency(app.total_amount)} list − {formatCurrency(discount.discountCents)} discount, {Math.round(discount.share * 100)}% off)
                     </span>
                   )}
                 </span>
-                <span className="font-bold" style={{ color: '#C4A882' }}>{formatCurrency(discount.invoiceCents)}</span>
+                <span className="font-bold" style={{ color: '#C4A882' }}>{formatCurrency(agreed ?? discount.invoiceCents)}</span>
               </div>
             )}
 

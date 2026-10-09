@@ -65,6 +65,7 @@ export type Database = {
       applications: {
         Row: {
           add_ons: Json
+          agreed_total: number | null
           approved_at: string | null
           artist_count: number
           artist_double_qty: number
@@ -115,6 +116,7 @@ export type Database = {
         }
         Insert: {
           add_ons?: Json
+          agreed_total?: number | null
           approved_at?: string | null
           artist_count?: number
           artist_double_qty?: number
@@ -165,6 +167,7 @@ export type Database = {
         }
         Update: {
           add_ons?: Json
+          agreed_total?: number | null
           approved_at?: string | null
           artist_count?: number
           artist_double_qty?: number
