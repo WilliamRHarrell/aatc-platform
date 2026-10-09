@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
-import { planApplication, likeExact, type EditorInput } from '@/lib/admin-application'
+import { planApplication, likeExact, samePricingInputs, type EditorInput, type PricingInputs } from '@/lib/admin-application'
 import { approvePayload, compInvoiceAmount, discountedInvoiceUpdate, SEND_BACK_PAYLOAD } from '@/lib/comp'
 import { ACTIVE_APPLICATION_STATUSES } from '@/lib/invite-link'
 import { FINAL_DUE_AT } from '@/lib/event-config'
@@ -18,11 +18,16 @@ import { FINAL_DUE_AT } from '@/lib/event-config'
  *   1. One active application per person per event: rows with no account are
  *      outside the database index (079), so the email is checked here.
  *   2. Insert (user_id null: Invite & link connects an account later) or update.
- *      A paid invoice freezes the price: changing booths, add-ons, artists or
- *      the money choice is refused once money has moved.
+ *      An update whose ORDER is unchanged (booths, corners, add-ons, artist
+ *      count, veteran, money choice; samePricingInputs) keeps the stored
+ *      price, comp and invoice: rows priced under older prices or imported
+ *      stay as they are, and a drawer discount survives. A changed order
+ *      re-prices; once money has moved it is refused (editor PR 3).
  *   3. Comp: set_comp() (the insert clamp clears comped_at even for admins).
- *   4. Status: approved writes what Approve writes and creates or re-prices
- *      the invoice (agreed total, comp, or list); pending sends back. No email
+ *   4. Status: approved writes what Approve writes and creates the invoice, or
+ *      re-prices it when the order changed (agreed total, comp, or list);
+ *      pending sends back; keep (editing only) leaves rejected or waitlisted
+ *      as it is. No email
  *      is sent from here: Invite & link is how the person hears.
  * Returns { id } or { error, errors?, needsConfirm? }.
  */
@@ -36,8 +41,13 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as { id?: unknown; input?: EditorInput } | null
   if (!body?.input) return NextResponse.json({ error: 'input is required' }, { status: 400 })
   const id = typeof body.id === 'string' && body.id ? body.id : null
+  if (body.input.status === 'keep' && !id) return NextResponse.json({ error: 'A new application needs a status: pending or approved.' }, { status: 400 })
 
-  const v = planApplication(body.input)
+  // Editing: the stored row decides what the planner must not overturn.
+  const { data: stored } = id
+    ? await supabase.from('applications').select('needs_roster, exhibitor_type, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, artist_count, is_veteran, add_ons').eq('id', id).maybeSingle()
+    : { data: null }
+  const v = planApplication(body.input, stored ? { needs_roster: stored.needs_roster, artist_count: stored.artist_count, order: stored } : undefined)
   if (!v.ok) {
     return NextResponse.json({ error: v.needsConfirm ? v.errors.money : 'Please check the highlighted fields.', errors: v.errors, needsConfirm: v.needsConfirm ?? false }, { status: v.needsConfirm ? 409 : 400 })
   }
@@ -45,10 +55,10 @@ export async function POST(req: Request) {
 
   // ── the event (create: the active one; update: the row's own) ──
   let eventId: string
-  let existing: { id: string; status: string; event_id: string; comped_at: string | null; permits_comped_at: string | null; total_amount: number; agreed_total: number | null } | null = null
+  let existing: (PricingInputs & { id: string; status: string; event_id: string; comped_at: string | null; permits_comped_at: string | null; total_amount: number; agreed_total: number | null }) | null = null
   if (id) {
     const { data } = await supabase.from('applications')
-      .select('id, status, event_id, comped_at, permits_comped_at, total_amount, agreed_total').eq('id', id).single()
+      .select('id, status, event_id, comped_at, permits_comped_at, total_amount, agreed_total, exhibitor_type, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, artist_count, is_veteran, add_ons').eq('id', id).single()
     if (!data) return NextResponse.json({ error: 'Application not found' }, { status: 404 })
     existing = data
     eventId = data.event_id
@@ -67,18 +77,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `${row.email} already has an active application for this event (${other.business_name.trim()}). One active application per person.`, errors: { email: 'Already has an active application.' } }, { status: 409 })
   }
 
-  // ── 2. the price is frozen once money has moved ──
+  // ── 2. did the order change? frozen once money has moved ──
   const { data: invoices } = id
     ? await supabase.from('invoices').select('id, amount, amount_paid, status').eq('application_id', id)
     : { data: [] as { id: string; amount: number; amount_paid: number; status: string }[] }
   const invoice = invoices?.[0] ?? null
-  if (existing && invoice && (invoice.amount_paid ?? 0) > 0) {
-    const priceChanged = existing.total_amount !== listCents || existing.agreed_total !== row.agreed_total
-      || !!existing.comped_at !== !!comp?.booth || !!existing.permits_comped_at !== !!comp?.permits
-    if (priceChanged) {
-      return NextResponse.json({ error: 'A payment has been recorded, so the booths, add-ons, artists and price can no longer change here. Adjust the invoice in Invoices.' }, { status: 409 })
-    }
+  const orderChanged = !existing
+    || !samePricingInputs(existing, row as unknown as PricingInputs)
+    || existing.agreed_total !== row.agreed_total
+    || !!existing.comped_at !== !!comp?.booth || !!existing.permits_comped_at !== !!comp?.permits
+  if (existing && orderChanged && invoice && (invoice.amount_paid ?? 0) > 0) {
+    return NextResponse.json({ error: 'A payment has been recorded, so the booths, add-ons, artist count and price can no longer change here. Adjust the invoice in Invoices.' }, { status: 409 })
   }
+  // Unchanged order: the stored price stands (it may predate today's prices).
+  if (existing && !orderChanged) { delete row.total_amount; delete row.agreed_total }
 
   // ── insert or update ──
   let appId: string
@@ -97,7 +109,7 @@ export async function POST(req: Request) {
 
   // ── 3. comp (set_comp re-prices or creates the invoice it owns) ──
   const hadComp = !!existing?.comped_at || !!existing?.permits_comped_at
-  if (comp || hadComp) {
+  if (orderChanged && (comp || hadComp)) {
     const { error } = await supabase.rpc('set_comp', { p_application_id: appId, p_booth: !!comp?.booth, p_permits: !!comp?.permits })
     if (error) problems.push(`the comp was not applied (${error.message})`)
   }
@@ -107,7 +119,7 @@ export async function POST(req: Request) {
     .select('id, status, comped_at, permits_comped_at, total_amount, agreed_total, exhibitor_type, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, artist_count, is_veteran, add_ons')
     .eq('id', appId).single()
   if (!app) return NextResponse.json({ error: 'Saved, but the application could not be re-read' }, { status: 500 })
-  const wantStatus = body.input.status
+  const wantStatus = body.input.status === 'keep' ? app.status : body.input.status
   const comped = !!app.comped_at || !!app.permits_comped_at
 
   if (wantStatus === 'approved') {
@@ -121,7 +133,7 @@ export async function POST(req: Request) {
     if (!current && (!comped || amount > 0)) {
       const { error } = await supabase.from('invoices').insert({ application_id: appId, amount, amount_paid: 0, status: 'pending' })
       if (error) problems.push(`the invoice was not created (${error.message}); add it in Invoices`)
-    } else if (current && !comped && current.amount !== amount) {
+    } else if (orderChanged && current && !comped && current.amount !== amount) {
       const change = discountedInvoiceUpdate(current, amount, 0)
       if ('refused' in change) problems.push(`the invoice was not re-priced: ${change.refused}`)
       else {
@@ -129,7 +141,7 @@ export async function POST(req: Request) {
         if (error) problems.push(`the invoice was not re-priced (${error.message})`)
       }
     }
-  } else if (app.status === 'approved') {
+  } else if (wantStatus === 'pending' && app.status === 'approved') {
     const { error } = await supabase.from('applications').update(SEND_BACK_PAYLOAD).eq('id', appId)
     if (error) problems.push(`it was not moved back to pending (${error.message})`)
   }

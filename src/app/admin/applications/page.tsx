@@ -312,6 +312,11 @@ function DetailDrawer({
               </span>
             )}</h2>
             <DuplicateWarning applicationId={app.id} userId={app.user_id} email={app.email} />
+            {/* Editor PR 3: every field, documents and photos, in any status. */}
+            <Link href={`/admin/applications/${app.id}/edit`}
+              className="mt-2 inline-block rounded-lg px-3 py-1.5 text-xs font-bold text-white" style={{ backgroundColor: '#8B7355' }}>
+              Edit in editor
+            </Link>
             <div className="mt-2">
               <InviteLinkControl
                 kind="application"
