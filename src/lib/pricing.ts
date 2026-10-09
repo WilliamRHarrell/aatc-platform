@@ -117,6 +117,29 @@ export function addOnOptions(): AddOnOption[] {
   })
 }
 
+/**
+ * The priced lines for an application's add-ons (applications.add_ons), e.g.
+ * "Tattoo Bed weekend (2 × $150)". calculatePricing totals these, and admin
+ * shows them (applications drawer, booth detail page), so what an exhibitor
+ * ordered and what they are charged come from one loop. Unknown kinds, unknown
+ * terms and zero quantities are skipped, exactly as the total skips them.
+ */
+export function addOnLines(addOns: readonly AddOn[] | null | undefined): PricingLineItem[] {
+  const lines: PricingLineItem[] = []
+  const list: readonly AddOn[] = Array.isArray(addOns) ? addOns : []
+  for (const a of list) {
+    const qty = Math.max(0, Math.floor(a?.qty ?? 0))
+    if (qty === 0) continue
+    const priceMap = ADDON_PRICES[a.kind]
+    if (!priceMap) continue
+    const unit = a.term && priceMap[a.term] !== undefined ? priceMap[a.term] : priceMap._flat
+    if (unit === undefined) continue
+    const termLabel = a.term ? ` ${a.term}` : ''
+    lines.push({ label: `${ADDON_LABELS[a.kind]}${termLabel} (${qty} × $${unit / 100})`, amount: qty * unit })
+  }
+  return lines
+}
+
 /** "−$150 - thank you for your service" style copy, derived. */
 export const VETERAN_DISCOUNT_LABEL = `−${usd(VETERAN_DISCOUNT)}`
 export const PERMIT_FEE_LABEL = usd(PERMIT_FEE_PER_ARTIST)
@@ -187,20 +210,9 @@ export function calculatePricing(o: PricingOptions): PricingBreakdown {
   }
 
   let addOnsTotal = 0
-  for (const a of o.addOns) {
-    const qty = Math.max(0, Math.floor(a.qty))
-    if (qty === 0) continue
-    const priceMap = ADDON_PRICES[a.kind]
-    if (!priceMap) continue
-    const unit = a.term && priceMap[a.term] !== undefined ? priceMap[a.term] : priceMap._flat
-    if (unit === undefined) continue
-    const amt = qty * unit
-    addOnsTotal += amt
-    const termLabel = a.term ? ` ${a.term}` : ''
-    itemized.push({
-      label: `${ADDON_LABELS[a.kind]}${termLabel} (${qty} × $${unit / 100})`,
-      amount: amt,
-    })
+  for (const line of addOnLines(o.addOns)) {
+    addOnsTotal += line.amount
+    itemized.push(line)
   }
 
   const veteranDiscount = o.isVeteran ? VETERAN_DISCOUNT : 0

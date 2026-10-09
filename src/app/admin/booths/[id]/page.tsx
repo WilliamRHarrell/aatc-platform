@@ -13,6 +13,7 @@ import toast from 'react-hot-toast'
 import type { Database } from '@/types/database'
 import { guardedWrite } from '@/lib/db-write'
 import { useApplicationDocs } from '@/lib/use-application-docs'
+import AddOnList from '@/components/admin/AddOnList'
 
 type ArtistEntry = {
   name?: string | null
@@ -1083,6 +1084,7 @@ export default function BoothDetailPage() {
             <p className="mt-0.5 text-sm font-bold" style={{ color: '#C4A882' }}>{formatCurrency(app.total_amount)}</p>
           </div>
           <ReadField label="Applied" value={new Date(app.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} />
+          <AddOnList addOns={app.add_ons} labelColor="#555" />
         </div>
       </Section>
     </div>
