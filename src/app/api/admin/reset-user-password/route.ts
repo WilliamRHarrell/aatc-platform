@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
-import { SITE_URL } from '@/lib/site'
+import { adminConfirmLink } from '@/lib/admin-auth-link'
 
 
 export async function POST(req: Request) {
@@ -39,15 +39,9 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
-  const { data: linkData, error } = await adminClient.auth.admin.generateLink({
-    type: 'recovery',
-    email,
-    options: { redirectTo: `${SITE_URL}/auth/reset-password` },
-  })
+  // An /auth/confirm link (lib/admin-auth-link.ts): verifies on a tap, on any device.
+  const link = await adminConfirmLink(adminClient, 'recovery', email)
+  if (!link.ok) return NextResponse.json({ error: link.error }, { status: 500 })
 
-  if (error || !linkData?.properties?.action_link) {
-    return NextResponse.json({ error: error?.message ?? 'Failed to generate link' }, { status: 500 })
-  }
-
-  return NextResponse.json({ ok: true, resetLink: linkData.properties.action_link })
+  return NextResponse.json({ ok: true, resetLink: link.url })
 }
