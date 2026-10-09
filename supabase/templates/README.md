@@ -20,10 +20,19 @@ paste the whole file into the body (Source / HTML view):
 
 These are the only two Supabase-sent emails the app triggers (`/auth/signup`
 and `/auth/forgot-password`). Magic link, invite and change-email are not used.
-The admin's reset tool and the returning-exhibitor invite generate their links
-server-side and send them through the app's own Resend templates instead.
+The admin's reset tool and Invite & link generate their links server-side and
+send them through the app's own Resend templates instead.
 
-`{{ .ConfirmationURL }}` is Supabase's variable; keep it exactly as written.
+The links use Supabase's `{{ .SiteURL }}` and `{{ .TokenHash }}` variables
+(keep them exactly as written) and point at `/auth/confirm`, which verifies
+on a "Continue" tap, on any device (2026-10-09; `src/lib/auth-confirm.ts`).
+They no longer use `{{ .ConfirmationURL }}`, a PKCE link that only worked in
+the browser that asked for it and was used up by mail scanners.
+
+**Paste these only after `/auth/confirm` is live on www** (the PR that added
+it has deployed). Pasted earlier, every new email link would 404. Emails sent
+with the old template keep working: `/auth/callback` and the reset page still
+handle them.
 
 After saving: create a throwaway signup and use Forgot password once, and
 confirm both arrive branded, from the Resend sender, with a working link.
