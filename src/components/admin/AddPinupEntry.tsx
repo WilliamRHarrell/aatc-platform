@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase'
 import { guardedWrite } from '@/lib/db-write'
 import { validateAdminPinupEntry } from '@/lib/pinup-admin-entry'
+import { PINUP_SELECT, type PinupEntry } from '@/lib/pinup-export'
 
 /**
  * Add a pinup entry by hand (migration 076: "admins insert pinup entries").
@@ -16,7 +17,7 @@ export default function AddPinupEntry({ taken, capacity, eventId, onAdded }: {
   taken: number
   capacity: number | null
   eventId: string | null
-  onAdded: (row: { id: string; full_name: string; stage_name: string | null; email: string; phone: string; address: string | null; age_confirmed: boolean; status: string; created_at: string }) => void
+  onAdded: (row: PinupEntry) => void
 }) {
   const supabase = createClient()
   const [open, setOpen] = useState(false)
@@ -31,13 +32,13 @@ export default function AddPinupEntry({ taken, capacity, eventId, onAdded }: {
     setErrors({})
     setBusy(true)
     const res = await guardedWrite(
-      supabase.from('pinup_entries').insert({ event_id: eventId, ...v.row }).select('id, full_name, stage_name, email, phone, address, age_confirmed, status, created_at'),
+      supabase.from('pinup_entries').insert({ event_id: eventId, ...v.row }).select(PINUP_SELECT),
       'Entry not added',
       'admin/pinup add entry',
     )
     setBusy(false)
     if (!res.ok) { toast.error(res.error); return }
-    onAdded(res.data[0] as Parameters<typeof onAdded>[0])
+    onAdded(res.data[0] as unknown as PinupEntry)
     toast.success(`${v.row.full_name} added as ${v.row.status}`)
     setF({ fullName: '', stageName: '', email: '', phone: '', status: 'confirmed' })
     setOpen(false)

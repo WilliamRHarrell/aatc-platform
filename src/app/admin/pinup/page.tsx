@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { spotsRemaining } from '@/lib/pinup-capacity'
 import { createClient } from '@/lib/supabase'
 import AddPinupEntry from '@/components/admin/AddPinupEntry'
+import { PINUP_FIELDS, PINUP_SELECT, pinupCsv, formatEastern, type PinupEntry } from '@/lib/pinup-export'
 
 // Pinup contest entries. Read through the admin layout's auth gate; the table's
 // SELECT policy is admin-only, so a non-admin session sees zero rows rather
@@ -18,19 +19,10 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
   withdrawn: { bg: 'rgba(153,153,153,0.15)', color: '#999' },
 }
 
-interface Entry {
-  id: string
-  full_name: string
-  stage_name: string | null
-  email: string
-  phone: string
-  address: string | null
-  age_confirmed: boolean
-  status: string
-  created_at: string
-}
+// Every column (lib/pinup-export.ts): the detail panel and the CSV show all of them.
+type Entry = PinupEntry
 
-type SortKey = 'created_at' | 'full_name' | 'status'
+type SortKey = 'created_at' | 'full_name' | 'stage_name' | 'status'
 
 export default function AdminPinupPage() {
   const [entries, setEntries] = useState<Entry[] | null>(null)
@@ -40,6 +32,7 @@ export default function AdminPinupPage() {
   const [failed, setFailed] = useState<string | null>(null)
   const [sort, setSort] = useState<SortKey>('created_at')
   const [asc, setAsc] = useState(true)
+  const [openId, setOpenId] = useState<string | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -54,7 +47,7 @@ export default function AdminPinupPage() {
       })
     supabase
       .from('pinup_entries')
-      .select('id, full_name, stage_name, email, phone, address, age_confirmed, status, created_at')
+      .select(PINUP_SELECT)
       .order('created_at', { ascending: true })
       .then(({ data, error }) => {
         if (error) {
@@ -67,7 +60,7 @@ export default function AdminPinupPage() {
           )
           return
         }
-        setEntries((data ?? []) as Entry[])
+        setEntries((data ?? []) as unknown as Entry[])
       })
   }, [])
 
@@ -87,6 +80,19 @@ export default function AdminPinupPage() {
   const taken = entries?.filter(e => e.status === 'confirmed' || e.status === 'pending').length ?? 0
   const waitlisted = entries?.filter(e => e.status === 'waitlist').length ?? 0
   const remaining = capacity == null ? null : spotsRemaining(capacity, taken)
+
+  // For the stage manager and the announcer: every field, in the sorted order.
+  const exportCsv = () => {
+    const blob = new Blob([pinupCsv(sorted)], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `pinup-entries-${new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const open = entries?.find(e => e.id === openId) ?? null
 
   const th = (key: SortKey, label: string) => (
     <th className="px-3 py-2 text-left">
@@ -124,6 +130,19 @@ export default function AdminPinupPage() {
           onAdded={row => setEntries(prev => [row, ...(prev ?? [])])} />
       )}
 
+      {!failed && sorted.length > 0 && (
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <p className="text-xs" style={{ color: '#666' }}>Click an entry to see everything submitted.</p>
+          <button
+            onClick={exportCsv}
+            className="rounded-lg px-4 py-2 text-xs font-semibold"
+            style={{ backgroundColor: 'rgba(139,115,85,0.15)', color: '#C4A882', border: '1px solid rgba(139,115,85,0.3)' }}
+          >
+            Export CSV ({sorted.length})
+          </button>
+        </div>
+      )}
+
       {failed && (
         <p className="mt-6 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: 'rgba(239,68,68,0.12)', color: '#fca5a5' }}>
           {failed}
@@ -138,12 +157,52 @@ export default function AdminPinupPage() {
         <p className="mt-6 text-sm" style={{ color: '#999' }}>No entries yet.</p>
       )}
 
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex justify-end"
+          style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+          onClick={ev => { if (ev.target === ev.currentTarget) setOpenId(null) }}
+          onKeyDown={ev => { if (ev.key === 'Escape') setOpenId(null) }}
+        >
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Pinup entry: ${open.full_name}`}
+            className="h-full w-full max-w-md overflow-y-auto p-6"
+            style={{ backgroundColor: '#1a1a1a', borderLeft: '1px solid #2a2a2a' }}
+          >
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-white">{open.full_name}</h2>
+                {open.stage_name && <p className="text-sm" style={{ color: '#C4A882' }}>{open.stage_name}</p>}
+                <p className="mt-1 text-xs" style={{ color: '#666' }}>Registered {formatEastern(open.created_at)} ET</p>
+              </div>
+              <button autoFocus onClick={() => setOpenId(null)} className="text-xl leading-none" style={{ color: '#999' }} aria-label="Close">&times;</button>
+            </div>
+            <dl className="space-y-3">
+              {PINUP_FIELDS.map(f => {
+                const v = f.value(open)
+                // Only a missing age confirmation or likeness release is a problem.
+                const alert = (f.key === 'age_confirmed' || f.key === 'likeness_release') && v === 'No'
+                return (
+                  <div key={f.key} className="grid grid-cols-[10rem_1fr] gap-3 text-sm">
+                    <dt style={{ color: '#888' }}>{f.label}</dt>
+                    <dd className="whitespace-pre-wrap break-words" style={{ color: alert ? '#fca5a5' : v ? '#fff' : '#555' }}>{v || 'Not given'}</dd>
+                  </div>
+                )
+              })}
+            </dl>
+          </aside>
+        </div>
+      )}
+
       {!failed && sorted.length > 0 && (
-        <div className="mt-6 overflow-x-auto rounded-xl" style={{ border: '1px solid #2a2a2a' }}>
+        <div className="mt-3 overflow-x-auto rounded-xl" style={{ border: '1px solid #2a2a2a' }}>
           <table className="w-full text-sm">
             <thead style={{ backgroundColor: '#1a1a1a' }}>
               <tr>
                 {th('full_name', 'Name')}
+                {th('stage_name', 'Stage name')}
                 <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: '#999' }}>Contact</th>
                 {th('status', 'Status')}
                 {th('created_at', 'Registered')}
@@ -153,12 +212,23 @@ export default function AdminPinupPage() {
               {sorted.map((e, i) => {
                 const st = STATUS_STYLE[e.status] ?? STATUS_STYLE.pending
                 return (
-                  <tr key={e.id} style={{ borderTop: '1px solid #2a2a2a', backgroundColor: i % 2 ? '#141414' : 'transparent' }}>
+                  <tr
+                    key={e.id}
+                    onClick={() => setOpenId(e.id)}
+                    className="cursor-pointer hover:bg-[#1f1f1f]"
+                    style={{ borderTop: '1px solid #2a2a2a', backgroundColor: i % 2 ? '#141414' : 'transparent' }}
+                  >
                     <td className="px-3 py-2 text-white">
-                      {e.full_name}
-                      {e.stage_name && <span className="block text-xs" style={{ color: '#999' }}>{e.stage_name}</span>}
+                      <button
+                        type="button"
+                        onClick={ev => { ev.stopPropagation(); setOpenId(e.id) }}
+                        className="text-left hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C4A882]"
+                      >
+                        {e.full_name}
+                      </button>
                       {!e.age_confirmed && <span className="block text-xs" style={{ color: '#fca5a5' }}>age not confirmed</span>}
                     </td>
+                    <td className="px-3 py-2 text-xs" style={{ color: e.stage_name ? '#ccc' : '#555' }}>{e.stage_name || '-'}</td>
                     <td className="px-3 py-2" style={{ color: '#999' }}>
                       <span className="block text-xs">{e.email}</span>
                       <span className="block text-xs">{e.phone}</span>

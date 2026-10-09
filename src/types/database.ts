@@ -1296,6 +1296,8 @@ export type Database = {
           event_id: string
           full_name: string
           id: string
+          likeness_release: boolean
+          likeness_release_at: string | null
           marketing_opt_in: boolean
           marketing_opt_in_at: string | null
           marketing_opt_in_source: string | null
@@ -1313,6 +1315,8 @@ export type Database = {
           event_id: string
           full_name: string
           id?: string
+          likeness_release?: boolean
+          likeness_release_at?: string | null
           marketing_opt_in?: boolean
           marketing_opt_in_at?: string | null
           marketing_opt_in_source?: string | null
@@ -1330,6 +1334,8 @@ export type Database = {
           event_id?: string
           full_name?: string
           id?: string
+          likeness_release?: boolean
+          likeness_release_at?: string | null
           marketing_opt_in?: boolean
           marketing_opt_in_at?: string | null
           marketing_opt_in_source?: string | null
