@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 import PublicNav from '@/components/PublicNav'
 import { CONTACT_EMAIL } from '@/lib/event-config'
+import { ROUTES } from '@/lib/routes'
 
 interface FoodTruck {
   id: string
@@ -261,7 +262,7 @@ export default function FoodTruckRodeoPage() {
         </p>
         <p className="text-sm" style={{ color: '#999' }}>
           <span className="text-emboss">
-            <Link href="/apply/food-truck" style={{ color: '#C4A882' }}>Apply for a spot</Link>
+            <Link href={ROUTES.foodTruckApply} style={{ color: '#C4A882' }}>Apply for a spot</Link>
             {' '}or contact us at{' '}
             <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: '#C4A882' }}>{CONTACT_EMAIL}</a>
           </span>
