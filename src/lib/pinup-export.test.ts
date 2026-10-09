@@ -49,3 +49,14 @@ describe('CSV', () => {
     expect(csvCell('Miss Rosie')).toBe('Miss Rosie')
   })
 })
+
+describe('panel', () => {
+  it('notes appear only when an entry has them (the public form has no notes field)', () => {
+    const notes = PINUP_FIELDS.find(f => f.key === 'notes')!
+    expect(notes.onlyIfSet).toBe(true)
+    expect(notes.value(ENTRY)).toBe('')
+    expect(notes.value({ ...ENTRY, notes: 'arrives late' })).toBe('arrives late')
+    const page = readFileSync(join(process.cwd(), 'src/app/admin/pinup/page.tsx'), 'utf8')
+    expect(page).toContain('!f.onlyIfSet || f.value(open)')
+  })
+})
