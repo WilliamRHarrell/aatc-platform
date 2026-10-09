@@ -25,8 +25,9 @@ Ryan has tested the editor live.
 - `TATTOO_STYLES` has one home, `src/lib/tattoo-styles.ts` (four copies
   removed).
 - Teardown for the live test: `supabase/seeds/teardown_zz_editor_test.sql`
-  (tested on the local replay: deletes both test rows; aborts when an
-  invoice has money on it).
+  (tested on the local replay: deletes both test rows, also after a full
+  comp, which set_comp leaves as a $0 'paid' invoice; aborts when an
+  invoice has money recorded).
 
 No migration, no verify. `npm test` 350 passed, `npm run build` passed.
 

@@ -19,7 +19,8 @@
 --
 -- STEP 2: paste this whole file into the SQL Editor. It ABORTS before
 -- writing unless every fact matches: no account linked, not protected (082),
--- no money recorded on any invoice, at most the two rows above. Read the
+-- no money recorded on any invoice (a fully comped invoice is 'paid' at
+-- $0 by set_comp and is fine), at most the two rows above. Read the
 -- MESSAGES pane; the results grid should be empty.
 --
 -- STEP 3: storage is not touched from SQL. In Supabase > Storage delete,
@@ -53,7 +54,7 @@ begin
     raise exception 'ABORT: a ZZ Editor Test application is protected (082)';
   end if;
   if exists (select 1 from public.invoices where application_id = any(v_ids)
-              and (coalesce(amount_paid, 0) > 0 or status = 'paid')) then
+              and coalesce(amount_paid, 0) > 0) then
     raise exception 'ABORT: money is recorded on a test invoice; refusing to delete a payment record';
   end if;
   raise notice 'PRE-STATE OK: % application(s), % invoice(s), % booth(s) assigned',
