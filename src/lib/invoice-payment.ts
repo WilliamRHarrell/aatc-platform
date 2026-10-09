@@ -100,3 +100,23 @@ export function nextPaymentMinimumCents(inv: DepositFacts & { deposit_paid_at: s
   if (inv.sponsorship_id) return 100
   return inv.deposit_paid_at ? 100 : depositCents(inv)
 }
+
+/**
+ * A NEW invoice that already carries a payment (admin "Add A Booth" records
+ * the deposit taken in person). The milestones follow the same rules as
+ * paymentUpdate: deposit_paid_at once the deposit is reached, final_paid_at
+ * and paid when the whole amount is. Before 2026-10-09 Add A Booth wrote
+ * neither milestone, so a paid booth was left out of Assign Booth and the
+ * public directory (both key on deposit_paid_at).
+ */
+export function newInvoicePayment(inv: DepositFacts, paidCents: number, nowIso: string) {
+  const amount_paid = Math.max(0, Math.min(Math.round(paidCents), inv.amount))
+  const fullyPaid = amount_paid >= inv.amount
+  return {
+    amount_paid,
+    status: fullyPaid ? ('paid' as const) : ('pending' as const),
+    paid_at: fullyPaid ? nowIso : null,
+    deposit_paid_at: amount_paid > 0 && amount_paid >= depositCents(inv) ? nowIso : null,
+    final_paid_at: fullyPaid ? nowIso : null,
+  }
+}
