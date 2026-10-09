@@ -11,7 +11,7 @@ This file is the index and the current state. Everything else lives in
 
 ## START HERE - state as of 2026-10-09
 
-**Merged and deployed (develop = dbce187):** everything through #91. No open
+**Merged and deployed (develop = 2034621):** everything through #98. No open
 PRs. Since the 2026-10-07 refresh (#62-#74 are in the 2026-10-07 block of git
 history):
 - #75-#80 food truck application, 3 PRs (091, 092, 093) + fixes: form,
@@ -33,11 +33,25 @@ history):
   - #90 sponsor applicant notes apart from internal notes (095);
   - #91 contacts on the sponsor and food truck overviews, item-only
     sponsor's tier listed once.
+- #92 START HERE refresh
+- #93 `aatc-platform.vercel.app` pages 308 to the same path on www (`/api/*`
+  left alone for machine callers); the two code fallbacks to vercel.app gone
+- #94 social previews and canonical on every public page (`pageMetadata()`;
+  exhibitor profiles name the exhibitor)
+- #95 `/auth/confirm`: emailed links verify on a Continue tap, on any device,
+  safe from mail scanners; Supabase templates link there (pasted by Ryan,
+  2026-10-09; laptop-request / phone-tap test passed)
+- #96 Add A Booth records the deposit milestone (paid adds now reach Assign
+  Booth and the directory); no production rows were affected
+- #97 admin Reset password, Invite & link and the returning-exhibitor invite
+  go through `/auth/confirm` too
+- #98 application editor PR 1: server side + migration 096 (`agreed_total`);
+  Approve invoices an agreed total
 
 Source: `gh pr list --state merged` and `gh pr list --state open`, 2026-10-09.
 Ryan spot-checked #84-#91 after merging: all OK (2026-10-09).
 
-**Applied in production (Ryan):** everything through **095**, each verified:
+**Applied in production (Ryan):** everything through **096**, each verified:
 - 088: verify_088 passed, then verify_079_matrix passed (Ryan, 2026-10-07).
 - 089: verify_089 passed (Ryan, 2026-10-07).
 - 090: verify_090 + `scripts/verify-food-truck-owner.mjs` 4 PASS (2026-10-06).
@@ -47,6 +61,7 @@ Ryan spot-checked #84-#91 after merging: all OK (2026-10-09).
   applied before #80 merged (Ryan, 2026-10-08).
 - 094 and 095: verify_094 and verify_095 passed, each applied before its PR
   merged (Ryan, 2026-10-09).
+- 096: verify_096 passed, applied before #98 merged (Ryan, 2026-10-09).
 - 015 is superseded by 079b. 047 is still HELD.
 - Evidence per migration: [migrations.md](handoff/migrations.md).
 
@@ -87,13 +102,26 @@ reconcile or audit that flags these comps is not finding an error.
 for the full weekend** (`src/lib/food-truck-pricing.ts`; existing invoices
 unchanged). Artist permits are $50, capped at 2 per single / 4 per double.
 
-**Queued, in order, each its own PR, report before building:**
+**In progress, in Ryan's order.** Full plan, Ryan's decisions (a-f,
+agreed_total, VIP design) and technical notes:
+[docs/superpowers/plans/2026-10-09-application-editor-and-vip.md](superpowers/plans/2026-10-09-application-editor-and-vip.md).
+Editor PR 2 is NOT started (no branch, no draft).
+1. **Application editor** (build or edit a whole application on someone's
+   behalf). PR 1 merged (#98). Next: PR 2, the editor form (contact, booths,
+   add-ons, roster with bio / photo / TV credit / portfolio / ID uploads, logo,
+   TV show, money choice, status); retires Add A Booth once live.
+2. **VIP Meet & Greet featured artists** (per-artist id, admin-only table,
+   approved-only public view, ordering).
+3. **Editor PR 3:** "Edit everything" on any application.
+4. **Directory "Featured" badge and homepage "Featured artists"** (content
+   switch, shown with at least 3).
+
+**Queued, each its own PR, report before building:**
 1. **Floor plan Stage 1:** waiting on the vector PDF.
 2. **Site-wide gold:** the antique golds replace #8B7355 / #866f52, waiting
    on the button-text and light-gold decisions.
-3. **After the cutover (report sent 2026-10-08, awaiting Ryan's go):**
-   vercel.app host redirect / noindex, WordPress redirect map (needs the old
-   URL list), social-preview tags on every page. Details in open-items.md.
+3. **WordPress redirect map:** waiting on Ryan's old URL list from Search
+   Console.
 
 Also queued (smaller):
 - the add-artist flow (PR 3 of the artist plan: requests, payment, swaps;

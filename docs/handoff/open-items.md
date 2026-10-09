@@ -122,22 +122,18 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
   - **Newsletter on www:** not run by Claude (creates a real GHL contact).
     `GET /api/admin/newsletter-test?email=...` on www, then delete the test
     contact in GHL. Owner: Ryan.
-  - **vercel.app still serves the whole site** with 200, an allow-all
-    robots.txt and no noindex: duplicate of www. Proposed PR: redirect
-    vercel.app pages to www, or noindex there (the Stripe webhook already
-    points at www). Owner: Claude, on Ryan's go.
+  - DONE (#93): vercel.app pages 308 to www; `/api/*` is left on that host
+    for machine callers (the daily cron's host could not be confirmed).
   - **WordPress redirect map:** only `/all-american-tattoo-battle-rules-signup`
     is redirected (next.config). The old site's URL list is needed (WordPress
     export, Search Console's indexed pages, or the Wayback Machine, which was
     offline 2026-10-09). Owner: Ryan (list), Claude (PR).
-  - **Social previews:** `/` and `/tattoo-battle` have www og:image and
-    canonical; most other pages (tickets, directory, apply, food truck) have
-    no og:image, og:url or canonical. Proposed PR: site-wide defaults in the
-    root layout. Owner: Claude, on Ryan's go.
-  - **Code fallbacks:** /api/admin/reset-user-password and the lifecycle
-    sweep fall back to `https://aatc-platform.vercel.app` when
-    NEXT_PUBLIC_SITE_URL is unset (it is set in production). Fold into the
-    vercel.app PR: read SITE_URL from src/lib/site.ts. Owner: Claude.
+  - DONE (#94): social previews and canonical on every public page. A test
+    fails if a public page is added without them.
+  - DONE (#93): the code fallbacks to vercel.app are gone.
+  - DONE (#95, #97; Ryan pasted the templates and tested laptop-request /
+    phone-tap, 2026-10-09): every emailed account link goes through
+    `/auth/confirm`, works on any device and survives mail scanners.
   - **In about two weeks (around 2026-10-22):** remove
     `https://aatc-platform.vercel.app/**` from the Supabase redirect URLs,
     and retire the `aatc-landing` project (the Stripe endpoint has moved, so

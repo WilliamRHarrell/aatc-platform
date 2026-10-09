@@ -55,6 +55,7 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **093** | **APPLIED + VERIFIED** (Ryan, 2026-10-08: verify_093 passed; `scripts/verify-food-truck-docs.mjs` all PASS; applied before #80 merged) | private bucket `food-truck-docs` (10 MB, PDF/JPG/PNG) with owner-insert / admin-insert / admin-read storage policies; `food_trucks` permit and license path / uploaded / verified columns (path must sit in the truck's folder); `food_trucks_docs_guard` (a new document clears its verification); admin-only `set_food_truck_doc_verified()`. |
 | **094** | **APPLIED + VERIFIED** (Ryan, 2026-10-09: verify_094 passed; applied before #89 merged) | `applications.tv_show_featured` (artist form's TV show Yes/No; null = not asked or applied before 094); backfill true for artist rows that named a show. |
 | **095** | **APPLIED + VERIFIED** (Ryan, 2026-10-09: verify_095 passed; applied before #90 merged) | `sponsorships.applicant_notes` (the public form's notes; `notes` stays internal). No rows moved: the 4 existing notes were staff-written (production read 2026-10-09). |
+| **096** | **APPLIED + VERIFIED** (Ryan, 2026-10-09: verify_096 passed; applied before #98 merged) | `applications.agreed_total` (cents, admin only via `applications_protect_agreed_total`); Approve invoices it, `total_amount` stays the list price. |
 
 **What this audit could and could not see.** It reads the live schema through
 PostgREST's OpenAPI document, which exposes tables, views, columns and callable
