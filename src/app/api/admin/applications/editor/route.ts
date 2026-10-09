@@ -1,0 +1,138 @@
+import { NextResponse } from 'next/server'
+import { createServerClient } from '@/lib/supabase-server'
+import { planApplication, likeExact, type EditorInput } from '@/lib/admin-application'
+import { approvePayload, compInvoiceAmount, discountedInvoiceUpdate, SEND_BACK_PAYLOAD } from '@/lib/comp'
+import { ACTIVE_APPLICATION_STATUSES } from '@/lib/invite-link'
+import { FINAL_DUE_AT } from '@/lib/event-config'
+
+/**
+ * POST /api/admin/applications/editor - create or update a whole application
+ * on someone's behalf (application editor, Ryan 2026-10-09). Admin only.
+ *
+ * body: { id?: string, input: EditorInput }   (no id = create)
+ *
+ * Runs as the signed-in admin (cookie client), so RLS ("applications: admin
+ * all") and every trigger see an admin: the 079 insert clamp, the 088 cap and
+ * roster guard, 089 comp columns, 096 agreed_total. Rules: lib/admin-application.ts.
+ *
+ *   1. One active application per person per event: rows with no account are
+ *      outside the database index (079), so the email is checked here.
+ *   2. Insert (user_id null: Invite & link connects an account later) or update.
+ *      A paid invoice freezes the price: changing booths, add-ons, artists or
+ *      the money choice is refused once money has moved.
+ *   3. Comp: set_comp() (the insert clamp clears comped_at even for admins).
+ *   4. Status: approved writes what Approve writes and creates or re-prices
+ *      the invoice (agreed total, comp, or list); pending sends back. No email
+ *      is sent from here: Invite & link is how the person hears.
+ * Returns { id } or { error, errors?, needsConfirm? }.
+ */
+export async function POST(req: Request) {
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (profile?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const body = (await req.json().catch(() => null)) as { id?: unknown; input?: EditorInput } | null
+  if (!body?.input) return NextResponse.json({ error: 'input is required' }, { status: 400 })
+  const id = typeof body.id === 'string' && body.id ? body.id : null
+
+  const v = planApplication(body.input)
+  if (!v.ok) {
+    return NextResponse.json({ error: v.needsConfirm ? v.errors.money : 'Please check the highlighted fields.', errors: v.errors, needsConfirm: v.needsConfirm ?? false }, { status: v.needsConfirm ? 409 : 400 })
+  }
+  const { row, comp, listCents } = v.plan
+
+  // ── the event (create: the active one; update: the row's own) ──
+  let eventId: string
+  let existing: { id: string; status: string; event_id: string; comped_at: string | null; permits_comped_at: string | null; total_amount: number; agreed_total: number | null } | null = null
+  if (id) {
+    const { data } = await supabase.from('applications')
+      .select('id, status, event_id, comped_at, permits_comped_at, total_amount, agreed_total').eq('id', id).single()
+    if (!data) return NextResponse.json({ error: 'Application not found' }, { status: 404 })
+    existing = data
+    eventId = data.event_id
+  } else {
+    const { data: event } = await supabase.from('events').select('id').eq('is_active', true).single()
+    if (!event) return NextResponse.json({ error: 'No active event' }, { status: 503 })
+    eventId = event.id
+  }
+
+  // ── 1. one active application per person per event ──
+  const { data: dupes } = await supabase.from('applications').select('id, business_name')
+    .eq('event_id', eventId).ilike('email', likeExact(String(row.email)))
+    .in('status', [...ACTIVE_APPLICATION_STATUSES])
+  const other = (dupes ?? []).find(d => d.id !== id)
+  if (other) {
+    return NextResponse.json({ error: `${row.email} already has an active application for this event (${other.business_name.trim()}). One active application per person.`, errors: { email: 'Already has an active application.' } }, { status: 409 })
+  }
+
+  // ── 2. the price is frozen once money has moved ──
+  const { data: invoices } = id
+    ? await supabase.from('invoices').select('id, amount, amount_paid, status').eq('application_id', id)
+    : { data: [] as { id: string; amount: number; amount_paid: number; status: string }[] }
+  const invoice = invoices?.[0] ?? null
+  if (existing && invoice && (invoice.amount_paid ?? 0) > 0) {
+    const priceChanged = existing.total_amount !== listCents || existing.agreed_total !== row.agreed_total
+      || !!existing.comped_at !== !!comp?.booth || !!existing.permits_comped_at !== !!comp?.permits
+    if (priceChanged) {
+      return NextResponse.json({ error: 'A payment has been recorded, so the booths, add-ons, artists and price can no longer change here. Adjust the invoice in Invoices.' }, { status: 409 })
+    }
+  }
+
+  // ── insert or update ──
+  let appId: string
+  if (!id) {
+    const { data, error } = await supabase.from('applications')
+      .insert({ ...row, event_id: eventId, user_id: null, status: 'pending' } as never).select('id').single()
+    if (error || !data) return NextResponse.json({ error: `The application did not save: ${error?.message ?? 'no row'}` }, { status: 500 })
+    appId = data.id
+  } else {
+    const { data, error } = await supabase.from('applications').update(row as never).eq('id', id).select('id')
+    if (error || !data?.length) return NextResponse.json({ error: `The application did not save: ${error?.message ?? 'no row'}` }, { status: 500 })
+    appId = id
+  }
+
+  const problems: string[] = []
+
+  // ── 3. comp (set_comp re-prices or creates the invoice it owns) ──
+  const hadComp = !!existing?.comped_at || !!existing?.permits_comped_at
+  if (comp || hadComp) {
+    const { error } = await supabase.rpc('set_comp', { p_application_id: appId, p_booth: !!comp?.booth, p_permits: !!comp?.permits })
+    if (error) problems.push(`the comp was not applied (${error.message})`)
+  }
+
+  // ── 4. status ──
+  const { data: app } = await supabase.from('applications')
+    .select('id, status, comped_at, permits_comped_at, total_amount, agreed_total, exhibitor_type, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, artist_count, is_veteran, add_ons')
+    .eq('id', appId).single()
+  if (!app) return NextResponse.json({ error: 'Saved, but the application could not be re-read' }, { status: 500 })
+  const wantStatus = body.input.status
+  const comped = !!app.comped_at || !!app.permits_comped_at
+
+  if (wantStatus === 'approved') {
+    if (app.status !== 'approved') {
+      const { error } = await supabase.from('applications').update(approvePayload(app, new Date(), FINAL_DUE_AT)).eq('id', appId)
+      if (error) problems.push(`it was not approved (${error.message})`)
+    }
+    const amount = comped ? compInvoiceAmount(app) : app.agreed_total ?? app.total_amount
+    const { data: inv } = await supabase.from('invoices').select('id, amount, amount_paid, status').eq('application_id', appId)
+    const current = inv?.[0] ?? null
+    if (!current && (!comped || amount > 0)) {
+      const { error } = await supabase.from('invoices').insert({ application_id: appId, amount, amount_paid: 0, status: 'pending' })
+      if (error) problems.push(`the invoice was not created (${error.message}); add it in Invoices`)
+    } else if (current && !comped && current.amount !== amount) {
+      const change = discountedInvoiceUpdate(current, amount, 0)
+      if ('refused' in change) problems.push(`the invoice was not re-priced: ${change.refused}`)
+      else {
+        const { error } = await supabase.from('invoices').update({ amount: change.amount }).eq('id', current.id)
+        if (error) problems.push(`the invoice was not re-priced (${error.message})`)
+      }
+    }
+  } else if (app.status === 'approved') {
+    const { error } = await supabase.from('applications').update(SEND_BACK_PAYLOAD).eq('id', appId)
+    if (error) problems.push(`it was not moved back to pending (${error.message})`)
+  }
+
+  return NextResponse.json({ ok: true, id: appId, created: !id, problems })
+}
