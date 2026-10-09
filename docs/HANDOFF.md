@@ -11,7 +11,7 @@ This file is the index and the current state. Everything else lives in
 
 ## START HERE - state as of 2026-10-08
 
-**Merged and deployed (develop = 822656b):** everything through #80. Since
+**Merged and deployed (develop = e85859d):** everything through #81. Since
 the 2026-10-07 refresh (#62-#74 are in the 2026-10-07 block of git history):
 - #75 public food truck application, PR 1 of 3 (091): `/apply/food-truck`,
   intake route, admin approve / waitlist / not selected, cap and switch
@@ -24,7 +24,12 @@ the 2026-10-07 refresh (#62-#74 are in the 2026-10-07 block of git history):
 - #80 food truck PR 3 of 3 (093): health permit and business license uploads
   (form, portal, admin Docs column and verified check), private bucket
 
-Open PRs: none.
+Open PRs (2026-10-08, after the cutover):
+- #82 auth links: admin reset and Invite & link links spun forever (the PKCE
+  browser client refused their hash tokens); 10 s timeout and "expired or
+  already used" message; signup callback failures go to sign-in with a notice.
+- #83 sitemap: `/apply/food-truck` was missing; test that every public page
+  is listed.
 
 Source: `gh pr list --state merged` and `gh pr list --state open`, 2026-10-08.
 
@@ -80,9 +85,9 @@ unchanged). Artist permits are $50, capped at 2 per single / 4 per double.
 1. **Floor plan Stage 1:** waiting on the vector PDF.
 2. **Site-wide gold:** the antique golds replace #8B7355 / #866f52, waiting
    on the button-text and light-gold decisions.
-3. **Domain cutover runbook:** sent 2026-09-30. Pre-cutover PRs (redirect
-   map, host-aware noindex, webhook dedupe) await Ryan's go and Ryan's answers
-   on AATC West and the redirect targets.
+3. **After the cutover (report sent 2026-10-08, awaiting Ryan's go):**
+   vercel.app host redirect / noindex, WordPress redirect map (needs the old
+   URL list), social-preview tags on every page. Details in open-items.md.
 
 Also queued (smaller):
 - the add-artist flow (PR 3 of the artist plan: requests, payment, swaps;
@@ -110,11 +115,25 @@ Also queued (smaller):
 - `npm run verify:local -- <verify.sql>` / `--audit` / `--before NNN` /
   `--dump-schema`: verifies against a replay of every migration (#62).
 
-**Domains:** Ryan does every Vercel, Cloudflare, Supabase and Stripe dashboard
-step (runbook, 2026-09-30); Claude's part is only the runbook's pre-cutover
-code PRs, on Ryan's go.
-At cutover, the `NEXT_PUBLIC_SITE_URL` flip also makes robots.txt list
-/sitemap.xml (#53).
+**Domain cutover: DONE 2026-10-08 (Ryan).**
+- www.allamericantattooconvention.com serves this project; the apex 308s to
+  www (checked 2026-10-09 00:57 UTC, with http and trailing-slash variants).
+- Production `NEXT_PUBLIC_SITE_URL` = www: robots.txt lists
+  https://www.allamericantattooconvention.com/sitemap.xml, which only happens
+  on the production host (#53).
+- Supabase Auth: Site URL = https://www.allamericantattooconvention.com.
+  Redirect URLs had only `https://aatc-platform.vercel.app/**`; Ryan added
+  `https://www.allamericantattooconvention.com/**` and
+  `https://allamericantattooconvention.com/**` (2026-10-08). An unlisted
+  redirect falls back to the Site URL ROOT, so auth links sent after the
+  cutover but before that change landed on the homepage. Ryan is resending
+  tonight's resets and invites.
+- The reset page also spun for a reason that predates the cutover (#82,
+  above).
+- Post-cutover checks (Claude, 2026-10-08) and what is left: open-items.md,
+  "After the domain cutover".
+- Ryan does every Vercel, Cloudflare, Supabase and Stripe dashboard step;
+  Claude's part is code PRs, on Ryan's go.
 
 **Dated (Ryan):** DMARC reports ~2026-10-12 then `p=quarantine; pct=25`;
 `SPONSOR_REMINDERS_ENABLED=true` and `FOOD_TRUCK_REMINDERS_ENABLED=true` in
