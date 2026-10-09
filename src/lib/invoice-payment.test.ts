@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { paymentUpdate, nextPaymentMinimumCents, depositCents, depositRuleLabel } from './invoice-payment'
+import { paymentUpdate, nextPaymentMinimumCents, depositCents, depositRuleLabel, newInvoicePayment } from './invoice-payment'
 
 const T1 = '2026-09-26T10:00:00.000Z'
 const T2 = '2026-09-27T10:00:00.000Z'
@@ -88,5 +88,22 @@ describe('one deposit rule everywhere (092)', () => {
   it('both places that create a food-truck invoice give it the flat rule', () => {
     expect(read('src/app/api/admin/food-trucks/decision/route.ts')).toContain("deposit_rule: 'food_truck_flat'")
     expect(read('src/app/admin/food-trucks/page.tsx')).toContain("deposit_rule: 'food_truck_flat'")
+  })
+})
+
+describe('newInvoicePayment (Add A Booth, 2026-10-09)', () => {
+  const NOW = '2026-10-09T12:00:00.000Z'
+  it('a deposit at or above 25% records deposit_paid_at; nothing paid records nothing', () => {
+    expect(newInvoicePayment({ amount: 80000 }, 20000, NOW)).toEqual({ amount_paid: 20000, status: 'pending', paid_at: null, deposit_paid_at: NOW, final_paid_at: null })
+    expect(newInvoicePayment({ amount: 80000 }, 19999, NOW).deposit_paid_at).toBeNull()
+    expect(newInvoicePayment({ amount: 80000 }, 0, NOW)).toMatchObject({ amount_paid: 0, deposit_paid_at: null, status: 'pending' })
+  })
+  it('paid in full records every milestone and caps at the amount', () => {
+    expect(newInvoicePayment({ amount: 80000 }, 90000, NOW)).toEqual({ amount_paid: 80000, status: 'paid', paid_at: NOW, deposit_paid_at: NOW, final_paid_at: NOW })
+  })
+  it('the Add A Booth insert uses it', () => {
+    const page = readFileSync(join(process.cwd(), 'src/app/admin/booths/page.tsx'), 'utf8')
+    expect(page).toContain('newInvoicePayment({ amount: pricing.total }, thisDeposit')
+    expect(page).toContain('...payment,')
   })
 })

@@ -11,6 +11,7 @@ import toast from 'react-hot-toast'
 import { guardedWrite } from '@/lib/db-write'
 import BoothHoldDialog, { type HoldLinkOption } from '@/components/admin/BoothHoldDialog'
 import { activeHold, holdUntilLabel } from '@/lib/booth-holds'
+import { newInvoicePayment } from '@/lib/invoice-payment'
 
 interface ApprovedApp {
   id: string
@@ -212,6 +213,9 @@ export default function AdminBoothsPage() {
         is_veteran: addForm.is_veteran,
         total_amount: pricing.total,
         status: 'approved',
+        approved_at: new Date().toISOString(),
+        // No deposit/final due dates, as before: an in-person add is not chased
+        // or expired by the lifecycle sweep.
       }).select('id').single()
 
       if (appErr || !appRow) {
@@ -229,7 +233,8 @@ export default function AdminBoothsPage() {
       const thisDeposit = i === appIds.length - 1
         ? depositCents - appIds.slice(0, -1).reduce((sum, _, j) => sum + Math.round(depositCents * (boothPricings[j].total / totalAllBooths)), 0)
         : Math.round(depositCents * proportion)
-      const fullyPaid = thisDeposit >= pricing.total
+      // Milestones as every payment path sets them (lib/invoice-payment.ts).
+      const payment = newInvoicePayment({ amount: pricing.total }, thisDeposit, new Date().toISOString())
       // Unchecked before. This is the same revenue gap as the approve path in
       // /admin/applications: a silently failed insert leaves the application
       // created and the exhibitor never billed, with nothing surfacing it.
@@ -239,9 +244,7 @@ export default function AdminBoothsPage() {
         supabase.from('invoices').insert({
         application_id: appIds[i],
         amount: pricing.total,
-        amount_paid: Math.min(thisDeposit, pricing.total),
-        status: fullyPaid ? 'paid' : 'pending',
-        paid_at: fullyPaid ? new Date().toISOString() : null,
+        ...payment,
       }).select('id'),
         `Invoice not created for booth ${i + 1}`,
         `admin/booths bulkInvoice app=${appIds[i]}`,
