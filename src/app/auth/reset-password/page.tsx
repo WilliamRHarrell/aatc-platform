@@ -11,8 +11,10 @@ import toast from 'react-hot-toast'
 // says why). Admin links (Reset password, Invite & link) bring the session in
 // the hash, which the PKCE browser client refuses, so the page sets it itself.
 const LANDING: AuthLanding = typeof window === 'undefined' ? { kind: 'none' } : parseAuthLanding(window.location.href)
-// An admin invitation lands with type=invite: cosmetic only (the heading).
-const OPENED_FROM_INVITE = LANDING.kind === 'tokens' && LANDING.type === 'invite'
+// An admin invitation: cosmetic only (the heading). Old invite links carry
+// type=invite in the hash; /auth/confirm invites arrive with ?invited=1.
+const OPENED_FROM_INVITE = (LANDING.kind === 'tokens' && LANDING.type === 'invite')
+  || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('invited') === '1')
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')

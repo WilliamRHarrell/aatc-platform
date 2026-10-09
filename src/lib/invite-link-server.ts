@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
-import { SITE_URL } from '@/lib/site'
 import { ACTIVE_APPLICATION_STATUSES, planInviteLink, type AccountFacts, type InvitePlan, type LinkKind } from '@/lib/invite-link'
+import { adminConfirmLink } from '@/lib/admin-auth-link'
 
 /**
  * The I/O half of Invite & link: find or create the account and write the
@@ -63,26 +63,24 @@ export async function linkAccount(svc: Svc, kind: LinkKind, row: LinkRow, email:
   }
 
   // ── Account and link ──────────────────────────────────────
-  const redirectTo = `${SITE_URL}/auth/reset-password`
   let userId: string
   let actionUrl: string | null = null
   let created = false
   if (plan.action === 'invite_new') {
-    const { data, error } = await svc.auth.admin.generateLink({ type: 'invite', email, options: { redirectTo } })
-    if (error || !data?.user || !data.properties?.action_link) {
-      return { ok: false, status: 500, error: `Could not create the invitation: ${error?.message ?? 'no link returned'}` }
+    // /auth/confirm link (lib/admin-auth-link.ts): verifies on a tap, any device.
+    const link = await adminConfirmLink(svc, 'invite', email)
+    if (!link.ok || !link.userId) {
+      return { ok: false, status: 500, error: `Could not create the invitation: ${link.ok ? 'no user returned' : link.error}` }
     }
-    userId = data.user.id
-    actionUrl = data.properties.action_link
+    userId = link.userId
+    actionUrl = link.url
     created = true
   } else {
     userId = plan.userId
     if (plan.action === 'resend_invite') {
-      const { data, error } = await svc.auth.admin.generateLink({ type: 'recovery', email, options: { redirectTo } })
-      if (error || !data?.properties?.action_link) {
-        return { ok: false, status: 500, error: `Could not create a new link: ${error?.message ?? 'no link returned'}` }
-      }
-      actionUrl = data.properties.action_link
+      const link = await adminConfirmLink(svc, 'recovery', email)
+      if (!link.ok) return { ok: false, status: 500, error: `Could not create a new link: ${link.error}` }
+      actionUrl = link.url
     }
   }
 

@@ -9,6 +9,7 @@ import { minDepositCents } from '@/lib/pricing'
 import { FINAL_DUE_LABEL, CONTACT_EMAIL } from '@/lib/event-config'
 import { emailWrapper } from '@/lib/email-templates'
 import type { Database } from '@/types/database'
+import { adminConfirmLink } from '@/lib/admin-auth-link'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL ?? 'AATC 2027 <onboarding@resend.dev>'
@@ -653,12 +654,9 @@ export async function POST(req: Request) {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!,
       )
-      const { data: linkData } = await adminClient.auth.admin.generateLink({
-        type: 'recovery',
-        email: app.email,
-        options: { redirectTo: `${SITE_URL}/auth/reset-password` },
-      })
-      const resetUrl = linkData?.properties?.action_link ?? `${SITE_URL}/auth/forgot-password`
+      // An /auth/confirm link (lib/admin-auth-link.ts): verifies on a tap, on any device.
+      const link = await adminConfirmLink(adminClient, 'recovery', app.email)
+      const resetUrl = link.ok ? link.url : `${SITE_URL}/auth/forgot-password`
       const loginUrl = `${SITE_URL}/auth/login`
       subject = `Welcome back to AATC 2027 - ${app.business_name}`
       html = returnerInviteEmail(app.business_name, loginUrl, resetUrl)
