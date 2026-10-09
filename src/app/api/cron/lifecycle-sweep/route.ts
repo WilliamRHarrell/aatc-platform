@@ -11,8 +11,8 @@ import { getContent } from '@/content/getContent'
 import {
   TRUCK_BALANCE_DUE_DATE, TRUCK_REMINDER_COLUMN, truckReminderStage, truckBalancePastDue, truckBalance, truckPaymentState,
 } from '@/lib/food-truck-reminders'
+import { SITE_URL } from '@/lib/site'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://aatc-platform.vercel.app'
 const ONE_DAY_MS = 24 * 60 * 60 * 1000
 const MS_TOLERANCE = 12 * 60 * 60 * 1000 // ± 12h window for "exactly N days from now" matches
 

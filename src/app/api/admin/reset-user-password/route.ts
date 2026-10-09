@@ -3,8 +3,8 @@ import { createServerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
+import { SITE_URL } from '@/lib/site'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://aatc-platform.vercel.app'
 
 export async function POST(req: Request) {
   // Auth check - caller must be an admin
