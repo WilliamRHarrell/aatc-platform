@@ -14,7 +14,7 @@ import type { Database } from '@/types/database'
 import { guardedWrite } from '@/lib/db-write'
 import { useApplicationDocs } from '@/lib/use-application-docs'
 import AddOnList from '@/components/admin/AddOnList'
-import { tvShowLabel } from '@/lib/tv-show'
+import { artistTv, ownTv, unattributedTv } from '@/lib/tv-show'
 import { TATTOO_STYLES } from '@/lib/tattoo-styles'
 
 type ArtistEntry = {
@@ -85,13 +85,12 @@ export default function BoothDetailPage() {
     instagram: '',
     facebook: '',
     website: '',
-    tv_show: '',
     notes: '',
   })
   const [savingProfile, setSavingProfile] = useState(false)
 
   // Per-artist editable fields
-  const [artistEdits, setArtistEdits] = useState<Array<{ name: string; nickname: string; instagram: string; styles: string[]; id_file: File | null }>>([])
+  const [artistEdits, setArtistEdits] = useState<Array<{ name: string; nickname: string; instagram: string; styles: string[]; id_file: File | null; tv_featured: boolean | null; tv_credit: string }>>([])
   const [artistPortfolioUrls, setArtistPortfolioUrls] = useState<Record<number, string[]>>({})
   const [savingArtist, setSavingArtist] = useState<number | null>(null)
   const [uploadingArtistPortfolio, setUploadingArtistPortfolio] = useState<number | null>(null)
@@ -152,10 +151,12 @@ export default function BoothDetailPage() {
         instagram: a.instagram ?? '',
         facebook: a.facebook ?? '',
         website: a.website ?? '',
-        tv_show: a.tv_show ?? '',
         notes: a.notes ?? '',
       })
-      setArtistEdits((a.artists ?? []).map(ar => ({ name: ar.name ?? '', nickname: ar.nickname ?? '', instagram: ar.instagram ?? '', styles: ar.styles ?? [], id_file: null })))
+      setArtistEdits((a.artists ?? []).map(ar => {
+        const tv = ownTv(ar)
+        return { name: ar.name ?? '', nickname: ar.nickname ?? '', instagram: ar.instagram ?? '', styles: ar.styles ?? [], id_file: null, tv_featured: tv?.featured ?? null, tv_credit: tv?.show ?? '' }
+      }))
       const portfolioByArtist: Record<number, string[]> = {}
       ;(a.artists ?? []).forEach((ar, i) => { portfolioByArtist[i] = ar.portfolio_urls ?? [] })
       setArtistPortfolioUrls(portfolioByArtist)
@@ -253,7 +254,6 @@ export default function BoothDetailPage() {
           instagram: profile.instagram.trim() || null,
           facebook: profile.facebook.trim() || null,
           website: profile.website.trim() || null,
-          tv_show: profile.tv_show.trim() || null,
           notes: profile.notes.trim() || null,
         })
         .eq('id', appId)
@@ -403,7 +403,11 @@ export default function BoothDetailPage() {
     }
 
     const updatedArtists = (app.artists ?? []).map((ar2, idx) =>
-      idx === i ? { ...ar2, name: edit?.name ?? ar2.name, nickname: edit?.nickname, instagram: edit?.instagram ?? '', styles: edit?.styles, id_url } : ar2
+      idx === i ? {
+        ...ar2, name: edit?.name ?? ar2.name, nickname: edit?.nickname, instagram: edit?.instagram ?? '', styles: edit?.styles, id_url,
+        // TV: the artist is the source of truth (lib/tv-show.ts); the show is kept only with Yes.
+        tv_featured: edit?.tv_featured ?? null, tv_credit: edit?.tv_featured === true ? edit.tv_credit.trim() : '',
+      } : ar2
     )
     const saveRes = await guardedWrite(
       supabase.from('applications')
@@ -661,16 +665,6 @@ export default function BoothDetailPage() {
               style={inputStyle}
             />
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#8B7355' }}>TV Show</label>
-            <input
-              type="text"
-              value={profile.tv_show}
-              onChange={e => setProfile(p => ({ ...p, tv_show: e.target.value }))}
-              className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-              style={inputStyle}
-            />
-          </div>
           <div className="sm:col-span-2">
             <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#8B7355' }}>Notes</label>
             <textarea
@@ -889,6 +883,37 @@ export default function BoothDetailPage() {
                     </div>
                   </div>
 
+                  {/* TV show: per artist (2026-10-09) */}
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Featured on a tattoo TV show?</label>
+                    <div className="flex flex-wrap gap-2">
+                      {([[true, 'Yes'], [false, 'No'], [null, 'Not asked']] as const).map(([v, label]) => {
+                        const on = (artistEdits[i]?.tv_featured ?? null) === v
+                        return (
+                          <button key={label} type="button"
+                            onClick={() => setArtistEdits(prev => prev.map((ed, idx) => idx === i ? { ...ed, tv_featured: v } : ed))}
+                            className="rounded-lg px-3 py-1.5 text-xs font-semibold"
+                            style={{ backgroundColor: on ? 'rgba(139,115,85,0.2)' : 'transparent', color: on ? '#C4A882' : '#666', border: `1px solid ${on ? '#8B7355' : '#2a2a2a'}` }}>
+                            {label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {artistEdits[i]?.tv_featured === true && (
+                      <input
+                        type="text"
+                        value={artistEdits[i]?.tv_credit ?? ''}
+                        onChange={e => setArtistEdits(prev => prev.map((ed, idx) => idx === i ? { ...ed, tv_credit: e.target.value } : ed))}
+                        className="mt-2 w-full rounded-lg px-3 py-2 text-sm outline-none"
+                        style={inputStyle}
+                        placeholder="Which show and season?"
+                      />
+                    )}
+                    {artistEdits[i]?.tv_featured == null && artistTv(app, i)?.from === 'application' && (
+                      <p className="mt-1 text-xs" style={{ color: '#666' }}>Showing the application&apos;s answer for this one-artist roster until you set it here.</p>
+                    )}
+                  </div>
+
                   {/* Instagram */}
                   <div>
                     <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Instagram Handle</label>
@@ -1059,7 +1084,7 @@ export default function BoothDetailPage() {
           <ReadField label="Booth size" value={describeBooths(app)} />
           <ReadField label="Corner booth" value={app.is_corner} />
           <ReadField label="Veteran" value={app.is_veteran} />
-          <ReadField label="Featured on a tattoo TV show" value={tvShowLabel(app.tv_show_featured, app.tv_show)} />
+          <ReadField label="TV show (not attributed to an artist; set it on the artist below)" value={unattributedTv(app)} />
           {app.exhibitor_type === 'artist' && <ReadField label="Artists (2 per single, 4 per double)" value={`${app.artist_count} of ${artistCapacity(app)}`} />}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#555' }}>Total invoiced</p>

@@ -13,29 +13,42 @@ interface RosterApp {
   email: string
   exhibitor_type: 'artist' | 'vendor'
   artist_count: number
+  /** The roster as it stands (admin may have entered artists, bios, photos, TV answers). */
+  artists?: unknown
 }
+
+type Draft = { name: string; idFile: File | null; nickname: string; instagram: string; /** index of the saved entry this edits, or null for a new artist */ src: number | null; hasId: boolean }
+const str = (v: unknown) => (typeof v === 'string' ? v : '')
 
 export function RosterCompletionPanel({ application, onComplete }: { application: RosterApp; onComplete: () => void }) {
   const supabase = createClient()
   const [boothHolderIdFile, setBoothHolderIdFile] = useState<File | null>(null)
-  const [artists, setArtists] = useState<Array<{ name: string; idFile: File | null; nickname: string; instagram: string }>>(
-    Array.from({ length: Math.max(1, application.artist_count) }, () => ({ name: '', idFile: null, nickname: '', instagram: '' }))
-  )
+  // Start from the saved roster, so completing it keeps what is already there
+  // (2026-10-09: before, the panel rebuilt the roster from blanks and dropped
+  // every key it did not ask for: bio, photo, TV answer, styles, portfolio).
+  const saved = (Array.isArray(application.artists) ? application.artists : []) as Array<Record<string, unknown>>
+  const [artists, setArtists] = useState<Draft[]>(() => {
+    const fromSaved: Draft[] = saved.map((a, i) => ({
+      name: str(a?.name), nickname: str(a?.nickname), instagram: str(a?.instagram), idFile: null, src: i, hasId: !!str(a?.id_url),
+    }))
+    const blanks = Math.max(0, Math.max(1, application.artist_count) - fromSaved.length)
+    return [...fromSaved, ...Array.from({ length: blanks }, (): Draft => ({ name: '', idFile: null, nickname: '', instagram: '', src: null, hasId: false }))]
+  })
   const [submitting, setSubmitting] = useState(false)
 
   const isArtist = application.exhibitor_type === 'artist'
 
-  const updateArtist = (i: number, patch: Partial<{ name: string; idFile: File | null; nickname: string; instagram: string }>) => {
+  const updateArtist = (i: number, patch: Partial<Draft>) => {
     setArtists(prev => prev.map((a, idx) => idx === i ? { ...a, ...patch } : a))
   }
 
-  const addArtist = () => setArtists(prev => [...prev, { name: '', idFile: null, nickname: '', instagram: '' }])
+  const addArtist = () => setArtists(prev => [...prev, { name: '', idFile: null, nickname: '', instagram: '', src: null, hasId: false }])
   const removeArtist = (i: number) => setArtists(prev => prev.filter((_, idx) => idx !== i))
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!boothHolderIdFile) { toast.error('Booth holder ID is required'); return }
-    if (isArtist && artists.some(a => !a.name.trim() || !a.idFile)) {
+    if (isArtist && artists.some(a => !a.name.trim() || (!a.idFile && !a.hasId))) {
       toast.error('Every artist needs a name and ID upload')
       return
     }
@@ -55,22 +68,30 @@ export function RosterCompletionPanel({ application, onComplete }: { application
     if (idErr) { toast.error(`ID upload failed: ${idErr.message}`); setSubmitting(false); return }
 
     // 2. For each artist, upload their ID and build the artists JSONB array
-    const artistRecords: Array<{ name: string; id_url: string | null; nickname?: string; instagram?: string }> = []
+    const artistRecords: Array<Record<string, unknown>> = []
     if (isArtist) {
       for (let i = 0; i < artists.length; i++) {
         const a = artists[i]
-        if (!a.idFile) continue
-        const aExt = (a.idFile.name.split('.').pop() || 'jpg').toLowerCase()
-        const aPath = `${user.id}/${ts}-artist-${i + 1}-id.${aExt}`
-        const { error: aErr } = await supabase.storage
-          .from('application-docs')
-          .upload(aPath, a.idFile)
-        if (aErr) { toast.error(`Artist ${i + 1} ID upload failed: ${aErr.message}`); setSubmitting(false); return }
+        const base = a.src !== null && saved[a.src] && typeof saved[a.src] === 'object' ? saved[a.src] : {}
+        let id_url = str(base.id_url) || null
+        if (a.idFile) {
+          const aExt = (a.idFile.name.split('.').pop() || 'jpg').toLowerCase()
+          const aPath = `${user.id}/${ts}-artist-${i + 1}-id.${aExt}`
+          const { error: aErr } = await supabase.storage
+            .from('application-docs')
+            .upload(aPath, a.idFile)
+          if (aErr) { toast.error(`Artist ${i + 1} ID upload failed: ${aErr.message}`); setSubmitting(false); return }
+          id_url = aPath
+        }
+        if (!id_url) continue
+        // Every saved key is kept; the database keeps or drops ID verification by id_url (088).
         artistRecords.push({
+          ...base,
           name: a.name.trim(),
-          id_url: aPath,
-          ...(a.nickname.trim() ? { nickname: a.nickname.trim() } : {}),
-          ...(a.instagram.trim() ? { instagram: a.instagram.trim() } : {}),
+          id_url,
+          id_later: false,
+          nickname: a.nickname.trim() || undefined,
+          instagram: a.instagram.trim() || undefined,
         })
       }
     }
@@ -84,7 +105,7 @@ export function RosterCompletionPanel({ application, onComplete }: { application
         .from('applications')
         .update({
           needs_roster: false,
-          artists: isArtist ? artistRecords : null,
+          artists: (isArtist ? artistRecords : null) as never,
           artist_count: isArtist ? artistRecords.length : 0,
           id_doc_url: idPath,
         })
@@ -155,8 +176,8 @@ export function RosterCompletionPanel({ application, onComplete }: { application
                   <input type="text" placeholder="Nickname" value={a.nickname} onChange={e => updateArtist(i, { nickname: e.target.value })} className="rounded px-3 py-2 text-sm text-white" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }} />
                   <input type="text" placeholder="Instagram" value={a.instagram} onChange={e => updateArtist(i, { instagram: e.target.value })} className="rounded px-3 py-2 text-sm text-white sm:col-span-2" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }} />
                   <div className="sm:col-span-2">
-                    <label className="text-xs text-white">ID upload *</label>
-                    <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required onChange={e => updateArtist(i, { idFile: e.target.files?.[0] ?? null })} className="block w-full text-sm text-white mt-1" />
+                    <label className="text-xs text-white">{a.hasId ? 'ID on file (upload to replace)' : 'ID upload *'}</label>
+                    <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required={!a.hasId} onChange={e => updateArtist(i, { idFile: e.target.files?.[0] ?? null })} className="block w-full text-sm text-white mt-1" />
                   </div>
                 </div>
               </div>

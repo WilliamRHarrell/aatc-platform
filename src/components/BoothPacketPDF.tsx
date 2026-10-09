@@ -46,6 +46,7 @@ export interface BoothPacketData {
     instagram?: string
     styles?: string[]
     id_url: string | null
+    tv?: string | null
   }>
 }
 
@@ -140,6 +141,7 @@ export default function BoothPacketPDF({ data }: { data: BoothPacketData }) {
             <InfoRow label="Legal Name" value={artist.name} />
             {artist.nickname && <InfoRow label="Artist / Stage Name" value={artist.nickname} />}
             {artist.instagram && <InfoRow label="Instagram" value={`@${artist.instagram}`} />}
+            <InfoRow label="TV Show" value={artist.tv} />
 
             {artist.styles && artist.styles.length > 0 && (
               <>

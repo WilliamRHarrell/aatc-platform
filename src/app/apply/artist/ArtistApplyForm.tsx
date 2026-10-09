@@ -44,11 +44,12 @@ interface ArtistEntry {
   id_file: File | null
   id_later: boolean
   portfolio_files: File[]
+  /** Featured on a tattoo TV show: asked per artist since 2026-10-09 (lib/tv-show.ts). */
+  tv_featured: boolean
+  tv_credit: string
 }
 
 interface DetailFields {
-  tv_show: string
-  tv_show_flag: boolean
   notes: string
   veteran_id_file: File | null
 }
@@ -304,13 +305,11 @@ export default function ArtistApplyForm({ content }: { content: ApplyFormContent
   })
 
   const [details, setDetails] = useState<DetailFields>({
-    tv_show: '',
-    tv_show_flag: false,
     notes: '',
     veteran_id_file: null,
   })
 
-  const [artistEntries, setArtistEntries] = useState<ArtistEntry[]>([{ name: '', nickname: '', instagram: '', styles: [], id_file: null, id_later: false, portfolio_files: [] }])
+  const [artistEntries, setArtistEntries] = useState<ArtistEntry[]>([{ name: '', nickname: '', instagram: '', styles: [], id_file: null, id_later: false, portfolio_files: [], tv_featured: false, tv_credit: '' }])
   const [artistErrors, setArtistErrors] = useState<boolean[]>([])
 
   // Load active event + pre-fill from auth
@@ -348,7 +347,7 @@ export default function ArtistApplyForm({ content }: { content: ApplyFormContent
       const n = booth.artist_count
       if (prev.length === n) return prev
       if (prev.length < n) {
-        return [...prev, ...Array.from({ length: n - prev.length }, () => ({ name: '', nickname: '', instagram: '', styles: [], id_file: null, id_later: false, portfolio_files: [] }))]
+        return [...prev, ...Array.from({ length: n - prev.length }, () => ({ name: '', nickname: '', instagram: '', styles: [], id_file: null, id_later: false, portfolio_files: [], tv_featured: false, tv_credit: '' }))]
       }
       return prev.slice(0, n)
     })
@@ -396,7 +395,7 @@ export default function ArtistApplyForm({ content }: { content: ApplyFormContent
     const ts = Date.now()
 
     // Upload each artist's ID (skipped when artistsIdsLater is true)
-    const artistsData: Array<{ name: string; nickname: string; instagram: string; styles: string[]; id_url: string | null; id_later: boolean; portfolio_urls: string[] }> = []
+    const artistsData: Array<{ name: string; nickname: string; instagram: string; styles: string[]; id_url: string | null; id_later: boolean; portfolio_urls: string[]; tv_featured: boolean; tv_credit: string }> = []
     for (let i = 0; i < artistEntries.length; i++) {
       const entry = artistEntries[i]
       let id_url: string | null = null
@@ -412,7 +411,10 @@ export default function ArtistApplyForm({ content }: { content: ApplyFormContent
         }
         id_url = up.path
       }
-      artistsData.push({ name: entry.name, nickname: entry.nickname, instagram: entry.instagram, styles: entry.styles, id_url, id_later: entry.id_later, portfolio_urls: [] })
+      artistsData.push({
+        name: entry.name, nickname: entry.nickname, instagram: entry.instagram, styles: entry.styles, id_url, id_later: entry.id_later, portfolio_urls: [],
+        tv_featured: entry.tv_featured, tv_credit: entry.tv_featured ? entry.tv_credit.trim() : '',
+      })
     }
 
     // Upload veteran ID if applicable
@@ -453,9 +455,11 @@ export default function ArtistApplyForm({ content }: { content: ApplyFormContent
       is_corner: booth.corner_count > 0,
       is_veteran: booth.is_veteran,
       total_amount: pricing.total,
-      tv_show: details.tv_show_flag ? details.tv_show || null : null,
-      // 094: the Yes/No itself, so Yes with no show named is not lost.
-      tv_show_featured: details.tv_show_flag,
+      // TV is asked per artist (artists[].tv_featured / tv_credit, lib/tv-show.ts).
+      // The application-level 094 column keeps "did any artist say Yes"; the
+      // show name lives on the artist only.
+      tv_show: null,
+      tv_show_featured: artistEntries.some(e => e.tv_featured),
       veteran_id_url: veteranIdUrl,
       notes: details.notes || null,
       artists: artistsData,
@@ -1064,6 +1068,41 @@ export default function ArtistApplyForm({ content }: { content: ApplyFormContent
                               </div>
                             </div>
 
+                            {/* TV show, per artist (2026-10-09) */}
+                            <div>
+                              <p className="mb-1 text-xs font-medium" style={{ color: '#999' }}>Has this artist been featured on a tattoo TV show?</p>
+                              <p className="mb-2 text-xs" style={{ color: '#555' }}>e.g. Ink Master, Best Ink, Miami Ink, etc.</p>
+                              <div className="flex gap-2">
+                                {[{ label: 'Yes', val: true }, { label: 'No', val: false }].map(({ label, val }) => {
+                                  const active = entry.tv_featured === val
+                                  return (
+                                    <button
+                                      key={label}
+                                      type="button"
+                                      onClick={() => setArtistEntries(prev => prev.map((a, idx) => idx === i ? { ...a, tv_featured: val, tv_credit: val ? a.tv_credit : '' } : a))}
+                                      className="rounded-lg px-4 py-1.5 text-xs font-semibold transition-colors"
+                                      style={{
+                                        backgroundColor: active ? 'rgba(139,115,85,0.2)' : 'rgba(255,255,255,0.04)',
+                                        color: active ? '#C4A882' : '#666',
+                                        border: `1px solid ${active ? 'rgba(139,115,85,0.5)' : '#2a2a2a'}`,
+                                      }}
+                                    >
+                                      {label}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                              {entry.tv_featured && (
+                                <input
+                                  type="text" value={entry.tv_credit}
+                                  onChange={e => setArtistEntries(prev => prev.map((a, idx) => idx === i ? { ...a, tv_credit: e.target.value } : a))}
+                                  className={`mt-2 ${inputClass()}`} style={inputStyle()}
+                                  onFocus={onFocusGold} onBlur={onBlurGray}
+                                  placeholder="Which show and season? (e.g. Ink Master Season 12)"
+                                />
+                              )}
+                            </div>
+
                             {/* ID upload */}
                             <FileUploadField
                               label="Government-issued ID"
@@ -1107,41 +1146,6 @@ export default function ArtistApplyForm({ content }: { content: ApplyFormContent
                       onChange={f => setDetails(d => ({ ...d, veteran_id_file: f }))}
                     />
                   )}
-
-                  {/* TV show experience */}
-                  <div>
-                    <p className="mb-2 text-sm font-medium text-white">Were you featured on a tattoo TV show?</p>
-                    <p className="mb-3 text-xs" style={{ color: '#999999' }}>e.g. Ink Master, Best Ink, Miami Ink, etc.</p>
-                    <div className="flex gap-3">
-                      {[{ label: 'Yes', val: true }, { label: 'No', val: false }].map(({ label, val }) => {
-                        const active = val ? !!details.tv_show_flag : !details.tv_show_flag
-                        return (
-                          <button
-                            key={label}
-                            type="button"
-                            onClick={() => setDetails(d => ({ ...d, tv_show_flag: val, tv_show: val ? d.tv_show : '' }))}
-                            className="rounded-lg px-5 py-2 text-sm font-semibold transition-colors"
-                            style={{
-                              backgroundColor: active ? 'rgba(139,115,85,0.2)' : 'rgba(255,255,255,0.04)',
-                              color: active ? '#C4A882' : '#666',
-                              border: `1px solid ${active ? 'rgba(139,115,85,0.5)' : '#2a2a2a'}`,
-                            }}
-                          >
-                            {label}
-                          </button>
-                        )
-                      })}
-                    </div>
-                    {details.tv_show_flag && (
-                      <input
-                        type="text" value={details.tv_show}
-                        onChange={e => setDetails(d => ({ ...d, tv_show: e.target.value }))}
-                        className={`mt-3 ${inputClass()}`} style={inputStyle()}
-                        onFocus={onFocusGold} onBlur={onBlurGray}
-                        placeholder="Which show and season? (e.g. Ink Master Season 12)"
-                      />
-                    )}
-                  </div>
 
                   {/* Additional notes */}
                   <div>
@@ -1247,13 +1251,12 @@ export default function ArtistApplyForm({ content }: { content: ApplyFormContent
                   </div>
                   {artistEntries.map((a, i) => (
                     <p key={i} className="text-sm" style={{ color: a.id_later ? '#eab308' : '#999' }}>
-                      Artist {i + 1}: {a.name || '(name TBD)'}{a.nickname ? ` · "${a.nickname}"` : ''} · {a.id_later ? 'ID to be provided later' : (a.id_file?.name ?? 'no ID')}
+                      Artist {i + 1}: {a.name || '(name TBD)'}{a.nickname ? ` · "${a.nickname}"` : ''} · {a.id_later ? 'ID to be provided later' : (a.id_file?.name ?? 'no ID')}{a.tv_featured ? ` · TV: ${a.tv_credit.trim() || 'yes'}` : ''}
                     </p>
                   ))}
                   {booth.is_veteran && details.veteran_id_file && (
                     <p className="text-sm" style={{ color: '#999' }}>Veteran ID: {details.veteran_id_file.name}</p>
                   )}
-                  {details.tv_show && <p className="mt-1 text-sm" style={{ color: '#999' }}>TV: {details.tv_show}</p>}
                   {details.notes && <p className="mt-1 text-sm" style={{ color: '#999' }}>Notes: {details.notes}</p>}
                 </div>
 

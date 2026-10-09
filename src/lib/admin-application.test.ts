@@ -42,11 +42,22 @@ describe('planApplication', () => {
   })
   it('a vendor has no roster and no artist fields', () => {
     const v = planApplication({ ...base, exhibitor_type: 'vendor', vendor_single_qty: 1, artists: [{ name: 'x' }] })
-    expect(v.ok && v.plan.row).toMatchObject({ artists: null, artist_count: 0, artist_single_qty: 0, tv_show_featured: null, needs_roster: false })
+    expect(v.ok && v.plan.row).toMatchObject({ artists: null, artist_count: 0, artist_single_qty: 0, needs_roster: false })
   })
   it('TV show name is kept only with Yes', () => {
     const r = planApplication({ ...base, tv_show_featured: false, tv_show: 'Ink Master' })
     expect(r.ok && r.plan.row.tv_show).toBeNull()
+  })
+  it('the application-level TV answer is written only when sent (the editor asks per artist)', () => {
+    const r = planApplication(base)
+    expect(r.ok && 'tv_show_featured' in r.plan.row).toBe(false)
+    expect(r.ok && 'tv_show' in r.plan.row).toBe(false)
+  })
+  it('per-artist TV: Yes/No kept, the show dropped with No', () => {
+    const r = planApplication({ ...base, artists: [{ name: 'A', tv_featured: true, tv_credit: 'Ink Master' }, { name: 'B', tv_featured: false, tv_credit: 'stale' }] })
+    const roster = r.ok ? (r.plan.row.artists as { tv_featured: boolean | null; tv_credit: string }[]) : []
+    expect(roster[0]).toMatchObject({ tv_featured: true, tv_credit: 'Ink Master' })
+    expect(roster[1]).toMatchObject({ tv_featured: false, tv_credit: '' })
   })
   it('artists_ids_later follows the roster; a vendor never has it', () => {
     const r = planApplication(base)

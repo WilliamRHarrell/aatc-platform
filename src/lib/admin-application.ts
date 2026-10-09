@@ -12,8 +12,9 @@
  *     roster no longer than artist_count (088's roster guard);
  *   - needs_roster true until every listed artist has an ID (or is marked ID
  *     later); the directory only shows rows with needs_roster false.
- * Document paths (vendor ID, veteran ID) are written only when the input carries
- * the key, so an edit that does not touch them keeps what is there.
+ * Document paths (vendor ID, veteran ID) and the application-level TV answer
+ * are written only when the input carries the key, so an edit that does not
+ * touch them keeps what is there.
  * Money (Ryan's four choices): standard, a custom total (agreed_total, 096;
  * below list needs the same second confirmation as a large discount, above
  * list does not), comp booth, comp booth + permits (set_comp, 089).
@@ -35,7 +36,9 @@ export interface EditorArtist {
   bio?: string
   /** Public URL (exhibitor-media): a headshot uploaded by admin; falls back to the first portfolio image. */
   photo_url?: string | null
-  /** This artist's TV credit; the application's tv_show is used only for a one-artist roster. */
+  /** Featured on a tattoo TV show (the Yes/No); the artist is the source of truth (lib/tv-show.ts). */
+  tv_featured?: boolean | null
+  /** The show, kept only with Yes; the application's tv_show is used only for a one-artist roster. */
   tv_credit?: string
   portfolio_urls?: string[]
   /** Private storage path (application-docs), never public. */
@@ -126,7 +129,8 @@ export function planApplication(input: EditorInput): EditorValidation {
     styles: Array.isArray(a.styles) ? a.styles.map(s => text(s, 60)).filter(Boolean).slice(0, 12) : [],
     bio: text(a.bio, BIO_MAX),
     photo_url: a.photo_url || null,
-    tv_credit: text(a.tv_credit, 120),
+    tv_featured: typeof a.tv_featured === 'boolean' ? a.tv_featured : null,
+    tv_credit: a.tv_featured === false ? '' : text(a.tv_credit, 120),
     portfolio_urls: Array.isArray(a.portfolio_urls) ? a.portfolio_urls.filter(u => typeof u === 'string' && u).slice(0, 10) : [],
     id_url: a.id_url || null,
     id_later: !!a.id_later && !a.id_url,
@@ -163,7 +167,12 @@ export function planApplication(input: EditorInput): EditorValidation {
 
   // needs_roster: every listed artist has an ID or is marked "ID later", and the roster is full.
   const rosterComplete = !isArtist || (artists.length >= artist_count && artists.every(a => a.id_url || a.id_later))
+  // The application-level TV answer (094) is written only when sent: the editor
+  // asks per artist, and an edit must not wipe an older application's answer.
   const tvFeatured = isArtist && typeof input.tv_show_featured === 'boolean' ? input.tv_show_featured : null
+  const appTv = 'tv_show_featured' in input || 'tv_show' in input
+    ? { tv_show_featured: tvFeatured, tv_show: tvFeatured ? orNull(text(input.tv_show, 120)) : null }
+    : {}
 
   return {
     ok: true,
@@ -187,8 +196,7 @@ export function planApplication(input: EditorInput): EditorValidation {
         add_ons,
         artist_count,
         is_veteran,
-        tv_show_featured: tvFeatured,
-        tv_show: tvFeatured ? orNull(text(input.tv_show, 120)) : null,
+        ...appTv,
         logo_url: input.logo_url || null,
         artists: isArtist ? artists : null,
         artists_ids_later: isArtist && artists.some(a => a.id_later),

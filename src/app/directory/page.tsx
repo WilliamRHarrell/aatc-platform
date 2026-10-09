@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import PublicNav from '@/components/PublicNav'
 import { describeBooths } from '@/lib/booth-display'
+import { publicTvShows } from '@/lib/tv-show'
 
 interface Exhibitor {
   id: string
@@ -21,6 +22,7 @@ interface Exhibitor {
   phone: string | null
   artist_count: number
   tv_show: string | null
+  artists: unknown
   booth_number: string | null
   is_corner: boolean
   logo_url: string | null
@@ -48,7 +50,7 @@ export default function DirectoryPage() {
       const [{ data: apps }, { data: booths }] = await Promise.all([
         supabase
           .from('applications_public')
-          .select('id, business_name, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, instagram, website, phone, artist_count, tv_show, logo_url')
+          .select('id, business_name, exhibitor_type, booth_size, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, instagram, website, phone, artist_count, tv_show, artists, logo_url')
           .eq('status', 'approved')
           .order('business_name'),
         supabase
@@ -244,10 +246,10 @@ function ExhibitorCard({ exhibitor: e }: { exhibitor: Exhibitor }) {
           : ''}
       </p>
 
-      {/* TV show */}
-      {e.tv_show && (
+      {/* TV shows: per artist, plus an older application-level one (lib/tv-show.ts) */}
+      {publicTvShows(e).length > 0 && (
         <p className="mt-2 text-xs font-medium" style={{ color: '#8B7355' }}>
-          ★ {e.tv_show}
+          ★ {publicTvShows(e).join(', ')}
         </p>
       )}
 

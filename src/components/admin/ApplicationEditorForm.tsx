@@ -41,6 +41,8 @@ interface ArtistDraft {
   instagram: string
   styles: string[]
   bio: string
+  /** Featured on a tattoo TV show: the artist is the source of truth (lib/tv-show.ts). */
+  tv_featured: boolean | null
   tv_credit: string
   id_later: boolean
   /** Saved references. */
@@ -56,13 +58,13 @@ interface ArtistDraft {
 }
 
 const blankArtist = (): ArtistDraft => ({
-  name: '', nickname: '', instagram: '', styles: [], bio: '', tv_credit: '', id_later: false,
+  name: '', nickname: '', instagram: '', styles: [], bio: '', tv_featured: null, tv_credit: '', id_later: false,
   photo_url: null, portfolio_urls: [], id_url: null, photo_file: null, portfolio_files: [], id_file: null, verified: false,
 })
 
 const isBlank = (a: ArtistDraft) =>
   !a.name.trim() && !a.nickname.trim() && !a.instagram.trim() && a.styles.length === 0 && !a.bio.trim()
-  && !a.tv_credit.trim() && !a.photo_url && a.portfolio_urls.length === 0 && !a.id_url
+  && a.tv_featured === null && !a.tv_credit.trim() && !a.photo_url && a.portfolio_urls.length === 0 && !a.id_url
   && !a.photo_file && a.portfolio_files.length === 0 && !a.id_file
 
 /** Blank roster slots move to the end, so a slot's index is the saved index (storage paths, ID verification). */
@@ -155,8 +157,6 @@ export default function ApplicationEditorForm() {
   const [isVeteran, setIsVeteran] = useState(false)
   const [artistCount, setArtistCount] = useState(1)
   const [artists, setArtists] = useState<ArtistDraft[]>([blankArtist()])
-  const [tvFeatured, setTvFeatured] = useState<boolean | null>(null)
-  const [tvShow, setTvShow] = useState('')
 
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
@@ -224,13 +224,11 @@ export default function ApplicationEditorForm() {
     add_ons: addOns,
     artist_count: isArtist ? artistCount : 0,
     is_veteran: isVeteran,
-    tv_show_featured: isArtist ? tvFeatured : null,
-    tv_show: tvShow,
     logo_url: refs.logo,
     id_doc_url: isArtist ? null : refs.idDoc,
     veteran_id_url: isVeteran ? refs.vet : null,
     artists: isArtist ? roster.filter(a => !isBlank(a)).map((a): EditorArtist => ({
-      name: a.name, nickname: a.nickname, instagram: a.instagram, styles: a.styles, bio: a.bio, tv_credit: a.tv_credit,
+      name: a.name, nickname: a.nickname, instagram: a.instagram, styles: a.styles, bio: a.bio, tv_featured: a.tv_featured, tv_credit: a.tv_featured === false ? '' : a.tv_credit,
       photo_url: a.photo_url, portfolio_urls: a.portfolio_urls, id_url: a.id_url, id_later: a.id_later,
     })) : [],
     status,
@@ -491,9 +489,18 @@ export default function ApplicationEditorForm() {
                   <Field label="Instagram">
                     <input value={a.instagram} onChange={e => patchArtist(i, { instagram: e.target.value })} className={inputCls} style={inputSty} />
                   </Field>
-                  <Field label="TV credit" hint="Shown on the VIP page. Without one, the application's TV show is used only for a one-artist roster.">
-                    <input value={a.tv_credit} onChange={e => patchArtist(i, { tv_credit: e.target.value })} className={inputCls} style={inputSty} />
-                  </Field>
+                  <div>
+                    <span className="mb-1 block text-xs font-semibold uppercase tracking-wide" style={{ color: '#999' }}>Featured on a tattoo TV show?</span>
+                    <div className="flex gap-2">
+                      {([[true, 'Yes'], [false, 'No'], [null, 'Not asked']] as const).map(([v, label]) => (
+                        <Choice key={label} name={`tv-${i}`} checked={a.tv_featured === v} onChange={() => patchArtist(i, { tv_featured: v })} label={label} />
+                      ))}
+                    </div>
+                    {a.tv_featured === true && (
+                      <input value={a.tv_credit} onChange={e => patchArtist(i, { tv_credit: e.target.value })} placeholder="Which show and season?"
+                        className={`${inputCls} mt-2`} style={inputSty} />
+                    )}
+                  </div>
                   <Field label={`Bio (${a.bio.length}/${BIO_MAX})`} wide hint="Optional. Public on the directory and the VIP page.">
                     <textarea rows={3} maxLength={BIO_MAX} value={a.bio} onChange={e => patchArtist(i, { bio: e.target.value })} className={inputCls} style={inputSty} />
                   </Field>
@@ -576,7 +583,7 @@ export default function ApplicationEditorForm() {
         </Section>
       )}
 
-      <Section title={isArtist ? 'Logo and TV show' : 'Logo'}>
+      <Section title="Logo">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <FilePick label="Logo" saved={logoUrl} savedLabel="Logo saved" file={logoFile} accept={IMAGE_TYPES}
@@ -586,19 +593,6 @@ export default function ApplicationEditorForm() {
               <img src={logoUrl} alt="" className="mt-2 h-16 w-16 rounded-lg object-contain" style={{ backgroundColor: '#0a0a0a' }} />
             )}
           </div>
-          {isArtist && (
-            <div>
-              <span className="mb-1 block text-xs font-semibold uppercase tracking-wide" style={{ color: '#999' }}>Featured on a TV show?</span>
-              <div className="flex gap-2">
-                {([[true, 'Yes'], [false, 'No'], [null, 'Not asked']] as const).map(([v, label]) => (
-                  <Choice key={label} name="tv" checked={tvFeatured === v} onChange={() => setTvFeatured(v)} label={label} />
-                ))}
-              </div>
-              {tvFeatured === true && (
-                <input value={tvShow} onChange={e => setTvShow(e.target.value)} placeholder="Show name" className={`${inputCls} mt-2`} style={inputSty} />
-              )}
-            </div>
-          )}
         </div>
       </Section>
 

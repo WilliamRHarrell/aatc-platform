@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { describeBooths } from '@/lib/booth-display'
 import dynamic from 'next/dynamic'
+import { artistTv, artistTvLabel, unattributedTv } from '@/lib/tv-show'
 
 const BoothPacketDownload = dynamic(() => import('@/components/BoothPacketDownload'), { ssr: false })
 
@@ -14,6 +15,8 @@ interface Artist {
   styles?: string[]
   id_url: string | null
   id_later?: boolean
+  /** This artist's TV answer as a label (lib/tv-show.ts). */
+  tv?: string | null
 }
 
 interface BoothRow {
@@ -51,7 +54,7 @@ export default function AdminPrintPage() {
             id, business_name, contact_name, email, phone, website, instagram,
             exhibitor_type, booth_size, artist_single_qty, artist_double_qty,
             vendor_single_qty, vendor_double_qty, corner_count, artist_count,
-            artists, artists_ids_later, is_veteran, tv_show
+            artists, artists_ids_later, is_veteran, tv_show, tv_show_featured
           )
         `)
         .not('application_id', 'is', null)
@@ -107,9 +110,10 @@ export default function AdminPrintPage() {
             exhibitorType: app.exhibitor_type ?? 'artist',
             boothSize: describeBooths(app),
             artistCount: app.artist_count ?? 0,
-            artists,
+            // TV per artist; the application line only for an older Yes no artist carries.
+            artists: artists.map((a, i) => ({ ...a, tv: artistTvLabel(artistTv(app, i)) })),
             isVeteran: app.is_veteran ?? false,
-            tvShow: app.tv_show ?? null,
+            tvShow: unattributedTv(app),
             invoiceStatus: invoiceMap.get(appId) ?? null,
             allDocsUploaded,
           })
