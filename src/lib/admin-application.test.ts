@@ -22,9 +22,11 @@ describe('planApplication', () => {
     const long = planApplication({ ...base, artist_count: 1 })
     expect(!long.ok && long.errors.artists).toBeTruthy()
   })
-  it('needs_roster until every artist has an ID or ID later and the roster is full', () => {
+  it('needs_roster until every artist is listed; ID documents do not count', () => {
     const r = planApplication({ ...base, artists: [{ name: 'A One' }] })
     expect(r.ok && r.plan.row.needs_roster).toBe(true)
+    const noIds = planApplication({ ...base, artists: [{ name: 'A One' }, { name: 'B Two' }] })
+    expect(noIds.ok && noIds.plan.row.needs_roster).toBe(false)
   })
   it('custom total below list asks for confirmation; confirmed or above list goes through', () => {
     const ask = planApplication({ ...base, money: { mode: 'custom', totalCents: list - 1 } })
@@ -42,13 +44,11 @@ describe('planApplication', () => {
   })
   it('a vendor has no roster and no artist fields', () => {
     const v = planApplication({ ...base, exhibitor_type: 'vendor', vendor_single_qty: 1, artists: [{ name: 'x' }] })
-    // no vendor ID yet: off the directory until it is on file, as on the public form
-    expect(v.ok && v.plan.row).toMatchObject({ artists: null, artist_count: 0, artist_single_qty: 0, needs_roster: true })
-    const withId = planApplication({ ...base, exhibitor_type: 'vendor', vendor_single_qty: 1, id_doc_url: 'admin/x/id.jpg' })
-    expect(withId.ok && withId.plan.row.needs_roster).toBe(false)
+    // a vendor ID never affects the directory (Ryan, 2026-10-09; reverts #102)
+    expect(v.ok && v.plan.row).toMatchObject({ artists: null, artist_count: 0, artist_single_qty: 0, needs_roster: false })
   })
   it('editing only ever clears needs_roster', () => {
-    const incomplete = { ...base, artists: [{ name: 'A One' }] }
+    const incomplete = { ...base, artists: [{ name: 'A One', id_url: 'p' }] }
     // a listed row whose roster predates the rule stays listed
     expect((r => r.ok && r.plan.row.needs_roster)(planApplication(incomplete, { needs_roster: false, artist_count: 2 }))).toBe(false)
     // completing the roster clears it
