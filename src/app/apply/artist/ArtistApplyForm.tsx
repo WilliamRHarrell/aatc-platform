@@ -458,7 +458,9 @@ export default function ArtistApplyForm({ content }: { content: ApplyFormContent
       is_corner: booth.corner_count > 0,
       is_veteran: booth.is_veteran,
       total_amount: pricing.total,
-      tv_show: details.tv_show || null,
+      tv_show: details.tv_show_flag ? details.tv_show || null : null,
+      // 094: the Yes/No itself, so Yes with no show named is not lost.
+      tv_show_featured: details.tv_show_flag,
       veteran_id_url: veteranIdUrl,
       notes: details.notes || null,
       artists: artistsData,

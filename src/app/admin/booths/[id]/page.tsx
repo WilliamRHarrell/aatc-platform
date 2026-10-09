@@ -14,6 +14,7 @@ import type { Database } from '@/types/database'
 import { guardedWrite } from '@/lib/db-write'
 import { useApplicationDocs } from '@/lib/use-application-docs'
 import AddOnList from '@/components/admin/AddOnList'
+import { tvShowLabel } from '@/lib/tv-show'
 
 type ArtistEntry = {
   name?: string | null
@@ -1079,6 +1080,7 @@ export default function BoothDetailPage() {
           <ReadField label="Booth size" value={describeBooths(app)} />
           <ReadField label="Corner booth" value={app.is_corner} />
           <ReadField label="Veteran" value={app.is_veteran} />
+          <ReadField label="Featured on a tattoo TV show" value={tvShowLabel(app.tv_show_featured, app.tv_show)} />
           {app.exhibitor_type === 'artist' && <ReadField label="Artists (2 per single, 4 per double)" value={`${app.artist_count} of ${artistCapacity(app)}`} />}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#555' }}>Total invoiced</p>

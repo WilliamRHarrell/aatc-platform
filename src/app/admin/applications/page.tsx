@@ -21,6 +21,7 @@ import DirectoryOverrideControl from '@/components/admin/DirectoryOverrideContro
 import { approvePayload, SEND_BACK_PAYLOAD, hasAnyComp, compInvoiceAmount, discountedInvoiceUpdate, discountSummary } from '@/lib/comp'
 import AddOnList from '@/components/admin/AddOnList'
 import ArtistRosterReadOnly from '@/components/admin/ArtistRosterReadOnly'
+import { tvShowLabel } from '@/lib/tv-show'
 
 // The `artists` column is stored as JSON; describe its real shape here so the
 // regenerated Json type doesn't break array access throughout this file.
@@ -394,13 +395,13 @@ function DetailDrawer({
           </section>
 
           {/* Additional info */}
-          {(app.tv_show || app.notes) && (
+          {(tvShowLabel(app.tv_show_featured, app.tv_show) || app.notes) && (
             <>
               <div style={{ borderTop: '1px solid #2a2a2a' }} />
               <section>
                 <p className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: '#555' }}>Additional Info</p>
                 <div className="space-y-3">
-                  <Field label="TV show experience" value={app.tv_show} />
+                  <Field label="Featured on a tattoo TV show" value={tvShowLabel(app.tv_show_featured, app.tv_show)} />
                   <Field label="Notes"              value={app.notes} />
                 </div>
               </section>
