@@ -180,7 +180,7 @@ export default function AdminPinupPage() {
               <button autoFocus onClick={() => setOpenId(null)} className="text-xl leading-none" style={{ color: '#999' }} aria-label="Close">&times;</button>
             </div>
             <dl className="space-y-3">
-              {PINUP_FIELDS.map(f => {
+              {PINUP_FIELDS.filter(f => !f.onlyIfSet || f.value(open)).map(f => {
                 const v = f.value(open)
                 // Only a missing age confirmation or likeness release is a problem.
                 const alert = (f.key === 'age_confirmed' || f.key === 'likeness_release') && v === 'No'

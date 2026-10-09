@@ -39,7 +39,12 @@ export function formatEastern(iso: string | null): string {
 }
 const yesNo = (b: boolean) => (b ? 'Yes' : 'No')
 
-export interface PinupField { key: string; label: string; value: (e: PinupEntry) => string }
+/**
+ * `onlyIfSet`: left out of the admin panel while empty. The public form has no
+ * notes field (Ryan, 2026-10-09: hide it), but /api/pinup-entry still accepts
+ * one, so a row that does carry notes still shows them. The CSV keeps every column.
+ */
+export interface PinupField { key: string; label: string; value: (e: PinupEntry) => string; onlyIfSet?: boolean }
 
 export const PINUP_FIELDS: readonly PinupField[] = [
   { key: 'full_name', label: 'Full name', value: e => e.full_name },
@@ -48,7 +53,7 @@ export const PINUP_FIELDS: readonly PinupField[] = [
   { key: 'email', label: 'Email', value: e => e.email },
   { key: 'phone', label: 'Phone', value: e => e.phone },
   { key: 'address', label: 'Address', value: e => e.address ?? '' },
-  { key: 'notes', label: 'Notes', value: e => e.notes ?? '' },
+  { key: 'notes', label: 'Notes', value: e => e.notes ?? '', onlyIfSet: true },
   { key: 'age_confirmed', label: 'Age confirmed (18+)', value: e => yesNo(e.age_confirmed) },
   { key: 'likeness_release', label: 'Likeness release', value: e => yesNo(e.likeness_release) },
   { key: 'likeness_release_at', label: 'Likeness release accepted (ET)', value: e => formatEastern(e.likeness_release_at) },
