@@ -73,13 +73,15 @@ export type Database = {
           artists_ids_later: boolean
           booth_size: Database["public"]["Enums"]["booth_size"] | null
           business_name: string
+          comped_at: string | null
+          comped_by: string | null
           contact_name: string
           corner_count: number
           created_at: string
           deposit_due_at: string | null
+          directory_override: boolean
           email: string
           event_id: string
-          is_protected: boolean
           exhibitor_type: Database["public"]["Enums"]["exhibitor_type"]
           facebook: string | null
           final_due_at: string | null
@@ -87,29 +89,28 @@ export type Database = {
           id_doc_url: string | null
           instagram: string | null
           is_corner: boolean
+          is_protected: boolean
           is_veteran: boolean
           logo_url: string | null
           needs_roster: boolean
-          directory_override: boolean
           notes: string | null
           other_links: string | null
+          permits_comped_at: string | null
+          permits_comped_by: string | null
           phone: string | null
           portfolio_image_urls: string[] | null
           status: Database["public"]["Enums"]["application_status"]
+          submission_receipt_sent_at: string | null
           total_amount: number
           tv_show: string | null
+          tv_show_featured: boolean | null
           updated_at: string
           user_id: string | null
           vendor_double_qty: number
           vendor_single_qty: number
-          veteran_id_url: string | null
           veteran_doc_verified_at: string | null
           veteran_doc_verified_by: string | null
-          comped_at: string | null
-          comped_by: string | null
-          permits_comped_at: string | null
-          permits_comped_by: string | null
-          submission_receipt_sent_at: string | null
+          veteran_id_url: string | null
           website: string | null
         }
         Insert: {
@@ -122,13 +123,15 @@ export type Database = {
           artists_ids_later?: boolean
           booth_size?: Database["public"]["Enums"]["booth_size"] | null
           business_name: string
+          comped_at?: string | null
+          comped_by?: string | null
           contact_name: string
           corner_count?: number
           created_at?: string
           deposit_due_at?: string | null
+          directory_override?: boolean
           email: string
           event_id: string
-          is_protected?: boolean
           exhibitor_type: Database["public"]["Enums"]["exhibitor_type"]
           facebook?: string | null
           final_due_at?: string | null
@@ -136,29 +139,28 @@ export type Database = {
           id_doc_url?: string | null
           instagram?: string | null
           is_corner?: boolean
+          is_protected?: boolean
           is_veteran?: boolean
           logo_url?: string | null
           needs_roster?: boolean
-          directory_override?: boolean
           notes?: string | null
           other_links?: string | null
+          permits_comped_at?: string | null
+          permits_comped_by?: string | null
           phone?: string | null
           portfolio_image_urls?: string[] | null
           status?: Database["public"]["Enums"]["application_status"]
+          submission_receipt_sent_at?: string | null
           total_amount: number
           tv_show?: string | null
+          tv_show_featured?: boolean | null
           updated_at?: string
           user_id?: string | null
           vendor_double_qty?: number
           vendor_single_qty?: number
-          veteran_id_url?: string | null
           veteran_doc_verified_at?: string | null
           veteran_doc_verified_by?: string | null
-          comped_at?: string | null
-          comped_by?: string | null
-          permits_comped_at?: string | null
-          permits_comped_by?: string | null
-          submission_receipt_sent_at?: string | null
+          veteran_id_url?: string | null
           website?: string | null
         }
         Update: {
@@ -171,13 +173,15 @@ export type Database = {
           artists_ids_later?: boolean
           booth_size?: Database["public"]["Enums"]["booth_size"] | null
           business_name?: string
+          comped_at?: string | null
+          comped_by?: string | null
           contact_name?: string
           corner_count?: number
           created_at?: string
           deposit_due_at?: string | null
+          directory_override?: boolean
           email?: string
           event_id?: string
-          is_protected?: boolean
           exhibitor_type?: Database["public"]["Enums"]["exhibitor_type"]
           facebook?: string | null
           final_due_at?: string | null
@@ -185,29 +189,28 @@ export type Database = {
           id_doc_url?: string | null
           instagram?: string | null
           is_corner?: boolean
+          is_protected?: boolean
           is_veteran?: boolean
           logo_url?: string | null
           needs_roster?: boolean
-          directory_override?: boolean
           notes?: string | null
           other_links?: string | null
+          permits_comped_at?: string | null
+          permits_comped_by?: string | null
           phone?: string | null
           portfolio_image_urls?: string[] | null
           status?: Database["public"]["Enums"]["application_status"]
+          submission_receipt_sent_at?: string | null
           total_amount?: number
           tv_show?: string | null
+          tv_show_featured?: boolean | null
           updated_at?: string
           user_id?: string | null
           vendor_double_qty?: number
           vendor_single_qty?: number
-          veteran_id_url?: string | null
           veteran_doc_verified_at?: string | null
           veteran_doc_verified_by?: string | null
-          comped_at?: string | null
-          comped_by?: string | null
-          permits_comped_at?: string | null
-          permits_comped_by?: string | null
-          submission_receipt_sent_at?: string | null
+          veteran_id_url?: string | null
           website?: string | null
         }
         Relationships: [
