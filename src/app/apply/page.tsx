@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getContent } from '@/content/getContent'
 import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
+import { ROUTES } from '@/lib/routes'
 
 export const metadata: Metadata = {
   title: 'Apply - Booths, Contests & More | All American Tattoo Convention 2027',
@@ -122,7 +123,7 @@ export default async function ApplyPage() {
 
             {/* /apply/food-truck (091) shows the form or, while applications
                 are switched off, the closed message. */}
-            <Link href="/apply/food-truck" className={OPTION_CARD} aria-label={`${c.cta_food_truck}: apply with a food truck`}>
+            <Link href={ROUTES.foodTruckApply} className={OPTION_CARD} aria-label={`${c.cta_food_truck}: apply with a food truck`}>
               <span className="flex items-center gap-3">
                 <svg className="shrink-0 text-gold-light" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <rect x="1" y="6" width="14" height="10" rx="1"/>

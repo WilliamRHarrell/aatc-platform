@@ -42,6 +42,7 @@ export const ROUTES = {
   sponsors: '/sponsors',
   sponsorPackages: '/sponsors/packages',
   sponsorApply: '/apply/sponsor',
+  foodTruckApply: '/apply/food-truck',
 } as const
 
 export type RouteKey = keyof typeof ROUTES
