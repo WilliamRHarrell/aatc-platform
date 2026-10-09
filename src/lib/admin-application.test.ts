@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { planApplication, likeExact, type EditorInput } from '@/lib/admin-application'
+import { planApplication, likeExact, samePricingInputs, type EditorInput } from '@/lib/admin-application'
 import { calculatePricing } from '@/lib/pricing'
 
 const base: EditorInput = {
@@ -42,7 +42,41 @@ describe('planApplication', () => {
   })
   it('a vendor has no roster and no artist fields', () => {
     const v = planApplication({ ...base, exhibitor_type: 'vendor', vendor_single_qty: 1, artists: [{ name: 'x' }] })
-    expect(v.ok && v.plan.row).toMatchObject({ artists: null, artist_count: 0, artist_single_qty: 0, needs_roster: false })
+    // no vendor ID yet: off the directory until it is on file, as on the public form
+    expect(v.ok && v.plan.row).toMatchObject({ artists: null, artist_count: 0, artist_single_qty: 0, needs_roster: true })
+    const withId = planApplication({ ...base, exhibitor_type: 'vendor', vendor_single_qty: 1, id_doc_url: 'admin/x/id.jpg' })
+    expect(withId.ok && withId.plan.row.needs_roster).toBe(false)
+  })
+  it('editing only ever clears needs_roster', () => {
+    const incomplete = { ...base, artists: [{ name: 'A One' }] }
+    // a listed row whose roster predates the rule stays listed
+    expect((r => r.ok && r.plan.row.needs_roster)(planApplication(incomplete, { needs_roster: false, artist_count: 2 }))).toBe(false)
+    // completing the roster clears it
+    expect((r => r.ok && r.plan.row.needs_roster)(planApplication(base, { needs_roster: true, artist_count: 2 }))).toBe(false)
+    // still incomplete: stays set
+    expect((r => r.ok && r.plan.row.needs_roster)(planApplication(incomplete, { needs_roster: true, artist_count: 2 }))).toBe(true)
+  })
+  it('an existing artist row with no artist count may stay at 0; a new one may not', () => {
+    const zero = { ...base, artist_count: 0, artists: [] }
+    expect(planApplication(zero).ok).toBe(false)
+    const kept = planApplication(zero, { needs_roster: true, artist_count: 0 })
+    expect(kept.ok && kept.plan.row).toMatchObject({ artist_count: 0, needs_roster: true })
+  })
+  it('keeps artist keys the editor does not edit, never verification keys', () => {
+    const r = planApplication({ ...base, artists: [{ name: 'A One', id_url: 'p', extra: { uid: 'u1', id_verified_at: 'x', id_verified_by: 'y' } }, { name: 'B', id_later: true }] })
+    const a0 = r.ok ? (r.plan.row.artists as Record<string, unknown>[])[0] : {}
+    expect(a0).toMatchObject({ uid: 'u1', name: 'A One' })
+    expect(a0).not.toHaveProperty('id_verified_at')
+    expect(a0).not.toHaveProperty('id_verified_by')
+  })
+  it('keeps every style an artist picked (the public form allows all of them)', () => {
+    const styles = ['American Traditional', 'Neo-Traditional', 'Japanese', 'Realism', 'Watercolor', 'Blackwork', 'Dotwork', 'Geometric', 'Tribal',
+      'New School', 'Illustrative', 'Fine Line', 'Surrealism', 'Horror / Dark Art', 'Biomechanical', 'Lettering / Script', 'Floral', 'Minimalist']
+    const r = planApplication({ ...base, artists: [{ name: 'A', id_later: true, styles }, { name: 'B', id_later: true }] })
+    expect(r.ok && (r.plan.row.artists as { styles: string[] }[])[0].styles).toHaveLength(18)
+  })
+  it("'keep' is a status the planner accepts (the route allows it only when editing)", () => {
+    expect(planApplication({ ...base, status: 'keep' }).ok).toBe(true)
   })
   it('TV show name is kept only with Yes', () => {
     const r = planApplication({ ...base, tv_show_featured: false, tv_show: 'Ink Master' })
@@ -71,12 +105,21 @@ describe('planApplication', () => {
     expect(omit.ok && 'veteran_id_url' in omit.plan.row).toBe(false)
     const vendor = planApplication({ ...base, exhibitor_type: 'vendor', vendor_single_qty: 1, id_doc_url: 'admin/x/id.jpg', is_veteran: true, veteran_id_url: 'admin/x/vet.pdf' })
     expect(vendor.ok && vendor.plan.row).toMatchObject({ id_doc_url: 'admin/x/id.jpg', veteran_id_url: 'admin/x/vet.pdf' })
-    // a vendor ID never lands on an artist row; a veteran doc is dropped when the box is unticked
+    // an artist row's id_doc_url (booth holder ID from the portal) is never written; a veteran doc is dropped when the box is unticked
     const artist = planApplication({ ...base, id_doc_url: 'admin/x/id.jpg', veteran_id_url: 'admin/x/vet.pdf' })
-    expect(artist.ok && artist.plan.row).toMatchObject({ id_doc_url: null, veteran_id_url: null })
+    expect(artist.ok && 'id_doc_url' in artist.plan.row).toBe(false)
+    expect(artist.ok && artist.plan.row.veteran_id_url).toBeNull()
   })
   it('the vendor ID is optional for admin', () => {
     expect(planApplication({ ...base, exhibitor_type: 'vendor', vendor_single_qty: 1, id_doc_url: null }).ok).toBe(true)
+  })
+  it('samePricingInputs compares the order, not a recomputed total', () => {
+    const a = { exhibitor_type: 'artist', artist_single_qty: 1, artist_double_qty: 0, vendor_single_qty: 0, vendor_double_qty: 0, corner_count: 0, artist_count: 2, is_veteran: false,
+      add_ons: [{ kind: 'tattoo_bed', term: 'weekend', qty: 1 }, { kind: 'extra_table', term: null, qty: 1 }] }
+    expect(samePricingInputs(a, { ...a, artist_double_qty: null, add_ons: [{ kind: 'extra_table', qty: 1 }, { kind: 'tattoo_bed', term: 'weekend', qty: 1 }, { kind: 'arm_rest', term: 'daily', qty: 0 }] })).toBe(true)
+    expect(samePricingInputs(a, { ...a, corner_count: 1 })).toBe(false)
+    expect(samePricingInputs(a, { ...a, add_ons: [] })).toBe(false)
+    expect(samePricingInputs(a, { ...a, is_veteran: true })).toBe(false)
   })
   it('escapes LIKE wildcards in an email', () => {
     expect(likeExact('a_b%c@x.com')).toBe('a\\_b\\%c@x.com')
@@ -134,5 +177,28 @@ describe('tattoo styles have one home', () => {
       expect(src, f).not.toContain('const TATTOO_STYLES')
       expect(src, f).toContain("from '@/lib/tattoo-styles'")
     }
+  })
+})
+
+describe('editor PR 3: edit any application', () => {
+  const read = (f: string) => readFileSync(join(process.cwd(), f), 'utf8')
+  it('the drawer (every application) and the booth page link to the editor', () => {
+    expect(read('src/app/admin/applications/page.tsx')).toContain('href={`/admin/applications/${app.id}/edit`}')
+    expect(read('src/app/admin/booths/[id]/page.tsx')).toContain('href={`/admin/applications/${app.id}/edit`}')
+    expect(read('src/app/admin/applications/[id]/edit/page.tsx')).toContain('<ApplicationEditorForm key={initial.id} initial={initial} />')
+  })
+  it('the route keeps the stored price, comp and invoice while the order is unchanged', () => {
+    const route = read('src/app/api/admin/applications/editor/route.ts')
+    expect(route).toContain('if (existing && !orderChanged) { delete row.total_amount; delete row.agreed_total }')
+    expect(route).toContain('if (orderChanged && (comp || hadComp)) {')
+    expect(route).toContain('} else if (orderChanged && current && !comped && current.amount !== amount) {')
+    expect(route).toContain("if (body.input.status === 'keep' && !id)")
+    expect(route).toContain('order: stored } : undefined)')
+  })
+  it('the form locks the order once money is recorded and carries unedited artist keys', () => {
+    const form = read('src/components/admin/ApplicationEditorForm.tsx')
+    expect(form).toContain('const priceLocked = (initial?.invoice?.amount_paid ?? 0) > 0')
+    expect(form).toContain('extra: a.extra')
+    expect(form).toContain("...(isArtist ? {} : { id_doc_url: refs.idDoc })")
   })
 })

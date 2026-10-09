@@ -21,12 +21,15 @@
  */
 import { calculatePricing, type AddOn } from '@/lib/pricing'
 import { artistCapacity } from '@/lib/artist-roster'
+import { TATTOO_STYLES } from '@/lib/tattoo-styles'
 
 export type MoneyChoice =
   | { mode: 'standard' }
   | { mode: 'custom'; totalCents: number; confirmedBelowList?: boolean }
   | { mode: 'comp_booth' }
   | { mode: 'comp_all' }
+  /** Permits comped, booth charged (089 allows it; set in the drawer). Offered only to a row that already has it. */
+  | { mode: 'comp_permits' }
 
 export interface EditorArtist {
   name: string
@@ -44,6 +47,8 @@ export interface EditorArtist {
   /** Private storage path (application-docs), never public. */
   id_url?: string | null
   id_later?: boolean
+  /** Keys the editor does not edit (e.g. a future artist uid), carried through unchanged. */
+  extra?: Record<string, unknown>
 }
 
 export interface EditorInput {
@@ -73,7 +78,8 @@ export interface EditorInput {
   /** Veteran ID document, private path (application-docs). */
   veteran_id_url?: string | null
   artists?: EditorArtist[]
-  status: 'pending' | 'approved'
+  /** 'keep' (editing only): leave the status as it is, e.g. rejected or waitlisted. */
+  status: 'pending' | 'approved' | 'keep'
   money: MoneyChoice
 }
 
@@ -82,6 +88,44 @@ const EMAIL = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]{2,}$/
 const int = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0)
 const text = (v: unknown, max = 300) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
 const orNull = (v: string) => v || null
+const omit = (o: Record<string, unknown> | undefined, keys: string[]) =>
+  Object.fromEntries(Object.entries(o && typeof o === 'object' ? o : {}).filter(([k]) => !keys.includes(k)))
+
+/** The columns the price is computed from. */
+export interface PricingInputs {
+  exhibitor_type: string
+  artist_single_qty: number | null
+  artist_double_qty: number | null
+  vendor_single_qty: number | null
+  vendor_double_qty: number | null
+  corner_count: number | null
+  artist_count: number | null
+  is_veteran: boolean | null
+  add_ons: unknown
+}
+
+const addOnKey = (v: unknown) => JSON.stringify(
+  (Array.isArray(v) ? v : [])
+    .filter((a): a is AddOn => !!a && typeof a === 'object' && Math.floor(Number((a as AddOn).qty) || 0) > 0)
+    .map(a => [a.kind, a.term ?? null, Math.floor(Number(a.qty))])
+    .sort((x, y) => String(x[0]).localeCompare(String(y[0]))),
+)
+
+/**
+ * Did the order change? Compared on what was ordered, not on the recomputed
+ * total: 9 of 26 rows (2026-10-09) carry a total from older prices or an
+ * import, so "recompute and compare" would call every save a price change and
+ * refuse it on a paid row. Unchanged: keep the stored price, comp and invoice.
+ */
+export function samePricingInputs(a: PricingInputs, b: PricingInputs): boolean {
+  const n = (v: number | null | undefined) => v ?? 0
+  return a.exhibitor_type === b.exhibitor_type
+    && n(a.artist_single_qty) === n(b.artist_single_qty) && n(a.artist_double_qty) === n(b.artist_double_qty)
+    && n(a.vendor_single_qty) === n(b.vendor_single_qty) && n(a.vendor_double_qty) === n(b.vendor_double_qty)
+    && n(a.corner_count) === n(b.corner_count) && n(a.artist_count) === n(b.artist_count)
+    && !!a.is_veteran === !!b.is_veteran
+    && addOnKey(a.add_ons) === addOnKey(b.add_ons)
+}
 
 export interface EditorPlan {
   row: Record<string, unknown>
@@ -93,7 +137,17 @@ export interface EditorPlan {
 
 export type EditorValidation = { ok: true; plan: EditorPlan } | { ok: false; errors: Record<string, string>; needsConfirm?: true }
 
-export function planApplication(input: EditorInput): EditorValidation {
+/** The stored row, when editing: what planApplication must not overturn. */
+export interface EditorExisting {
+  needs_roster: boolean
+  artist_count: number | null
+  /** The stored order. When the input matches it, its values are kept verbatim
+   *  (2 rows, 2026-10-09: an artist row that also holds a vendor booth, and a
+   *  row with more corners than booths), so a plain save changes nothing. */
+  order?: PricingInputs
+}
+
+export function planApplication(input: EditorInput, existing?: EditorExisting): EditorValidation {
   const errors: Record<string, string> = {}
   const type = input.exhibitor_type
   if (type !== 'artist' && type !== 'vendor') errors.exhibitor_type = 'Choose artist or vendor.'
@@ -103,10 +157,20 @@ export function planApplication(input: EditorInput): EditorValidation {
   if (!business_name) errors.business_name = 'Business / shop name is required.'
   if (!contact_name) errors.contact_name = 'Contact name is required.'
   if (!EMAIL.test(email)) errors.email = 'A valid email is required.'
-  if (input.status !== 'pending' && input.status !== 'approved') errors.status = 'Status must be pending or approved.'
+  if (!['pending', 'approved', 'keep'].includes(input.status)) errors.status = 'Status must be pending, approved or unchanged.'
 
   const isArtist = type === 'artist'
-  const q = {
+  const asGiven: PricingInputs = {
+    exhibitor_type: type,
+    artist_single_qty: int(input.artist_single_qty), artist_double_qty: int(input.artist_double_qty),
+    vendor_single_qty: int(input.vendor_single_qty), vendor_double_qty: int(input.vendor_double_qty),
+    corner_count: int(input.corner_count), artist_count: int(input.artist_count), is_veteran: !!input.is_veteran, add_ons: input.add_ons,
+  }
+  const keepOrder = !!existing?.order && samePricingInputs(existing.order, asGiven)
+  const q = keepOrder ? {
+    artist_single_qty: int(existing!.order!.artist_single_qty), artist_double_qty: int(existing!.order!.artist_double_qty),
+    vendor_single_qty: int(existing!.order!.vendor_single_qty), vendor_double_qty: int(existing!.order!.vendor_double_qty),
+  } : {
     artist_single_qty: isArtist ? int(input.artist_single_qty) : 0,
     artist_double_qty: isArtist ? int(input.artist_double_qty) : 0,
     vendor_single_qty: isArtist ? 0 : int(input.vendor_single_qty),
@@ -114,19 +178,25 @@ export function planApplication(input: EditorInput): EditorValidation {
   }
   const booths = q.artist_single_qty + q.artist_double_qty + q.vendor_single_qty + q.vendor_double_qty
   if (booths === 0) errors.booths = 'Choose at least one booth.'
-  const corner_count = Math.min(int(input.corner_count), booths)
+  const corner_count = keepOrder ? int(existing!.order!.corner_count) : Math.min(int(input.corner_count), booths)
   const add_ons = Array.isArray(input.add_ons) ? input.add_ons.filter(a => a && int(a.qty) > 0) : []
 
   const capacity = isArtist ? artistCapacity({ booth_size: null, ...q }) : 0
   const artist_count = isArtist ? int(input.artist_count) : 0
-  if (isArtist && artist_count < 1) errors.artist_count = 'At least one artist.'
+  // An existing row with no artist count yet (some imports) may stay at 0;
+  // adding artists to it is a real order change.
+  const keepsZero = !!existing && (existing.artist_count ?? 0) === 0 && artist_count === 0
+  if (isArtist && artist_count < 1 && !keepsZero) errors.artist_count = 'At least one artist.'
   if (isArtist && artist_count > capacity) errors.artist_count = `At most ${capacity} artists for these booths (2 per single, 4 per double).`
 
   const artists = isArtist ? (input.artists ?? []).map(a => ({
+    // Unknown keys first, so the editor's own keys always win. Verification
+    // keys are the database's (088) and never come from here.
+    ...omit(a.extra, ['id_verified_at', 'id_verified_by']),
     name: text(a.name, 120),
     nickname: text(a.nickname, 120),
     instagram: text(a.instagram, 120).replace(/^@/, ''),
-    styles: Array.isArray(a.styles) ? a.styles.map(s => text(s, 60)).filter(Boolean).slice(0, 12) : [],
+    styles: Array.isArray(a.styles) ? a.styles.map(s => text(s, 60)).filter(Boolean).slice(0, TATTOO_STYLES.length) : [],
     bio: text(a.bio, BIO_MAX),
     photo_url: a.photo_url || null,
     tv_featured: typeof a.tv_featured === 'boolean' ? a.tv_featured : null,
@@ -136,7 +206,9 @@ export function planApplication(input: EditorInput): EditorValidation {
     id_later: !!a.id_later && !a.id_url,
   })) : []
   if (artists.length > artist_count) errors.artists = `The roster lists ${artists.length} artists but the application is for ${artist_count}.`
-  artists.forEach((a, i) => { if (!a.name) errors[`artists.${i}.name`] = `Artist ${i + 1}: legal name is required.` })
+  // Required for a new application. When editing, a name already missing (3
+  // stored artists, 2026-10-09) does not block saving a photo or a document.
+  if (!existing) artists.forEach((a, i) => { if (!a.name) errors[`artists.${i}.name`] = `Artist ${i + 1}: legal name is required.` })
 
   const is_veteran = !!input.is_veteran
   const listCents = booths === 0 ? 0 : calculatePricing({
@@ -149,7 +221,7 @@ export function planApplication(input: EditorInput): EditorValidation {
   let comp: EditorPlan['comp'] = null
   let invoiceCents: number | null = listCents
   const m = input.money
-  if (!m || !['standard', 'custom', 'comp_booth', 'comp_all'].includes(m.mode)) errors.money = 'Choose how this application is priced.'
+  if (!m || !['standard', 'custom', 'comp_booth', 'comp_all', 'comp_permits'].includes(m.mode)) errors.money = 'Choose how this application is priced.'
   else if (m.mode === 'custom') {
     const t = typeof m.totalCents === 'number' && Number.isFinite(m.totalCents) ? Math.round(m.totalCents) : -1
     if (t < 0) errors.money = 'Enter the agreed total.'
@@ -162,11 +234,20 @@ export function planApplication(input: EditorInput): EditorValidation {
     }
   } else if (m.mode === 'comp_booth') { comp = { booth: true, permits: false }; invoiceCents = null }
   else if (m.mode === 'comp_all') { comp = { booth: true, permits: true }; invoiceCents = null }
+  else if (m.mode === 'comp_permits') { comp = { booth: false, permits: true }; invoiceCents = null }
 
   if (Object.keys(errors).length > 0) return { ok: false, errors }
 
-  // needs_roster: every listed artist has an ID or is marked "ID later", and the roster is full.
-  const rosterComplete = !isArtist || (artists.length >= artist_count && artists.every(a => a.id_url || a.id_later))
+  // needs_roster: an artist roster is complete when it is full and every artist
+  // has an ID or "ID later"; a vendor when the vendor ID is on file (what the
+  // public form and the portal's roster completion require).
+  // Editing only ever CLEARS it: 8 approved rows (2026-10-09) carry a value the
+  // rule would overturn (listed rosters from before the rule, imports waiting
+  // on documents), and a save that only adds a photo must not move them.
+  const rosterComplete = isArtist
+    ? artist_count > 0 && artists.length >= artist_count && artists.every(a => a.id_url || a.id_later)
+    : !!input.id_doc_url
+  const needs_roster = existing ? existing.needs_roster && !rosterComplete : !rosterComplete
   // The application-level TV answer (094) is written only when sent: the editor
   // asks per artist, and an edit must not wipe an older application's answer.
   const tvFeatured = isArtist && typeof input.tv_show_featured === 'boolean' ? input.tv_show_featured : null
@@ -200,9 +281,11 @@ export function planApplication(input: EditorInput): EditorValidation {
         logo_url: input.logo_url || null,
         artists: isArtist ? artists : null,
         artists_ids_later: isArtist && artists.some(a => a.id_later),
-        ...('id_doc_url' in input ? { id_doc_url: isArtist ? null : input.id_doc_url || null } : {}),
+        // Vendors only: on an artist row id_doc_url is the booth holder's ID from
+        // the portal's roster completion, which this form neither shows nor edits.
+        ...('id_doc_url' in input && !isArtist ? { id_doc_url: input.id_doc_url || null } : {}),
         ...('veteran_id_url' in input ? { veteran_id_url: is_veteran ? input.veteran_id_url || null : null } : {}),
-        needs_roster: !rosterComplete,
+        needs_roster,
         total_amount: listCents,
         agreed_total,
       },

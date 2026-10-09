@@ -533,6 +533,9 @@ export default function BoothDetailPage() {
             All Exhibitors
           </Link>
           <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">{app.business_name}</h1>
+          <Link href={`/admin/applications/${app.id}/edit`} className="mt-1 inline-block text-xs font-semibold underline" style={{ color: '#C4A882' }}>
+            Edit in editor (contacts, booths, roster, documents, photos)
+          </Link>
           <div className="mt-1 flex items-center gap-2">
             <span
               className="rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
