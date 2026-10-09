@@ -13,6 +13,7 @@ import { formatCurrency } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import type { Event } from '@/types'
 import BoothTypeToggle from '@/components/BoothTypeToggle'
+import { TATTOO_STYLES } from '@/lib/tattoo-styles'
 
 // ── Types ────────────────────────────────────────────────────
 interface ContactFields {
@@ -69,12 +70,6 @@ function onBlurGray(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>)
 
 const ACCEPTED_FILE_TYPES = 'image/jpeg,image/png,image/webp,application/pdf'
 
-const TATTOO_STYLES = [
-  'American Traditional', 'Neo-Traditional', 'Japanese', 'Realism',
-  'Watercolor', 'Blackwork', 'Dotwork', 'Geometric', 'Tribal',
-  'New School', 'Illustrative', 'Fine Line', 'Surrealism', 'Horror / Dark Art',
-  'Biomechanical', 'Lettering / Script', 'Floral', 'Minimalist', 'Portrait', 'Cover-up',
-]
 
 // ── Step indicator ────────────────────────────────────────────
 function StepIndicator({ current, total }: { current: number; total: number }) {

@@ -12,6 +12,8 @@
  *     roster no longer than artist_count (088's roster guard);
  *   - needs_roster true until every listed artist has an ID (or is marked ID
  *     later); the directory only shows rows with needs_roster false.
+ * Document paths (vendor ID, veteran ID) are written only when the input carries
+ * the key, so an edit that does not touch them keeps what is there.
  * Money (Ryan's four choices): standard, a custom total (agreed_total, 096;
  * below list needs the same second confirmation as a large discount, above
  * list does not), comp booth, comp booth + permits (set_comp, 089).
@@ -63,6 +65,10 @@ export interface EditorInput {
   tv_show_featured?: boolean | null
   tv_show?: string
   logo_url?: string | null
+  /** Vendor's ID document, private path (application-docs). Optional here: admin often enters a vendor before having it. */
+  id_doc_url?: string | null
+  /** Veteran ID document, private path (application-docs). */
+  veteran_id_url?: string | null
   artists?: EditorArtist[]
   status: 'pending' | 'approved'
   money: MoneyChoice
@@ -185,6 +191,9 @@ export function planApplication(input: EditorInput): EditorValidation {
         tv_show: tvFeatured ? orNull(text(input.tv_show, 120)) : null,
         logo_url: input.logo_url || null,
         artists: isArtist ? artists : null,
+        artists_ids_later: isArtist && artists.some(a => a.id_later),
+        ...('id_doc_url' in input ? { id_doc_url: isArtist ? null : input.id_doc_url || null } : {}),
+        ...('veteran_id_url' in input ? { veteran_id_url: is_veteran ? input.veteran_id_url || null : null } : {}),
         needs_roster: !rosterComplete,
         total_amount: listCents,
         agreed_total,

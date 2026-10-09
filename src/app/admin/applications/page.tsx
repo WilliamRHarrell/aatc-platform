@@ -647,7 +647,12 @@ export default function AdminApplicationsPage() {
         .from('applications')
         .select('*')
         .order('created_at', { ascending: false })
-      setApplications((data as Application[]) ?? [])
+      const rows = (data as Application[]) ?? []
+      setApplications(rows)
+      // ?open=<id> opens that application's drawer (the internal-notice email
+      // and the application editor link here).
+      const openId = new URLSearchParams(window.location.search).get('open')
+      if (openId) setSelected(rows.find(a => a.id === openId) ?? null)
       setLoading(false)
     }
     load()
@@ -700,9 +705,14 @@ export default function AdminApplicationsPage() {
 
   return (
     <>
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">Applications</h1>
-        <p className="mt-1 text-sm" style={{ color: '#999' }}>{applications.length} total</p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">Applications</h1>
+          <p className="mt-1 text-sm" style={{ color: '#999' }}>{applications.length} total</p>
+        </div>
+        <Link href="/admin/applications/new" className="rounded-lg px-4 py-2.5 text-sm font-bold text-white" style={{ backgroundColor: '#8B7355' }}>
+          New application
+        </Link>
       </div>
 
       {/* Filters row */}

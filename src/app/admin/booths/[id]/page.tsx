@@ -15,6 +15,7 @@ import { guardedWrite } from '@/lib/db-write'
 import { useApplicationDocs } from '@/lib/use-application-docs'
 import AddOnList from '@/components/admin/AddOnList'
 import { tvShowLabel } from '@/lib/tv-show'
+import { TATTOO_STYLES } from '@/lib/tattoo-styles'
 
 type ArtistEntry = {
   name?: string | null
@@ -37,28 +38,6 @@ interface AssignedBooth {
   status: string
 }
 
-const TATTOO_STYLES = [
-  'American Traditional',
-  'Neo-Traditional',
-  'Japanese',
-  'Realism',
-  'Watercolor',
-  'Blackwork',
-  'Dotwork',
-  'Geometric',
-  'Tribal',
-  'New School',
-  'Illustrative',
-  'Fine Line',
-  'Surrealism',
-  'Horror / Dark Art',
-  'Biomechanical',
-  'Lettering / Script',
-  'Floral',
-  'Minimalist',
-  'Portrait',
-  'Cover-up',
-]
 
 // ── Section wrapper ────────────────────────────────────────────
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

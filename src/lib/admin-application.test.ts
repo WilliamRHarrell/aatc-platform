@@ -48,6 +48,25 @@ describe('planApplication', () => {
     const r = planApplication({ ...base, tv_show_featured: false, tv_show: 'Ink Master' })
     expect(r.ok && r.plan.row.tv_show).toBeNull()
   })
+  it('artists_ids_later follows the roster; a vendor never has it', () => {
+    const r = planApplication(base)
+    expect(r.ok && r.plan.row.artists_ids_later).toBe(true)
+    const none = planApplication({ ...base, artists: [{ name: 'A One', id_url: 'p1' }, { name: 'B Two', id_url: 'p2' }] })
+    expect(none.ok && none.plan.row.artists_ids_later).toBe(false)
+  })
+  it('document paths are written only when the input carries them', () => {
+    const omit = planApplication({ ...base, exhibitor_type: 'vendor', vendor_single_qty: 1 })
+    expect(omit.ok && 'id_doc_url' in omit.plan.row).toBe(false)
+    expect(omit.ok && 'veteran_id_url' in omit.plan.row).toBe(false)
+    const vendor = planApplication({ ...base, exhibitor_type: 'vendor', vendor_single_qty: 1, id_doc_url: 'admin/x/id.jpg', is_veteran: true, veteran_id_url: 'admin/x/vet.pdf' })
+    expect(vendor.ok && vendor.plan.row).toMatchObject({ id_doc_url: 'admin/x/id.jpg', veteran_id_url: 'admin/x/vet.pdf' })
+    // a vendor ID never lands on an artist row; a veteran doc is dropped when the box is unticked
+    const artist = planApplication({ ...base, id_doc_url: 'admin/x/id.jpg', veteran_id_url: 'admin/x/vet.pdf' })
+    expect(artist.ok && artist.plan.row).toMatchObject({ id_doc_url: null, veteran_id_url: null })
+  })
+  it('the vendor ID is optional for admin', () => {
+    expect(planApplication({ ...base, exhibitor_type: 'vendor', vendor_single_qty: 1, id_doc_url: null }).ok).toBe(true)
+  })
   it('escapes LIKE wildcards in an email', () => {
     expect(likeExact('a_b%c@x.com')).toBe('a\\_b\\%c@x.com')
   })
@@ -67,5 +86,42 @@ describe('Approve and the editor route honour agreed_total (096)', () => {
     expect(route).toContain(".ilike('email', likeExact(")
     expect(route).toContain("rpc('set_comp'")
     expect(route).toContain('user_id: null')
+  })
+})
+
+describe('the editor form (PR 2)', () => {
+  const form = readFileSync(join(process.cwd(), 'src/components/admin/ApplicationEditorForm.tsx'), 'utf8')
+  it('saves through the editor route and resends a below-list total only after Confirm', () => {
+    expect(form).toContain("fetch('/api/admin/applications/editor'")
+    expect(form).toContain('if (json.needsConfirm)')
+    expect(form).toContain('setConfirmedBelowList(true); void save(true)')
+  })
+  it('keeps IDs private under admin/<id>/ and media public under <id>/', () => {
+    expect(form).toContain("from('application-docs').upload(path, f)")
+    expect(form).toContain('`admin/${id}/artist-${i + 1}-id-${ts}')
+    expect(form).toContain('`admin/${id}/id-${ts}')
+    expect(form).toContain('`admin/${id}/veteran-id-${ts}')
+    expect(form).toContain('`${id}/artists/${i}/photo-${ts}')
+    expect(form).toContain('`${id}/artists/${i}/${ts}-${j}')
+    expect(form).not.toMatch(/upsert:\s*true/)
+  })
+  it('verifies IDs only through set_artist_id_verified', () => {
+    expect(form).toContain("rpc('set_artist_id_verified'")
+    expect(form).not.toContain('id_verified_at:')
+  })
+  it('is reachable from /admin/applications, which opens ?open=<id>', () => {
+    const page = readFileSync(join(process.cwd(), 'src/app/admin/applications/page.tsx'), 'utf8')
+    expect(page).toContain('href="/admin/applications/new"')
+    expect(page).toContain(".get('open')")
+  })
+})
+
+describe('tattoo styles have one home', () => {
+  it('no page carries its own list', () => {
+    for (const f of ['src/app/apply/artist/ArtistApplyForm.tsx', 'src/app/portal/page.tsx', 'src/app/admin/booths/[id]/page.tsx', 'src/app/directory/artists/page.tsx', 'src/components/admin/ApplicationEditorForm.tsx']) {
+      const src = readFileSync(join(process.cwd(), f), 'utf8')
+      expect(src, f).not.toContain('const TATTOO_STYLES')
+      expect(src, f).toContain("from '@/lib/tattoo-styles'")
+    }
   })
 })
