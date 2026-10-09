@@ -19,6 +19,7 @@ import InviteLinkControl from '@/components/admin/InviteLinkControl'
 import { artistCapacity } from '@/lib/artist-roster'
 import DirectoryOverrideControl from '@/components/admin/DirectoryOverrideControl'
 import { approvePayload, SEND_BACK_PAYLOAD, hasAnyComp, compInvoiceAmount, discountedInvoiceUpdate, discountSummary } from '@/lib/comp'
+import AddOnList from '@/components/admin/AddOnList'
 
 // The `artists` column is stored as JSON; describe its real shape here so the
 // regenerated Json type doesn't break array access throughout this file.
@@ -359,6 +360,7 @@ function DetailDrawer({
               )}
               <Field label="Corner booth"  value={app.is_corner} />
               <Field label="Veteran discount" value={app.is_veteran ? 'Claimed' : 'Not claimed'} />
+              <AddOnList addOns={app.add_ons} />
             </div>
             <div className="mt-3">
               <ReceiptStatus applicationId={app.id} sentAt={app.submission_receipt_sent_at} onSent={iso => onPatch(app.id, { submission_receipt_sent_at: iso })} />
