@@ -20,6 +20,7 @@ import { artistCapacity } from '@/lib/artist-roster'
 import DirectoryOverrideControl from '@/components/admin/DirectoryOverrideControl'
 import { approvePayload, SEND_BACK_PAYLOAD, hasAnyComp, compInvoiceAmount, discountedInvoiceUpdate, discountSummary } from '@/lib/comp'
 import AddOnList from '@/components/admin/AddOnList'
+import ArtistRosterReadOnly from '@/components/admin/ArtistRosterReadOnly'
 
 // The `artists` column is stored as JSON; describe its real shape here so the
 // regenerated Json type doesn't break array access throughout this file.
@@ -402,6 +403,18 @@ function DetailDrawer({
                   <Field label="TV show experience" value={app.tv_show} />
                   <Field label="Notes"              value={app.notes} />
                 </div>
+              </section>
+            </>
+          )}
+
+          {/* Artist roster as submitted (2026-10-09): visible before approval,
+              when the booth detail page is not yet linked. */}
+          {app.exhibitor_type === 'artist' && (
+            <>
+              <div style={{ borderTop: '1px solid #2a2a2a' }} />
+              <section>
+                <p className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: '#555' }}>Artist roster</p>
+                <ArtistRosterReadOnly artists={app.artists} />
               </section>
             </>
           )}

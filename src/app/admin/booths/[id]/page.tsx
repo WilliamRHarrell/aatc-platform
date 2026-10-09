@@ -1075,6 +1075,7 @@ export default function BoothDetailPage() {
           <ReadField label="Contact" value={app.contact_name} />
           <ReadField label="Email" value={app.email} />
           <ReadField label="Phone" value={app.phone} />
+          <ReadField label="Other links" value={app.other_links} />
           <ReadField label="Booth size" value={describeBooths(app)} />
           <ReadField label="Corner booth" value={app.is_corner} />
           <ReadField label="Veteran" value={app.is_veteran} />
