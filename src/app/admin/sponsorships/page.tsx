@@ -29,6 +29,7 @@ interface Sponsorship {
   instagram: string | null
   facebook: string | null
   notes: string | null
+  applicant_notes: string | null
   user_id: string | null
   additional_items: string[]
   featured_footer: boolean
@@ -731,8 +732,18 @@ export default function AdminSponsorshipsPage() {
               />
             </div>
           </div>
+          {(() => {
+            // What the sponsor wrote on /apply/sponsor (095): read-only, kept apart from staff notes.
+            const fromForm = editingRow?.applicant_notes?.trim()
+            return fromForm ? (
+              <div className="mt-4">
+                <p className="mb-1 text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>From the application</p>
+                <p className="whitespace-pre-wrap rounded-lg px-4 py-3 text-sm text-white" style={{ backgroundColor: '#0a0a0a', border: '1px solid #2a2a2a' }}>{fromForm}</p>
+              </div>
+            ) : null
+          })()}
           <div className="mt-4">
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Notes</label>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest" style={{ color: '#555' }}>Internal notes</label>
             <textarea
               value={form.notes}
               onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}

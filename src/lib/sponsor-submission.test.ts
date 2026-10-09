@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { computeSponsorAmount, primaryTier, validateSponsorSubmission, validateLogoFile, LOGO_MAX_BYTES } from '@/lib/sponsor-submission'
 import { SPONSOR_PRICES } from '@/lib/sponsor-prices'
 
@@ -58,5 +60,16 @@ describe('validateLogoFile', () => {
   it('refuses other types and oversize files', () => {
     expect(validateLogoFile({ type: 'application/pdf', size: 10 })).toHaveProperty('ok', false)
     expect(validateLogoFile({ type: 'image/png', size: LOGO_MAX_BYTES + 1 })).toHaveProperty('ok', false)
+  })
+})
+
+describe('applicant notes stay apart from staff notes (095)', () => {
+  it('the route writes the form text to applicant_notes, never to notes', () => {
+    const route = readFileSync(join(process.cwd(), 'src/app/api/sponsor-apply/route.ts'), 'utf8')
+    expect(route).toContain('applicant_notes: s.notes')
+    expect(route).not.toMatch(/^\s*notes: s\.notes,/m)
+    const admin = readFileSync(join(process.cwd(), 'src/app/admin/sponsorships/page.tsx'), 'utf8')
+    expect(admin).toContain('From the application')
+    expect(admin).toContain('Internal notes')
   })
 })
