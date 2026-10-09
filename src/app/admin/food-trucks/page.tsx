@@ -15,6 +15,7 @@ import { truckBalancePastDue, truckPaymentState } from '@/lib/food-truck-reminde
 import { todayEastern } from '@/lib/date-only'
 import { FINAL_DUE_LABEL } from '@/lib/event-config'
 import { TRUCK_DOC_KINDS, TRUCK_DOC_LABELS, truckDocState, type TruckDocKind, type TruckDocState } from '@/lib/food-truck-submission'
+import { socialUrl } from '@/lib/social-url'
 
 const DAY_OPTIONS = ['friday', 'saturday', 'sunday'] as const
 const DAY_LABELS: Record<string, string> = { friday: 'Fri', saturday: 'Sat', sunday: 'Sun' }
@@ -691,6 +692,18 @@ export default function AdminFoodTrucksPage() {
                   {/* Business Name */}
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium text-white">{truck.business_name}</p>
+                    {/* Contact on the overview (2026-10-09): was only in the edit drawer. */}
+                    <p className="truncate text-xs" style={{ color: '#888' }}>
+                      {[truck.contact_name, truck.email, truck.phone].filter(Boolean).join(' · ')}
+                    </p>
+                    {(truck.website || truck.instagram || truck.facebook) && (
+                      <p className="flex flex-wrap gap-3 text-xs">
+                        {truck.website && <a href={/^https?:\/\//i.test(truck.website) ? truck.website : `https://${truck.website}`} target="_blank" rel="noopener noreferrer" style={{ color: '#8B7355' }}>Website</a>}
+                        {truck.instagram && <a href={socialUrl('instagram', truck.instagram)} target="_blank" rel="noopener noreferrer" style={{ color: '#8B7355' }}>Instagram</a>}
+                        {truck.facebook && <a href={socialUrl('facebook', truck.facebook)} target="_blank" rel="noopener noreferrer" style={{ color: '#8B7355' }}>Facebook</a>}
+                      </p>
+                    )}
+                    {truck.description && <p className="line-clamp-2 text-xs" style={{ color: '#777' }} title={truck.description}>{truck.description}</p>}
                     {truck.applied_at && (
                       <p className="text-xs" style={{ color: '#666' }}>Applied {new Date(truck.applied_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
                     )}
