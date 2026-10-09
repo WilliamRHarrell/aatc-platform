@@ -5,6 +5,7 @@ import TeamSection from '@/components/TeamSection'
 import Markdown from '@/components/Markdown'
 import { getContent } from '@/content/getContent'
 import { CONTACT_EMAIL, EVENT_YEAR } from '@/lib/event-config'
+import { pageMetadata } from '@/lib/page-meta'
 
 /**
  * Every text block on this page is editable at /admin/content ("About AATC")
@@ -21,10 +22,10 @@ import { CONTACT_EMAIL, EVENT_YEAR } from '@/lib/event-config'
  * 059 and must not be reworded - see that file before editing either bio.
  */
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata('/info/about', {
   title: `About AATC | All American Tattoo Convention ${EVENT_YEAR}`,
   description: 'Why the All American Tattoo Convention exists, what makes it different, and why it is in Fayetteville, home of Fort Bragg.',
-}
+})
 
 const CARD = { backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' } as const
 

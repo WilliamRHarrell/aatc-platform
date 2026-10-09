@@ -3,6 +3,13 @@ import PublicNav from '@/components/PublicNav'
 import { ASSETS } from '@/lib/event-config'
 import { getSchedule } from '@/lib/schedule-data'
 import { DATING_GAME_TITLE, scheduleSlots } from '@/lib/homepage-content'
+import { pageMetadata, titled, atTheShow } from '@/lib/page-meta'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = pageMetadata('/events/dating-game', {
+  title: titled('The Tattoo Dating Game'),
+  description: atTheShow('The Tattoo Dating Game, a live stage show,'),
+})
 
 export default async function DatingGamePage() {
   // Days and times come from schedule_items (/admin/schedule), every published

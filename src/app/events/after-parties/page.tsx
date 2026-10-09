@@ -5,6 +5,7 @@ import VenueCard from '@/components/VenueCard'
 import { getAfterParties } from '@/lib/after-parties-data'
 import { brunchBullet, weekdaySlug } from '@/lib/venues'
 import { CONTACT_EMAIL, EVENT_DATES_LABEL, EVENT_YEAR } from '@/lib/event-config'
+import { pageMetadata } from '@/lib/page-meta'
 
 // After parties are schedule_items rows (kind 'after_party', migration 070)
 // joined to `venues`. Nights come from the data: a night with no published
@@ -16,10 +17,10 @@ import { CONTACT_EMAIL, EVENT_DATES_LABEL, EVENT_YEAR } from '@/lib/event-config
 // announced". Both are gone. Venue facts live on the venues table and are
 // edited at /admin/venues; times and publish state at /admin/schedule.
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata('/events/after-parties', {
   title: `After Parties | AATC ${EVENT_YEAR} | Fayetteville NC`,
   description: `Where the AATC ${EVENT_YEAR} crowd goes when the floor closes, ${EVENT_DATES_LABEL}: venues across Fayetteville, with the Thursday kickoff the night before doors open.`,
-}
+})
 
 export default async function AfterPartiesPage() {
   const parties = await getAfterParties()

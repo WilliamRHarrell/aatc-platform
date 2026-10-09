@@ -4,6 +4,8 @@ import PublicNav from '@/components/PublicNav'
 import PresentedBy from '@/components/PresentedBy'
 import { getSchedule } from '@/lib/schedule-data'
 import PageImage from '@/components/PageImage'
+import { pageMetadata } from '@/lib/page-meta'
+import type { Metadata } from 'next'
 
 /**
  * The 2027 programme. Server-rendered: this is public content with no
@@ -29,11 +31,11 @@ function signupLabel(signupType: string): string {
 }
 
 
-export const metadata = {
+export const metadata: Metadata = pageMetadata('/events/schedule', {
   title: 'Event Schedule | All American Tattoo Convention 2027',
   description:
     'The full three-day programme for AATC 2027 - tattoo contests, the All American Tattoo Battle, seminars and ceremonies, April 16-18 in Fayetteville, NC.',
-}
+})
 
 export default async function SchedulePage() {
   const schedule = await getSchedule()

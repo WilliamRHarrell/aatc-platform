@@ -4,12 +4,13 @@ import { getContent } from '@/content/getContent'
 import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
 import { ROUTES } from '@/lib/routes'
+import { pageMetadata } from '@/lib/page-meta'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata('/apply', {
   title: 'Apply - Booths, Contests & More | All American Tattoo Convention 2027',
   description:
     'Applications for AATC 2027 are open. Apply for artist and vendor booths, food trucks, the tattoo contests, the Miss All American Pin-Up Contest, and sponsorships.',
-}
+})
 
 // Every application option on /apply is a button-like card: theme gold border,
 // stronger on hover and focus, whole card clickable, visible keyboard ring.

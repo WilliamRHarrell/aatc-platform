@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 import { CANONICAL_ORIGIN, ROBOTS_META } from '@/lib/site'
-import { ASSETS } from '@/lib/event-config'
+import { ASSETS, EVENT_NAME, SOCIAL } from '@/lib/event-config'
 import { inter, playfair } from '@/fonts/site'
 import { oswaldSite as oswald } from '@/fonts/oswald'
 import { Toaster } from 'react-hot-toast'
 import SiteFooter from '@/components/SiteFooter'
 import FooterSponsors from '@/components/FooterSponsors'
 import PublicBottom from '@/components/PublicBottom'
+import { DEFAULT_SOCIAL_IMAGE } from '@/lib/page-meta'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -22,7 +23,11 @@ export const metadata: Metadata = {
     title: 'All American Tattoo Convention',
     description: 'AATC Fayetteville 2027 - April 16-18, Crown Complex Event Center',
     type: 'website',
+    siteName: EVENT_NAME,
+    // Fallback picture for any page that sets no image of its own (2026-10-09).
+    images: [DEFAULT_SOCIAL_IMAGE],
   },
+  twitter: { card: 'summary_large_image', site: SOCIAL.xHandle, images: [DEFAULT_SOCIAL_IMAGE.url] },
 }
 
 export default function RootLayout({

@@ -6,6 +6,7 @@ import Markdown from '@/components/Markdown'
 import { getContent } from '@/content/getContent'
 import ContestPresentedBy from '@/components/ContestPresentedBy'
 import { getKidsContestCredit } from '@/lib/after-parties-data'
+import { pageMetadata } from '@/lib/page-meta'
 
 // Kids Temp Tattoo Contest.
 //
@@ -23,11 +24,11 @@ import { getKidsContestCredit } from '@/lib/after-parties-data'
 // so there is no time to publish. The page says how it works instead, because
 // silence about timing reads as information the visitor failed to find.
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata('/events/kids-contest', {
   title: 'Kids Temp Tattoo Contest | AATC 2027 | Fayetteville NC',
   description:
     'The one AATC contest open to under-18s. Kids show off a temporary tattoo on the main stage on Sunday. Free to enter, register at the contest booth.',
-}
+})
 
 export default async function KidsContestPage() {
   const [c, kids] = await Promise.all([getContent('kidsContest'), getKidsContestCredit()])

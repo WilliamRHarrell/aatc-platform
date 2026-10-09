@@ -4,6 +4,13 @@ import { getSchedule } from '@/lib/schedule-data'
 import { contestSchedule } from '@/lib/contest-schedule'
 import TattooContestsClient from './TattooContestsClient'
 import ContestScheduleBlock from './ContestScheduleBlock'
+import { pageMetadata, titled, atTheShow } from '@/lib/page-meta'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = pageMetadata('/events/tattoo-contests', {
+  title: titled('Tattoo Contests'),
+  description: atTheShow('Daily tattoo contests'),
+})
 
 // Server shell. The page body stays a client component for its form state, so
 // the image slot is rendered here and passed down as a prop - a server

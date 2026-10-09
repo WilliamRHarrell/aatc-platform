@@ -10,13 +10,14 @@ import Image from 'next/image'
 import { ASSETS, COLLECTORS_CHOICE_PRIZE } from '@/lib/event-config'
 import VotePageSponsors from '@/components/VotePageSponsors'
 import { getContestSponsors } from '@/lib/after-parties-data'
+import { pageMetadata } from '@/lib/page-meta'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata('/contests', {
   title: 'AATC Collector’s Choice | Vote for Your Favorite Tattoo | AATC 2027',
   description:
     'Every trophy-winning tattoo from the All American Tattoo Convention - first, second and third in each category - is posted here for voting after the show. Voting is free and needs an account. ' +
     COLLECTORS_CHOICE_PRIZE,
-}
+})
 
 /**
  * Server-side contest fetch. The entry grid and the surrounding prose have to be
