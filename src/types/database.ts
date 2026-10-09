@@ -866,6 +866,29 @@ export type Database = {
         Update: never
         Relationships: []
       }
+      /** Migration 098 - Gold Star VIP Meet & Greet artists (admin only). artist_uid = applications.artists[].uid. */
+      vip_featured_artists: {
+        Row: {
+          id: string
+          application_id: string
+          artist_uid: string
+          display_order: number
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          application_id: string
+          artist_uid: string
+          display_order?: number
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          display_order?: number
+        }
+        Relationships: []
+      }
       /** Migration 044 - the 2027 programme. Seminars live in `panels`. */
       schedule_items: {
         Row: {
@@ -1604,6 +1627,20 @@ export type Database = {
           show_on_sponsors: boolean
           show_on_vote_pages: boolean
           homepage_order: number | null
+        }
+        Relationships: []
+      }
+      /** Migration 098 - public fields of the VIP Meet & Greet artists (approved, active event). */
+      vip_featured_public: {
+        Row: {
+          id: string
+          display_order: number
+          artist_name: string | null
+          shop: string
+          instagram: string | null
+          photo_url: string | null
+          tv_credit: string | null
+          bio: string | null
         }
         Relationships: []
       }

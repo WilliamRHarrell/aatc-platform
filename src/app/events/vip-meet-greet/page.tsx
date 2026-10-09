@@ -1,5 +1,7 @@
-'use client'
-
+import Image from 'next/image'
+import { unstable_cache } from 'next/cache'
+import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
 import PublicNav from '@/components/PublicNav'
 import { ROOMS } from '@/lib/event-config'
 
@@ -22,22 +24,28 @@ const WHAT_INCLUDED = [
   },
 ]
 
-const FEATURED_ARTISTS = [
-  {
-    name: 'Artist Announcement Coming Soon',
-    bio: 'Featured TV tattoo artists will be announced as they are confirmed. Follow our social media channels for the latest announcements.',
-  },
-  {
-    name: 'Artist Announcement Coming Soon',
-    bio: 'We are in active discussions with well-known artists from popular tattoo competition shows. Check back for updates.',
-  },
-  {
-    name: 'Artist Announcement Coming Soon',
-    bio: 'Additional featured guests will be revealed in the weeks leading up to the convention.',
-  },
-]
+/** One VIP Meet & Greet artist, public fields only (vip_featured_public, 098). */
+type VipArtist = Database['public']['Views']['vip_featured_public']['Row']
 
-export default function VipMeetGreetPage() {
+/**
+ * The artists admin ticked "Attending Gold Star VIP Meet & Greet", in admin's
+ * order. The view returns approved applications of the active event only, so
+ * sending one back removes its artists here. Tag 'vip': /admin/vip, the booth
+ * page and the application editor purge it after a change; else 60 s.
+ */
+const getVipArtists = unstable_cache(
+  async (): Promise<VipArtist[]> => {
+    const supabase = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+    const { data, error } = await supabase.from('vip_featured_public').select('*').order('display_order').order('artist_name')
+    if (error) { console.error(`[vip-meet-greet] vip_featured_public: ${error.code} ${error.message}`); return [] }
+    return data ?? []
+  },
+  ['vip-featured-artists'],
+  { revalidate: 60, tags: ['vip'] },
+)
+
+export default async function VipMeetGreetPage() {
+  const artists = await getVipArtists()
   return (
     <div className="min-h-screen">
       <PublicNav />
@@ -166,36 +174,42 @@ export default function VipMeetGreetPage() {
         </div>
       </section>
 
-      {/* Featured Artists */}
-      <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
-        <div className="mx-auto max-w-4xl">
-          <h2 className="mb-2 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
-            <span className="text-emboss">Featured Artists</span>
-          </h2>
-          <p className="mb-8 text-center text-xs" style={{ color: '#666' }}>
-            <span className="text-emboss">Artist announcements are coming soon. Follow us on social media for updates.</span>
-          </p>
+      {/* Featured Artists (098): hidden until admin ticks an artist */}
+      {artists.length > 0 && (
+        <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
+          <div className="mx-auto max-w-4xl">
+            <h2 className="mb-8 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
+              <span className="text-emboss">Featured Artists</span>
+            </h2>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            {FEATURED_ARTISTS.map((artist, i) => (
-              <div
-                key={i}
-                className="rounded-2xl p-6 text-center"
-                style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
-              >
-                <div
-                  className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full"
-                  style={{ backgroundColor: '#2a2a2a' }}
-                >
-                  <span className="text-2xl font-bold" style={{ color: '#555' }}>?</span>
-                </div>
-                <h3 className="text-sm font-bold text-white">{artist.name}</h3>
-                <p className="mt-2 text-xs leading-relaxed" style={{ color: '#999' }}>{artist.bio}</p>
-              </div>
-            ))}
+            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {artists.map(artist => {
+                const handle = artist.instagram?.replace(/^@/, '') ?? ''
+                return (
+                  <li key={artist.id} className="rounded-2xl p-6 text-center" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+                    <div className="relative mx-auto mb-4 h-24 w-24 overflow-hidden rounded-full" style={{ backgroundColor: '#2a2a2a', border: '2px solid rgba(139,115,85,0.4)' }}>
+                      {artist.photo_url && (
+                        <Image src={artist.photo_url} alt={artist.artist_name ?? artist.shop} fill sizes="96px" style={{ objectFit: 'cover' }} />
+                      )}
+                    </div>
+                    {artist.artist_name && <h3 className="text-base font-bold text-white">{artist.artist_name}</h3>}
+                    <p className="mt-0.5 text-sm" style={{ color: '#C4A882' }}>{artist.shop}</p>
+                    {artist.tv_credit && (
+                      <p className="mt-2 text-xs font-semibold" style={{ color: '#8B7355' }}>★ {artist.tv_credit}</p>
+                    )}
+                    {handle && (
+                      <a href={`https://instagram.com/${handle}`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs" style={{ color: '#999' }}>
+                        @{handle}
+                      </a>
+                    )}
+                    {artist.bio && <p className="mt-3 whitespace-pre-line text-xs leading-relaxed" style={{ color: '#999' }}>{artist.bio}</p>}
+                  </li>
+                )
+              })}
+            </ul>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* VIP Pass Info */}
       <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>

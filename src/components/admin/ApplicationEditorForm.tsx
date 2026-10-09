@@ -62,19 +62,21 @@ interface ArtistDraft {
   id_file: File | null
   /** From set_artist_id_verified; lost when the ID file is replaced (088). */
   verified: boolean
-  /** Saved keys this form does not edit, sent back unchanged. */
+  /** Saved keys this form does not edit, sent back unchanged (the uid, 098). */
   extra: Record<string, unknown>
+  /** Attending the Gold Star VIP Meet & Greet (vip_featured_artists, by uid). */
+  vip: boolean
 }
 
 const blankArtist = (): ArtistDraft => ({
   name: '', nickname: '', instagram: '', styles: [], bio: '', tv_featured: null, tv_credit: '', id_later: false,
-  photo_url: null, portfolio_urls: [], id_url: null, photo_file: null, portfolio_files: [], id_file: null, verified: false, extra: {},
+  photo_url: null, portfolio_urls: [], id_url: null, photo_file: null, portfolio_files: [], id_file: null, verified: false, extra: {}, vip: false,
 })
 
 const EDITED_KEYS = ['name', 'nickname', 'instagram', 'styles', 'bio', 'tv_featured', 'tv_credit', 'photo_url', 'portfolio_urls', 'id_url', 'id_later', 'id_verified_at', 'id_verified_by']
 const s_ = (v: unknown) => (typeof v === 'string' ? v : '')
 
-function draftFrom(a: unknown): ArtistDraft {
+function draftFrom(a: unknown, vipUids: readonly string[]): ArtistDraft {
   const o = (a && typeof a === 'object' ? a : {}) as Record<string, unknown>
   const tv = ownTv(o)
   return {
@@ -88,6 +90,7 @@ function draftFrom(a: unknown): ArtistDraft {
     id_url: s_(o.id_url) || null,
     verified: isIdVerified(o),
     extra: Object.fromEntries(Object.entries(o).filter(([k]) => !EDITED_KEYS.includes(k))),
+    vip: typeof o.uid === 'string' && vipUids.includes(o.uid),
   }
 }
 
@@ -102,11 +105,13 @@ export interface EditorInitial {
     total_amount: number; agreed_total: number | null; comped_at: string | null; permits_comped_at: string | null
   }
   invoice: { amount: number; amount_paid: number } | null
+  /** Roster uids with a vip_featured_artists row (098). */
+  vipUids: string[]
 }
 
 const isBlank = (a: ArtistDraft) =>
   !a.name.trim() && !a.nickname.trim() && !a.instagram.trim() && a.styles.length === 0 && !a.bio.trim()
-  && a.tv_featured === null && !a.tv_credit.trim() && !a.photo_url && a.portfolio_urls.length === 0 && !a.id_url
+  && a.tv_featured === null && !a.tv_credit.trim() && !a.vip && !a.photo_url && a.portfolio_urls.length === 0 && !a.id_url
   && !a.photo_file && a.portfolio_files.length === 0 && !a.id_file
 
 /** Blank roster slots move to the end, so a slot's index is the saved index (storage paths, ID verification). */
@@ -191,7 +196,7 @@ export default function ApplicationEditorForm({ initial }: { initial?: EditorIni
   const supabase = createClient()
   const r = initial?.row
   const rIsArtist = r ? r.exhibitor_type === 'artist' : true
-  const rRoster = r && Array.isArray(r.artists) ? r.artists.map(draftFrom) : []
+  const rRoster = r && Array.isArray(r.artists) ? r.artists.map(a => draftFrom(a, initial?.vipUids ?? [])) : []
   const initialMoney: MoneyMode = !r ? 'standard'
     : r.comped_at && r.permits_comped_at ? 'comp_all'
     : r.comped_at ? 'comp_booth'
@@ -313,7 +318,7 @@ export default function ApplicationEditorForm({ initial }: { initial?: EditorIni
     veteran_id_url: isVeteran ? refs.vet : null,
     artists: isArtist ? roster.filter(a => !isBlank(a)).map((a): EditorArtist => ({
       name: a.name, nickname: a.nickname, instagram: a.instagram, styles: a.styles, bio: a.bio, tv_featured: a.tv_featured, tv_credit: a.tv_featured === false ? '' : a.tv_credit,
-      photo_url: a.photo_url, portfolio_urls: a.portfolio_urls, id_url: a.id_url, id_later: a.id_later, extra: a.extra,
+      photo_url: a.photo_url, portfolio_urls: a.portfolio_urls, id_url: a.id_url, id_later: a.id_later, extra: a.extra, vip: a.vip,
     })) : [],
     status,
     money: money(confirmed),
@@ -424,6 +429,22 @@ export default function ApplicationEditorForm({ initial }: { initial?: EditorIni
       }
       setAppId(result.id)
       setSavedStatus(status)
+
+      // Read back the uid the database gave each artist (098), so the next save
+      // keeps it (a missing uid would be replaced, moving a VIP artist to the
+      // end of the order). Saved artists are the non-blank ones, in order.
+      if (isArtist) {
+        const { data: fresh } = await supabase.from('applications').select('artists').eq('id', result.id).single()
+        const stored = Array.isArray(fresh?.artists) ? (fresh.artists as Array<{ uid?: unknown }>) : []
+        let k = 0
+        const withUids = roster.map(a => {
+          if (isBlank(a)) return a
+          const uid = stored[k++]?.uid
+          return typeof uid === 'string' ? { ...a, extra: { ...a.extra, uid } } : a
+        })
+        roster = withUids
+        setArtists(withUids)
+      }
 
       // Removed public images: delete the objects now that the row no longer names them.
       if (removedPublic.length) {
@@ -592,6 +613,13 @@ export default function ApplicationEditorForm({ initial }: { initial?: EditorIni
                         className={`${inputCls} mt-2`} style={inputSty} />
                     )}
                   </div>
+                  <label className="flex items-start gap-2 text-sm text-white sm:col-span-2">
+                    <input type="checkbox" className="mt-1" checked={a.vip} onChange={e => patchArtist(i, { vip: e.target.checked })} />
+                    <span>
+                      Attending Gold Star VIP Meet &amp; Greet
+                      <span className="block text-xs" style={{ color: '#666' }}>Listed on /events/vip-meet-greet while the application is approved. Order: VIP Meet &amp; Greet in admin.</span>
+                    </span>
+                  </label>
                   <Field label={`Bio (${a.bio.length}/${BIO_MAX})`} wide hint="Optional. Public on the directory and the VIP page.">
                     <textarea rows={3} maxLength={BIO_MAX} value={a.bio} onChange={e => patchArtist(i, { bio: e.target.value })} className={inputCls} style={inputSty} />
                   </Field>
