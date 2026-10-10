@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { revalidatePath, revalidateTag } from 'next/cache'
+import { VIP_PATHS } from '@/lib/vip-config'
 import { createServerClient } from '@/lib/supabase-server'
 import { planApplication, likeExact, samePricingInputs, type EditorInput, type PricingInputs } from '@/lib/admin-application'
 import { approvePayload, compInvoiceAmount, discountedInvoiceUpdate, SEND_BACK_PAYLOAD } from '@/lib/comp'
@@ -154,7 +155,7 @@ export async function POST(req: Request) {
   if (vipProblem) problems.push(vipProblem)
   // The public page caches the view (tag 'vip'); any save can change it (status, roster, ticks).
   revalidateTag('vip', { expire: 0 })
-  revalidatePath('/events/vip-meet-greet')
+  VIP_PATHS.forEach(p => revalidatePath(p))
 
   return NextResponse.json({ ok: true, id: appId, created: !id, problems })
 }

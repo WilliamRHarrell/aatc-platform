@@ -9,7 +9,8 @@ const read = (f: string) => readFileSync(join(process.cwd(), f), 'utf8')
 describe('Gold Star VIP Meet & Greet featured artists (098)', () => {
   it('the public page reads the view, has no placeholders, and hides an empty section', () => {
     const page = read('src/app/events/vip-meet-greet/page.tsx')
-    expect(page).toContain(".from('vip_featured_public')")
+    expect(page).toContain('await getVipArtists()')
+    expect(read('src/lib/vip-server.ts')).toContain(".from('vip_featured_public')")
     expect(page).toContain('{artists.length > 0 && (')
     expect(page).not.toContain('FEATURED_ARTISTS')
     expect(page).not.toContain('Artist Announcement Coming Soon')
@@ -44,5 +45,33 @@ describe('Gold Star VIP Meet & Greet featured artists (098)', () => {
     expect(sql).toContain("when el->'tv_featured' = 'false'::jsonb then null")
     expect(sql).toContain('when jsonb_array_length(a.artists) = 1 and a.tv_show_featured is distinct from false')
     expect(sql).toContain("where a.status = 'approved'")
+  })
+})
+
+describe('Featured badge and homepage section (099)', () => {
+  it('the homepage section is behind the content switch and the minimum of 3', async () => {
+    const { MIN_FEATURED_FOR_HOMEPAGE, VIP_PATHS } = await import('@/lib/vip-config')
+    const { defaultsFor } = await import('@/content/registry')
+    expect(MIN_FEATURED_FOR_HOMEPAGE).toBe(3)
+    expect(VIP_PATHS).toContain('/')
+    expect(defaultsFor('homepage').featured_artists_on).toBe('false')
+    const home = read('src/app/page.tsx')
+    expect(home).toContain("isTrue(c.featured_artists_on) && vipArtists.length >= MIN_FEATURED_FOR_HOMEPAGE")
+    expect(home).toContain('{featuredArtists.length > 0 && (')
+    expect(home).toContain('a.in_directory ?')
+  })
+  it('one cached read serves the VIP page and the homepage', () => {
+    expect(read('src/app/events/vip-meet-greet/page.tsx')).toContain("from '@/lib/vip-server'")
+    expect(read('src/app/events/vip-meet-greet/page.tsx')).not.toContain('unstable_cache(')
+  })
+  it('the directory badges exhibitors and artists from the view', () => {
+    expect(read('src/app/directory/page.tsx')).toContain('featured={vip.applications.has(e.id)}')
+    expect(read('src/app/directory/artists/page.tsx')).toContain('featured={!!a.uid && vip.artists.has(a.uid)}')
+    expect(read('src/app/directory/[id]/page.tsx')).toContain('a.uid && vip.artists.has(a.uid) && <FeaturedBadge')
+    expect(read('src/lib/vip.ts')).toContain(".from('vip_featured_public').select('application_id, artist_uid')")
+  })
+  it('every admin writer purges both pages', () => {
+    for (const f of ['src/app/admin/booths/[id]/page.tsx', 'src/app/admin/vip/page.tsx']) expect(read(f)).toContain('paths: VIP_PATHS')
+    expect(read('src/app/api/admin/applications/editor/route.ts')).toContain('VIP_PATHS.forEach(p => revalidatePath(p))')
   })
 })

@@ -1641,6 +1641,10 @@ export type Database = {
           photo_url: string | null
           tv_credit: string | null
           bio: string | null
+          /** 099 */
+          application_id: string
+          artist_uid: string
+          in_directory: boolean
         }
         Relationships: []
       }

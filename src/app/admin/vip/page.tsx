@@ -14,8 +14,9 @@ import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase'
 import { guardedWrite } from '@/lib/db-write'
 import { requestRevalidate } from '@/lib/revalidate'
+import { VIP_PATHS } from '@/lib/vip-config'
 
-const purge = () => requestRevalidate({ paths: ['/events/vip-meet-greet'], tags: ['vip'] })
+const purge = () => requestRevalidate({ paths: VIP_PATHS, tags: ['vip'] })
 
 interface Row {
   id: string

@@ -1,7 +1,5 @@
 import Image from 'next/image'
-import { unstable_cache } from 'next/cache'
-import { createClient } from '@supabase/supabase-js'
-import type { Database } from '@/types/database'
+import { getVipArtists } from '@/lib/vip-server'
 import PublicNav from '@/components/PublicNav'
 import { ROOMS } from '@/lib/event-config'
 
@@ -23,26 +21,6 @@ const WHAT_INCLUDED = [
     description: 'The meet and greet takes place during VIP early admission, giving you 30 minutes on the convention floor before general admission doors open at 10:30 AM.',
   },
 ]
-
-/** One VIP Meet & Greet artist, public fields only (vip_featured_public, 098). */
-type VipArtist = Database['public']['Views']['vip_featured_public']['Row']
-
-/**
- * The artists admin ticked "Attending Gold Star VIP Meet & Greet", in admin's
- * order. The view returns approved applications of the active event only, so
- * sending one back removes its artists here. Tag 'vip': /admin/vip, the booth
- * page and the application editor purge it after a change; else 60 s.
- */
-const getVipArtists = unstable_cache(
-  async (): Promise<VipArtist[]> => {
-    const supabase = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
-    const { data, error } = await supabase.from('vip_featured_public').select('*').order('display_order').order('artist_name')
-    if (error) { console.error(`[vip-meet-greet] vip_featured_public: ${error.code} ${error.message}`); return [] }
-    return data ?? []
-  },
-  ['vip-featured-artists'],
-  { revalidate: 60, tags: ['vip'] },
-)
 
 export default async function VipMeetGreetPage() {
   const artists = await getVipArtists()

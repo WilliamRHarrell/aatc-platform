@@ -1,4 +1,5 @@
 import { COLLECTORS_CHOICE_PRIZE } from '@/lib/event-config'
+import { MIN_FEATURED_FOR_HOMEPAGE } from '@/lib/vip-config'
 
 export type ContentType = 'text' | 'markdown' | 'boolean' | 'url'
 
@@ -66,6 +67,15 @@ export const REGISTRY: PageDef[] = [
         type: 'text',
         default: '300+ Artists · 3 Days · Thousands of Attendees · 10th Annual Pin-Up Contest · Kids Under 16 Free',
       },
+
+      // ── Featured artists (Gold Star VIP Meet & Greet, 098) ──
+      featured_artists_on: {
+        label: 'Featured artists section',
+        help: `On = the homepage shows the Gold Star VIP Meet & Greet artists, in the order set on VIP Meet & Greet in admin. It appears only when at least ${MIN_FEATURED_FOR_HOMEPAGE} artists are featured.`,
+        type: 'boolean',
+        default: 'false',
+      },
+      featured_artists_title: { label: 'Featured artists heading', type: 'text', default: 'Featured Artists' },
 
       // ── Promo video ──
       video_heading: { label: 'Video section heading', type: 'text', default: 'See It For Yourself' },
