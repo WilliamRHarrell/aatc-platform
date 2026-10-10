@@ -8,6 +8,9 @@ import { describeBooths } from '@/lib/booth-display'
 import { publicTvShows } from '@/lib/tv-show'
 import FeaturedBadge from '@/components/FeaturedBadge'
 import { useVipFeatured } from '@/lib/vip'
+import VeteranBadge from '@/components/VeteranBadge'
+import { useVeteranBadges } from '@/lib/veteran'
+import { VETERAN_LABEL, shopVeteranLabel } from '@/lib/veteran-config'
 
 interface Exhibitor {
   id: string
@@ -44,6 +47,7 @@ export default function DirectoryPage() {
   const supabase = createClient()
   const [exhibitors, setExhibitors] = useState<Exhibitor[]>([])
   const vip = useVipFeatured()
+  const veteran = useVeteranBadges()
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
@@ -183,7 +187,8 @@ export default function DirectoryPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map(e => (
-              <ExhibitorCard key={e.id} exhibitor={e} featured={vip.applications.has(e.id)} />
+              <ExhibitorCard key={e.id} exhibitor={e} featured={vip.applications.has(e.id)}
+                veteranLabel={e.exhibitor_type === 'vendor' ? (veteran.vendors.has(e.id) ? VETERAN_LABEL.vendor : null) : shopVeteranLabel(veteran.shopCounts.get(e.id) ?? 0)} />
             ))}
           </div>
         )}
@@ -193,7 +198,7 @@ export default function DirectoryPage() {
   )
 }
 
-function ExhibitorCard({ exhibitor: e, featured }: { exhibitor: Exhibitor; featured: boolean }) {
+function ExhibitorCard({ exhibitor: e, featured, veteranLabel }: { exhibitor: Exhibitor; featured: boolean; veteranLabel: string | null }) {
   return (
     <Link
       href={`/directory/${e.id}`}
@@ -217,6 +222,8 @@ function ExhibitorCard({ exhibitor: e, featured }: { exhibitor: Exhibitor; featu
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {/* An artist here is at the Gold Star VIP Meet & Greet (098) */}
         {featured && <FeaturedBadge />}
+        {/* Public Veteran badge (100): "Veteran-owned" for a vendor, "Veteran artist(s)" for a shop */}
+        {veteranLabel && <VeteranBadge label={veteranLabel} />}
         <span
           className="rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
           style={

@@ -11,4 +11,4 @@ export const ALLOWED_PATHS = new Set([
 // Entry pages are dynamic: /tattoo-battle/entry/<n>. Pattern-matched so an
 // admin publish can purge exactly the bucket it touched.
 export const ALLOWED_PATH_PATTERNS = [/^\/tattoo-battle\/entry\/[1-9]\d{0,2}$/]
-export const ALLOWED_TAGS = new Set(['page_content', 'sponsors', 'panels', 'contests', 'tattoo-battle', 'after-parties', 'schedule', 'pinup', 'food-trucks', 'vip'])
+export const ALLOWED_TAGS = new Set(['page_content', 'sponsors', 'panels', 'contests', 'tattoo-battle', 'after-parties', 'schedule', 'pinup', 'food-trucks', 'vip', 'veteran'])

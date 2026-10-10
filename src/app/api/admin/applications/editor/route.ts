@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { VIP_PATHS } from '@/lib/vip-config'
+import { VETERAN_PATHS } from '@/lib/veteran-config'
 import { createServerClient } from '@/lib/supabase-server'
 import { planApplication, likeExact, samePricingInputs, type EditorInput, type PricingInputs } from '@/lib/admin-application'
 import { approvePayload, compInvoiceAmount, discountedInvoiceUpdate, SEND_BACK_PAYLOAD } from '@/lib/comp'
@@ -33,6 +34,8 @@ import { FINAL_DUE_AT } from '@/lib/event-config'
  *      is sent from here: Invite & link is how the person hears.
  *   5. VIP Meet & Greet (098): artists ticked "Attending" get a
  *      vip_featured_artists row by their roster uid; unticked ones lose it.
+ *   6. Veteran badges (100): the same for veteran_badges, per artist (uid)
+ *      or, on a vendor, the business (artist_uid null).
  * Returns { id } or { error, errors?, needsConfirm? }.
  */
 export async function POST(req: Request) {
@@ -157,7 +160,40 @@ export async function POST(req: Request) {
   revalidateTag('vip', { expire: 0 })
   VIP_PATHS.forEach(p => revalidatePath(p))
 
+  // ── 6. Veteran badges (100) ──
+  const vetProblem = await syncVeteranBadges(supabase, appId, body.input)
+  if (vetProblem) problems.push(vetProblem)
+  revalidateTag('veteran', { expire: 0 })
+  VETERAN_PATHS.forEach(p => revalidatePath(p))
+
   return NextResponse.json({ ok: true, id: appId, created: !id, problems })
+}
+
+/** Ticked artists (uid) or, on a vendor, the business (null). Same roster mapping as syncVip. */
+async function syncVeteranBadges(supabase: Awaited<ReturnType<typeof createServerClient>>, appId: string, input: EditorInput): Promise<string | null> {
+  const isArtist = input.exhibitor_type === 'artist'
+  const ticks = isArtist ? (input.artists ?? []).map(a => !!a.veteranBadge) : []
+  const anyWanted = isArtist ? ticks.some(Boolean) : !!input.business_veteran_badge
+  const { data: current, error: readErr } = await supabase.from('veteran_badges').select('id, artist_uid').eq('application_id', appId)
+  if (readErr) return anyWanted ? `the Veteran badge was not saved (${readErr.message}; is migration 100 applied?)` : null
+  const { data: saved } = await supabase.from('applications').select('artists').eq('id', appId).single()
+  const roster = Array.isArray(saved?.artists) ? (saved.artists as Array<{ uid?: unknown }>) : []
+  const key = (u: string | null) => u ?? ''
+  const want = new Set<string>(isArtist
+    ? roster.flatMap((a, i) => (ticks[i] && typeof a?.uid === 'string' ? [a.uid] : []))
+    : input.business_veteran_badge ? [''] : [])
+  const have = new Set((current ?? []).map(r => key(r.artist_uid)))
+  const drop = (current ?? []).filter(r => !want.has(key(r.artist_uid))).map(r => r.id)
+  const add = [...want].filter(k => !have.has(k))
+  if (drop.length) {
+    const { error } = await supabase.from('veteran_badges').delete().in('id', drop)
+    if (error) return `a Veteran badge was not removed (${error.message})`
+  }
+  if (add.length) {
+    const { error } = await supabase.from('veteran_badges').insert(add.map(k => ({ application_id: appId, artist_uid: k || null })))
+    if (error) return `a Veteran badge was not saved (${error.message})`
+  }
+  return null
 }
 
 /**

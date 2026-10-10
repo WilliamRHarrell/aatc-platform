@@ -9,7 +9,7 @@ const read = (f: string) => readFileSync(join(process.cwd(), f), 'utf8')
 describe('Gold Star VIP Meet & Greet featured artists (098)', () => {
   it('the public page reads the view, has no placeholders, and hides an empty section', () => {
     const page = read('src/app/events/vip-meet-greet/page.tsx')
-    expect(page).toContain('await getVipArtists()')
+    expect(page).toContain('getVipArtists()')
     expect(read('src/lib/vip-server.ts')).toContain(".from('vip_featured_public')")
     expect(page).toContain('{artists.length > 0 && (')
     expect(page).not.toContain('FEATURED_ARTISTS')

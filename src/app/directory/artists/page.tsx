@@ -7,6 +7,9 @@ import PublicNav from '@/components/PublicNav'
 import { TATTOO_STYLES } from '@/lib/tattoo-styles'
 import FeaturedBadge from '@/components/FeaturedBadge'
 import { useVipFeatured } from '@/lib/vip'
+import VeteranBadge from '@/components/VeteranBadge'
+import { useVeteranBadges } from '@/lib/veteran'
+import { VETERAN_LABEL } from '@/lib/veteran-config'
 
 
 interface ArtistCard {
@@ -31,6 +34,7 @@ export default function FindArtistPage() {
   const [selectedStyles, setSelectedStyles] = useState<string[]>([])
   const [lightbox, setLightbox] = useState<string | null>(null)
   const vip = useVipFeatured()
+  const veteran = useVeteranBadges()
 
   useEffect(() => {
     const load = async () => {
@@ -189,7 +193,7 @@ export default function FindArtistPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map(a => (
-              <ArtistResultCard key={a.key} artist={a} onLightbox={setLightbox} featured={!!a.uid && vip.artists.has(a.uid)} />
+              <ArtistResultCard key={a.key} artist={a} onLightbox={setLightbox} featured={!!a.uid && vip.artists.has(a.uid)} veteran={!!a.uid && veteran.artists.has(a.uid)} />
             ))}
           </div>
         )}
@@ -226,10 +230,12 @@ function ArtistResultCard({
   artist: a,
   onLightbox,
   featured,
+  veteran,
 }: {
   artist: ArtistCard
   onLightbox: (url: string) => void
   featured: boolean
+  veteran: boolean
 }) {
   return (
     <div
@@ -261,7 +267,12 @@ function ArtistResultCard({
           <p className="truncate font-semibold text-white">
             {a.nickname || a.artistName || '?'}
           </p>
-          {featured && <FeaturedBadge className="mt-0.5" />}
+          {(featured || veteran) && (
+            <span className="mt-0.5 flex flex-wrap gap-1">
+              {featured && <FeaturedBadge />}
+              {veteran && <VeteranBadge label={VETERAN_LABEL.artist} />}
+            </span>
+          )}
           <Link
             href={`/directory/${a.applicationId}`}
             className="text-xs transition-colors"

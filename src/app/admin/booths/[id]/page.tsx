@@ -14,6 +14,7 @@ import type { Database } from '@/types/database'
 import { guardedWrite } from '@/lib/db-write'
 import { requestRevalidate } from '@/lib/revalidate'
 import { VIP_PATHS } from '@/lib/vip-config'
+import { VETERAN_PATHS } from '@/lib/veteran-config'
 import { useApplicationDocs } from '@/lib/use-application-docs'
 import AddOnList from '@/components/admin/AddOnList'
 import { artistTv, ownTv, unattributedTv } from '@/lib/tv-show'
@@ -138,6 +139,9 @@ export default function BoothDetailPage() {
       // 098: who is attending the VIP Meet & Greet (errors harmlessly before 098).
       const { data: vip } = await supabase.from('vip_featured_artists').select('artist_uid').eq('application_id', appId)
       setVipUids((vip ?? []).map(v => v.artist_uid))
+      // 100: public Veteran badges ('' = a vendor's business).
+      const { data: vet } = await supabase.from('veteran_badges').select('artist_uid').eq('application_id', appId)
+      setVetKeys((vet ?? []).map(v => v.artist_uid ?? ''))
       setAssignedBooths((boothData ?? []) as AssignedBooth[])
       const { data: heldRows } = await supabase
         .from('booths')
@@ -432,6 +436,28 @@ export default function BoothDetailPage() {
 
   // ── Per-artist ID verification (088: only this function writes it) ──
   const [verifyingArtist, setVerifyingArtist] = useState<number | null>(null)
+
+  // ── Public Veteran badge (100): per artist (uid) or a vendor's business (''); saved at once ──
+  const [vetKeys, setVetKeys] = useState<string[]>([])
+  const [vetSaving, setVetSaving] = useState<string | null>(null)
+  const toggleVeteran = async (key: string, on: boolean) => {
+    setVetSaving(key)
+    const res = on
+      ? await guardedWrite(
+          supabase.from('veteran_badges').insert({ application_id: appId, artist_uid: key || null }).select('id'),
+          'Veteran badge not saved', `admin/booths/${appId} veteranAdd`)
+      : await guardedWrite(
+          (key ? supabase.from('veteran_badges').delete().eq('application_id', appId).eq('artist_uid', key)
+               : supabase.from('veteran_badges').delete().eq('application_id', appId).is('artist_uid', null)).select('id'),
+          'Veteran badge not removed', `admin/booths/${appId} veteranRemove`)
+    if (!res.ok) toast.error(res.error)
+    else {
+      setVetKeys(prev => (on ? [...prev, key] : prev.filter(k => k !== key)))
+      toast.success(on ? 'Veteran badge shown' : 'Veteran badge removed')
+      void requestRevalidate({ paths: VETERAN_PATHS, tags: ['veteran'] })
+    }
+    setVetSaving(null)
+  }
 
   // ── Gold Star VIP Meet & Greet (098): by the artist's uid; saved at once ──
   const [vipUids, setVipUids] = useState<string[]>([])
@@ -913,6 +939,15 @@ export default function BoothDetailPage() {
                     </div>
                   </div>
 
+                  {/* Public Veteran badge (100), only after checking with the artist */}
+                  {typeof artist.uid === 'string' && (
+                    <label className="flex items-center gap-2 text-sm text-white">
+                      <input type="checkbox" disabled={vetSaving === artist.uid} checked={vetKeys.includes(artist.uid)}
+                        onChange={e => toggleVeteran(artist.uid as string, e.target.checked)} />
+                      Show a public Veteran badge
+                    </label>
+                  )}
+
                   {/* Gold Star VIP Meet & Greet (098) */}
                   {typeof artist.uid === 'string' && (
                     <label className="flex items-center gap-2 text-sm text-white">
@@ -1123,6 +1158,13 @@ export default function BoothDetailPage() {
           <ReadField label="Booth size" value={describeBooths(app)} />
           <ReadField label="Corner booth" value={app.is_corner} />
           <ReadField label="Veteran" value={app.is_veteran} />
+          {/* Public "Veteran-owned" badge for a vendor's business (100); separate from the discount. */}
+          {app.exhibitor_type === 'vendor' && (
+            <label className="flex items-center gap-2 text-sm text-white">
+              <input type="checkbox" disabled={vetSaving === ''} checked={vetKeys.includes('')} onChange={e => toggleVeteran('', e.target.checked)} />
+              Show a public Veteran-owned badge
+            </label>
+          )}
           <ReadField label="TV show (not attributed to an artist; set it on the artist below)" value={unattributedTv(app)} />
           {app.exhibitor_type === 'artist' && <ReadField label="Artists (2 per single, 4 per double)" value={`${app.artist_count} of ${artistCapacity(app)}`} />}
           <div>

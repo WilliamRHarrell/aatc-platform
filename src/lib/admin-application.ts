@@ -52,6 +52,8 @@ export interface EditorArtist {
   /** Attending the Gold Star VIP Meet & Greet. Not stored in the roster: the
    *  route syncs vip_featured_artists by the artist's uid (098). */
   vip?: boolean
+  /** Public Veteran badge on this artist (veteran_badges, by uid, 100); ticked by admin only. Not stored in the roster. */
+  veteranBadge?: boolean
 }
 
 export interface EditorInput {
@@ -81,6 +83,8 @@ export interface EditorInput {
   /** Veteran ID document, private path (application-docs). */
   veteran_id_url?: string | null
   artists?: EditorArtist[]
+  /** Public "Veteran-owned" badge on a vendor's business (veteran_badges, 100). Not a column. */
+  business_veteran_badge?: boolean
   /** 'keep' (editing only): leave the status as it is, e.g. rejected or waitlisted. */
   status: 'pending' | 'approved' | 'keep'
   money: MoneyChoice

@@ -2,6 +2,9 @@ import Image from 'next/image'
 import { getVipArtists } from '@/lib/vip-server'
 import PublicNav from '@/components/PublicNav'
 import { ROOMS } from '@/lib/event-config'
+import VeteranBadge from '@/components/VeteranBadge'
+import { getVeteranBadges } from '@/lib/veteran-server'
+import { VETERAN_LABEL } from '@/lib/veteran-config'
 
 const WHAT_INCLUDED = [
   {
@@ -23,7 +26,7 @@ const WHAT_INCLUDED = [
 ]
 
 export default async function VipMeetGreetPage() {
-  const artists = await getVipArtists()
+  const [artists, veteran] = await Promise.all([getVipArtists(), getVeteranBadges()])
   return (
     <div className="min-h-screen">
       <PublicNav />
@@ -172,6 +175,7 @@ export default async function VipMeetGreetPage() {
                     </div>
                     {artist.artist_name && <h3 className="text-base font-bold text-white">{artist.artist_name}</h3>}
                     <p className="mt-0.5 text-sm" style={{ color: '#C4A882' }}>{artist.shop}</p>
+                    {veteran.artists.has(artist.artist_uid) && <VeteranBadge label={VETERAN_LABEL.artist} className="mt-2" />}
                     {artist.tv_credit && (
                       <p className="mt-2 text-xs font-semibold" style={{ color: '#8B7355' }}>★ {artist.tv_credit}</p>
                     )}
