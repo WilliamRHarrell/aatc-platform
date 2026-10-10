@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidatePath, revalidateTag } from 'next/cache'
 import { createServerClient } from '@/lib/supabase-server'
 import { planApplication, likeExact, samePricingInputs, type EditorInput, type PricingInputs } from '@/lib/admin-application'
 import { approvePayload, compInvoiceAmount, discountedInvoiceUpdate, SEND_BACK_PAYLOAD } from '@/lib/comp'
@@ -29,6 +30,8 @@ import { FINAL_DUE_AT } from '@/lib/event-config'
  *      pending sends back; keep (editing only) leaves rejected or waitlisted
  *      as it is. No email
  *      is sent from here: Invite & link is how the person hears.
+ *   5. VIP Meet & Greet (098): artists ticked "Attending" get a
+ *      vip_featured_artists row by their roster uid; unticked ones lose it.
  * Returns { id } or { error, errors?, needsConfirm? }.
  */
 export async function POST(req: Request) {
@@ -146,5 +149,40 @@ export async function POST(req: Request) {
     if (error) problems.push(`it was not moved back to pending (${error.message})`)
   }
 
+  // ── 5. VIP Meet & Greet (098): sync by the uid the database gave each artist ──
+  const vipProblem = await syncVip(supabase, appId, body.input)
+  if (vipProblem) problems.push(vipProblem)
+  // The public page caches the view (tag 'vip'); any save can change it (status, roster, ticks).
+  revalidateTag('vip', { expire: 0 })
+  revalidatePath('/events/vip-meet-greet')
+
   return NextResponse.json({ ok: true, id: appId, created: !id, problems })
+}
+
+/**
+ * The planner keeps input.artists' order, so the stored roster's element i is
+ * input artist i. Returns a problem to report, or null.
+ */
+async function syncVip(supabase: Awaited<ReturnType<typeof createServerClient>>, appId: string, input: EditorInput): Promise<string | null> {
+  const wanted = input.exhibitor_type === 'artist' ? (input.artists ?? []).map(a => !!a.vip) : []
+  const { data: current, error: readErr } = await supabase.from('vip_featured_artists').select('id, artist_uid').eq('application_id', appId)
+  if (readErr) return wanted.some(Boolean) ? `the VIP Meet & Greet list was not updated (${readErr.message}; is migration 098 applied?)` : null
+  const { data: saved } = await supabase.from('applications').select('artists').eq('id', appId).single()
+  const roster = Array.isArray(saved?.artists) ? (saved.artists as Array<{ uid?: unknown }>) : []
+  const want = new Set(roster.flatMap((a, i) => (wanted[i] && typeof a?.uid === 'string' ? [a.uid] : [])))
+  const have = new Set((current ?? []).map(r => r.artist_uid))
+  const drop = (current ?? []).filter(r => !want.has(r.artist_uid)).map(r => r.id)
+  const add = [...want].filter(u => !have.has(u))
+  if (drop.length) {
+    const { error } = await supabase.from('vip_featured_artists').delete().in('id', drop)
+    if (error) return `an artist was not removed from the VIP Meet & Greet (${error.message})`
+  }
+  if (add.length) {
+    // New artists go to the end of the list; the order is set on /admin/vip.
+    const { data: last } = await supabase.from('vip_featured_artists').select('display_order').order('display_order', { ascending: false }).limit(1)
+    const start = (last?.[0]?.display_order ?? 0) + 1
+    const { error } = await supabase.from('vip_featured_artists').insert(add.map((artist_uid, k) => ({ application_id: appId, artist_uid, display_order: start + k })))
+    if (error) return `an artist was not added to the VIP Meet & Greet (${error.message})`
+  }
+  return null
 }

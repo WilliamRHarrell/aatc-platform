@@ -47,8 +47,11 @@ export interface EditorArtist {
   /** Private storage path (application-docs), never public. */
   id_url?: string | null
   id_later?: boolean
-  /** Keys the editor does not edit (e.g. a future artist uid), carried through unchanged. */
+  /** Keys the editor does not edit (e.g. the artist uid, 098), carried through unchanged. */
   extra?: Record<string, unknown>
+  /** Attending the Gold Star VIP Meet & Greet. Not stored in the roster: the
+   *  route syncs vip_featured_artists by the artist's uid (098). */
+  vip?: boolean
 }
 
 export interface EditorInput {

@@ -12,6 +12,7 @@ import { describeBooths, boothSlotCount } from '@/lib/booth-display'
 import toast from 'react-hot-toast'
 import type { Database } from '@/types/database'
 import { guardedWrite } from '@/lib/db-write'
+import { requestRevalidate } from '@/lib/revalidate'
 import { useApplicationDocs } from '@/lib/use-application-docs'
 import AddOnList from '@/components/admin/AddOnList'
 import { artistTv, ownTv, unattributedTv } from '@/lib/tv-show'
@@ -133,6 +134,9 @@ export default function BoothDetailPage() {
 
       const a = appData as unknown as Application
       setApp(a)
+      // 098: who is attending the VIP Meet & Greet (errors harmlessly before 098).
+      const { data: vip } = await supabase.from('vip_featured_artists').select('artist_uid').eq('application_id', appId)
+      setVipUids((vip ?? []).map(v => v.artist_uid))
       setAssignedBooths((boothData ?? []) as AssignedBooth[])
       const { data: heldRows } = await supabase
         .from('booths')
@@ -427,6 +431,28 @@ export default function BoothDetailPage() {
 
   // ── Per-artist ID verification (088: only this function writes it) ──
   const [verifyingArtist, setVerifyingArtist] = useState<number | null>(null)
+
+  // ── Gold Star VIP Meet & Greet (098): by the artist's uid; saved at once ──
+  const [vipUids, setVipUids] = useState<string[]>([])
+  const [vipSaving, setVipSaving] = useState<string | null>(null)
+  const toggleVip = async (uid: string, on: boolean) => {
+    setVipSaving(uid)
+    if (on) {
+      const { data: last } = await supabase.from('vip_featured_artists').select('display_order').order('display_order', { ascending: false }).limit(1)
+      const res = await guardedWrite(
+        supabase.from('vip_featured_artists').insert({ application_id: appId, artist_uid: uid, display_order: (last?.[0]?.display_order ?? 0) + 1 }).select('id'),
+        'Not added to the VIP Meet & Greet', `admin/booths/${appId} vipAdd`,
+      )
+      if (!res.ok) toast.error(res.error); else { setVipUids(prev => [...prev, uid]); toast.success('Added to the VIP Meet & Greet'); void requestRevalidate({ paths: ['/events/vip-meet-greet'], tags: ['vip'] }) }
+    } else {
+      const res = await guardedWrite(
+        supabase.from('vip_featured_artists').delete().eq('application_id', appId).eq('artist_uid', uid).select('id'),
+        'Not removed from the VIP Meet & Greet', `admin/booths/${appId} vipRemove`,
+      )
+      if (!res.ok) toast.error(res.error); else { setVipUids(prev => prev.filter(u => u !== uid)); toast.success('Removed from the VIP Meet & Greet'); void requestRevalidate({ paths: ['/events/vip-meet-greet'], tags: ['vip'] }) }
+    }
+    setVipSaving(null)
+  }
   const setArtistVerified = async (i: number, verified: boolean) => {
     if (!app) return
     setVerifyingArtist(i)
@@ -885,6 +911,15 @@ export default function BoothDetailPage() {
                       />
                     </div>
                   </div>
+
+                  {/* Gold Star VIP Meet & Greet (098) */}
+                  {typeof artist.uid === 'string' && (
+                    <label className="flex items-center gap-2 text-sm text-white">
+                      <input type="checkbox" disabled={vipSaving === artist.uid} checked={vipUids.includes(artist.uid)}
+                        onChange={e => toggleVip(artist.uid as string, e.target.checked)} />
+                      Attending Gold Star VIP Meet &amp; Greet
+                    </label>
+                  )}
 
                   {/* TV show: per artist (2026-10-09) */}
                   <div>
