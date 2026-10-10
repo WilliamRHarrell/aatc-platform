@@ -1,9 +1,12 @@
 # Application editor and VIP Meet & Greet featured artists
 
 Ryan's plan and decisions, 2026-10-09, recorded so a fresh session can
-continue. **Status:** editor PR 1 merged (#98, migration 096 applied and
-verified). Editor PR 2 NOT started. Each step is its own PR based on
-`develop`; report before building anything not described here.
+continue. **Status: COMPLETE (2026-10-09).** Editor PR 1 #98 (096), PR 2
+#100, TV per artist #101, PR 3 #102, 097 fix #103, Add A Booth retired
+#104, VIP #105 (098), Featured badge and homepage #106 (099); every
+migration applied and verified. The order below was changed by Ryan: PR 3
+moved ahead of VIP. Remaining: the homepage switch, once 3 artists are
+featured (START HERE, "Waiting").
 
 ## Order (Ryan)
 

@@ -41,6 +41,8 @@ after something is merged or applied, on their own docs PR.
   apply) and `npm run verify:local -- --audit`. Both must pass, and the PR
   says so. Never hand-write a minimal test schema (verify_087 passed on one
   and failed live on sponsorships.tier).
+- **When telling Ryan to run SQL, always say copy it from the Raw file on
+  develop** (Code → file → Raw), never from a PR's changes view.
 - **Never write storage tables from a verify.** Assert storage policies from
   `pg_policies`; exercise uploads through the Storage API
   (`scripts/verify-graphics-owner.mjs` pattern).
