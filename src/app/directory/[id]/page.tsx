@@ -8,9 +8,13 @@ import PublicNav from '@/components/PublicNav'
 import { describeBooths } from '@/lib/booth-display'
 import { EVENT_NAME, EVENT_YEAR, EVENT_DATES_LABEL, VENUE_NAME, VENUE_CITY, VENUE_STATE } from '@/lib/event-config'
 import { artistTv, unattributedTv } from '@/lib/tv-show'
+import FeaturedBadge from '@/components/FeaturedBadge'
+import { useVipFeatured } from '@/lib/vip'
 
 interface ArtistInfo {
   name: string
+  /** Roster uid (098), for the Featured badge. */
+  uid?: string
   nickname?: string
   instagram?: string
   portfolio_urls?: string[]
@@ -73,6 +77,7 @@ export default function DirectoryDetailPage() {
   const [notFound, setNotFound] = useState(false)
   const [expandedArtists, setExpandedArtists] = useState<Set<number>>(new Set())
   const [lightbox, setLightbox] = useState<string | null>(null)
+  const vip = useVipFeatured()
 
   useEffect(() => {
     const load = async () => {
@@ -241,6 +246,7 @@ export default function DirectoryDetailPage() {
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium text-white">
                                 {a.nickname || a.name || `Artist ${i + 1}`}
+                                {a.uid && vip.artists.has(a.uid) && <FeaturedBadge className="ml-2 align-middle" />}
                               </p>
                               {(() => {
                                 const tv = artistTv(e, i)

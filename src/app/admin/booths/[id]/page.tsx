@@ -13,6 +13,7 @@ import toast from 'react-hot-toast'
 import type { Database } from '@/types/database'
 import { guardedWrite } from '@/lib/db-write'
 import { requestRevalidate } from '@/lib/revalidate'
+import { VIP_PATHS } from '@/lib/vip-config'
 import { useApplicationDocs } from '@/lib/use-application-docs'
 import AddOnList from '@/components/admin/AddOnList'
 import { artistTv, ownTv, unattributedTv } from '@/lib/tv-show'
@@ -443,13 +444,13 @@ export default function BoothDetailPage() {
         supabase.from('vip_featured_artists').insert({ application_id: appId, artist_uid: uid, display_order: (last?.[0]?.display_order ?? 0) + 1 }).select('id'),
         'Not added to the VIP Meet & Greet', `admin/booths/${appId} vipAdd`,
       )
-      if (!res.ok) toast.error(res.error); else { setVipUids(prev => [...prev, uid]); toast.success('Added to the VIP Meet & Greet'); void requestRevalidate({ paths: ['/events/vip-meet-greet'], tags: ['vip'] }) }
+      if (!res.ok) toast.error(res.error); else { setVipUids(prev => [...prev, uid]); toast.success('Added to the VIP Meet & Greet'); void requestRevalidate({ paths: VIP_PATHS, tags: ['vip'] }) }
     } else {
       const res = await guardedWrite(
         supabase.from('vip_featured_artists').delete().eq('application_id', appId).eq('artist_uid', uid).select('id'),
         'Not removed from the VIP Meet & Greet', `admin/booths/${appId} vipRemove`,
       )
-      if (!res.ok) toast.error(res.error); else { setVipUids(prev => prev.filter(u => u !== uid)); toast.success('Removed from the VIP Meet & Greet'); void requestRevalidate({ paths: ['/events/vip-meet-greet'], tags: ['vip'] }) }
+      if (!res.ok) toast.error(res.error); else { setVipUids(prev => prev.filter(u => u !== uid)); toast.success('Removed from the VIP Meet & Greet'); void requestRevalidate({ paths: VIP_PATHS, tags: ['vip'] }) }
     }
     setVipSaving(null)
   }

@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase'
 import PublicNav from '@/components/PublicNav'
 import { describeBooths } from '@/lib/booth-display'
 import { publicTvShows } from '@/lib/tv-show'
+import FeaturedBadge from '@/components/FeaturedBadge'
+import { useVipFeatured } from '@/lib/vip'
 
 interface Exhibitor {
   id: string
@@ -41,6 +43,7 @@ function displayHost(url: string): string {
 export default function DirectoryPage() {
   const supabase = createClient()
   const [exhibitors, setExhibitors] = useState<Exhibitor[]>([])
+  const vip = useVipFeatured()
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
@@ -180,7 +183,7 @@ export default function DirectoryPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map(e => (
-              <ExhibitorCard key={e.id} exhibitor={e} />
+              <ExhibitorCard key={e.id} exhibitor={e} featured={vip.applications.has(e.id)} />
             ))}
           </div>
         )}
@@ -190,7 +193,7 @@ export default function DirectoryPage() {
   )
 }
 
-function ExhibitorCard({ exhibitor: e }: { exhibitor: Exhibitor }) {
+function ExhibitorCard({ exhibitor: e, featured }: { exhibitor: Exhibitor; featured: boolean }) {
   return (
     <Link
       href={`/directory/${e.id}`}
@@ -212,6 +215,8 @@ function ExhibitorCard({ exhibitor: e }: { exhibitor: Exhibitor }) {
 
       {/* Badges */}
       <div className="mb-3 flex flex-wrap items-center gap-2">
+        {/* An artist here is at the Gold Star VIP Meet & Greet (098) */}
+        {featured && <FeaturedBadge />}
         <span
           className="rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
           style={

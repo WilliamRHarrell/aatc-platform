@@ -17,6 +17,7 @@ import { getAfterParties } from '@/lib/after-parties-data'
 import { mapsUrl, nightLabel } from '@/lib/venues'
 import { timeLabel } from '@/lib/schedule-format'
 import PresentedBy from '@/components/PresentedBy'
+import { getVipArtists, MIN_FEATURED_FOR_HOMEPAGE } from '@/lib/vip-server'
 import { dayLabel as panelDayLabel, timeLabel as panelTimeLabel } from '@/lib/schedule-format'
 import {
   EVENT_NAME,
@@ -167,7 +168,9 @@ const getHomepageData = unstable_cache(
 )
 
 export default async function HomePage() {
-  const [c, { sponsors, panels }, afterParties, schedule] = await Promise.all([getContent('homepage'), getHomepageData(), getAfterParties(), getSchedule()])
+  const [c, { sponsors, panels }, afterParties, schedule, vipArtists] = await Promise.all([getContent('homepage'), getHomepageData(), getAfterParties(), getSchedule(), getVipArtists()])
+  // Content-editor switch, and only from MIN_FEATURED_FOR_HOMEPAGE artists (Ryan, 2026-10-09).
+  const featuredArtists = isTrue(c.featured_artists_on) && vipArtists.length >= MIN_FEATURED_FOR_HOMEPAGE ? vipArtists : []
   const cardDay = (ev: (typeof HOME_EVENTS)[number]) => cardWhen(ev, schedule)
 
   const ticketsLive = isTrue(c.ticket_sales_live) && !!c.ticket_url
@@ -335,6 +338,39 @@ export default async function HomePage() {
           </p>
         </div>
       </section>
+
+      {/* ── Featured artists: the Gold Star VIP Meet & Greet artists (098), behind
+          the content switch and only from MIN_FEATURED_FOR_HOMEPAGE. A card links
+          to the artist's directory profile when one is published. */}
+      {featuredArtists.length > 0 && (
+        <section className="border-t px-4 py-14" style={{ borderColor: '#2a2a2a' }}>
+          <div className="mx-auto max-w-5xl">
+            <h2 className="mb-8 text-center font-display text-2xl font-bold text-white sm:text-3xl">{c.featured_artists_title}</h2>
+            <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {featuredArtists.map(a => {
+                const card = (
+                  <>
+                    <div className="relative mx-auto mb-3 h-24 w-24 overflow-hidden rounded-full" style={{ backgroundColor: '#2a2a2a', border: '2px solid rgba(139,115,85,0.4)' }}>
+                      {a.photo_url && <Image src={a.photo_url} alt={a.artist_name ?? a.shop} fill sizes="96px" style={{ objectFit: 'cover' }} />}
+                    </div>
+                    {a.artist_name && <p className="text-sm font-bold text-white">{a.artist_name}</p>}
+                    <p className="mt-0.5 text-xs" style={{ color: '#C4A882' }}>{a.shop}</p>
+                    {a.tv_credit && <p className="mt-1.5 text-xs font-semibold" style={{ color: '#8B7355' }}>★ {a.tv_credit}</p>}
+                  </>
+                )
+                return (
+                  <li key={a.id} className="rounded-2xl p-5 text-center" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+                    {a.in_directory ? <Link href={`/directory/${a.application_id}`} className="block">{card}</Link> : card}
+                  </li>
+                )
+              })}
+            </ul>
+            <p className="mt-8 text-center">
+              <Link href="/events/vip-meet-greet" className="text-sm font-semibold" style={{ color: '#C4A882' }}>Gold Star VIP Meet &amp; Greet →</Link>
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* ── 3. Promo video - renders only when an ID is configured ──
           Vertical (9:16) footage sits in a width-capped column beside the copy

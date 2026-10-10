@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import PublicNav from '@/components/PublicNav'
 import { TATTOO_STYLES } from '@/lib/tattoo-styles'
+import FeaturedBadge from '@/components/FeaturedBadge'
+import { useVipFeatured } from '@/lib/vip'
 
 
 interface ArtistCard {
@@ -17,6 +19,8 @@ interface ArtistCard {
   businessName: string
   applicationId: string
   logo_url: string | null
+  /** Roster uid (098), for the Featured badge. */
+  uid: string | null
 }
 
 export default function FindArtistPage() {
@@ -26,6 +30,7 @@ export default function FindArtistPage() {
   const [search, setSearch] = useState('')
   const [selectedStyles, setSelectedStyles] = useState<string[]>([])
   const [lightbox, setLightbox] = useState<string | null>(null)
+  const vip = useVipFeatured()
 
   useEffect(() => {
     const load = async () => {
@@ -40,7 +45,7 @@ export default function FindArtistPage() {
       ;(data ?? []).forEach(app => {
         const artistList = (app.artists as Array<{
           name?: string; nickname?: string; instagram?: string;
-          styles?: string[]; portfolio_urls?: string[]; id_later?: boolean
+          styles?: string[]; portfolio_urls?: string[]; id_later?: boolean; uid?: string
         }> | null) ?? []
         artistList.forEach((ar, i) => {
           if (!ar.name && !ar.nickname) return // skip completely empty entries
@@ -54,6 +59,7 @@ export default function FindArtistPage() {
             businessName: app.business_name,
             applicationId: app.id,
             logo_url: (app as unknown as { logo_url: string | null }).logo_url ?? null,
+            uid: typeof ar.uid === 'string' ? ar.uid : null,
           })
         })
       })
@@ -183,7 +189,7 @@ export default function FindArtistPage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map(a => (
-              <ArtistResultCard key={a.key} artist={a} onLightbox={setLightbox} />
+              <ArtistResultCard key={a.key} artist={a} onLightbox={setLightbox} featured={!!a.uid && vip.artists.has(a.uid)} />
             ))}
           </div>
         )}
@@ -219,9 +225,11 @@ export default function FindArtistPage() {
 function ArtistResultCard({
   artist: a,
   onLightbox,
+  featured,
 }: {
   artist: ArtistCard
   onLightbox: (url: string) => void
+  featured: boolean
 }) {
   return (
     <div
@@ -253,6 +261,7 @@ function ArtistResultCard({
           <p className="truncate font-semibold text-white">
             {a.nickname || a.artistName || '?'}
           </p>
+          {featured && <FeaturedBadge className="mt-0.5" />}
           <Link
             href={`/directory/${a.applicationId}`}
             className="text-xs transition-colors"
