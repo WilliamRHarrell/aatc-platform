@@ -889,6 +889,25 @@ export type Database = {
         }
         Relationships: []
       }
+      /** Migration 100 - public Veteran badges, ticked by admin. artist_uid null = a vendor's business. */
+      veteran_badges: {
+        Row: {
+          id: string
+          application_id: string
+          artist_uid: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          application_id: string
+          artist_uid?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: never
+        Relationships: []
+      }
       /** Migration 044 - the 2027 programme. Seminars live in `panels`. */
       schedule_items: {
         Row: {
@@ -1645,6 +1664,14 @@ export type Database = {
           application_id: string
           artist_uid: string
           in_directory: boolean
+        }
+        Relationships: []
+      }
+      /** Migration 100 - public Veteran badges (ids only; approved, active event). */
+      veteran_badges_public: {
+        Row: {
+          application_id: string
+          artist_uid: string | null
         }
         Relationships: []
       }

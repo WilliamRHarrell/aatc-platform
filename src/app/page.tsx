@@ -36,6 +36,9 @@ import {
   daysUntilDoors,
 } from '@/lib/event-config'
 import { excludeHarnessSponsors } from '@/lib/sponsor-display'
+import VeteranBadge from '@/components/VeteranBadge'
+import { getVeteranBadges } from '@/lib/veteran-server'
+import { VETERAN_LABEL } from '@/lib/veteran-config'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://allamericantattooconvention.com'
 
@@ -168,7 +171,7 @@ const getHomepageData = unstable_cache(
 )
 
 export default async function HomePage() {
-  const [c, { sponsors, panels }, afterParties, schedule, vipArtists] = await Promise.all([getContent('homepage'), getHomepageData(), getAfterParties(), getSchedule(), getVipArtists()])
+  const [c, { sponsors, panels }, afterParties, schedule, vipArtists, veteran] = await Promise.all([getContent('homepage'), getHomepageData(), getAfterParties(), getSchedule(), getVipArtists(), getVeteranBadges()])
   // Content-editor switch, and only from MIN_FEATURED_FOR_HOMEPAGE artists (Ryan, 2026-10-09).
   const featuredArtists = isTrue(c.featured_artists_on) && vipArtists.length >= MIN_FEATURED_FOR_HOMEPAGE ? vipArtists : []
   const cardDay = (ev: (typeof HOME_EVENTS)[number]) => cardWhen(ev, schedule)
@@ -355,6 +358,7 @@ export default async function HomePage() {
                     </div>
                     {a.artist_name && <p className="text-sm font-bold text-white">{a.artist_name}</p>}
                     <p className="mt-0.5 text-xs" style={{ color: '#C4A882' }}>{a.shop}</p>
+                    {veteran.artists.has(a.artist_uid) && <VeteranBadge label={VETERAN_LABEL.artist} className="mt-1.5" />}
                     {a.tv_credit && <p className="mt-1.5 text-xs font-semibold" style={{ color: '#8B7355' }}>★ {a.tv_credit}</p>}
                   </>
                 )

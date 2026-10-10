@@ -66,17 +66,19 @@ interface ArtistDraft {
   extra: Record<string, unknown>
   /** Attending the Gold Star VIP Meet & Greet (vip_featured_artists, by uid). */
   vip: boolean
+  /** Public Veteran badge (veteran_badges, by uid, 100). */
+  veteranBadge: boolean
 }
 
 const blankArtist = (): ArtistDraft => ({
   name: '', nickname: '', instagram: '', styles: [], bio: '', tv_featured: null, tv_credit: '', id_later: false,
-  photo_url: null, portfolio_urls: [], id_url: null, photo_file: null, portfolio_files: [], id_file: null, verified: false, extra: {}, vip: false,
+  photo_url: null, portfolio_urls: [], id_url: null, photo_file: null, portfolio_files: [], id_file: null, verified: false, extra: {}, vip: false, veteranBadge: false,
 })
 
 const EDITED_KEYS = ['name', 'nickname', 'instagram', 'styles', 'bio', 'tv_featured', 'tv_credit', 'photo_url', 'portfolio_urls', 'id_url', 'id_later', 'id_verified_at', 'id_verified_by']
 const s_ = (v: unknown) => (typeof v === 'string' ? v : '')
 
-function draftFrom(a: unknown, vipUids: readonly string[]): ArtistDraft {
+function draftFrom(a: unknown, vipUids: readonly string[], veteranUids: readonly string[]): ArtistDraft {
   const o = (a && typeof a === 'object' ? a : {}) as Record<string, unknown>
   const tv = ownTv(o)
   return {
@@ -91,6 +93,7 @@ function draftFrom(a: unknown, vipUids: readonly string[]): ArtistDraft {
     verified: isIdVerified(o),
     extra: Object.fromEntries(Object.entries(o).filter(([k]) => !EDITED_KEYS.includes(k))),
     vip: typeof o.uid === 'string' && vipUids.includes(o.uid),
+    veteranBadge: typeof o.uid === 'string' && veteranUids.includes(o.uid),
   }
 }
 
@@ -107,11 +110,14 @@ export interface EditorInitial {
   invoice: { amount: number; amount_paid: number } | null
   /** Roster uids with a vip_featured_artists row (098). */
   vipUids: string[]
+  /** Roster uids with a Veteran badge, and whether a vendor's business has one (100). */
+  veteranUids: string[]
+  businessVeteranBadge: boolean
 }
 
 const isBlank = (a: ArtistDraft) =>
   !a.name.trim() && !a.nickname.trim() && !a.instagram.trim() && a.styles.length === 0 && !a.bio.trim()
-  && a.tv_featured === null && !a.tv_credit.trim() && !a.vip && !a.photo_url && a.portfolio_urls.length === 0 && !a.id_url
+  && a.tv_featured === null && !a.tv_credit.trim() && !a.vip && !a.veteranBadge && !a.photo_url && a.portfolio_urls.length === 0 && !a.id_url
   && !a.photo_file && a.portfolio_files.length === 0 && !a.id_file
 
 /** Blank roster slots move to the end, so a slot's index is the saved index (storage paths, ID verification). */
@@ -196,7 +202,7 @@ export default function ApplicationEditorForm({ initial }: { initial?: EditorIni
   const supabase = createClient()
   const r = initial?.row
   const rIsArtist = r ? r.exhibitor_type === 'artist' : true
-  const rRoster = r && Array.isArray(r.artists) ? r.artists.map(a => draftFrom(a, initial?.vipUids ?? [])) : []
+  const rRoster = r && Array.isArray(r.artists) ? r.artists.map(a => draftFrom(a, initial?.vipUids ?? [], initial?.veteranUids ?? [])) : []
   const initialMoney: MoneyMode = !r ? 'standard'
     : r.comped_at && r.permits_comped_at ? 'comp_all'
     : r.comped_at ? 'comp_booth'
@@ -228,6 +234,7 @@ export default function ApplicationEditorForm({ initial }: { initial?: EditorIni
   const [idDocFile, setIdDocFile] = useState<File | null>(null)
   const [vetUrl, setVetUrl] = useState<string | null>(r?.veteran_id_url ?? null)
   const [vetFile, setVetFile] = useState<File | null>(null)
+  const [businessVeteranBadge, setBusinessVeteranBadge] = useState(!!initial?.businessVeteranBadge)
 
   // Rejected or waitlisted opens as 'keep': a save leaves the status alone.
   const [status, setStatus] = useState<'pending' | 'approved' | 'keep'>(
@@ -318,8 +325,9 @@ export default function ApplicationEditorForm({ initial }: { initial?: EditorIni
     veteran_id_url: isVeteran ? refs.vet : null,
     artists: isArtist ? roster.filter(a => !isBlank(a)).map((a): EditorArtist => ({
       name: a.name, nickname: a.nickname, instagram: a.instagram, styles: a.styles, bio: a.bio, tv_featured: a.tv_featured, tv_credit: a.tv_featured === false ? '' : a.tv_credit,
-      photo_url: a.photo_url, portfolio_urls: a.portfolio_urls, id_url: a.id_url, id_later: a.id_later, extra: a.extra, vip: a.vip,
+      photo_url: a.photo_url, portfolio_urls: a.portfolio_urls, id_url: a.id_url, id_later: a.id_later, extra: a.extra, vip: a.vip, veteranBadge: a.veteranBadge,
     })) : [],
+    business_veteran_badge: !isArtist && businessVeteranBadge,
     status,
     money: money(confirmed),
   })
@@ -567,6 +575,15 @@ export default function ApplicationEditorForm({ initial }: { initial?: EditorIni
           </div>
         )}
         {!isArtist && (
+          <label className="mt-4 flex items-start gap-2 text-sm text-white">
+            <input type="checkbox" className="mt-1" checked={businessVeteranBadge} onChange={e => setBusinessVeteranBadge(e.target.checked)} />
+            <span>
+              Show a public Veteran-owned badge
+              <span className="block text-xs" style={{ color: '#666' }}>Only after checking with the vendor. Separate from the veteran discount; shown while the application is approved.</span>
+            </span>
+          </label>
+        )}
+        {!isArtist && (
           <div className="mt-5 max-w-md">
             <FilePick label="Vendor ID document (optional here)" saved={idDocUrl} savedLabel="ID saved" file={idDocFile} accept={DOC_TYPES}
               onFile={setIdDocFile} onRemove={() => setIdDocUrl(null)} hint="The public form requires one; add it here when you have it." />
@@ -618,6 +635,13 @@ export default function ApplicationEditorForm({ initial }: { initial?: EditorIni
                     <span>
                       Attending Gold Star VIP Meet &amp; Greet
                       <span className="block text-xs" style={{ color: '#666' }}>Listed on /events/vip-meet-greet while the application is approved. Order: VIP Meet &amp; Greet in admin.</span>
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2 text-sm text-white sm:col-span-2">
+                    <input type="checkbox" className="mt-1" checked={a.veteranBadge} onChange={e => patchArtist(i, { veteranBadge: e.target.checked })} />
+                    <span>
+                      Show a public Veteran badge
+                      <span className="block text-xs" style={{ color: '#666' }}>Only after checking with the artist. Separate from the veteran discount; shown while the application is approved.</span>
                     </span>
                   </label>
                   <Field label={`Bio (${a.bio.length}/${BIO_MAX})`} wide hint="Optional. Public on the directory and the VIP page.">

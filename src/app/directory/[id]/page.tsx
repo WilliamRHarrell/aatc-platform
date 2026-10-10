@@ -10,6 +10,9 @@ import { EVENT_NAME, EVENT_YEAR, EVENT_DATES_LABEL, VENUE_NAME, VENUE_CITY, VENU
 import { artistTv, unattributedTv } from '@/lib/tv-show'
 import FeaturedBadge from '@/components/FeaturedBadge'
 import { useVipFeatured } from '@/lib/vip'
+import VeteranBadge from '@/components/VeteranBadge'
+import { useVeteranBadges } from '@/lib/veteran'
+import { VETERAN_LABEL } from '@/lib/veteran-config'
 
 interface ArtistInfo {
   name: string
@@ -78,6 +81,7 @@ export default function DirectoryDetailPage() {
   const [expandedArtists, setExpandedArtists] = useState<Set<number>>(new Set())
   const [lightbox, setLightbox] = useState<string | null>(null)
   const vip = useVipFeatured()
+  const veteran = useVeteranBadges()
 
   useEffect(() => {
     const load = async () => {
@@ -190,6 +194,7 @@ export default function DirectoryDetailPage() {
               <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">
                 <span className="text-emboss">{e.business_name}</span>
               </h1>
+              {e.exhibitor_type === 'vendor' && veteran.vendors.has(e.id) && <VeteranBadge label={VETERAN_LABEL.vendor} className="mt-2" />}
 
               <p className="mt-2 text-sm capitalize" style={{ color: '#999' }}>
                 <span className="text-emboss">{describeBooths(e)}
@@ -247,6 +252,7 @@ export default function DirectoryDetailPage() {
                               <p className="text-sm font-medium text-white">
                                 {a.nickname || a.name || `Artist ${i + 1}`}
                                 {a.uid && vip.artists.has(a.uid) && <FeaturedBadge className="ml-2 align-middle" />}
+                                {a.uid && veteran.artists.has(a.uid) && <VeteranBadge label={VETERAN_LABEL.artist} className="ml-2 align-middle" />}
                               </p>
                               {(() => {
                                 const tv = artistTv(e, i)
