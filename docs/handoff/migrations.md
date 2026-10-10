@@ -56,6 +56,9 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **094** | **APPLIED + VERIFIED** (Ryan, 2026-10-09: verify_094 passed; applied before #89 merged) | `applications.tv_show_featured` (artist form's TV show Yes/No; null = not asked or applied before 094); backfill true for artist rows that named a show. |
 | **095** | **APPLIED + VERIFIED** (Ryan, 2026-10-09: verify_095 passed; applied before #90 merged) | `sponsorships.applicant_notes` (the public form's notes; `notes` stays internal). No rows moved: the 4 existing notes were staff-written (production read 2026-10-09). |
 | **096** | **APPLIED + VERIFIED** (Ryan, 2026-10-09: verify_096 passed; applied before #98 merged) | `applications.agreed_total` (cents, admin only via `applications_protect_agreed_total`); Approve invoices it, `total_amount` stays the list price. |
+| **097** | **APPLIED + VERIFIED** (Ryan, 2026-10-09: verify_097 passed; #103) | `log_profile_edit()`: `by_owner = coalesce(auth.uid() = new.user_id, false)`. Before it, an admin save of a logged field on an application with no account failed (NOT NULL on profile_edits.by_owner). |
+| **098** | **APPLIED + VERIFIED** (Ryan, 2026-10-09: verify_098 passed; #105) | Roster `uid` on every `applications.artists` element (trigger `applications_roster_uid_trg`, backfilled); `vip_featured_artists` (admin-only RLS); `vip_featured_public` view (approved, active event, public fields). |
+| **099** | **APPLIED + VERIFIED** (Ryan, 2026-10-09: verify_099 passed; #106) | `vip_featured_public` gains `application_id`, `artist_uid`, `in_directory`. verify_099 block A supersedes verify_098 block A's column list. |
 
 **What this audit could and could not see.** It reads the live schema through
 PostgREST's OpenAPI document, which exposes tables, views, columns and callable
@@ -108,4 +111,6 @@ were live is wrong: both are absent.
 | `wholelife_spelling.sql` | **APPLIED + VERIFIED** 2026-09-23 | sponsorships row + 3 Battle rows + presentation_credits/exclusivity_grants read `WholeLife Aftercare`; verify_044 passed. First run aborted by its own guard on presentation_credits, re-run landed. |
 | `070_after_parties_data.sql` | **APPLIED** 2026-09-23 | 3 venues, 3 logo slots renamed to `venue-*`, 4 night slots, 4 after_party rows. Live rows since edited in the admin (times, publish state, Club Luna address) - see the 2026-09-23 after-parties entry. Do not re-run. |
 | `contact_email_scan.sql` | run status not reported | scan only; expects one PASS notice. |
+| `vendors_needs_roster_2026_10_09.sql` | **APPLIED** 2026-10-09 (Ryan) | needs_roster false on Rhino's Exotic Wooden Pipes and Orebro International; Rhino's listed (Ryan checked). Guarded; do not re-run (it refuses). |
+| `teardown_zz_editor_test.sql` | **APPLIED** 2026-10-09 (Ryan) | removed the 2 ZZ editor test applications; storage folders deleted by hand; zero-rows check 0. |
 | `voting_window_2027.sql` | **APPLIED + VERIFIED** 2026-08-31 | Ryan ran it and read the report: opens 2027-04-21 12:00 ET, closes 2027-05-22 00:00 ET, `days_to_exclusive_bound` 31, `voting_state()` returns "before". See above. |

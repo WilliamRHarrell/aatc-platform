@@ -4,6 +4,12 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
 
 ### OPEN ITEMS (one line each, with the owner)
 
+- **Turn on the homepage "Featured artists" section once 3 artists are
+  featured** (added 2026-10-10). /admin/content → Homepage → "Featured
+  artists section". It stays hidden below 3 even when on. Feature artists by
+  ticking "Attending Gold Star VIP Meet & Greet" in the editor or booth page;
+  order on /admin/vip. Owner: Ryan.
+
 - **Enable `FOOD_TRUCK_REMINDERS_ENABLED=true` in Vercel before 2026-12-01**
   (added 2026-10-08, #77). The first 30-day food truck balance reminder
   falls due 2026-12-02 (30 days before January 1). Check
@@ -58,8 +64,10 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
   check. Owner: whoever writes that migration.
 - **In-person (admin-added) applications have no account** (added
   2026-09-26). `user_id` is NULL by design (015/079b), so the exhibitor has no
-  portal view, online pay, roster or graphics page. The "link account" admin
-  action is queued in START HERE. Owner: queued.
+  portal view, online pay, roster or graphics page. DONE as a tool: Invite &
+  link (#36, through /auth/confirm since #97) connects an account; the
+  application editor (#100/#102) creates and edits them, and 097 lets admins
+  save them. Linking each one is a per-application step. Owner: Ryan.
 - **Catalog check for the migrations the 2026-08-31 audit could not see**
   (added 2026-09-26): 015 turned out never applied; see
   [migrations.md](migrations.md). Written:

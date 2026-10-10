@@ -9,10 +9,10 @@ This file is the index and the current state. Everything else lives in
 - [pre-show-email.md](handoff/pre-show-email.md) - approved pre-show venue-policies copy (Ryan sends it: box office / GHL).
 - [sessions/](handoff/sessions/) - one file per dated session, history.
 
-## START HERE - state as of 2026-10-09
+## START HERE - state as of 2026-10-10
 
-**Merged and deployed (develop = 2034621):** everything through #98. No open
-PRs. Since the 2026-10-07 refresh (#62-#74 are in the 2026-10-07 block of git
+**Merged and deployed (develop = 5591ede):** everything through #106. No
+open PRs except this docs PR. Since the 2026-10-07 refresh (#62-#74 are in the 2026-10-07 block of git
 history):
 - #75-#80 food truck application, 3 PRs (091, 092, 093) + fixes: form,
   admin decisions, cap and switch, $100 first payment, 30/14/7/1 reminders,
@@ -47,11 +47,40 @@ history):
   go through `/auth/confirm` too
 - #98 application editor PR 1: server side + migration 096 (`agreed_total`);
   Approve invoices an agreed total
+- #99 START HERE refresh; the editor/VIP plan
+- **Application editor and VIP plan: COMPLETE** (#100-#106; plan
+  [2026-10-09-application-editor-and-vip.md](superpowers/plans/2026-10-09-application-editor-and-vip.md)):
+  - #100 editor PR 2: `/admin/applications/new` (contacts, booths, add-ons,
+    roster with bio / photo / TV / portfolio / ID, logo, four money choices,
+    status); `?open=<id>` on /admin/applications; one `TATTOO_STYLES`
+  - #101 TV show per artist (`artists[].tv_featured` / `tv_credit`,
+    `lib/tv-show.ts`); public form asks per artist; drawer roster shows TV,
+    bio, photo; portal roster completion keeps every saved artist key
+  - #102 editor PR 3: "Edit in editor" on every application (drawer) and the
+    booth page; an unchanged order keeps the stored price, comp and invoice;
+    order locked once paid
+  - #103 097 (`profile_edits.by_owner` never NULL: admins can save an
+    application with no account) and the directory rule below
+  - #104 **Add A Booth retired** (Ryan's decision d): /admin/booths' button
+    opens the editor; deposits are recorded in Invoices
+  - #105 098: Gold Star VIP Meet & Greet featured artists (stable roster
+    `uid`, admin-only `vip_featured_artists`, public `vip_featured_public`);
+    "Attending" per artist in the editor and booth page; `/admin/vip` order
+  - #106 099: directory "Featured" badge (exhibitor card, artist card,
+    profile) and the homepage "Featured artists" section
 
-Source: `gh pr list --state merged` and `gh pr list --state open`, 2026-10-09.
-Ryan spot-checked #84-#91 after merging: all OK (2026-10-09).
+Source: `gh pr list --state merged` and `gh pr list --state open`, 2026-10-10.
+Ryan spot-checked #84-#91 after merging: all OK (2026-10-09). Ryan tested
+#100-#106 live (2026-10-09): editor create and edit on ZZ entries (then torn
+down), vendor ID + logo save after 097, Adu Ink featured on /admin/vip, the
+VIP page, /directory, /directory/artists and the profile: all OK.
 
-**Applied in production (Ryan):** everything through **096**, each verified:
+**Directory rule (Ryan, 2026-10-09):** listed = approved + roster complete +
+deposit / comp / override. **ID documents never affect listing**, for
+vendors or artists (especially the Square imports). A vendor's roster is
+always complete; an artist's is complete when every artist is listed.
+
+**Applied in production (Ryan):** everything through **099**, each verified:
 - 088: verify_088 passed, then verify_079_matrix passed (Ryan, 2026-10-07).
 - 089: verify_089 passed (Ryan, 2026-10-07).
 - 090: verify_090 + `scripts/verify-food-truck-owner.mjs` 4 PASS (2026-10-06).
@@ -62,6 +91,10 @@ Ryan spot-checked #84-#91 after merging: all OK (2026-10-09).
 - 094 and 095: verify_094 and verify_095 passed, each applied before its PR
   merged (Ryan, 2026-10-09).
 - 096: verify_096 passed, applied before #98 merged (Ryan, 2026-10-09).
+- 097: verify_097 passed (Ryan, 2026-10-09); then the vendor ID + logo save
+  that had failed went through.
+- 098: verify_098 passed (Ryan, 2026-10-09).
+- 099: verify_099 passed (Ryan, 2026-10-09).
 - 015 is superseded by 079b. 047 is still HELD.
 - Evidence per migration: [migrations.md](handoff/migrations.md).
 
@@ -94,6 +127,14 @@ reconcile or audit that flags these comps is not finding an error.
     data). It deletes exactly the imported ids, and **stops working (it
     refuses) once a payment, amount, comp or linked portal account changes
     any of those rows.** So it is unusable after Invite & link.
+- **Vendor directory fix (2026-10-09):**
+  `supabase/seeds/vendors_needs_roster_2026_10_09.sql` cleared needs_roster on
+  Rhino's Exotic Wooden Pipes (now listed, Ryan checked) and Orebro
+  International (listed once its deposit is paid). Their portal no longer
+  asks for the booth-holder ID.
+- **ZZ editor test entries removed (2026-10-09):**
+  `supabase/seeds/teardown_zz_editor_test.sql` removed 2; storage folders
+  deleted; zero-rows check 0 (Ryan).
 - **Chop Shop Tattoo invoice set to $200** (booth comped, 4 permits;
   `supabase/seeds/chopshop_invoice_2026_10_02.sql`). It is now
   "Comp booth, permits charged".
@@ -102,19 +143,13 @@ reconcile or audit that flags these comps is not finding an error.
 for the full weekend** (`src/lib/food-truck-pricing.ts`; existing invoices
 unchanged). Artist permits are $50, capped at 2 per single / 4 per double.
 
-**In progress, in Ryan's order.** Full plan, Ryan's decisions (a-f,
-agreed_total, VIP design) and technical notes:
-[docs/superpowers/plans/2026-10-09-application-editor-and-vip.md](superpowers/plans/2026-10-09-application-editor-and-vip.md).
-Editor PR 2 is NOT started (no branch, no draft).
-1. **Application editor** (build or edit a whole application on someone's
-   behalf). PR 1 merged (#98). Next: PR 2, the editor form (contact, booths,
-   add-ons, roster with bio / photo / TV credit / portfolio / ID uploads, logo,
-   TV show, money choice, status); retires Add A Booth once live.
-2. **VIP Meet & Greet featured artists** (per-artist id, admin-only table,
-   approved-only public view, ordering).
-3. **Editor PR 3:** "Edit everything" on any application.
-4. **Directory "Featured" badge and homepage "Featured artists"** (content
-   switch, shown with at least 3).
+**Waiting:** the homepage "Featured artists" section shows only when
+"Featured artists section" is ON in /admin/content → Homepage AND at least
+3 artists are featured (`MIN_FEATURED_FOR_HOMEPAGE`). One is featured (Adu
+Ink, 2026-10-09); the switch is off. Owner: Ryan.
+
+**Reported, awaiting Ryan's go:** public veteran badge in the directory
+(per artist / per vendor, admin-ticked only; report 2026-10-10).
 
 **Queued, each its own PR, report before building:**
 1. **Floor plan Stage 1:** waiting on the vector PDF.
