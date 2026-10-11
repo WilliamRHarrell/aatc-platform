@@ -59,6 +59,7 @@ Audited 2026-08-31 against the LIVE DATABASE, not against this file.
 | **097** | **APPLIED + VERIFIED** (Ryan, 2026-10-09: verify_097 passed; #103) | `log_profile_edit()`: `by_owner = coalesce(auth.uid() = new.user_id, false)`. Before it, an admin save of a logged field on an application with no account failed (NOT NULL on profile_edits.by_owner). |
 | **098** | **APPLIED + VERIFIED** (Ryan, 2026-10-09: verify_098 passed; #105) | Roster `uid` on every `applications.artists` element (trigger `applications_roster_uid_trg`, backfilled); `vip_featured_artists` (admin-only RLS); `vip_featured_public` view (approved, active event, public fields). |
 | **099** | **APPLIED + VERIFIED** (Ryan, 2026-10-09: verify_099 passed; #106) | `vip_featured_public` gains `application_id`, `artist_uid`, `in_directory`. verify_099 block A supersedes verify_098 block A's column list. |
+| **100** | **APPLIED + VERIFIED** (Ryan, 2026-10-10: verify_100 all PASS; #108) | `veteran_badges` (admin-only; artist_uid = roster uid, NULL = a vendor's business; one per subject) and `veteran_badges_public` (ids only; approved, active event; artist still on the roster; business badge only on vendors). Not derived from `is_veteran`. |
 
 **What this audit could and could not see.** It reads the live schema through
 PostgREST's OpenAPI document, which exposes tables, views, columns and callable

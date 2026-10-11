@@ -11,9 +11,9 @@ This file is the index and the current state. Everything else lives in
 
 ## START HERE - state as of 2026-10-10
 
-**Merged and deployed (develop = 5591ede):** everything through #106. No
-open PRs except this docs PR. Since the 2026-10-07 refresh (#62-#74 are in the 2026-10-07 block of git
-history):
+**Merged and deployed (develop = 3f3dfdb):** everything through #108. No
+open PRs except this docs PR. Since the 2026-10-07 refresh (#62-#74 are in
+the 2026-10-07 block of git history):
 - #75-#80 food truck application, 3 PRs (091, 092, 093) + fixes: form,
   admin decisions, cap and switch, $100 first payment, 30/14/7/1 reminders,
   January 2 unpaid list, Release, permit/license uploads; #78 trucks CAN sell
@@ -68,8 +68,15 @@ history):
     "Attending" per artist in the editor and booth page; `/admin/vip` order
   - #106 099: directory "Featured" badge (exhibitor card, artist card,
     profile) and the homepage "Featured artists" section
+- #107 START HERE refresh; rule: SQL is copied from the Raw file on develop
+- #108 100: **public Veteran badges**, ticked only by an admin after
+  checking with the person, never from `is_veteran` (the discount):
+  "Veteran" on an artist, "Veteran artist(s)" on a shop's /directory card,
+  "Veteran-owned" on a vendor; text label plus a starless gold flag, on
+  /directory, /directory/artists, profiles, the VIP page and homepage
+  featured cards. Ticked in the editor or on the booth page.
 
-Source: `gh pr list --state merged` and `gh pr list --state open`, 2026-10-10.
+Source: `gh pr list --state merged` and `gh pr list --state open`, 2026-10-10 (after #108).
 Ryan spot-checked #84-#91 after merging: all OK (2026-10-09). Ryan tested
 #100-#106 live (2026-10-09): editor create and edit on ZZ entries (then torn
 down), vendor ID + logo save after 097, Adu Ink featured on /admin/vip, the
@@ -80,7 +87,7 @@ deposit / comp / override. **ID documents never affect listing**, for
 vendors or artists (especially the Square imports). A vendor's roster is
 always complete; an artist's is complete when every artist is listed.
 
-**Applied in production (Ryan):** everything through **099**, each verified:
+**Applied in production (Ryan):** everything through **100**, each verified:
 - 088: verify_088 passed, then verify_079_matrix passed (Ryan, 2026-10-07).
 - 089: verify_089 passed (Ryan, 2026-10-07).
 - 090: verify_090 + `scripts/verify-food-truck-owner.mjs` 4 PASS (2026-10-06).
@@ -95,6 +102,7 @@ always complete; an artist's is complete when every artist is listed.
   that had failed went through.
 - 098: verify_098 passed (Ryan, 2026-10-09).
 - 099: verify_099 passed (Ryan, 2026-10-09).
+- 100: verify_100 all PASS (Ryan, 2026-10-10).
 - 015 is superseded by 079b. 047 is still HELD.
 - Evidence per migration: [migrations.md](handoff/migrations.md).
 
@@ -148,8 +156,12 @@ unchanged). Artist permits are $50, capped at 2 per single / 4 per double.
 3 artists are featured (`MIN_FEATURED_FOR_HOMEPAGE`). One is featured (Adu
 Ink, 2026-10-09); the switch is off. Owner: Ryan.
 
-**Reported, awaiting Ryan's go:** public veteran badge in the directory
-(per artist / per vendor, admin-ticked only; report 2026-10-10).
+**Veteran badges (Ryan, 2026-10-10):** ticked for Chop (Chop Shop Tattoo);
+shown on /directory and the profile (Ryan checked). Not yet decided, each
+after Ryan checks with the person: Downtown Ink, Joey Spindler Tattoos
+(artists); Henna Warrior LLC, Rhino's Exotic Wooden Pipes (vendors). Joey
+Spindler Tattoos is off the directory until its deposit is paid ($700
+invoice, $0 paid; production read 2026-10-10) or an override is set.
 
 **Queued, each its own PR, report before building:**
 1. **Floor plan Stage 1:** waiting on the vector PDF.
