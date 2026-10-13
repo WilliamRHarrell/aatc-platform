@@ -166,7 +166,38 @@ export async function POST(req: Request) {
   revalidateTag('veteran', { expire: 0 })
   VETERAN_PATHS.forEach(p => revalidatePath(p))
 
+  // ── 7. Repost opt-outs (101): per-artist rows only; nothing public to revalidate ──
+  const optOutProblem = await syncRepostOptOuts(supabase, appId, body.input)
+  if (optOutProblem) problems.push(optOutProblem)
+
   return NextResponse.json({ ok: true, id: appId, created: !id, problems })
+}
+
+/**
+ * Ticked artists (uid) get an artist_repost_opt_outs row; unticked lose it.
+ * Whole-application rows (artist_uid null) belong to /admin/social/artist-posts
+ * and are never touched here. Same roster mapping as syncVip.
+ */
+async function syncRepostOptOuts(supabase: Awaited<ReturnType<typeof createServerClient>>, appId: string, input: EditorInput): Promise<string | null> {
+  const wanted = input.exhibitor_type === 'artist' ? (input.artists ?? []).map(a => !!a.repostOptOut) : []
+  const { data: current, error: readErr } = await supabase.from('artist_repost_opt_outs').select('id, artist_uid').eq('application_id', appId)
+  if (readErr) return wanted.some(Boolean) ? `the repost opt-out was not saved (${readErr.message}; is migration 101 applied?)` : null
+  const { data: saved } = await supabase.from('applications').select('artists').eq('id', appId).single()
+  const roster = Array.isArray(saved?.artists) ? (saved.artists as Array<{ uid?: unknown }>) : []
+  const want = new Set(roster.flatMap((a, i) => (wanted[i] && typeof a?.uid === 'string' ? [a.uid] : [])))
+  const perArtist = (current ?? []).filter(r => r.artist_uid !== null)
+  const have = new Set(perArtist.map(r => r.artist_uid as string))
+  const drop = perArtist.filter(r => !want.has(r.artist_uid as string)).map(r => r.id)
+  const add = [...want].filter(u => !have.has(u))
+  if (drop.length) {
+    const { error } = await supabase.from('artist_repost_opt_outs').delete().in('id', drop)
+    if (error) return `a repost opt-out was not removed (${error.message})`
+  }
+  if (add.length) {
+    const { error } = await supabase.from('artist_repost_opt_outs').insert(add.map(artist_uid => ({ application_id: appId, artist_uid })))
+    if (error) return `a repost opt-out was not saved (${error.message})`
+  }
+  return null
 }
 
 /** Ticked artists (uid) or, on a vendor, the business (null). Same roster mapping as syncVip. */

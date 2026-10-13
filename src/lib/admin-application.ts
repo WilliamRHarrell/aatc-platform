@@ -54,6 +54,8 @@ export interface EditorArtist {
   vip?: boolean
   /** Public Veteran badge on this artist (veteran_badges, by uid, 100); ticked by admin only. Not stored in the roster. */
   veteranBadge?: boolean
+  /** Excluded from the social repost pipeline (artist_repost_opt_outs, by uid, 101). Not stored in the roster. */
+  repostOptOut?: boolean
 }
 
 export interface EditorInput {

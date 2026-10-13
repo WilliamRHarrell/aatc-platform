@@ -20,7 +20,7 @@ export default function EditApplicationPage() {
   useEffect(() => {
     const supabase = createClient()
     void (async () => {
-      const [{ data: row, error: e1 }, { data: invoices }, { data: vip }, { data: vet }] = await Promise.all([
+      const [{ data: row, error: e1 }, { data: invoices }, { data: vip }, { data: vet }, { data: optOuts }] = await Promise.all([
         supabase.from('applications')
           .select('id, status, exhibitor_type, business_name, contact_name, email, phone, website, instagram, facebook, other_links, notes, artist_single_qty, artist_double_qty, vendor_single_qty, vendor_double_qty, corner_count, add_ons, artist_count, is_veteran, artists, logo_url, id_doc_url, veteran_id_url, total_amount, agreed_total, comped_at, permits_comped_at')
           .eq('id', id).maybeSingle(),
@@ -29,10 +29,13 @@ export default function EditApplicationPage() {
         supabase.from('vip_featured_artists').select('artist_uid').eq('application_id', id),
         // 100; before it is applied this errors and the badges start unticked.
         supabase.from('veteran_badges').select('artist_uid').eq('application_id', id),
+        // 101; per-artist rows only - a whole-application opt-out (null uid) is managed on /admin/social/artist-posts.
+        supabase.from('artist_repost_opt_outs').select('artist_uid').eq('application_id', id),
       ])
       if (e1 || !row) { setError(e1?.message ?? 'Application not found.'); return }
       setInitial({ id: row.id, row: row as unknown as EditorInitial['row'], invoice: invoices?.[0] ?? null, vipUids: (vip ?? []).map(v => v.artist_uid),
-        veteranUids: (vet ?? []).flatMap(v => (v.artist_uid ? [v.artist_uid] : [])), businessVeteranBadge: (vet ?? []).some(v => v.artist_uid === null) })
+        veteranUids: (vet ?? []).flatMap(v => (v.artist_uid ? [v.artist_uid] : [])), businessVeteranBadge: (vet ?? []).some(v => v.artist_uid === null),
+        repostOptOutUids: (optOuts ?? []).flatMap(o => (o.artist_uid ? [o.artist_uid] : [])) })
     })()
   }, [id])
 
