@@ -116,8 +116,10 @@ export interface EditorInitial {
   /** Roster uids with a Veteran badge, and whether a vendor's business has one (100). */
   veteranUids: string[]
   businessVeteranBadge: boolean
-  /** Roster uids with a repost opt-out (101; whole-application rows stay on /admin/social/artist-posts). */
+  /** Roster uids with a repost opt-out (101; on ARTIST applications the whole-application row stays on /admin/social/artist-posts). */
   repostOptOutUids: string[]
+  /** A NULL-uid opt-out row exists. On a VENDOR application that row IS the vendor's opt-out and this form manages it (103). */
+  vendorRepostOptOut: boolean
 }
 
 const isBlank = (a: ArtistDraft) =>
@@ -240,6 +242,7 @@ export default function ApplicationEditorForm({ initial }: { initial?: EditorIni
   const [vetUrl, setVetUrl] = useState<string | null>(r?.veteran_id_url ?? null)
   const [vetFile, setVetFile] = useState<File | null>(null)
   const [businessVeteranBadge, setBusinessVeteranBadge] = useState(!!initial?.businessVeteranBadge)
+  const [vendorRepostOptOut, setVendorRepostOptOut] = useState(!!initial?.vendorRepostOptOut)
 
   // Rejected or waitlisted opens as 'keep': a save leaves the status alone.
   const [status, setStatus] = useState<'pending' | 'approved' | 'keep'>(
@@ -333,6 +336,7 @@ export default function ApplicationEditorForm({ initial }: { initial?: EditorIni
       photo_url: a.photo_url, portfolio_urls: a.portfolio_urls, id_url: a.id_url, id_later: a.id_later, extra: a.extra, vip: a.vip, veteranBadge: a.veteranBadge, repostOptOut: a.repostOptOut,
     })) : [],
     business_veteran_badge: !isArtist && businessVeteranBadge,
+    vendor_repost_opt_out: !isArtist && vendorRepostOptOut,
     status,
     money: money(confirmed),
   })
@@ -585,6 +589,15 @@ export default function ApplicationEditorForm({ initial }: { initial?: EditorIni
             <span>
               Show a public Veteran-owned badge
               <span className="block text-xs" style={{ color: '#666' }}>Only after checking with the vendor. Separate from the veteran discount; shown while the application is approved.</span>
+            </span>
+          </label>
+        )}
+        {!isArtist && (
+          <label className="mt-3 flex items-start gap-2 text-sm text-white">
+            <input type="checkbox" className="mt-1" checked={vendorRepostOptOut} onChange={e => setVendorRepostOptOut(e.target.checked)} />
+            <span>
+              Exclude from social reposts
+              <span className="block text-xs" style={{ color: '#666' }}>Their Instagram posts stay out of Artist posts in admin. Effective on the next refresh.</span>
             </span>
           </label>
         )}

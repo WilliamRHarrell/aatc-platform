@@ -175,13 +175,29 @@ export async function POST(req: Request) {
 
 /**
  * Ticked artists (uid) get an artist_repost_opt_outs row; unticked lose it.
- * Whole-application rows (artist_uid null) belong to /admin/social/artist-posts
- * and are never touched here. Same roster mapping as syncVip.
+ * On an ARTIST application the whole-application row (artist_uid null)
+ * belongs to /admin/social/artist-posts and is never touched here. On a
+ * VENDOR application that NULL row IS the vendor's opt-out (103), so this
+ * form manages it, like business_veteran_badge.
  */
 async function syncRepostOptOuts(supabase: Awaited<ReturnType<typeof createServerClient>>, appId: string, input: EditorInput): Promise<string | null> {
   const wanted = input.exhibitor_type === 'artist' ? (input.artists ?? []).map(a => !!a.repostOptOut) : []
   const { data: current, error: readErr } = await supabase.from('artist_repost_opt_outs').select('id, artist_uid').eq('application_id', appId)
-  if (readErr) return wanted.some(Boolean) ? `the repost opt-out was not saved (${readErr.message}; is migration 101 applied?)` : null
+  if (readErr) {
+    return (wanted.some(Boolean) || input.vendor_repost_opt_out)
+      ? `the repost opt-out was not saved (${readErr.message}; is migration 101 applied?)` : null
+  }
+  if (input.exhibitor_type === 'vendor') {
+    const nullRow = (current ?? []).find(r => r.artist_uid === null)
+    if (input.vendor_repost_opt_out && !nullRow) {
+      const { error } = await supabase.from('artist_repost_opt_outs').insert({ application_id: appId, artist_uid: null })
+      if (error) return `the repost opt-out was not saved (${error.message})`
+    } else if (!input.vendor_repost_opt_out && nullRow) {
+      const { error } = await supabase.from('artist_repost_opt_outs').delete().eq('id', nullRow.id)
+      if (error) return `the repost opt-out was not removed (${error.message})`
+    }
+    return null
+  }
   const { data: saved } = await supabase.from('applications').select('artists').eq('id', appId).single()
   const roster = Array.isArray(saved?.artists) ? (saved.artists as Array<{ uid?: unknown }>) : []
   const want = new Set(roster.flatMap((a, i) => (wanted[i] && typeof a?.uid === 'string' ? [a.uid] : [])))

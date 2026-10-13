@@ -908,12 +908,13 @@ export type Database = {
         Update: never
         Relationships: []
       }
-      /** Migration 101 - top Instagram posts per artist, scraped by n8n. The app updates state columns only; inserts are service-role. updated_at: 102. */
+      /** Migration 101 - top Instagram posts per artist (vendors: 103), scraped by n8n. The app updates state columns only; inserts are service-role. updated_at: 102; exhibitor_type is ingest-written (103). */
       artist_social_posts: {
         Row: {
           id: string
           application_id: string | null
           artist_uid: string | null
+          exhibitor_type: string
           handle: string
           platform: string
           shortcode: string

@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase'
 import { guardedWrite } from '@/lib/db-write'
-import { defaultCaption, defaultYoutubeTitle, YOUTUBE_TITLE_MAX } from '@/lib/artist-posts'
+import { defaultCaption, defaultYoutubeTitle, YOUTUBE_TITLE_MAX, type ExhibitorKind } from '@/lib/artist-posts'
 import { AATC_POSTIZ_CHANNELS, channelUnavailable, DEFAULT_CHANNEL_PLATFORMS, INSTAGRAM_CHANNEL_ID } from '@/lib/postiz-channels'
 
 const btnSty = { border: '1px solid #2a2a2a' } as const
@@ -109,20 +109,23 @@ export function HoverVideo({ src, className }: { src: string; className?: string
 }
 
 export function SendPostButton({ post, booths }: {
-  post: { id: string; handle: string; status: string; sentAt: string | null; hasImage: boolean; hasVideo: boolean }
+  post: {
+    id: string; handle: string; status: string; sentAt: string | null
+    hasImage: boolean; hasVideo: boolean; exhibitorType: ExhibitorKind
+  }
   booths: string[]
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [caption, setCaption] = useState(() => defaultCaption(post.handle, booths))
+  const [caption, setCaption] = useState(() => defaultCaption(post.handle, booths, post.exhibitorType))
   const [channels, setChannels] = useState<string[]>(
     AATC_POSTIZ_CHANNELS.filter(c => (DEFAULT_CHANNEL_PLATFORMS as readonly string[]).includes(c.platform)).map(c => c.id))
   const [collab, setCollab] = useState(true)
   const [mode, setMode] = useState<'draft' | 'schedule'>('draft')
   const [when, setWhen] = useState('')
   const [confirmResend, setConfirmResend] = useState(false)
-  const [youtubeTitle, setYoutubeTitle] = useState(() => defaultYoutubeTitle(post.handle))
+  const [youtubeTitle, setYoutubeTitle] = useState(() => defaultYoutubeTitle(post.handle, post.exhibitorType))
 
   const alreadySent = post.status === 'sent' && !!post.sentAt
   const instagramOn = channels.includes(INSTAGRAM_CHANNEL_ID)

@@ -87,6 +87,8 @@ export interface EditorInput {
   artists?: EditorArtist[]
   /** Public "Veteran-owned" badge on a vendor's business (veteran_badges, 100). Not a column. */
   business_veteran_badge?: boolean
+  /** A vendor's repost opt-out: the NULL-uid artist_repost_opt_outs row (103). Not a column. */
+  vendor_repost_opt_out?: boolean
   /** 'keep' (editing only): leave the status as it is, e.g. rejected or waitlisted. */
   status: 'pending' | 'approved' | 'keep'
   money: MoneyChoice
