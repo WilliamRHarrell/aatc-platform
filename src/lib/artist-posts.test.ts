@@ -108,7 +108,7 @@ describe('validateSend', () => {
   })
 })
 
-describe('YouTube (dormant until its channel id is uncommented)', () => {
+describe('YouTube rules (tested with an injected channel so they hold regardless of the live list)', () => {
   const yt: PostizChannel = { id: 'yt-test', platform: 'youtube', label: 'YouTube', requires: 'video', requireHint: 'Videos only' }
   const withYt = [...AATC_POSTIZ_CHANNELS, yt]
   const base = { id: 'x', caption: 'hello', channels: ['yt-test'], collab: false, mode: 'draft' as const }
