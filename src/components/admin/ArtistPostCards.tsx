@@ -15,8 +15,8 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase'
 import { guardedWrite } from '@/lib/db-write'
-import { defaultCaption } from '@/lib/artist-posts'
-import { AATC_POSTIZ_CHANNELS, DEFAULT_CHANNEL_PLATFORMS, INSTAGRAM_CHANNEL_ID } from '@/lib/postiz-channels'
+import { defaultCaption, defaultYoutubeTitle, YOUTUBE_TITLE_MAX } from '@/lib/artist-posts'
+import { AATC_POSTIZ_CHANNELS, channelUnavailable, DEFAULT_CHANNEL_PLATFORMS, INSTAGRAM_CHANNEL_ID } from '@/lib/postiz-channels'
 
 const btnSty = { border: '1px solid #2a2a2a' } as const
 const btnCls = 'rounded px-2.5 py-1 text-xs text-white disabled:opacity-40'
@@ -109,7 +109,7 @@ export function HoverVideo({ src, className }: { src: string; className?: string
 }
 
 export function SendPostButton({ post, booths }: {
-  post: { id: string; handle: string; status: string; sentAt: string | null }
+  post: { id: string; handle: string; status: string; sentAt: string | null; hasImage: boolean; hasVideo: boolean }
   booths: string[]
 }) {
   const router = useRouter()
@@ -122,14 +122,17 @@ export function SendPostButton({ post, booths }: {
   const [mode, setMode] = useState<'draft' | 'schedule'>('draft')
   const [when, setWhen] = useState('')
   const [confirmResend, setConfirmResend] = useState(false)
+  const [youtubeTitle, setYoutubeTitle] = useState(() => defaultYoutubeTitle(post.handle))
 
   const alreadySent = post.status === 'sent' && !!post.sentAt
   const instagramOn = channels.includes(INSTAGRAM_CHANNEL_ID)
+  const youtubeOn = channels.some(id => AATC_POSTIZ_CHANNELS.find(c => c.id === id)?.platform === 'youtube')
   const toggle = (id: string) => setChannels(cs => (cs.includes(id) ? cs.filter(x => x !== id) : [...cs, id]))
 
   const submit = async () => {
     if (!caption.trim()) { toast.error('The caption is empty.'); return }
     if (channels.length === 0) { toast.error('Pick at least one channel.'); return }
+    if (youtubeOn && !youtubeTitle.trim()) { toast.error('YouTube needs a title.'); return }
     if (mode === 'schedule' && !when) { toast.error('Pick a date and time.'); return }
     if (alreadySent && !confirmResend) { toast.error('Tick the resend confirmation first.'); return }
     setBusy(true)
@@ -139,6 +142,7 @@ export function SendPostButton({ post, booths }: {
         id: post.id, caption, channels, mode,
         ...(mode === 'schedule' ? { scheduledLocal: when } : {}),
         collab: instagramOn && collab,
+        ...(youtubeOn ? { youtubeTitle } : {}),
       }),
     })
     const body = (await res.json().catch(() => ({}))) as { error?: string }
@@ -178,17 +182,34 @@ export function SendPostButton({ post, booths }: {
 
             <p className="mt-4 text-xs font-semibold uppercase tracking-wide" style={{ color: '#999' }}>Channels</p>
             <div className="mt-1 flex flex-wrap gap-3">
-              {AATC_POSTIZ_CHANNELS.map(c => (
-                <label key={c.id} className="flex items-center gap-1.5 text-sm text-white">
-                  <input type="checkbox" checked={channels.includes(c.id)} onChange={() => toggle(c.id)} /> {c.label}
-                </label>
-              ))}
+              {AATC_POSTIZ_CHANNELS.map(c => {
+                const unavailable = channelUnavailable(c, post.hasImage, post.hasVideo)
+                return (
+                  <label key={c.id} className="flex items-center gap-1.5 text-sm"
+                    style={{ color: unavailable ? '#555' : '#fff' }}>
+                    <input type="checkbox" disabled={!!unavailable}
+                      checked={!unavailable && channels.includes(c.id)} onChange={() => toggle(c.id)} />
+                    {c.label}
+                    {unavailable && <span className="text-xs" style={{ color: '#555' }}>({unavailable})</span>}
+                  </label>
+                )
+              })}
             </div>
             {instagramOn && (
               <label className="mt-2 flex items-center gap-2 text-sm text-white">
                 <input type="checkbox" checked={collab} onChange={e => setCollab(e.target.checked)} />
                 Invite @{post.handle} as an Instagram collaborator
               </label>
+            )}
+            {youtubeOn && (
+              <div className="mt-2">
+                <label className="block text-xs font-semibold uppercase tracking-wide" style={{ color: '#999' }}>
+                  YouTube title ({youtubeTitle.length}/{YOUTUBE_TITLE_MAX})
+                </label>
+                <input value={youtubeTitle} maxLength={YOUTUBE_TITLE_MAX} onChange={e => setYoutubeTitle(e.target.value)}
+                  className="mt-1 w-full rounded-lg px-3 py-2 text-sm text-white"
+                  style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }} />
+              </div>
             )}
 
             <p className="mt-4 text-xs font-semibold uppercase tracking-wide" style={{ color: '#999' }}>When</p>

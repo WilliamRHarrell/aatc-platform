@@ -9,7 +9,7 @@ import {
   EVENT_NAME, EVENT_YEAR, EVENT_DATES_LABEL, VENUE_NAME, VENUE_CITY, VENUE_STATE,
 } from '@/lib/event-config'
 import { PRODUCTION_HOST } from '@/lib/site'
-import { AATC_POSTIZ_CHANNELS } from '@/lib/postiz-channels'
+import { AATC_POSTIZ_CHANNELS, type PostizChannel } from '@/lib/postiz-channels'
 
 export const POSTS_BUCKET = 'artist-posts'
 
@@ -114,6 +114,13 @@ export function easternToUtcIso(local: string): string | null {
   return new Date(utc).toISOString()
 }
 
+export const YOUTUBE_TITLE_MAX = 100
+
+/** The editable YouTube title's default. EVENT_NAME is the one home for the show's name. */
+export function defaultYoutubeTitle(handle: string): string {
+  return `Tattoo by @${handle} | ${EVENT_NAME}`.slice(0, YOUTUBE_TITLE_MAX)
+}
+
 export interface SendInput {
   id: string
   caption: string
@@ -122,22 +129,39 @@ export interface SendInput {
   /** datetime-local in America/New_York when mode = 'schedule'. */
   scheduledLocal?: string
   collab: boolean
+  /** Required (and forwarded as youtube_title) only when a YouTube channel is picked. */
+  youtubeTitle?: string
 }
 
 export type SendValidation =
-  | { ok: true; scheduledAtUtc: string | null }
+  | { ok: true; scheduledAtUtc: string | null; youtubeTitle: string | null }
   | { ok: false; error: string }
 
-/** The send route's gate: allow-listed channels, a caption, a future schedule. */
-export function validateSend(input: SendInput, now: number = Date.now()): SendValidation {
-  const allowed = new Set<string>(AATC_POSTIZ_CHANNELS.map(c => c.id))
+/**
+ * The send route's gate: allow-listed channels, a caption, a future schedule,
+ * and a title when YouTube is picked. `channels` is injectable so the dormant
+ * YouTube rules stay tested while its entry is commented out.
+ */
+export function validateSend(
+  input: SendInput,
+  now: number = Date.now(),
+  channelList: readonly PostizChannel[] = AATC_POSTIZ_CHANNELS,
+): SendValidation {
+  const byId = new Map(channelList.map(c => [c.id, c]))
   if (!input.caption.trim()) return { ok: false, error: 'The caption is empty.' }
   if (input.channels.length === 0) return { ok: false, error: 'Pick at least one channel.' }
-  const stranger = input.channels.find(c => !allowed.has(c))
+  const stranger = input.channels.find(c => !byId.has(c))
   if (stranger) return { ok: false, error: `Unknown channel ${stranger}.` }
-  if (input.mode === 'draft') return { ok: true, scheduledAtUtc: null }
+
+  let youtubeTitle: string | null = null
+  if (input.channels.some(c => byId.get(c)?.platform === 'youtube')) {
+    youtubeTitle = (input.youtubeTitle ?? '').trim().slice(0, YOUTUBE_TITLE_MAX)
+    if (!youtubeTitle) return { ok: false, error: 'YouTube needs a title.' }
+  }
+
+  if (input.mode === 'draft') return { ok: true, scheduledAtUtc: null, youtubeTitle }
   const utc = input.scheduledLocal ? easternToUtcIso(input.scheduledLocal) : null
   if (!utc) return { ok: false, error: 'Pick a date and time to schedule.' }
   if (Date.parse(utc) <= now) return { ok: false, error: 'The scheduled time is in the past.' }
-  return { ok: true, scheduledAtUtc: utc }
+  return { ok: true, scheduledAtUtc: utc, youtubeTitle }
 }

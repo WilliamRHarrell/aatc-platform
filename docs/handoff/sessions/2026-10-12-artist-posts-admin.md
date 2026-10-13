@@ -56,6 +56,19 @@ live and write post state themselves.
   lists only state columns, so ingest columns cannot be written from the
   app by construction.
 
+## Added 2026-10-13 (same PR)
+
+- **Google Business** channel (unchecked by default; disabled "Photo posts
+  only" when the post's media has no image) and a **dormant YouTube** entry,
+  commented out with a placeholder id - Ryan supplies the real id, and
+  uncommenting it is the only change needed: unchecked by default, disabled
+  "Videos only" without a video, and an editable "YouTube title" (max 100,
+  default "Tattoo by @{handle} | {EVENT_NAME}") sent as `youtube_title`.
+  n8n accepts both platforms and enforces the same rules server-side.
+- Channel media rules live on the entries (`requires`/`requireHint`,
+  `channelUnavailable()` in postiz-channels.ts); `validateSend` takes an
+  injectable channel list so the dormant YouTube rules stay tested.
+
 ## Evidence (2026-10-12)
 
 - `npm run build` compiles (prebuild guards pass); `npm test` 404/404;
