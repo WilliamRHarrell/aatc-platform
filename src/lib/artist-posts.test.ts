@@ -40,6 +40,16 @@ describe('defaultCaption', () => {
     expect(caption).toContain(`Tickets: ${TICKETS_DOMAIN}`)
     expect(TICKETS_DOMAIN).not.toContain('localhost')
   })
+  it('a vendor gets the shop first line; the rest is shared (103)', () => {
+    const vendor = defaultCaption('getskinreserve', [], 'vendor')
+    expect(vendor).toContain('Shop @getskinreserve.')
+    expect(vendor).not.toContain('Work by')
+    expect(vendor.split('\n').slice(1)).toEqual(caption.replace('b_tat - find them at Booth 126', 'b_tat').split('\n').slice(1))
+  })
+  it('vendor YouTube title says Shop; the artist default is unchanged (103)', () => {
+    expect(defaultYoutubeTitle('getskinreserve', 'vendor')).toBe(`Shop @getskinreserve | ${EVENT_NAME}`)
+    expect(defaultYoutubeTitle('b_tat', 'artist')).toBe(`Tattoo by @b_tat | ${EVENT_NAME}`)
+  })
   it('contains no em or en dash (prebuild guard: site copy uses hyphens)', () => {
     // The characters are built numerically: the guard bans them in src/ in every spelling.
     const emEn = new RegExp(`[${String.fromCharCode(8211)}${String.fromCharCode(8212)}]`)

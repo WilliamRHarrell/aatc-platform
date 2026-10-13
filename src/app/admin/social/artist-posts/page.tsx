@@ -52,6 +52,9 @@ export default async function ArtistPostsPage({ searchParams }: {
   const statusFilter = (STATUS_FILTERS as readonly string[]).includes(one('status')) ? one('status') : ''
   const q = one('q').trim().toLowerCase()
   const showDropped = one('dropped') === '1'
+  // Artists / Vendors tabs (103). Rows written before n8n sends exhibitor_type read as artist.
+  const tab: 'artists' | 'vendors' = one('type') === 'vendors' ? 'vendors' : 'artists'
+  const tabKind = tab === 'vendors' ? 'vendor' : 'artist'
 
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -103,26 +106,30 @@ export default async function ArtistPostsPage({ searchParams }: {
     return el ? (el.nickname?.trim() || el.name?.trim() || null) : null
   }
 
-  // ── group by artist (handle) ──
+  // ── group by exhibitor (handle), on the active tab ──
+  const postKind = (p: PostRow): 'artist' | 'vendor' =>
+    ((p as { exhibitor_type?: string }).exhibitor_type === 'vendor' ? 'vendor' : 'artist')
   interface Group {
     handle: string
     name: string | null
     shop: string | null
     applicationId: string | null
     artistUid: string | null
+    exhibitorType: 'artist' | 'vendor'
     boothNumbers: string[]
     posts: PostRow[]
   }
   const groups = new Map<string, Group>()
   for (const p of posts) {
+    if (postKind(p) !== tabKind) continue
     const g = groups.get(p.handle) ?? {
-      handle: p.handle, name: null, shop: null, applicationId: null, artistUid: null, boothNumbers: [], posts: [],
+      handle: p.handle, name: null, shop: null, applicationId: null, artistUid: null, exhibitorType: postKind(p), boothNumbers: [], posts: [],
     }
     if (!g.applicationId && p.application_id) {
       g.applicationId = p.application_id
       g.artistUid = p.artist_uid
       g.shop = appById.get(p.application_id)?.business_name ?? null
-      g.name = rosterName(p.application_id, p.artist_uid)
+      g.name = postKind(p) === 'vendor' ? g.shop : rosterName(p.application_id, p.artist_uid)
       g.boothNumbers = [...(boothsByApp.get(p.application_id) ?? [])].sort()
     }
     g.posts.push(p)
@@ -168,7 +175,7 @@ export default async function ArtistPostsPage({ searchParams }: {
 
   const filterHref = (patch: Record<string, string>) => {
     const next = new URLSearchParams()
-    const merged = { status: statusFilter, q: one('q'), dropped: showDropped ? '1' : '', ...patch }
+    const merged = { type: tab === 'vendors' ? 'vendors' : '', status: statusFilter, q: one('q'), dropped: showDropped ? '1' : '', ...patch }
     for (const [k, v] of Object.entries(merged)) if (v) next.set(k, v)
     const s = next.toString()
     return `/admin/social/artist-posts${s ? `?${s}` : ''}`
@@ -190,6 +197,20 @@ export default async function ArtistPostsPage({ searchParams }: {
         <RefreshButton label="Refresh all artists" />
       </div>
 
+      <div className="mb-4 flex gap-2">
+        {(['artists', 'vendors'] as const).map(t => (
+          <Link key={t} href={filterHref({ type: t === 'vendors' ? 'vendors' : '' })}
+            className="rounded-lg px-4 py-1.5 text-sm font-semibold"
+            style={{
+              border: `1px solid ${tab === t ? '#8B7355' : '#2a2a2a'}`,
+              color: tab === t ? '#C4A882' : '#999',
+              backgroundColor: tab === t ? 'rgba(139,115,85,0.12)' : 'transparent',
+            }}>
+            {t === 'artists' ? 'Artists' : 'Vendors'}
+          </Link>
+        ))}
+      </div>
+
       <div className="mb-5 flex flex-wrap items-center gap-2">
         {['', ...STATUS_FILTERS].map(s => (
           <Link key={s || 'all'} href={filterHref({ status: s })}
@@ -207,9 +228,10 @@ export default async function ArtistPostsPage({ searchParams }: {
           {showDropped ? 'Hiding nothing' : 'Show dropped posts'}
         </Link>
         <form method="get" className="ml-auto">
+          {tab === 'vendors' && <input type="hidden" name="type" value="vendors" />}
           {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
           {showDropped && <input type="hidden" name="dropped" value="1" />}
-          <input name="q" defaultValue={one('q')} placeholder="Search artists…"
+          <input name="q" defaultValue={one('q')} placeholder={tab === 'vendors' ? 'Search vendors…' : 'Search artists…'}
             className="rounded-lg px-3 py-1.5 text-sm text-white"
             style={{ backgroundColor: '#111', border: '1px solid #2a2a2a' }} />
         </form>
@@ -217,8 +239,8 @@ export default async function ArtistPostsPage({ searchParams }: {
 
       {visibleGroups.length === 0 && (
         <p className="text-sm" style={{ color: '#999' }}>
-          {posts.length === 0
-            ? 'No posts yet. "Refresh all artists" scrapes every approved, publicly listed artist with an Instagram handle.'
+          {posts.filter(p => postKind(p) === tabKind).length === 0
+            ? `No ${tabKind} posts yet. "Refresh all artists" scrapes every approved, publicly listed ${tabKind} with an Instagram handle.`
             : 'Nothing matches the filters.'}
         </p>
       )}
@@ -236,15 +258,16 @@ export default async function ArtistPostsPage({ searchParams }: {
                       className="ml-2 text-xs font-normal underline" style={{ color: '#C4A882' }}>@{g.handle}</a>
                   </p>
                   <p className="text-xs" style={{ color: '#666' }}>
-                    {[g.shop, g.boothNumbers.length ? boothText(g.boothNumbers).replace(' - find them at ', '') : null]
+                    {[g.exhibitorType === 'vendor' ? 'Vendor' : g.shop,
+                      g.boothNumbers.length ? boothText(g.boothNumbers).replace(' - find them at ', '') : null]
                       .filter(Boolean).join(' · ') || 'Application no longer linked'}
-                    {o && <span style={{ color: '#f87171' }}> · opted out{o.artist_uid === null ? ' (whole application)' : ''}</span>}
+                    {o && <span style={{ color: '#f87171' }}> · opted out{o.artist_uid === null && g.exhibitorType === 'artist' ? ' (whole application)' : ''}</span>}
                   </p>
                 </div>
                 <div className="ml-auto flex items-center gap-2">
                   <RefreshButton handles={[g.handle]} label="Refresh" />
-                  {g.applicationId && g.artistUid && !o && (
-                    <OptOutButton applicationId={g.applicationId} artistUid={g.artistUid} />
+                  {g.applicationId && !o && (g.exhibitorType === 'vendor' || g.artistUid) && (
+                    <OptOutButton applicationId={g.applicationId} artistUid={g.exhibitorType === 'vendor' ? null : g.artistUid} />
                   )}
                 </div>
               </div>
@@ -309,6 +332,7 @@ export default async function ArtistPostsPage({ searchParams }: {
                                 id: p.id, handle: p.handle, status: p.status, sentAt: p.sent_at,
                                 hasImage: media.some(m => m.type === 'image'),
                                 hasVideo: media.some(m => m.type === 'video'),
+                                exhibitorType: postKind(p),
                               }}
                               booths={g.boothNumbers}
                             />

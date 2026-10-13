@@ -74,15 +74,22 @@ export function boothText(boothNumbers: readonly string[]): string {
 /** The bare domain for social copy (one home, lib/site.ts). */
 export const TICKETS_DOMAIN = PRODUCTION_HOST
 
+/** Who a post belongs to (103). Mirrors artist_social_posts.exhibitor_type. */
+export type ExhibitorKind = 'artist' | 'vendor'
+
 /**
  * The send modal's prefilled caption. Dates and venue come from
- * src/lib/event-config.ts; nothing here restates them.
+ * src/lib/event-config.ts; nothing here restates them. Vendors (103) get a
+ * shop first line; the rest is shared.
  */
-export function defaultCaption(handle: string, boothNumbers: readonly string[]): string {
+export function defaultCaption(handle: string, boothNumbers: readonly string[], kind: ExhibitorKind = 'artist'): string {
   const city = `${VENUE_CITY}, ${VENUE_STATE}`
   const cityTag = `#${VENUE_CITY.replace(/\s+/g, '')}${VENUE_STATE}`
+  const first = kind === 'vendor'
+    ? `\u{1F6CD}\u{FE0F} Shop @${handle}${boothText(boothNumbers)}.`
+    : `\u{1F525} Work by @${handle}${boothText(boothNumbers)}.`
   return [
-    `\u{1F525} Work by @${handle}${boothText(boothNumbers)}.`,
+    first,
     `Catch them at the ${EVENT_NAME}, ${EVENT_DATES_LABEL} at the ${VENUE_NAME} in ${city}.`,
     `\u{1F39F} Tickets: ${TICKETS_DOMAIN}`,
     `#AATC${EVENT_YEAR} ${cityTag} #tattoo`,
@@ -117,8 +124,9 @@ export function easternToUtcIso(local: string): string | null {
 export const YOUTUBE_TITLE_MAX = 100
 
 /** The editable YouTube title's default. EVENT_NAME is the one home for the show's name. */
-export function defaultYoutubeTitle(handle: string): string {
-  return `Tattoo by @${handle} | ${EVENT_NAME}`.slice(0, YOUTUBE_TITLE_MAX)
+export function defaultYoutubeTitle(handle: string, kind: 'artist' | 'vendor' = 'artist'): string {
+  const lead = kind === 'vendor' ? `Shop @${handle}` : `Tattoo by @${handle}`
+  return `${lead} | ${EVENT_NAME}`.slice(0, YOUTUBE_TITLE_MAX)
 }
 
 export interface SendInput {

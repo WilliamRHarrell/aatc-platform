@@ -35,7 +35,8 @@ export default function EditApplicationPage() {
       if (e1 || !row) { setError(e1?.message ?? 'Application not found.'); return }
       setInitial({ id: row.id, row: row as unknown as EditorInitial['row'], invoice: invoices?.[0] ?? null, vipUids: (vip ?? []).map(v => v.artist_uid),
         veteranUids: (vet ?? []).flatMap(v => (v.artist_uid ? [v.artist_uid] : [])), businessVeteranBadge: (vet ?? []).some(v => v.artist_uid === null),
-        repostOptOutUids: (optOuts ?? []).flatMap(o => (o.artist_uid ? [o.artist_uid] : [])) })
+        repostOptOutUids: (optOuts ?? []).flatMap(o => (o.artist_uid ? [o.artist_uid] : [])),
+        vendorRepostOptOut: (optOuts ?? []).some(o => o.artist_uid === null) })
     })()
   }, [id])
 
