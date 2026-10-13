@@ -37,6 +37,7 @@ export async function POST(req: Request) {
     mode: b.mode === 'schedule' ? 'schedule' : 'draft',
     scheduledLocal: typeof b.scheduledLocal === 'string' ? b.scheduledLocal : undefined,
     collab: b.collab !== false,
+    youtubeTitle: typeof b.youtubeTitle === 'string' ? b.youtubeTitle : undefined,
   }
   const v = validateSend(input)
   if (!v.ok) return NextResponse.json({ error: v.error }, { status: 400 })
@@ -71,6 +72,7 @@ export async function POST(req: Request) {
         mode: input.mode,
         ...(v.scheduledAtUtc ? { scheduled_at: v.scheduledAtUtc } : {}),
         collab: input.collab,
+        ...(v.youtubeTitle ? { youtube_title: v.youtubeTitle } : {}),
         sent_by: user.id,
       }),
       signal: AbortSignal.timeout(15_000),

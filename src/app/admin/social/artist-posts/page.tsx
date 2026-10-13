@@ -304,7 +304,14 @@ export default async function ArtistPostsPage({ searchParams }: {
                         )}
                         <div className="flex flex-wrap gap-1.5 pt-1">
                           {p.status !== 'sending' || stuck(p) ? (
-                            <SendPostButton post={{ id: p.id, handle: p.handle, status: p.status, sentAt: p.sent_at }} booths={g.boothNumbers} />
+                            <SendPostButton
+                              post={{
+                                id: p.id, handle: p.handle, status: p.status, sentAt: p.sent_at,
+                                hasImage: media.some(m => m.type === 'image'),
+                                hasVideo: media.some(m => m.type === 'video'),
+                              }}
+                              booths={g.boothNumbers}
+                            />
                           ) : null}
                           {p.status !== 'sending' && <SkipButton id={p.id} skipped={p.status === 'skipped'} />}
                         </div>
