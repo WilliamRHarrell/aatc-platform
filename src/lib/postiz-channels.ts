@@ -20,10 +20,7 @@ export const AATC_POSTIZ_CHANNELS: readonly PostizChannel[] = [
   { id: 'cmphf1fnp03opt60ystp5pjv9', platform: 'x', label: 'X' },
   { id: 'cmphiok1f02znpn0ymm7ujols', platform: 'tiktok', label: 'TikTok' },
   { id: 'cmphis91a02zvpn0y3vis8520', platform: 'gmb', label: 'Google Business', requires: 'image', requireHint: 'Photo posts only' },
-  // YouTube: Ryan supplies the id; uncommenting is the only change needed -
-  // the modal's title field and the send route's youtube_title already key
-  // on the platform.
-  // { id: 'YOUTUBE_CHANNEL_ID', platform: 'youtube', label: 'YouTube', requires: 'video', requireHint: 'Videos only' },
+  { id: 'cmv66cx9m0s66le0yymas6ymj', platform: 'youtube', label: 'YouTube', requires: 'video', requireHint: 'Videos only' },
 ]
 
 export const DEFAULT_CHANNEL_PLATFORMS: ReadonlyArray<PostizChannel['platform']> = ['instagram', 'facebook']
