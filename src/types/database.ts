@@ -908,6 +908,77 @@ export type Database = {
         Update: never
         Relationships: []
       }
+      /** Migration 101 - top Instagram posts per artist, scraped by n8n. The app updates state columns only; inserts are service-role. updated_at: 102. */
+      artist_social_posts: {
+        Row: {
+          id: string
+          application_id: string | null
+          artist_uid: string | null
+          handle: string
+          platform: string
+          shortcode: string
+          post_url: string
+          post_type: string | null
+          posted_at: string | null
+          likes: number | null
+          comments: number | null
+          views: number | null
+          score: number | null
+          rank: number | null
+          is_current_top5: boolean
+          caption_original: string | null
+          media: Json
+          scraped_at: string
+          status: string
+          admin_caption: string | null
+          postiz_post_id: string | null
+          sent_at: string | null
+          sent_by: string | null
+          last_error: string | null
+          updated_at: string
+        }
+        Insert: never
+        Update: {
+          status?: string
+          admin_caption?: string | null
+          postiz_post_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          last_error?: string | null
+        }
+        Relationships: []
+      }
+      /** Migration 101 - last scrape outcome per handle, written by n8n. The app reads only. */
+      artist_scrape_runs: {
+        Row: {
+          handle: string
+          last_run_at: string
+          result: string
+          post_count_scanned: number | null
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      /** Migration 101 - repost opt-outs: artist_uid = the roster artist, null = the whole application. Admin only. */
+      artist_repost_opt_outs: {
+        Row: {
+          id: string
+          application_id: string
+          artist_uid: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          application_id: string
+          artist_uid?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: never
+        Relationships: []
+      }
       /** Migration 044 - the 2027 programme. Seminars live in `panels`. */
       schedule_items: {
         Row: {
