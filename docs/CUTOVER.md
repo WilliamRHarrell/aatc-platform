@@ -133,10 +133,10 @@ things worse, not better.
       The Wall of Honor rule is set to 10, not 5: Vercel counted roughly 2x
       per request against this rule, so a setting of 5 blocked on request 3.
       At 10 it blocks on request 6 - verified by observation 2026-10-23. The
-      pinup and panel rules still say 5; they were verified blocking on
-      request 6 under the earlier counting (2026-08-31, see the
-      PINUP_REGISTRATION_OPEN comment in src/lib/event-config.ts). Re-verify
-      their behavior the next time either rule is touched.
+      pinup and panel rules stay at 5: re-verified 2026-10-23, 5/60s still
+      blocks on request 6, so the roughly-2x counting was specific to the
+      Wall of Honor rule (original verification 2026-08-31, see the
+      PINUP_REGISTRATION_OPEN comment in src/lib/event-config.ts).
 
       The Wall of Honor rule's two conditions (Request Path starts with
       /api/wall-of-honor-submit, Method equals POST) must be joined with
