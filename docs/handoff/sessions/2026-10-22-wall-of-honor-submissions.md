@@ -1,8 +1,8 @@
 # 2026-10-22 - Wall of Honor submissions (PR 1 of 3)
 
-Ryan's 2026-10-22 spec (docs/specs/), plan in
-docs/superpowers/plans/. PR 1 is intake and admin review only. Nothing is
-published to the public page yet.
+The 2026-10-22 spec was pasted in session and is summarized in the plan
+(docs/superpowers/plans/2026-10-22-wall-of-honor-submissions.md). PR 1 is
+intake and admin review only. Nothing is published to the public page yet.
 
 ## Delivered (migration NOT applied)
 

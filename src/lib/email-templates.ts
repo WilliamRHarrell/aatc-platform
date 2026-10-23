@@ -4,7 +4,8 @@
  * routes (/api/sponsor-apply, /api/pinup-entry) use these.
  *
  * Money in these templates is the tier price from SPONSOR_TIERS, never a
- * client value. The internal notices go to CONTACT_EMAIL (one home).
+ * client value. Internal notices go to CONTACT_EMAIL (one home), except the
+ * Wall of Honor notice, which goes to WALL_OF_HONOR_EMAIL.
  */
 import { CONTACT_EMAIL, FINAL_DUE_LABEL, WALL_OF_HONOR_EMAIL } from '@/lib/event-config'
 import { SPONSOR_TIERS, sponsorLines, type ShownPrices, type SponsorTier } from '@/lib/sponsor-tiers'

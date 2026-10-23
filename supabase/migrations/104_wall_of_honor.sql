@@ -2,7 +2,7 @@
 --
 -- Ryan, 2026-10-22 (docs/superpowers/plans/2026-10-22-wall-of-honor-submissions.md):
 -- Gold Star families submit a tribute to a fallen service member online at
--- /wall-of-honor/submit. Nothing is public until an admin approves AND
+-- /info/wall-of-honor/submit. Nothing is public until an admin approves AND
 -- publishes it on /admin/wall-of-honor (PR 2). PR 3 imports the entries
 -- already collected on WordPress.
 --
