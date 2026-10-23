@@ -61,6 +61,33 @@ async function removePublic(id: string, paths: string[]): Promise<string[]> {
   return []
 }
 
+/**
+ * Publish rollback: delete this call's copies, unless another call has
+ * published the entry since (the same paths are then its live photos).
+ * Returns the paths still in the public bucket because a delete failed.
+ */
+async function rollbackCopies(id: string, paths: string[]): Promise<string[]> {
+  if (paths.length === 0) return []
+  const { data, error } = await service.from('wall_of_honor_entries').select('is_published').eq('id', id).maybeSingle()
+  if (error) {
+    console.error(`[admin/wall-of-honor/publish] ${id}: re-read before rollback failed (${error.code}): ${error.message}; copies left in place`)
+    return paths
+  }
+  if (data?.is_published) {
+    console.warn(`[admin/wall-of-honor/publish] ${id}: another call published it meanwhile; copies kept`)
+    return []
+  }
+  return removePublic(id, paths)
+}
+
+/** A rolled-back publish: 500, naming any copies the cleanup could not remove. */
+function failedPublish(id: string, error: string, stillPublic: string[]) {
+  if (stillPublic.length === 0) return NextResponse.json({ error }, { status: 500 })
+  return NextResponse.json({
+    error: `${error}. These photos are still in the public bucket: ${stillPublic.join(', ')}. Unpublish this entry to clear them.`,
+  }, { status: 500 })
+}
+
 export async function POST(req: Request) {
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -94,11 +121,28 @@ export async function POST(req: Request) {
     }
     // Also runs when already unpublished: a retry clears copies an earlier
     // failed delete left behind (removing a missing object is not an error).
+    // Re-read first: a publish that landed since our read owns these paths
+    // now, and deleting them would break a live entry.
+    const { data: now, error: rereadErr } = await service.from('wall_of_honor_entries')
+      .select('is_published').eq('id', id).maybeSingle()
+    if (rereadErr || !now || now.is_published) {
+      if (rereadErr) console.error(`[admin/wall-of-honor/publish] ${id}: re-read before delete failed (${rereadErr.code}): ${rereadErr.message}`)
+      revalidateWall()
+      return NextResponse.json({
+        is_published: now?.is_published ?? false,
+        published_at: entry.published_at,
+        emailSent: false,
+        warning: now?.is_published
+          ? 'Another publish landed while unpublishing; the tribute is on the wall. Unpublish again if that is not intended.'
+          : 'Unpublished, but the public photos were not checked or removed. Unpublish again to retry.',
+      })
+    }
     const paths = [...new Set([...entry.public_photo_paths, ...entry.photo_paths])]
     const stillPublic = await removePublic(id, paths)
     revalidateWall()
     return NextResponse.json({
       is_published: false,
+      // The 105 guard keeps published_at on unpublish, so the read value stands.
       published_at: entry.published_at,
       emailSent: false,
       ...(stillPublic.length > 0 && {
@@ -122,28 +166,36 @@ export async function POST(req: Request) {
   const copied: string[] = []
   for (const path of paths) {
     const { data: blob, error: dlErr } = await service.storage.from(WOH_SUBMISSIONS_BUCKET).download(path)
-    if (dlErr || !blob) {
-      console.error(`[admin/wall-of-honor/publish] ${id}: could not read ${WOH_SUBMISSIONS_BUCKET}/${path}: ${dlErr?.message ?? 'no data'}`)
-      await removePublic(id, copied)
-      return NextResponse.json({ error: 'A photo could not be copied to the wall; nothing was published' }, { status: 500 })
+    // A 0-byte object is a failed or empty upload, never a photo for the wall.
+    if (dlErr || !blob || blob.size === 0) {
+      console.error(`[admin/wall-of-honor/publish] ${id}: could not read ${WOH_SUBMISSIONS_BUCKET}/${path}: ${dlErr?.message ?? (blob ? 'empty object' : 'no data')}`)
+      return failedPublish(id, 'A photo could not be copied to the wall; nothing was published', await rollbackCopies(id, copied))
     }
     const { error: upErr } = await service.storage.from(WOH_PUBLIC_BUCKET)
       .upload(path, blob, { contentType: blob.type || undefined, upsert: true })
     if (upErr) {
       console.error(`[admin/wall-of-honor/publish] ${id}: could not write ${WOH_PUBLIC_BUCKET}/${path}: ${upErr.message}`)
-      await removePublic(id, copied)
-      return NextResponse.json({ error: 'A photo could not be copied to the wall; nothing was published' }, { status: 500 })
+      return failedPublish(id, 'A photo could not be copied to the wall; nothing was published', await rollbackCopies(id, copied))
     }
     copied.push(path)
   }
 
+  // Conditional on is_published = false: when two calls race, exactly one
+  // flips the row. The loser gets no row and no error, must NOT clean up (the
+  // paths are the winner's live photos) and must not mail (the winner does).
+  // The failure branches above and below go through rollbackCopies, which
+  // re-checks is_published so a loser never deletes a winner's live photos.
   const { data: updated, error: updErr } = await service.from('wall_of_honor_entries')
-    .update({ is_published: true, public_photo_paths: paths }).eq('id', id)
-    .select('published_at').single()
-  if (updErr || !updated) {
-    console.error(`[admin/wall-of-honor/publish] ${id}: publish update failed (${updErr?.code ?? 'none'}): ${updErr?.message ?? 'no row'}`)
-    await removePublic(id, paths)
-    return NextResponse.json({ error: 'The tribute did not publish; please try again' }, { status: 500 })
+    .update({ is_published: true, public_photo_paths: paths }).eq('id', id).eq('is_published', false)
+    .select('published_at').maybeSingle()
+  if (updErr) {
+    console.error(`[admin/wall-of-honor/publish] ${id}: publish update failed (${updErr.code}): ${updErr.message}`)
+    return failedPublish(id, 'The tribute did not publish; please try again', await rollbackCopies(id, paths))
+  }
+  if (!updated) {
+    const { data: winner } = await service.from('wall_of_honor_entries').select('published_at').eq('id', id).maybeSingle()
+    revalidateWall()
+    return NextResponse.json({ is_published: true, published_at: winner?.published_at ?? null, emailSent: false })
   }
 
   let emailSent = false
