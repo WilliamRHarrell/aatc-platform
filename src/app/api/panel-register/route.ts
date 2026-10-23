@@ -34,7 +34,12 @@ async function sendPanelReceipts(v: { name: string; email: string; phone: string
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
+    // An empty or non-JSON body is the caller's fault: 400 like
+    // /api/pinup-entry, not the catch-all 500 below.
+    const body = await req.json().catch(() => null)
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: 'Could not read that submission. Please try again.' }, { status: 400 })
+    }
 
     // Same bot filter as /api/pinup-entry. Both are anonymous public write
     // paths; the rate limit for both is a Vercel WAF rule, not code.
