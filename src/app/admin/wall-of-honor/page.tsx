@@ -6,13 +6,16 @@ import { createClient } from '@/lib/supabase'
 import { guardedWrite } from '@/lib/db-write'
 import { requestRevalidate } from '@/lib/revalidate'
 import { formatEastern } from '@/lib/pinup-export'
+import { canPublish } from '@/lib/wall-of-honor-publish'
 import { photoQuality, duplicateHonoreeKey, WOH_SUBMISSIONS_BUCKET, TRIBUTE_MAX } from '@/lib/wall-of-honor-submission'
 import type { Database } from '@/types/database'
 
 // Wall of Honor submissions (104). The table is admin only (RLS "wall_of_honor:
 // admin all"); the original tribute is never editable and a trigger keeps it,
-// so no update here ever sends it. Rejecting sends no email. Publishing is PR 2:
-// is_published is shown, never written.
+// so no update here ever sends it. Rejecting sends no email. Publishing never goes
+// through a table update: the drawer posts to /api/admin/wall-of-honor/publish.
+// The list spans every event (a Year column and filter); the open/closed switch
+// stays on the active event.
 
 type Entry = Database['public']['Tables']['wall_of_honor_entries']['Row']
 
@@ -30,6 +33,10 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
 type EntryPatch = Partial<Pick<Entry,
   'status' | 'decided_at' | 'decided_by' | 'admin_notes' | 'include_in_print'
   | 'honoree_name' | 'honoree_rank' | 'branch' | 'unit' | 'service_years' | 'tribute_display'>>
+
+type PublishResult = { is_published: boolean; published_at: string | null; emailSent?: boolean; warning?: string }
+// Persistent banner: a publish warning (public photos not fully removed) or a failure.
+type Notice = { kind: 'warning' | 'error'; text: string }
 
 const QUALITY_COLOR: Record<'good' | 'usable' | 'low', string> = { good: '#4ade80', usable: '#eab308', low: '#fca5a5' }
 
@@ -64,6 +71,11 @@ export default function AdminWallOfHonorPage() {
   const [filter, setFilter] = useState<StatusFilter>('pending')
   const [openId, setOpenId] = useState<string | null>(null)
   const [working, setWorking] = useState(false)
+  const [eventYears, setEventYears] = useState<Record<string, number>>({})
+  const [yearFilter, setYearFilter] = useState<string>('all')
+  const [notice, setNotice] = useState<Notice | null>(null)
+  // Set by a publish response; published_email_sent_at only arrives on the next load.
+  const [emailSentIds, setEmailSentIds] = useState<Set<string>>(new Set())
 
   const load = async () => {
     const { data: ev, error: evErr } = await supabase
@@ -78,10 +90,18 @@ export default function AdminWallOfHonorPage() {
     setEventId(ev.id)
     setOpen(ev.wall_of_honor_open)
 
+    const { data: evs, error: evsErr } = await supabase.from('events').select('id, name, start_date')
+    if (evsErr) console.error(`[admin/wall-of-honor] events: ${evsErr.code}: ${evsErr.message}`)
+    const years: Record<string, number> = {}
+    for (const x of evs ?? []) {
+      const y = x.start_date ? new Date(x.start_date).getUTCFullYear() : NaN
+      if (!Number.isNaN(y)) years[x.id] = y
+    }
+    setEventYears(years)
+
     const { data, error } = await supabase
       .from('wall_of_honor_entries')
       .select('*')
-      .eq('event_id', ev.id)
       .order('submitted_at', { ascending: false })
     if (error) {
       console.error(`[admin/wall-of-honor] ${error.code}: ${error.message}`)
@@ -106,11 +126,25 @@ export default function AdminWallOfHonorPage() {
   }, [entries])
   const isDuplicate = (e: Entry) => duplicateKeys.has(duplicateHonoreeKey(e.honoree_name, e.branch))
 
-  const counts = useMemo(() => Object.fromEntries(
-    [...STATUSES, 'all'].map(s => [s, s === 'all' ? (entries?.length ?? 0) : (entries ?? []).filter(e => e.status === s).length]),
-  ) as Record<StatusFilter, number>, [entries])
+  const yearOf = (e: Entry): number | null => eventYears[e.event_id] ?? null
+  const yearOptions = useMemo(
+    () => [...new Set(Object.values(eventYears))].sort((a, b) => b - a),
+    [eventYears],
+  )
 
-  const shown = useMemo(() => (entries ?? []).filter(e => filter === 'all' || e.status === filter), [entries, filter])
+  // Pending across every year: the card at the top is the review queue.
+  const pendingTotal = useMemo(() => (entries ?? []).filter(e => e.status === 'pending').length, [entries])
+
+  // Status chips count within the chosen year.
+  const inYear = useMemo(
+    () => (entries ?? []).filter(e => yearFilter === 'all' || String(eventYears[e.event_id] ?? '') === yearFilter),
+    [entries, eventYears, yearFilter],
+  )
+  const counts = useMemo(() => Object.fromEntries(
+    [...STATUSES, 'all'].map(s => [s, s === 'all' ? inYear.length : inYear.filter(e => e.status === s).length]),
+  ) as Record<StatusFilter, number>, [inYear])
+
+  const shown = useMemo(() => inYear.filter(e => filter === 'all' || e.status === filter), [inYear, filter])
   const current = entries?.find(e => e.id === openId) ?? null
 
   // ── Switch (events row, "events: admin write") ──
@@ -148,6 +182,43 @@ export default function AdminWallOfHonorPage() {
     }
   }
 
+  // ── Publish / unpublish (server route: emails, photo copies, cache purge) ──
+  const publishEntry = async (e: Entry, publish: boolean) => {
+    setWorking(true)
+    setNotice(null)
+    try {
+      const res = await fetch('/api/admin/wall-of-honor/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: e.id, publish }),
+      })
+      const body = await res.json().catch(() => null) as (Partial<PublishResult> & { error?: string }) | null
+      if (!res.ok || !body) {
+        const text = body?.error ?? `${publish ? 'Publish' : 'Unpublish'} failed (${res.status})`
+        setNotice({ kind: 'error', text })
+        toast.error(text, { duration: 10000 })
+        return
+      }
+      setEntries(prev => (prev ?? []).map(x => x.id === e.id
+        ? { ...x, is_published: !!body.is_published, published_at: body.published_at ?? null }
+        : x))
+      if (body.emailSent) setEmailSentIds(prev => new Set(prev).add(e.id))
+      if (body.warning) {
+        setNotice({ kind: 'warning', text: body.warning })
+        toast.error(body.warning, { duration: 10000 })
+      } else {
+        toast.success(publish ? 'Published' : 'Unpublished')
+      }
+    } catch (err) {
+      console.error('[admin/wall-of-honor] publish', err)
+      const text = `${publish ? 'Publish' : 'Unpublish'} failed. Check your connection and try again.`
+      setNotice({ kind: 'error', text })
+      toast.error(text)
+    } finally {
+      setWorking(false)
+    }
+  }
+
   const decide = async (e: Entry, status: 'approved' | 'rejected') => {
     const verb = status === 'approved' ? 'Approve' : 'Reject'
     const note = status === 'rejected' ? ' No email is sent.' : ''
@@ -177,9 +248,11 @@ export default function AdminWallOfHonorPage() {
         )}
         <div className="rounded-xl px-5 py-3" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
           <p className="text-xs uppercase tracking-wider" style={{ color: '#999' }}>Pending</p>
-          <p className="mt-1 text-xl font-bold" style={{ color: counts.pending ? '#eab308' : '#fff' }}>{counts.pending} pending</p>
+          <p className="mt-1 text-xl font-bold" style={{ color: pendingTotal ? '#eab308' : '#fff' }}>{pendingTotal} pending</p>
         </div>
       </div>
+
+      {notice && !current && <NoticeBanner notice={notice} onDismiss={() => setNotice(null)} />}
 
       {failed && (
         <p className="mt-6 rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: 'rgba(239,68,68,0.12)', color: '#fca5a5' }}>{failed}</p>
@@ -199,6 +272,18 @@ export default function AdminWallOfHonorPage() {
                 {s} ({counts[s]})
               </button>
             ))}
+            <label className="ml-auto flex items-center gap-2 text-xs" style={{ color: '#999' }}>
+              Year
+              <select
+                value={yearFilter}
+                onChange={ev => setYearFilter(ev.target.value)}
+                className="rounded-lg px-2 py-1 text-xs"
+                style={inputStyle}
+              >
+                <option value="all">All</option>
+                {yearOptions.map(y => <option key={y} value={String(y)}>{y}</option>)}
+              </select>
+            </label>
           </div>
 
           {shown.length === 0 ? (
@@ -208,7 +293,7 @@ export default function AdminWallOfHonorPage() {
               <table className="w-full text-sm">
                 <thead style={{ backgroundColor: '#1a1a1a' }}>
                   <tr>
-                    {['Honoree', 'Branch', 'Submitted by', 'Submitted', 'Photos', 'Status', 'Published'].map(h => (
+                    {['Honoree', 'Year', 'Branch', 'Submitted by', 'Submitted', 'Photos', 'Status', 'Published'].map(h => (
                       <th key={h} className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: '#999' }}>{h}</th>
                     ))}
                   </tr>
@@ -233,6 +318,7 @@ export default function AdminWallOfHonorPage() {
                           </button>
                           {isDuplicate(e) && <span className="block text-xs" style={{ color: '#fca5a5' }}>possible duplicate</span>}
                         </td>
+                        <td className="px-3 py-2 text-xs" style={{ color: '#ccc' }}>{yearOf(e) ?? '-'}</td>
                         <td className="px-3 py-2 text-xs" style={{ color: '#ccc' }}>{e.branch}</td>
                         <td className="px-3 py-2" style={{ color: '#999' }}>
                           <span className="block text-xs text-white">{e.submitter_name}</span>
@@ -266,6 +352,11 @@ export default function AdminWallOfHonorPage() {
             entry={current}
             duplicate={isDuplicate(current)}
             working={working}
+            year={yearOf(current)}
+            notice={notice}
+            emailSent={current.published_email_sent_at !== null || emailSentIds.has(current.id)}
+            onDismissNotice={() => setNotice(null)}
+            onPublish={publish => publishEntry(current, publish)}
             onClose={() => setOpenId(null)}
             onDecide={status => decide(current, status)}
             onSave={(patch, what) => saveEntry(current.id, patch, what)}
@@ -276,10 +367,31 @@ export default function AdminWallOfHonorPage() {
   )
 }
 
-function EntryDetail({ entry: e, duplicate, working, onClose, onDecide, onSave }: {
+function NoticeBanner({ notice, onDismiss }: { notice: Notice; onDismiss: () => void }) {
+  const warn = notice.kind === 'warning'
+  return (
+    <div
+      role="alert"
+      className="mt-4 flex items-start justify-between gap-3 rounded-lg px-3 py-2 text-sm"
+      style={warn
+        ? { backgroundColor: 'rgba(234,179,8,0.15)', color: '#eab308', border: '1px solid rgba(234,179,8,0.3)' }
+        : { backgroundColor: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}
+    >
+      <span className="whitespace-pre-wrap break-words">{notice.text}</span>
+      <button onClick={onDismiss} className="text-xs font-semibold underline">Dismiss</button>
+    </div>
+  )
+}
+
+function EntryDetail({ entry: e, duplicate, working, year, notice, emailSent, onDismissNotice, onPublish, onClose, onDecide, onSave }: {
   entry: Entry
   duplicate: boolean
   working: boolean
+  year: number | null
+  notice: Notice | null
+  emailSent: boolean
+  onDismissNotice: () => void
+  onPublish: (publish: boolean) => void
   onClose: () => void
   onDecide: (status: 'approved' | 'rejected') => void
   onSave: (patch: EntryPatch, what: string) => Promise<boolean>
@@ -340,6 +452,7 @@ function EntryDetail({ entry: e, duplicate, working, onClose, onDecide, onSave }
   )
 
   const st = STATUS_STYLE[e.status] ?? STATUS_STYLE.pending
+  const publishCheck = canPublish(e)
 
   return (
     <aside
@@ -354,12 +467,16 @@ function EntryDetail({ entry: e, duplicate, working, onClose, onDecide, onSave }
           <h2 className="text-lg font-bold text-white">{e.honoree_name}</h2>
           <p className="mt-1 flex flex-wrap items-center gap-2 text-xs" style={{ color: '#666' }}>
             <span className="rounded-full px-2 py-0.5 font-semibold" style={{ backgroundColor: st.bg, color: st.color }}>{e.status}</span>
+            {e.imported_at && <span className="rounded-full px-2 py-0.5 font-semibold" style={{ backgroundColor: 'rgba(139,115,85,0.15)', color: '#C4A882' }}>Imported</span>}
             <span>Submitted {formatEastern(e.submitted_at)} ET</span>
+            {year !== null && <span>{year}</span>}
             {duplicate && <span style={{ color: '#fca5a5' }}>possible duplicate</span>}
           </p>
         </div>
         <button autoFocus onClick={onClose} className="text-xl leading-none" style={{ color: '#999' }} aria-label="Close">&times;</button>
       </div>
+
+      {notice && <div className="-mt-2 mb-4"><NoticeBanner notice={notice} onDismiss={onDismissNotice} /></div>}
 
       <div className="mb-6 flex flex-wrap gap-2">
         <button disabled={working || e.status === 'approved'} onClick={() => onDecide('approved')}
@@ -388,6 +505,24 @@ function EntryDetail({ entry: e, duplicate, working, onClose, onDecide, onSave }
           />
           Include in print
         </label>
+      </div>
+
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        {e.is_published ? (
+          <button disabled={working}
+            onClick={() => { if (window.confirm(`Unpublish ${e.honoree_name}? The tribute and its public photos come off the Wall of Honor.`)) onPublish(false) }}
+            className="rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-40"
+            style={{ backgroundColor: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.3)' }}>
+            Unpublish
+          </button>
+        ) : (
+          <button disabled={working || !publishCheck.ok} onClick={() => onPublish(true)}
+            className="rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-40"
+            style={{ backgroundColor: 'rgba(74,222,128,0.15)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)' }}>
+            Publish
+          </button>
+        )}
+        {!e.is_published && !publishCheck.ok && <span className="text-xs" style={{ color: '#eab308' }}>{publishCheck.reason}</span>}
       </div>
 
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: '#C4A882' }}>Photos</h3>
@@ -486,6 +621,8 @@ function EntryDetail({ entry: e, duplicate, working, onClose, onDecide, onSave }
       <dl className="mb-4 space-y-3">
         {row('Include in print', e.include_in_print ? 'Yes' : 'No')}
         {row('Published', e.is_published ? `Yes${e.published_at ? `, ${formatEastern(e.published_at)}` : ''}` : 'No')}
+        {row('Published at', e.published_at ? formatEastern(e.published_at) : null)}
+        {row('Published email', emailSent ? 'Sent' : e.imported_at ? 'Not sent (imported)' : 'Not sent')}
         {row('Decided', e.decided_at ? formatEastern(e.decided_at) : null)}
         {row('Decided by', e.decided_by)}
       </dl>
