@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { botTrapRejection } from '@/lib/bot-trap'
-import { CONTACT_EMAIL, WALL_OF_HONOR_EMAIL } from '@/lib/event-config'
+import { WALL_OF_HONOR_EMAIL } from '@/lib/event-config'
 import { validateWallOfHonorSubmission, entryPhotoPath, WOH_SUBMISSIONS_BUCKET } from '@/lib/wall-of-honor-submission'
 import { wallOfHonorReceivedEmail, internalNewWallOfHonorEmail } from '@/lib/email-templates'
 import { sendTransactional } from '@/lib/transactional-email'
@@ -86,12 +86,12 @@ export async function POST(req: NextRequest) {
   if (insErr || !row) {
     if (insErr?.code === '23505') {
       return NextResponse.json({
-        error: `We already have a tribute for ${s.honoree_name} from this email. To change it, email ${CONTACT_EMAIL}.`,
+        error: `We already have a tribute for ${s.honoree_name} from this email. To change it, email ${WALL_OF_HONOR_EMAIL}.`,
         fieldErrors: { email: 'We already have a tribute for this honoree from this email.' },
       }, { status: 409 })
     }
     console.error(`[wall-of-honor-submit] insert failed (${insErr?.code ?? 'none'}): ${insErr?.message ?? 'no row'}`)
-    return NextResponse.json({ error: `Your tribute did not save. Please try again or email ${CONTACT_EMAIL}.` }, { status: 500 })
+    return NextResponse.json({ error: `Your tribute did not save. Please try again or email ${WALL_OF_HONOR_EMAIL}.` }, { status: 500 })
   }
   const id = row.id
 
