@@ -80,3 +80,24 @@ Spec defaults 1 to 12 as built. Decision 7 (contact mailbox) resolved to
   removed). Replayed 104 migrations.
 - `npm run verify:local -- --audit`: `audit: 186 fixture inserts checked, 0
   missing a required column`.
+
+## 2026-10-23 scope rulings from Ryan (bind PR 2 and PR 3)
+
+- One address for all tribute mail: the duplicate 409 and the did-not-save 500
+  now use WALL_OF_HONOR_EMAIL (commit a9e3dc4 on this PR).
+- Published tributes stay up permanently, across years. PR 2's migration (105,
+  never an edit to 104) recreates wall_of_honor_public without the
+  ev.is_active filter and APPENDS event_year derived from events.start_date
+  (one home; no copied year column). verify_105 asserts a published row on an
+  inactive event IS visible with the right year; verify_104's C1 described
+  104's behavior and is superseded, not edited.
+- The admin page must widen from the active event to all events (year column
+  or filter) or imported historical tributes can never be reviewed,
+  published, or unpublished. The open/closed switch stays on the active event.
+- PR 3's WordPress imports (manifest carries year 2025/2026) need real
+  historical event rows (inactive; true dates and venue from Ryan - never
+  invented) so event_id stays NOT NULL and the year derives from start_date.
+- Open question for Ryan before PR 2: should first-publish of an IMPORTED
+  tribute send the "now on the Wall" email to a years-old submitter address?
+  Proposed default: no (mark imports, e.g. imported_at in the PR 3 migration,
+  and skip them); families who submit through the new form always get it.
