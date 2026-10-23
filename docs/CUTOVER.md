@@ -117,17 +117,18 @@ things worse, not better.
 
 ## B2. Vercel WAF - rate limiting (NOT in this repo)
 
-- [ ] **Confirm both WAF rules exist and are enabled before go-live.** They are
-      the only rate limiting on the two anonymous public write paths. Nothing in
+- [ ] **Confirm all three WAF rules exist and are enabled before go-live.** They are
+      the only rate limiting on the three anonymous public write paths. Nothing in
       the codebase enforces a request rate, so a code review will not find them
       and their absence will not fail a build, a test or a deploy.
 
-      Exactly TWO active rules, both scoped to POST:
+      Exactly THREE active rules, all scoped to POST:
 
       | path | method | rule |
       |---|---|---|
       | `/api/pinup-entry` | POST | 5 requests / 60s per IP, Deny 403 |
       | `/api/panel-register` | POST | 5 requests / 60s per IP, Deny 403 |
+| `/api/wall-of-honor-submit` (path prefix, covers `/files`) | POST | 5 requests / 60s per IP, Deny 403 |
 
 - [ ] **Delete the two disabled duplicate rules.** They cover the same two
       endpoints without POST in the description and are currently disabled
