@@ -10,8 +10,9 @@ published to the public page yet.
   CHECKs, partial unique index for one active entry per submitter email and
   honoree, guard trigger that stamps `consent_at` from the database clock and
   keeps the submitted tribute immutable), admin-only RLS, anon revoked on the
-  table, `wall_of_honor_public` view (honoree fields and `tribute_display`
-  only, active event only), `events.wall_of_honor_open` (default off), buckets
+  table, `wall_of_honor_public` view (honoree fields, the tribute as
+  `coalesce(tribute_display, tribute)`, and the public photo paths; published
+  rows of the active event only), `events.wall_of_honor_open` (default off), buckets
   `wall-of-honor-submissions` (private, admin read) and `wall-of-honor`
   (public; written by the service role in PR 2).
 - The `aatc.woh_import` setting lets a trusted import keep a supplied

@@ -128,7 +128,7 @@ things worse, not better.
       |---|---|---|
       | `/api/pinup-entry` | POST | 5 requests / 60s per IP, Deny 403 |
       | `/api/panel-register` | POST | 5 requests / 60s per IP, Deny 403 |
-| `/api/wall-of-honor-submit` (path prefix, covers `/files`) | POST | 5 requests / 60s per IP, Deny 403 |
+      | `/api/wall-of-honor-submit` (path prefix, covers `/files`) | POST | 5 requests / 60s per IP, Deny 403 |
 
 - [ ] **Delete the two disabled duplicate rules.** They cover the same two
       endpoints without POST in the description and are currently disabled
@@ -144,9 +144,9 @@ things worse, not better.
       to another account or team, RE-CREATE THESE RULES.** They do not live in
       `vercel.json` and are not restored by redeploying, by reconnecting the git
       repository, or by importing the project again. The site will come back up
-      fully functional with both endpoints wide open, and nothing will say so.
+      fully functional with all three endpoints wide open, and nothing will say so.
 
-- [ ] After any change to either rule, re-check that a normal submission still
+- [ ] After any change to any of the rules, re-check that a normal submission still
       succeeds. A threshold set too low fails closed on the primary intake for a
       contest that needs 25 sign-ups, and it fails silently from the visitor's
       side - they see a generic error, not a rate limit.
