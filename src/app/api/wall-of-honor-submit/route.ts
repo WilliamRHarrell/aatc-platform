@@ -26,11 +26,9 @@ import type { Database } from '@/types/database'
 // tribute per submitter email per honoree per event is 104's unique index; its
 // 23505 becomes a sentence.
 //
-// NOT RATE LIMITED in code. ONE Vercel WAF rule (path starts with
-// /api/wall-of-honor-submit, POST, 5/60s per IP, Deny) covers this route and
-// /files; Ryan verifies it by observation before events.wall_of_honor_open is
-// switched on (pinup precedent in event-config). Renaming these paths silently
-// abandons the WAF rule; CUTOVER.md B2 lists it.
+// NOT RATE LIMITED in code. ONE Vercel WAF rule covers this route and /files;
+// its current values and verification history live in docs/CUTOVER.md section
+// B2. Renaming these paths silently abandons the WAF rule.
 
 const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

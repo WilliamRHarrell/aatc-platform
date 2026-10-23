@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { pageMetadata, titled, atTheShow } from '@/lib/page-meta'
 
-// The page is a client component, which cannot export metadata; its title,
+// The page is a server component; its title,
 // description, canonical and social preview live here (2026-10-09).
 export const metadata: Metadata = pageMetadata('/info/wall-of-honor', {
   title: titled('Wall of Honor'),

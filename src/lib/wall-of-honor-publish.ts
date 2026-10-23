@@ -1,0 +1,38 @@
+/**
+ * Wall of Honor publishing (migration 105) - the pure rules the admin publish
+ * action and the public wall share.
+ */
+
+/** An entry goes on the wall only once approved and with at least one photo. */
+export function canPublish(e: { status: string; photo_paths: string[] }): { ok: true } | { ok: false; reason: string } {
+  if (e.status === 'rejected') return { ok: false, reason: 'Rejected tributes cannot be published' }
+  if (e.status !== 'approved') return { ok: false, reason: 'Approve the tribute first' }
+  if (e.photo_paths.length < 1) return { ok: false, reason: 'Add at least one photo' }
+  return { ok: true }
+}
+
+/**
+ * The "now on the Wall" email goes once, to the family who submitted online.
+ * Imported WordPress tributes never get it, and neither does an entry whose
+ * email already went or that has no address.
+ */
+export function shouldSendPublishEmail(e: {
+  imported_at: string | null
+  published_email_sent_at: string | null
+  submitter_email: string
+}): boolean {
+  return e.imported_at === null && e.published_email_sent_at === null && e.submitter_email !== ''
+}
+
+/** Years descending, entries with no year last, input order kept within a year. */
+export function groupByEventYear<T extends { event_year: number | null }>(rows: T[]): { year: number | null; rows: T[] }[] {
+  const byYear = new Map<number | null, T[]>()
+  for (const r of rows) {
+    const list = byYear.get(r.event_year)
+    if (list) list.push(r)
+    else byYear.set(r.event_year, [r])
+  }
+  return [...byYear.entries()]
+    .sort(([a], [b]) => (a === null ? 1 : b === null ? -1 : b - a))
+    .map(([year, list]) => ({ year, rows: list }))
+}

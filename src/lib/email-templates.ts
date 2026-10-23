@@ -530,6 +530,26 @@ export function wallOfHonorReceivedEmail(f: { honoreeName: string; submitterName
   `)
 }
 
+/** To the submitter, when their tribute is published on the Wall of Honor. */
+export function wallOfHonorPublishedEmail(f: { honoreeName: string; submitterName: string; wallUrl: string }) {
+  return emailWrapper(`
+    ${kicker('On the Wall of Honor')}
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      Thank you, ${esc(f.submitterName)}
+    </h2>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Your tribute to ${esc(f.honoreeName)} is now on the Wall of Honor.
+    </p>
+    ${ctaButton(esc(f.wallUrl), 'View the Wall of Honor →')}
+    <p style="margin:16px 0 0; font-size:15px; line-height:1.7; color:#cccccc;">
+      Thank you for honoring ${esc(f.honoreeName)} with us.
+    </p>
+    <p style="margin:16px 0 0; font-size:15px; line-height:1.7; color:#cccccc;">
+      Questions? Email <a href="mailto:${WALL_OF_HONOR_EMAIL}" style="color:#C4A882;">${WALL_OF_HONOR_EMAIL}</a>.
+    </p>
+  `)
+}
+
 /** To WALL_OF_HONOR_EMAIL, for each new Wall of Honor tribute. */
 export function internalNewWallOfHonorEmail(f: { honoreeName: string; branch: string; submitterName: string; relationship: string; email: string; phone: string | null; photoCount: number }) {
   return emailWrapper(`
