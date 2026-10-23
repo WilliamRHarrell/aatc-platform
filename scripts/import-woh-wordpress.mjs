@@ -72,13 +72,22 @@ const EV_2025_WEST = 'AATC 2025 West'
 const EV_2026_EAST = 'AATC 2026 East'
 const EVENT_NAMES = [EV_2025_EAST, EV_2025_WEST, EV_2026_EAST]
 
-// RULING (brief, Global Constraints): the two 2025 pages and their events.
-// `expectParent` is the WordPress parent page this mapping implies; the report
-// checks it against the dump and --apply refuses while they disagree.
+// RULING (controller, 2026-10-23, correcting the brief's slip): the two 2025
+// pages and their events. The brief had them the other way round; the dump
+// shows 48157 (created April 2025) was rewritten in September for the WEST
+// wall, and 48512 (created September 2025) archives the April EAST content.
+// Two independent signals must BOTH agree with each assignment or the script
+// aborts (assertPageEvent), so a re-run against different data can never
+// silently put a memorial under the wrong event:
+//   expectParent: the WordPress parent page's title contains this word;
+//   expectMonth:  the majority yyyy/mm of the page's attachments' _wp_attached_file
+//                 paths (the month the photos were uploaded: the event month).
 const PAGES = [
-  { postId: '48157', event: EV_2025_EAST, label: '2025 East', expectParent: 'East' },
-  { postId: '48512', event: EV_2025_WEST, label: '2025 West', expectParent: 'West' },
+  { postId: '48512', event: EV_2025_EAST, label: '2025 East', expectParent: 'East', expectMonth: '2025/04' },
+  { postId: '48157', event: EV_2025_WEST, label: '2025 West', expectParent: 'West', expectMonth: '2025/09' },
 ]
+// What the brief first said, kept only so the report can state the swap.
+const BRIEF_MAPPING = { '48157': EV_2025_EAST, '48512': EV_2025_WEST }
 // RULING: every form 81 entry (submitted Feb-Apr 2026) belongs to AATC 2026 East.
 const GF_EVENT = EV_2026_EAST
 
@@ -354,6 +363,32 @@ function gfHonorees() {
   return { out, sourceSummary }
 }
 
+/**
+ * RULING 1 (controller, 2026-10-23): a page's event is only trusted when BOTH
+ * signals agree with PAGES: the parent page title names the event (East/West)
+ * AND the majority upload month of its referenced attachments' files is the
+ * event month. Any disagreement aborts the whole run: a memorial must never be
+ * attributed to the wrong event because the data changed under the script.
+ */
+function assertPageEvent(pg, summary, referenced) {
+  const parentOk = new RegExp(`\\b${pg.expectParent}\\b`, 'i').test(summary.parentTitle)
+  const months = new Map()
+  for (const id of referenced) {
+    const m = (attachedFile.get(id) ?? '').match(/^(\d{4}\/\d{2})\//)
+    const k = m ? m[1] : '(no dated path)'
+    months.set(k, (months.get(k) ?? 0) + 1)
+  }
+  const ranked = [...months].sort((a, b) => b[1] - a[1])
+  const majority = ranked.length && (ranked.length === 1 || ranked[0][1] > ranked[1][1]) ? ranked[0][0] : null
+  const monthOk = majority === pg.expectMonth
+  summary.parentOk = parentOk
+  summary.monthCounts = ranked.map(([k, n]) => `${k}: ${n}`).join(', ') || 'none'
+  summary.majorityMonth = majority
+  if (!parentOk || !monthOk) {
+    throw new Error(`Page ${pg.postId} is assigned to ${pg.event}, but the dump disagrees: parent page "${summary.parentTitle}" (${parentOk ? 'agrees' : `does not name ${pg.expectParent}`}); attachment months ${summary.monthCounts} (majority ${majority ?? 'none'}, expected ${pg.expectMonth}). Nothing was written. Re-check PAGES before importing.`)
+  }
+}
+
 function pageHonorees() {
   const out = [], summaries = []
   for (const pg of PAGES) {
@@ -361,11 +396,10 @@ function pageHonorees() {
     if (!row) throw new Error(`page ${pg.postId} is not in wp_posts`)
     const parent = pagesById.get(row.post_parent)
     const parentTitle = parent?.title ?? `(post ${row.post_parent})`
-    const mappingOk = new RegExp(`\\b${pg.expectParent}\\b`, 'i').test(parentTitle)
     const summary = { ...pg, title: row.post_title, slug: row.post_name, postDate: row.post_date_gmt, modified: row.post_modified_gmt,
-      parentTitle, mappingOk, honorees: 0, columnsWithoutHeading: [], attachmentDates: [], unreferenced: [], usedElsewhere: [] }
-    if (!mappingOk) problems.push(`Page ${pg.postId} is mapped to ${pg.event} (ruling), but its WordPress parent page is "${parentTitle}". Confirm the page-to-event mapping (PAGES in the script) before --apply.`)
+      parentTitle, honorees: 0, columnsWithoutHeading: [], attachmentDates: [], unreferenced: [], usedElsewhere: [] }
     const referenced = new Set()
+    const pageOut = []
     const columns = row.post_content.split(/\[vc_column(?:\s[^\]]*)?\]/).slice(1).map(c => c.split('[/vc_column]')[0])
     for (const [ci, col] of columns.entries()) {
       const heading = col.match(/\[vc_custom_heading\b([^\]]*)\]/)
@@ -404,14 +438,26 @@ function pageHonorees() {
         }
       }
       summary.honorees++
-      out.push({
+      // RULING 2 (controller, 2026-10-23): submitted_at/consent_at = the
+      // EARLIEST upload date among this honoree's own attachments (the closest
+      // real signal to when the family handed over the materials; both pages'
+      // post_date contradicts their content). Fallback below.
+      const ownDates = photoRefs.map(r => attachments.get(r.attachmentId)?.date).filter(Boolean).sort()
+      pageOut.push({
         key: `page-${pg.postId}-${ci + 1}`, source: `${pg.label} page (post ${pg.postId}), column ${ci + 1}`, pagePostId: pg.postId, event: pg.event,
         honoree_name: name, tribute, markupStripped: rawTribute.trim() !== tribute,
-        submitter_email: '', date: row.post_date_gmt, // RULING: the page's post_date
+        submitter_email: '',
+        date: ownDates[0] ?? null,
+        dateSource: ownDates.length ? `earliest upload date of this honoree's own ${ownDates.length === 1 ? 'photo' : `${ownDates.length} photos`}` : null,
         lifeYears: ly ? ly[2] : null, pageLabel: pg.label, photoRefs,
       })
     }
+    // RULING 2 fallback: no dated attachment of its own -> the earliest upload date among the page's attachments.
+    const pageEarliest = [...summary.attachmentDates].sort()[0] ?? null
+    for (const h of pageOut) if (!h.date) { h.date = pageEarliest; h.dateSource = `fallback: no dated photo of its own; earliest upload date among the ${pg.label} page's photos` }
+    out.push(...pageOut)
     summary.referenced = referenced
+    assertPageEvent(pg, summary, referenced)
     summaries.push(summary)
   }
   // Attachments uploaded to a wall page: used on the other wall page (WordPress
@@ -493,7 +539,7 @@ for (const h of honorees) {
     const dupes = h.skipped.filter(s => /34920/.test(s.from)).map(s => basename(s.file))
     notes.push(`WordPress entry #${GF_FOLD.skip} (a second submission for this honoree, same email, no story) was not imported as its own entry. Its photos were added to this entry's folder: ${folded.join(', ') || 'none'}${dupes.length ? `; not added, byte-identical to a photo already here: ${dupes.join(', ')}` : ''}.`)
   }
-  if (h === perryGf) notes.push(`The same honoree may also be on the AATC 2025 West page ("${perryPage[0].honoree_name}"), imported as a separate entry.`)
+  if (h === perryGf) notes.push(`The same honoree may also be on the AATC ${perryPage[0].pageLabel} page ("${perryPage[0].honoree_name}"), imported as a separate entry.`)
   if (h === perryPage[0]) notes.push(`The same honoree may also be on the 2026 form (Gravity Forms #${PERRY.gfId}, "${perryGf.honoree_name}"), imported as a separate entry.`)
   if (!h.submitter_email) notes.push('No submitter email on WordPress.')
   h.admin_notes = notes.join('\n')
@@ -535,12 +581,22 @@ L(`# Wall of Honor WordPress import report`)
 L('')
 L(`Mode: ${APPLY ? '--apply' : '--dry-run (nothing uploaded, no seed written)'}. Generated ${new Date().toISOString()}.`)
 L('')
+L('## Read first: the two 2025 pages were SWAPPED from the original mapping')
+L('')
+L('The first plan said ' + Object.entries(BRIEF_MAPPING).map(([id, ev]) => `page ${id} = ${ev}`).join(' and ') + '. The WordPress data says the opposite, so this import uses:')
+L('')
+for (const s of pages.summaries) {
+  L(`- **Page ${s.postId} -> ${s.event}** (${s.honorees} honorees). Its parent page in the WordPress menu is "${s.parentTitle}", and its photos were uploaded in ${s.majorityMonth} (${s.monthCounts}), the month of that event.`)
+}
+L('')
+L('What happened on WordPress: the page created in April 2025 (48157) was rewritten in September 2025 for the West wall, and the page created in September 2025 (48512) holds the April East wall. That is also why the pages\' own creation dates do not fit their content, so each 2025 honoree\'s date is the date their photos were uploaded (see each entry). The script checks both signals on every run and stops if either ever disagrees. If this is wrong, say so before running --apply.')
+L('')
 L('## Summary')
 L('')
 L(`- Rows to import: **${counts.total}** = GF form 81: ${counts.gf}, ${PAGES.map(p => `${p.label} page: ${counts[p.label]}`).join(', ')}`)
 L(`- GF form 81 entries in the dump: ${gf.sourceSummary.total}; skipped by ruling: ${gf.sourceSummary.skipped.length}; not active: ${gf.sourceSummary.inactive.length}${gf.sourceSummary.inactive.length ? ` (${gf.sourceSummary.inactive.join(', ')})` : ''}`)
 L(`- Photos copied: ${counts.photosKept}; photo references skipped: ${counts.photosSkipped}; entries with more than ${WALL_PHOTO_CAP} photos (the admin picker chooses the wall ${WALL_PHOTO_CAP}): ${counts.overCap}`)
-L(`- Every row: status approved, unpublished, imported_at = the seed's now(), consent_social false, consent_at = submitted_at = the original date, branch and unknown submitter fields '' (Ryan fills branch before publishing), photo_paths = the first photo only.`)
+L(`- Every row: status approved, unpublished, imported_at = the seed's now(), consent_social false, consent_at = submitted_at = the original date (form rows: the form's submission time; 2025 page rows: the earliest upload date of the honoree's own photos), branch and unknown submitter fields '' (Ryan fills branch before publishing), photo_paths = the first photo only.`)
 L(`- Blocking problems: **${problems.length}** (--apply refuses while any exist). Warnings: ${warnings.length}.`)
 L('')
 if (problems.length) { L('## BLOCKING PROBLEMS'); L(''); problems.forEach(p => L(`- ${p}`)); L('') }
@@ -558,10 +614,10 @@ L('## The 2025 pages')
 L('')
 for (const s of pages.summaries) {
   const dates = s.attachmentDates.sort()
-  L(`### Post ${s.postId}: "${s.title}" -> ${s.event} (ruling)`)
+  L(`### Post ${s.postId}: "${s.title}" -> ${s.event} (ruling; the original plan said ${BRIEF_MAPPING[s.postId]})`)
   L('')
-  L(`- WordPress parent page: "${s.parentTitle}". Mapping check: ${s.mappingOk ? 'consistent' : `**DISAGREES: the parent suggests the ${/west/i.test(s.parentTitle) ? 'West' : /east/i.test(s.parentTitle) ? 'East' : 'other'} event**`}`)
-  L(`- post_date (used as submitted_at/consent_at): ${s.postDate} UTC; last modified ${s.modified} UTC`)
+  L(`- Event check: PASS. Parent page "${s.parentTitle}" names ${s.expectParent}; attachment months ${s.monthCounts}, majority ${s.majorityMonth} = expected ${s.expectMonth}.`)
+  L(`- Page post_date ${s.postDate} UTC, last modified ${s.modified} UTC (NOT used as a date: it contradicts the content)`)
   L(`- Its photos were uploaded ${dates.length ? `${dates[0]} to ${dates.at(-1)} UTC` : '(no dated attachments)'}`)
   L(`- Honorees: ${s.honorees}. Columns without a heading (not imported): ${s.columnsWithoutHeading.join('; ') || 'none'}`)
   if (s.usedElsewhere.length) {
@@ -580,7 +636,7 @@ L('')
 for (const [i, h] of honorees.entries()) {
   L(`### ${i + 1}. ${h.honoree_name}`)
   L('')
-  L(`- Source: ${h.source}; event: ${h.event}; original date: ${h.date} UTC`)
+  L(`- Source: ${h.source}; event: ${h.event}; date (submitted_at = consent_at): ${h.date} UTC, from ${h.dateSource ?? 'the form entry\'s date_created'}`)
   L(`- Submitter email: ${h.submitter_email ? h.submitter_email : "'' (none)"}; name, relationship, branch: ''`)
   if (h.lifeYears) L(`- Life years (to admin_notes, not service_years): ${h.lifeYears}`)
   L(`- Tribute: ${h.tribute.length} chars${h.tribute.length > 1500 ? ' (over the form\'s 1500 cap; imported in full)' : ''}${h.markupStripped ? '; page HTML markup removed, words unchanged' : ''}. Starts: "${h.tribute.slice(0, 120).replace(/\s+/g, ' ')}..."`)
