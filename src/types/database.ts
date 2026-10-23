@@ -1716,11 +1716,13 @@ export type Database = {
           honoree_name: string
           honoree_rank: string | null
           id: string
+          imported_at: string | null
           include_in_print: boolean
           is_published: boolean
           photo_paths: string[]
           public_photo_paths: string[]
           published_at: string | null
+          published_email_sent_at: string | null
           service_years: string | null
           status: string
           submitted_at: string
@@ -1743,11 +1745,13 @@ export type Database = {
           honoree_name: string
           honoree_rank?: string | null
           id?: string
+          imported_at?: string | null
           include_in_print?: boolean
           is_published?: boolean
           photo_paths?: string[]
           public_photo_paths?: string[]
           published_at?: string | null
+          published_email_sent_at?: string | null
           service_years?: string | null
           status?: string
           submitted_at?: string
@@ -1770,11 +1774,13 @@ export type Database = {
           honoree_name?: string
           honoree_rank?: string | null
           id?: string
+          imported_at?: string | null
           include_in_print?: boolean
           is_published?: boolean
           photo_paths?: string[]
           public_photo_paths?: string[]
           published_at?: string | null
+          published_email_sent_at?: string | null
           service_years?: string | null
           status?: string
           submitted_at?: string
@@ -1798,6 +1804,23 @@ export type Database = {
       }
     }
     Views: {
+      /** Migration 104, 105 - published Wall of Honor entries of every event (permanent across years); no submitter data. */
+      wall_of_honor_public: {
+        Row: {
+          id: string
+          honoree_name: string
+          honoree_rank: string | null
+          branch: string
+          unit: string | null
+          service_years: string | null
+          tribute: string
+          photo_paths: string[]
+          published_at: string | null
+          /** 105: extract(year from the event's start_date) */
+          event_year: number | null
+        }
+        Relationships: []
+      }
       sponsors_public: {
         Row: {
           id: string
