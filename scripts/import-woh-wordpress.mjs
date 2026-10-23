@@ -34,8 +34,9 @@ import { createReadStream, existsSync, readFileSync, writeFileSync, mkdirSync, r
 import { createInterface } from 'node:readline'
 import { createHash, randomUUID, randomBytes } from 'node:crypto'
 import { join, resolve, dirname, basename, extname, sep } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const ROOT = new URL('..', import.meta.url).pathname
+const ROOT = fileURLToPath(new URL('..', import.meta.url)) // not .pathname: that keeps %20 for a space
 
 // ── args ────────────────────────────────────────────────────
 const argv = process.argv.slice(2)
@@ -221,10 +222,16 @@ const VARIANT_RE = /^(.*)-(\d+x\d+|scaled|rotated(?:-\d+)?)(\.(?:jpe?g|png|webp|
  * honoree's only copy and is kept (Review Focus 2).
  */
 function variantBase(absPath, exists = existsSync) {
-  const m = basename(absPath).match(VARIANT_RE)
-  if (!m) return null
-  const base = join(dirname(absPath), m[1] + m[3])
-  return exists(base) ? base : null
+  // Recurses through stacked suffixes (foo-scaled-300x200.jpg -> foo-scaled.jpg
+  // -> foo.jpg) and returns the deepest one on disk, so a downscaled copy is never
+  // imported while a truer original exists.
+  let found = null, name = basename(absPath), m
+  while ((m = name.match(VARIANT_RE))) {
+    name = m[1] + m[3]
+    const candidate = join(dirname(absPath), name)
+    if (exists(candidate)) found = candidate
+  }
+  return found
 }
 /** Self-check of the variant rule, run on every invocation and shown in the report. */
 function variantSelfCheck() {
@@ -236,6 +243,8 @@ function variantSelfCheck() {
     ['/u/foo-rotated-1.jpeg', new Set(['/u/foo.jpeg']), '/u/foo.jpeg', 'foo.jpeg exists: foo-rotated-1.jpeg skipped'],
     ['/u/unnamed-10.jpg', new Set(['/u/unnamed.jpg']), null, 'unnamed-10.jpg is not a variant pattern'],
     ['/u/IMG_20260220_1526221.jpg', new Set(['/u/IMG_20260220_152622.jpg']), null, 'a numbered upload is not a variant'],
+    ['/u/foo-scaled-300x200.jpg', new Set(['/u/foo-scaled.jpg', '/u/foo.jpg']), '/u/foo.jpg', 'foo-scaled-300x200.jpg resolves past foo-scaled.jpg to foo.jpg'],
+    ['/u/foo-scaled-300x200.jpg', new Set(['/u/foo-scaled.jpg']), '/u/foo-scaled.jpg', 'foo-scaled-300x200.jpg -> foo-scaled.jpg when foo.jpg is missing'],
   ]
   return cases.map(([p, set, want, label]) => ({ label, ok: variantBase(p, fake(set)) === want }))
 }
@@ -276,6 +285,14 @@ function dimensions(buf) {
   return null
 }
 /** Shortest-side thresholds shared with photoQuality() in src/lib/wall-of-honor-submission.ts. */
+/** WordPress writes 0000-00-00 00:00:00 for "no date": treat it as undated, never as a timestamp. */
+const isRealDate = d => typeof d === 'string' && d !== '' && !/^0000/.test(d)
+/**
+ * Encodings that survived decodeEntities: an HTML entity (&name; or &#...) or
+ * WPBakery's attribute quoting (`` for a double quote, `{` and `}` for brackets).
+ * Any hit in a name or tribute is BLOCKING: a memorial must not ship with them.
+ */
+const residualEncoding = s => (s.match(/&\w+;|&#|``|`\{`|`\}`/g) ?? [])
 const fmtDim = p => (p.dim ? `${p.dim.w}x${p.dim.h}` : '?x?')
 const quality = d => (!d ? 'unknown' : Math.min(d.w, d.h) >= 1200 ? 'good' : Math.min(d.w, d.h) >= 700 ? 'usable' : 'low')
 
@@ -335,7 +352,8 @@ function gfHonorees() {
       // RULING: #34877 skipped as a duplicate of #34875. Re-verify the premise.
       const o = GF_SKIP_DUPLICATE.of
       const same = name === field(o, GF_FIELD.name) && email === field(o, GF_FIELD.email) && story === field(o, GF_FIELD.story)
-      if (!same) warnings.push(`GF #${e.id}: ruled a duplicate of #${o}, but its name/email/story differ from #${o}. Check before applying.`)
+      // BLOCKING: a ruling whose premise no longer holds must never be applied silently.
+      if (!same) problems.push(`GF #${e.id}: ruled a duplicate of #${o}, but its name/email/story differ from #${o}. The ruling does not fit this data.`)
       sourceSummary.skipped.push(`#${e.id} ${name}: duplicate of #${o} (ruling; name, email and story ${same ? 'identical' : 'NOT identical'}; ${photoUrls(e.id).length} photos)`)
       continue
     }
@@ -343,11 +361,11 @@ function gfHonorees() {
       // RULING (Mikos): #34920 is not its own row; its photos fold into #34717 below.
       const i = GF_FOLD.into
       const sameHonoree = name === field(i, GF_FIELD.name) && email === field(i, GF_FIELD.email)
-      if (!sameHonoree) warnings.push(`GF #${e.id}: ruled the same honoree as #${i}, but the name or email differs. Check before applying.`)
+      if (!sameHonoree) problems.push(`GF #${e.id}: ruled the same honoree as #${i}, but the name or email differs. The ruling does not fit this data.`)
       sourceSummary.skipped.push(`#${e.id} ${name}: not its own entry; its non-duplicate photos go into #${i}'s folder (ruling, Mikos; story ${story.trim() ? 'PRESENT' : 'empty'})`)
       continue
     }
-    if (e.id === GF_NO_EMAIL && email) warnings.push(`GF #${GF_NO_EMAIL} was ruled to have no email but has one; it is imported with it.`)
+    if (e.id === GF_NO_EMAIL && email) problems.push(`GF #${GF_NO_EMAIL} was ruled to have no email but has one. The ruling does not fit this data.`)
     const photos = photoUrls(e.id).map(u => ({ from: `GF #${e.id} field 12`, url: u, rel: relFromUrl(u) }))
     if (e.id === GF_FOLD.into) {
       for (const u of photoUrls(GF_FOLD.skip)) photos.push({ from: `GF #${GF_FOLD.skip} field 12 (folded in, Mikos ruling)`, url: u, rel: relFromUrl(u), foldedFrom: GF_FOLD.skip })
@@ -371,7 +389,9 @@ function gfHonorees() {
  * attributed to the wrong event because the data changed under the script.
  */
 function assertPageEvent(pg, summary, referenced) {
-  const parentOk = new RegExp(`\\b${pg.expectParent}\\b`, 'i').test(summary.parentTitle)
+  // The title must name this event AND not the other one (a title naming both proves nothing).
+  const opposite = pg.expectParent === 'East' ? 'West' : 'East'
+  const parentOk = new RegExp(`\\b${pg.expectParent}\\b`, 'i').test(summary.parentTitle) && !new RegExp(`\\b${opposite}\\b`, 'i').test(summary.parentTitle)
   const months = new Map()
   for (const id of referenced) {
     const m = (attachedFile.get(id) ?? '').match(/^(\d{4}\/\d{2})\//)
@@ -385,7 +405,7 @@ function assertPageEvent(pg, summary, referenced) {
   summary.monthCounts = ranked.map(([k, n]) => `${k}: ${n}`).join(', ') || 'none'
   summary.majorityMonth = majority
   if (!parentOk || !monthOk) {
-    throw new Error(`Page ${pg.postId} is assigned to ${pg.event}, but the dump disagrees: parent page "${summary.parentTitle}" (${parentOk ? 'agrees' : `does not name ${pg.expectParent}`}); attachment months ${summary.monthCounts} (majority ${majority ?? 'none'}, expected ${pg.expectMonth}). Nothing was written. Re-check PAGES before importing.`)
+    throw new Error(`Page ${pg.postId} is assigned to ${pg.event}, but the dump disagrees: parent page "${summary.parentTitle}" (${parentOk ? 'agrees' : `does not name ${pg.expectParent} alone`}); attachment months ${summary.monthCounts} (majority ${majority ?? 'none'}, expected ${pg.expectMonth}). Nothing was written. Re-check PAGES before importing.`)
   }
 }
 
@@ -442,7 +462,7 @@ function pageHonorees() {
       // EARLIEST upload date among this honoree's own attachments (the closest
       // real signal to when the family handed over the materials; both pages'
       // post_date contradicts their content). Fallback below.
-      const ownDates = photoRefs.map(r => attachments.get(r.attachmentId)?.date).filter(Boolean).sort()
+      const ownDates = photoRefs.map(r => attachments.get(r.attachmentId)?.date).filter(isRealDate).sort()
       pageOut.push({
         key: `page-${pg.postId}-${ci + 1}`, source: `${pg.label} page (post ${pg.postId}), column ${ci + 1}`, pagePostId: pg.postId, event: pg.event,
         honoree_name: name, tribute, markupStripped: rawTribute.trim() !== tribute,
@@ -453,7 +473,7 @@ function pageHonorees() {
       })
     }
     // RULING 2 fallback: no dated attachment of its own -> the earliest upload date among the page's attachments.
-    const pageEarliest = [...summary.attachmentDates].sort()[0] ?? null
+    const pageEarliest = summary.attachmentDates.filter(isRealDate).sort()[0] ?? null
     for (const h of pageOut) if (!h.date) { h.date = pageEarliest; h.dateSource = `fallback: no dated photo of its own; earliest upload date among the ${pg.label} page's photos` }
     out.push(...pageOut)
     summary.referenced = referenced
@@ -551,11 +571,17 @@ for (const h of honorees) {
 
 // Required fields and the 104 unique index (event, lower(email), lower(btrim(name))) on approved rows.
 const uniq = new Map()
+let residualChecked = 0
 for (const h of honorees) {
   if (!h.honoree_name.trim()) problems.push(`${h.source}: empty honoree name`)
   if (!h.tribute.trim()) problems.push(`${h.source}: empty tribute (the database refuses it)`)
   if (h.tribute.includes('\0') || h.honoree_name.includes('\0')) problems.push(`${h.source}: NUL character in text`)
-  if (!h.date) problems.push(`${h.source}: no original date`)
+  if (!isRealDate(h.date)) problems.push(`${h.source}: no original date`)
+  for (const [field, text] of [['honoree name', h.honoree_name], ['tribute', h.tribute]]) {
+    const hits = residualEncoding(text)
+    if (hits.length) problems.push(`${h.source}: undecoded encoding in the ${field}: ${[...new Set(hits)].join(' ')}`)
+    else residualChecked++
+  }
   const k = `${h.event}|${h.submitter_email.toLowerCase()}|${h.honoree_name.trim().toLowerCase()}`
   if (uniq.has(k)) problems.push(`Unique-index collision (104): "${h.honoree_name}" on ${h.event} with email "${h.submitter_email}" is both ${uniq.get(k)} and ${h.source}. The seed would fail midway.`)
   else uniq.set(k, h.source)
@@ -627,6 +653,10 @@ for (const s of pages.summaries) {
   L(`- Attachments uploaded to this page and used on neither wall page (not imported): ${s.unreferenced.join('; ') || 'none'}`)
   L('')
 }
+L(`## Residual-encoding check`)
+L('')
+L(`- ${residualChecked === honorees.length * 2 ? 'PASS' : 'FAIL'}: ${residualChecked} of ${honorees.length * 2} names and tributes carry no undecoded HTML entity or WPBakery backtick encoding.`)
+L('')
 L('## Variant-filter self-check')
 L('')
 selfCheck.forEach(c => L(`- ${c.ok ? 'PASS' : 'FAIL'}: ${c.label}`))
