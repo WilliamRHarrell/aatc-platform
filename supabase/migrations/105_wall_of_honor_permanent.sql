@@ -34,7 +34,8 @@
 --   photo_paths, published_at
 -- If production differs (104 not applied, or applied differently), Postgres
 -- refuses this file with 42P16 and nothing changes. verify_105 block A pins
--- the result: the nine above plus event_year (supersedes verify_104 C4).
+-- the result: the nine above plus event_year (supersedes verify_104 C1 and C4, which describe
+-- 104's active-event-only visibility).
 --
 -- Existing policies, enumerated before changing (replay of 001-104, `npm run
 -- verify:local -- --dump-schema`, 2026-10-23):
