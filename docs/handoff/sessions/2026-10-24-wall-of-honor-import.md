@@ -54,26 +54,33 @@ way:
 the West wall, and the September-created page archives the East content. The
 script ASSERTS both signals (parent title and majority upload month) on every
 run and refuses to write anything if either disagrees. The import report opens
-with this swap and its evidence. Nothing is applied before you review the
-report, so a wrong call is a one-line swap in `PAGES` plus a regenerated
-report.
+with this swap and its evidence. The dry run (step 3 below) is the review
+gate: it uploads nothing and writes no seed, so nothing is applied before you
+review the report. A wrong call at that point is a one-line swap in `PAGES`
+plus a regenerated report.
 
 ## Ryan's run order
 
 1. Merge this PR.
 2. Run the BEFORE-APPLYING check above, then apply 106.
-3. From YOUR checkout (with `.env.local` present), run
-   `node scripts/import-woh-wordpress.mjs --backup <backup root> --apply`.
+3. From YOUR checkout (with `.env.local` present), run the dry run, which is
+   the default and has NO `--apply`:
+   `node scripts/import-woh-wordpress.mjs --backup <backup root>`.
    The backup stays where it is (Downloads, read-only; never copy it into the
-   repo, it holds the WordPress config). A plain run without `--apply` is a dry
-   run that only writes the report.
-4. Read `woh-import-report/`: the counts, the skips, the swap header, the Perry
-   flag and the low-resolution main-photo warnings.
-5. Run the generated `supabase/seeds/woh_wordpress_import.sql` in a DIRECT SQL
+   repo, it holds the WordPress config). This writes only
+   `woh-import-report/report.md`.
+4. Read `woh-import-report/`: confirm the swap header, the counts, the skips,
+   the Perry flag and the low-resolution main-photo warnings. `--apply`
+   refuses while any BLOCKING problem is listed.
+5. Re-run the same command with `--apply`. Photos upload to the private bucket
+   and the seed and teardown are written. **--apply is the point where
+   cleanup means the teardown, not just a regenerated report.**
+6. Skim the final report.
+7. Run the generated `supabase/seeds/woh_wordpress_import.sql` in a DIRECT SQL
    session. That is what makes `aatc.woh_import` trusted, so each tribute keeps
    its original consent date; from a signed-in session the seed notices and
    rolls back.
-6. In `/admin/wall-of-honor`, for each imported entry: fill the branch, pick
+8. In `/admin/wall-of-honor`, for each imported entry: fill the branch, pick
    the photos (the new picker), and publish.
 
 A bad run: unpublish anything on the wall, run
