@@ -101,7 +101,7 @@ export async function POST(req: Request) {
   const publish = body.publish
 
   const { data: entry, error: readErr } = await service.from('wall_of_honor_entries')
-    .select('id, status, is_published, published_at, photo_paths, public_photo_paths, honoree_name, submitter_name, submitter_email, imported_at, published_email_sent_at')
+    .select('id, status, branch, is_published, published_at, photo_paths, public_photo_paths, honoree_name, submitter_name, submitter_email, imported_at, published_email_sent_at')
     .eq('id', id).maybeSingle()
   if (readErr) {
     console.error(`[admin/wall-of-honor/publish] ${id}: read failed (${readErr.code}): ${readErr.message}`)
@@ -160,7 +160,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ is_published: true, published_at: entry.published_at, emailSent: false })
   }
 
-  const gate = canPublish({ status: entry.status, photo_paths: entry.photo_paths })
+  const gate = canPublish({ status: entry.status, branch: entry.branch, photo_paths: entry.photo_paths })
   if (!gate.ok) return NextResponse.json({ error: gate.reason }, { status: 409 })
 
   // Same path in the public bucket, so public_photo_paths stays under the
