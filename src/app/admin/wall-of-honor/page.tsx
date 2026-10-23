@@ -7,7 +7,7 @@ import { guardedWrite } from '@/lib/db-write'
 import { requestRevalidate } from '@/lib/revalidate'
 import { formatEastern } from '@/lib/pinup-export'
 import { canPublish } from '@/lib/wall-of-honor-publish'
-import { photoQuality, duplicateHonoreeKey, WOH_SUBMISSIONS_BUCKET, TRIBUTE_MAX } from '@/lib/wall-of-honor-submission'
+import { photoQuality, duplicateHonoreeKey, WOH_SUBMISSIONS_BUCKET, WOH_PHOTO_MAX_COUNT, TRIBUTE_MAX } from '@/lib/wall-of-honor-submission'
 import type { Database } from '@/types/database'
 
 // Wall of Honor submissions (104). The table is admin only (RLS "wall_of_honor:
@@ -32,7 +32,7 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
 // Every column an update here may send. tribute is deliberately not one of them.
 type EntryPatch = Partial<Pick<Entry,
   'status' | 'decided_at' | 'decided_by' | 'admin_notes' | 'include_in_print'
-  | 'honoree_name' | 'honoree_rank' | 'branch' | 'unit' | 'service_years' | 'tribute_display'>>
+  | 'honoree_name' | 'honoree_rank' | 'branch' | 'unit' | 'service_years' | 'tribute_display' | 'photo_paths'>>
 
 type PublishResult = { is_published: boolean; published_at: string | null; emailSent?: boolean; warning?: string }
 // Persistent banner: a publish warning (public photos not fully removed) or a failure.
@@ -397,9 +397,10 @@ function EntryDetail({ entry: e, duplicate, working, year, notice, emailSent, on
   onSave: (patch: EntryPatch, what: string) => Promise<boolean>
 }) {
   const supabase = createClient()
-  // photo_paths never changes here (no update writes it) and the panel is keyed
-  // by entry id, so the paths are read once.
-  const [paths] = useState(e.photo_paths)
+  // The strip follows the row: after a photo save the DB row replaces local
+  // state, so this is the one source of truth.
+  const paths = e.photo_paths
+  const pathsKey = paths.join('|')
   const [urls, setUrls] = useState<(string | null)[] | null>(paths.length ? null : [])
   const [dims, setDims] = useState<Record<number, { w: number; h: number }>>({})
   const [notes, setNotes] = useState(e.admin_notes ?? '')
@@ -408,12 +409,16 @@ function EntryDetail({ entry: e, duplicate, working, year, notice, emailSent, on
 
   // Private bucket, admin read policy. An hour is plenty for a review sitting.
   useEffect(() => {
-    if (paths.length === 0) return
+    setDims({})
+    if (paths.length === 0) { setUrls([]); return }
+    let live = true
     supabase.storage.from(WOH_SUBMISSIONS_BUCKET).createSignedUrls(paths, 3600).then(({ data, error }) => {
+      if (!live) return
       if (error) console.error(`[admin/wall-of-honor] signed urls: ${error.message}`)
       setUrls(paths.map(p => data?.find(d => d.path === p)?.signedUrl ?? null))
     })
-  }, [paths]) // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { live = false }
+  }, [pathsKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveDisplay = async () => {
     const name = form.honoree_name.trim()
@@ -564,6 +569,8 @@ function EntryDetail({ entry: e, duplicate, working, year, notice, emailSent, on
         </div>
       )}
 
+      <WallPhotos entry={e} working={working} onSave={onSave} />
+
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: '#C4A882' }}>Honoree</h3>
       {editing ? (
         <div className="mb-6 space-y-3">
@@ -648,5 +655,147 @@ function EntryDetail({ entry: e, duplicate, working, year, notice, emailSent, on
         Save notes
       </button>
     </aside>
+  )
+}
+
+type FolderFile = { path: string; url: string | null; missing: boolean }
+
+// Which photos go on the wall, and in what order. Files come from the entry's
+// own folder (imported extras live there too), so the DB checks (own folder,
+// max 3) hold by construction. Saving writes photo_paths; the DB row that
+// comes back replaces local state.
+function WallPhotos({ entry: e, working, onSave }: {
+  entry: Entry
+  working: boolean
+  onSave: (patch: EntryPatch, what: string) => Promise<boolean>
+}) {
+  const supabase = createClient()
+  const [files, setFiles] = useState<FolderFile[] | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string[]>(e.photo_paths)
+  const [dims, setDims] = useState<Record<string, { w: number; h: number }>>({})
+  const storedKey = e.photo_paths.join('|')
+  const locked = e.is_published
+
+  // Re-sync the ticks to the stored order whenever the row's photo_paths change.
+  useEffect(() => { setSelected(e.photo_paths) }, [storedKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    let live = true
+    ;(async () => {
+      const bucket = supabase.storage.from(WOH_SUBMISSIONS_BUCKET)
+      const { data: listed, error } = await bucket.list(e.id, { limit: 100 })
+      if (!live) return
+      if (error || !listed) {
+        console.error(`[admin/wall-of-honor] list photos: ${error?.message}`)
+        setLoadError('Could not list the photos in this entry\'s folder. Reload to try again.')
+        return
+      }
+      const inFolder = listed.filter(f => f.id && f.name.startsWith('photo-')).map(f => `${e.id}/${f.name}`).sort()
+      // A stored path missing from the folder still shows, so saving never drops it unseen.
+      const missing = e.photo_paths.filter(p => !inFolder.includes(p))
+      const all = [...inFolder, ...missing]
+      const { data: signed, error: signErr } = all.length
+        ? await bucket.createSignedUrls(all, 3600)
+        : { data: [], error: null }
+      if (!live) return
+      if (signErr) console.error(`[admin/wall-of-honor] signed urls: ${signErr.message}`)
+      setFiles(all.map(p => ({
+        path: p,
+        url: signed?.find(d => d.path === p)?.signedUrl ?? null,
+        missing: missing.includes(p),
+      })))
+    })()
+    return () => { live = false }
+  }, [e.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const dirty = selected.join('|') !== storedKey
+  const atCap = selected.length >= WOH_PHOTO_MAX_COUNT
+
+  const toggle = (p: string) =>
+    setSelected(prev => prev.includes(p) ? prev.filter(x => x !== p) : prev.length >= WOH_PHOTO_MAX_COUNT ? prev : [...prev, p])
+  const makeMain = (p: string) => setSelected(prev => [p, ...prev.filter(x => x !== p)])
+
+  const save = async () => {
+    if (await onSave({ photo_paths: selected }, 'Wall photos')) toast.success('Wall photos saved')
+  }
+
+  return (
+    <section className="mb-6">
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: '#C4A882' }}>Wall photos</h3>
+      {locked && <p className="mb-2 text-xs" style={{ color: '#eab308' }}>Unpublish first to change the wall photos.</p>}
+      {loadError ? (
+        <p className="rounded-lg px-3 py-2 text-sm" style={{ backgroundColor: 'rgba(239,68,68,0.12)', color: '#fca5a5' }}>{loadError}</p>
+      ) : files === null ? (
+        <p className="text-sm" style={{ color: '#999' }}>Loading...</p>
+      ) : files.length === 0 ? (
+        <p className="text-sm" style={{ color: '#555' }}>No photos in this entry's folder.</p>
+      ) : (
+        <>
+          <p className="mb-2 text-xs" style={{ color: '#888' }}>
+            Tick up to {WOH_PHOTO_MAX_COUNT}. The order ticked is the wall order; the first is the main photo.
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            {files.map(f => {
+              const idx = selected.indexOf(f.path)
+              const on = idx >= 0
+              const d = dims[f.path]
+              const q = d ? photoQuality(Math.min(d.w, d.h)) : null
+              return (
+                <div key={f.path} className="rounded-lg p-2" style={{ border: `1px solid ${on ? '#C4A882' : '#2a2a2a'}` }}>
+                  {f.url ? (
+                    <a href={f.url} target="_blank" rel="noreferrer">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={f.url}
+                        alt={`${f.path.split('/').pop()} of ${e.honoree_name}`}
+                        className="aspect-square w-full rounded object-cover"
+                        onLoad={ev => {
+                          const img = ev.currentTarget
+                          setDims(prev => ({ ...prev, [f.path]: { w: img.naturalWidth, h: img.naturalHeight } }))
+                        }}
+                      />
+                    </a>
+                  ) : (
+                    <p className="text-xs" style={{ color: '#fca5a5' }}>{f.missing ? 'Not found in folder' : 'Could not load'}: {f.path.split('/').pop()}</p>
+                  )}
+                  {d && q && (
+                    <p className="mt-1 text-xs" style={{ color: '#999' }}>
+                      {d.w} x {d.h} <span className="font-semibold" style={{ color: QUALITY_COLOR[q] }}>{q}</span>
+                    </p>
+                  )}
+                  <label className="mt-1 flex items-center gap-2 text-xs" style={{ color: '#ccc' }}>
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      disabled={locked || working || (!on && atCap)}
+                      onChange={() => toggle(f.path)}
+                    />
+                    {on ? (idx === 0 ? 'Main' : `Photo ${idx + 1}`) : 'Not on wall'}
+                  </label>
+                  {on && idx > 0 && !locked && (
+                    <button type="button" disabled={working} onClick={() => makeMain(f.path)}
+                      className="mt-1 text-xs font-semibold underline disabled:opacity-40" style={{ color: '#C4A882' }}>
+                      Make main
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          {!locked && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <button disabled={working || !dirty} onClick={save}
+                className="rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-40" style={btnStyle}>
+                Save wall photos
+              </button>
+              {dirty && selected.length === 0 && (
+                <span className="text-xs" style={{ color: '#eab308' }}>Publishing needs at least one.</span>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </section>
   )
 }
