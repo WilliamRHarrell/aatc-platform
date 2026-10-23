@@ -29,6 +29,7 @@ export const ROUTES = {
   staying: '/info/staying',
   policies: '/info/policies',
   wallOfHonor: '/info/wall-of-honor',
+  wallOfHonorSubmit: '/info/wall-of-honor/submit',
 
   // Artists & vendors
   apply: '/apply',

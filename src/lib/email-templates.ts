@@ -4,9 +4,10 @@
  * routes (/api/sponsor-apply, /api/pinup-entry) use these.
  *
  * Money in these templates is the tier price from SPONSOR_TIERS, never a
- * client value. The internal notices go to CONTACT_EMAIL (one home).
+ * client value. Internal notices go to CONTACT_EMAIL (one home), except the
+ * Wall of Honor notice, which goes to WALL_OF_HONOR_EMAIL.
  */
-import { CONTACT_EMAIL, FINAL_DUE_LABEL } from '@/lib/event-config'
+import { CONTACT_EMAIL, FINAL_DUE_LABEL, WALL_OF_HONOR_EMAIL } from '@/lib/event-config'
 import { SPONSOR_TIERS, sponsorLines, type ShownPrices, type SponsorTier } from '@/lib/sponsor-tiers'
 import type { ReceiptFacts } from '@/lib/application-receipt'
 import { formatDateOnly } from '@/lib/date-only'
@@ -507,6 +508,43 @@ export function internalNewFoodTruckEmail(f: FoodTruckFacts & { email: string; p
     </table>
     ${f.description ? `<p style="margin:16px 0 0; font-size:14px; line-height:1.6; color:#cccccc;"><span style="color:#999999;">Menu:</span> ${esc(f.description)}</p>` : ''}
     ${ctaButton(`${SITE_URL}/admin/food-trucks`, 'Review in admin →')}
+  `)
+}
+
+/** To the submitter, right after a Wall of Honor tribute saves. */
+export function wallOfHonorReceivedEmail(f: { honoreeName: string; submitterName: string }) {
+  return emailWrapper(`
+    ${kicker('Tribute Received')}
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:26px; font-weight:700; color:#ffffff;">
+      Thank you, ${esc(f.submitterName)}
+    </h2>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Thank you for honoring ${esc(f.honoreeName)} on the Wall of Honor. We received your tribute.
+    </p>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7; color:#cccccc;">
+      Every tribute is reviewed by our team before it appears. We will email you when it is on the Wall.
+    </p>
+    <p style="margin:16px 0 0; font-size:15px; line-height:1.7; color:#cccccc;">
+      Questions? Email <a href="mailto:${WALL_OF_HONOR_EMAIL}" style="color:#C4A882;">${WALL_OF_HONOR_EMAIL}</a>.
+    </p>
+  `)
+}
+
+/** To WALL_OF_HONOR_EMAIL, for each new Wall of Honor tribute. */
+export function internalNewWallOfHonorEmail(f: { honoreeName: string; branch: string; submitterName: string; relationship: string; email: string; phone: string | null; photoCount: number }) {
+  return emailWrapper(`
+    ${kicker('New Wall of Honor Tribute')}
+    <h2 style="margin:0 0 20px; font-family:Georgia,serif; font-size:24px; font-weight:700; color:#ffffff;">
+      ${esc(f.honoreeName)}
+    </h2>
+    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:14px; color:#cccccc;">
+      <tr><td style="padding:4px 0; color:#999999;">Branch</td><td align="right">${esc(f.branch)}</td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Submitted by</td><td align="right">${esc(f.submitterName)} (${esc(f.relationship)})</td></tr>
+      <tr><td style="padding:4px 0; color:#999999;">Email</td><td align="right"><a href="mailto:${esc(f.email)}" style="color:#C4A882;">${esc(f.email)}</a></td></tr>
+      ${f.phone ? `<tr><td style="padding:4px 0; color:#999999;">Phone</td><td align="right">${esc(f.phone)}</td></tr>` : ''}
+      <tr><td style="padding:4px 0; color:#999999;">Photos</td><td align="right">${f.photoCount} (uploading after this email)</td></tr>
+    </table>
+    ${ctaButton(`${SITE_URL}/admin/wall-of-honor`, 'Review in admin →')}
   `)
 }
 

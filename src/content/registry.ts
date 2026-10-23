@@ -1,4 +1,4 @@
-import { COLLECTORS_CHOICE_PRIZE } from '@/lib/event-config'
+import { COLLECTORS_CHOICE_PRIZE, WALL_OF_HONOR_DEADLINE_LABEL, WALL_OF_HONOR_EMAIL } from '@/lib/event-config'
 import { MIN_FEATURED_FOR_HOMEPAGE } from '@/lib/vip-config'
 
 export type ContentType = 'text' | 'markdown' | 'boolean' | 'url'
@@ -271,7 +271,7 @@ export const REGISTRY: PageDef[] = [
         label: 'Wall of Honor card body',
         type: 'markdown',
         default:
-          "Gold Star families and loved ones of distinguished veterans: share your hero's story for the AATC 2027 Wall of Honor. Submissions include photos and a written tribute, displayed at the show and on our website.",
+          "Gold Star families and loved ones of service members who died while serving: share your hero's story for the AATC 2027 Wall of Honor. Submissions include photos and a written tribute, displayed at the show and on our website.",
       },
       honor_cta: { label: 'Wall of Honor link label', type: 'text', default: 'Submit a Wall of Honor Tribute' },
 
@@ -293,12 +293,12 @@ export const REGISTRY: PageDef[] = [
       volunteer_cta: { label: 'Volunteer card link label', type: 'text', default: 'Apply to Volunteer' },
 
       // ── Deadline strip ──
-      deadline_title: { label: 'Deadline strip title', type: 'text', default: 'Deadline: March 15, 2027 - or until sold out.' },
+      deadline_title: { label: 'Deadline strip title', type: 'text', default: `Deadline: ${WALL_OF_HONOR_DEADLINE_LABEL} - or until sold out.` },
       deadline_body: {
         label: 'Deadline strip body',
         type: 'markdown',
         default:
-          'Booth applications, Pin-Up Contest entries, and Wall of Honor submissions all close March 15, 2027, but booths and Pin-Up spots close early when they’re gone. Every year they go before the deadline - apply early.',
+          `Booth applications, Pin-Up Contest entries, and Wall of Honor submissions all close ${WALL_OF_HONOR_DEADLINE_LABEL}, but booths and Pin-Up spots close early when they’re gone. Every year they go before the deadline - apply early.`,
       },
 
       // footer_name / footer_location removed 2026-09-29 with /apply's own footer: the site footer covers it.
@@ -578,6 +578,49 @@ export const REGISTRY: PageDef[] = [
     },
   },
   {
+    key: 'wallOfHonorSubmit',
+    title: 'Wall of Honor submission form (/info/wall-of-honor/submit)',
+    sections: {
+      intro_title: { label: 'Page title', type: 'text', default: 'Wall of Honor Submission' },
+      intro_body: {
+        label: 'Intro',
+        type: 'markdown',
+        default:
+          "The Wall of Honor remembers service members who died while serving. If you are a Gold Star family member or are submitting with the family's permission, we invite you to share your hero's story for display at the convention and on our website.",
+      },
+      deadline_line: { label: 'Deadline line', type: 'text', default: `Submissions close ${WALL_OF_HONOR_DEADLINE_LABEL}.` },
+      review_note: {
+        label: 'Review note',
+        type: 'text',
+        default: 'Every tribute is reviewed by our team before it appears. We will email you when it is on the Wall.',
+      },
+      consent_label: {
+        label: 'Consent checkbox',
+        type: 'text',
+        default:
+          "I am a family member or have the family's permission. I have the right to share these photos. AATC may show this tribute on its website and print it for display at the convention.",
+      },
+      consent_social_label: {
+        label: 'Social media consent checkbox (optional)',
+        type: 'text',
+        default: 'AATC may also share this tribute on its social media.',
+      },
+      closed_title: { label: 'Closed: title', type: 'text', default: 'Submissions are closed' },
+      closed_body: {
+        label: 'Closed: body',
+        type: 'markdown',
+        default: `Wall of Honor submissions are not open right now. Questions? Email ${WALL_OF_HONOR_EMAIL}.`,
+      },
+      success_title: { label: 'Success: title', type: 'text', default: 'Thank you' },
+      success_body: {
+        label: 'Success: body',
+        type: 'markdown',
+        default:
+          'Your tribute was received. Our team reviews every submission before it appears on the Wall, and we will email you when it is up.',
+      },
+    },
+  },
+  {
     key: 'foodTruckApply',
     title: 'Food truck application (/apply/food-truck) and its emails',
     sections: {
@@ -713,6 +756,7 @@ export const PAGE_ROUTE: Record<string, string | string[]> = {
   policies: '/info/policies',
   applyForms: ['/apply/artist', '/apply/vendor'],
   foodTruckApply: '/apply/food-truck',
+  wallOfHonorSubmit: '/info/wall-of-honor/submit',
 }
 
 /** Every public path a registry page renders on; the editor purges them all. */
