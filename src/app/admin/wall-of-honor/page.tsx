@@ -246,6 +246,9 @@ export default function AdminWallOfHonorPage() {
             </button>
           </div>
         )}
+        <a href="/api/admin/wall-of-honor/print" className="rounded-lg px-4 py-2 text-xs font-semibold" style={btnStyle}>
+          Download print export
+        </a>
         <div className="rounded-xl px-5 py-3" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
           <p className="text-xs uppercase tracking-wider" style={{ color: '#999' }}>Pending</p>
           <p className="mt-1 text-xl font-bold" style={{ color: pendingTotal ? '#eab308' : '#fff' }}>{pendingTotal} pending</p>
