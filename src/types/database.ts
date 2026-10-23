@@ -461,6 +461,7 @@ export type Database = {
           state: string
           updated_at: string
           venue: string
+          wall_of_honor_open: boolean
         }
         Insert: {
           city: string
@@ -479,6 +480,7 @@ export type Database = {
           state: string
           updated_at?: string
           venue: string
+          wall_of_honor_open?: boolean
         }
         Update: {
           city?: string
@@ -497,6 +499,7 @@ export type Database = {
           state?: string
           updated_at?: string
           venue?: string
+          wall_of_honor_open?: boolean
         }
         Relationships: []
       }
@@ -1700,6 +1703,98 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      wall_of_honor_entries: {
+        Row: {
+          admin_notes: string | null
+          branch: string
+          consent_at: string
+          consent_social: boolean
+          decided_at: string | null
+          decided_by: string | null
+          event_id: string
+          honoree_name: string
+          honoree_rank: string | null
+          id: string
+          include_in_print: boolean
+          is_published: boolean
+          photo_paths: string[]
+          public_photo_paths: string[]
+          published_at: string | null
+          service_years: string | null
+          status: string
+          submitted_at: string
+          submitter_email: string
+          submitter_name: string
+          submitter_phone: string | null
+          submitter_relationship: string
+          tribute: string
+          tribute_display: string | null
+          unit: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          branch: string
+          consent_at?: string
+          consent_social?: boolean
+          decided_at?: string | null
+          decided_by?: string | null
+          event_id: string
+          honoree_name: string
+          honoree_rank?: string | null
+          id?: string
+          include_in_print?: boolean
+          is_published?: boolean
+          photo_paths?: string[]
+          public_photo_paths?: string[]
+          published_at?: string | null
+          service_years?: string | null
+          status?: string
+          submitted_at?: string
+          submitter_email: string
+          submitter_name: string
+          submitter_phone?: string | null
+          submitter_relationship: string
+          tribute: string
+          tribute_display?: string | null
+          unit?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          branch?: string
+          consent_at?: string
+          consent_social?: boolean
+          decided_at?: string | null
+          decided_by?: string | null
+          event_id?: string
+          honoree_name?: string
+          honoree_rank?: string | null
+          id?: string
+          include_in_print?: boolean
+          is_published?: boolean
+          photo_paths?: string[]
+          public_photo_paths?: string[]
+          published_at?: string | null
+          service_years?: string | null
+          status?: string
+          submitted_at?: string
+          submitter_email?: string
+          submitter_name?: string
+          submitter_phone?: string | null
+          submitter_relationship?: string
+          tribute?: string
+          tribute_display?: string | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wall_of_honor_entries_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

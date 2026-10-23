@@ -60,6 +60,9 @@ export const ROOMS = {
 export const VENUE_LOCATIONS: readonly string[] = ['Main Stage', ROOMS.seminarRoom, ROOMS.ballroom, 'Contest Booth']
 
 export const CONTACT_EMAIL = 'info@allamericantattooconvention.com'
+// The Wall of Honor inbox, confirmed working by Ryan 2026-10-22. The one home
+// for the address: the submission notice and the receipt's questions line read it.
+export const WALL_OF_HONOR_EMAIL = 'wallofhonor@allamericantattooconvention.com'
 export const CONTACT_PHONE = '(910) 850-2566'
 
 // instagram and tiktok were '/officialaatc' here but unused; the live footer
