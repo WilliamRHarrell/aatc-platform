@@ -5,16 +5,27 @@ import { WALL_OF_HONOR_EMAIL } from '@/lib/event-config'
 
 describe('canPublish', () => {
   it('is ok when approved with at least one photo', () => {
-    expect(canPublish({ status: 'approved', photo_paths: ['a.jpg'] })).toEqual({ ok: true })
+    expect(canPublish({ status: 'approved', branch: 'Army', photo_paths: ['a.jpg'] })).toEqual({ ok: true })
   })
   it('names a distinct gap for each blocked case', () => {
-    const pending = canPublish({ status: 'pending', photo_paths: ['a.jpg'] })
-    const noPhoto = canPublish({ status: 'approved', photo_paths: [] })
-    const rejected = canPublish({ status: 'rejected', photo_paths: ['a.jpg'] })
+    const pending = canPublish({ status: 'pending', branch: 'Army', photo_paths: ['a.jpg'] })
+    const noPhoto = canPublish({ status: 'approved', branch: 'Army', photo_paths: [] })
+    const rejected = canPublish({ status: 'rejected', branch: 'Army', photo_paths: ['a.jpg'] })
     for (const r of [pending, noPhoto, rejected]) expect(r.ok).toBe(false)
     const reasons = [pending, noPhoto, rejected].map(r => (r.ok ? '' : r.reason))
     expect(new Set(reasons).size).toBe(3)
     expect(reasons.every(r => r.length > 0)).toBe(true)
+  })
+})
+
+describe('canPublish branch', () => {
+  it('refuses an empty or whitespace branch with the branch reason', () => {
+    for (const branch of ['', '  ']) {
+      expect(canPublish({ status: 'approved', branch, photo_paths: ['a.jpg'] })).toEqual({ ok: false, reason: 'Fill in the branch first.' })
+    }
+  })
+  it('is ok with a branch', () => {
+    expect(canPublish({ status: 'approved', branch: 'Army', photo_paths: ['a.jpg'] })).toEqual({ ok: true })
   })
 })
 

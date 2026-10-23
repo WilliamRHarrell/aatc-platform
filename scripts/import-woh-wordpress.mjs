@@ -734,8 +734,15 @@ ${allPaths.map(p => `--   ${p}`).join('\n')}
 
 begin;
 do $$
-declare v_n int;
+declare v_n int; v_pub text;
 begin
+  select string_agg(id::text, ', ') into v_pub from public.wall_of_honor_entries
+    where is_published and id in (
+${idList}
+  );
+  if v_pub is not null then
+    raise exception 'woh import teardown: unpublish these entries first (ids: %). Nothing deleted.', v_pub;
+  end if;
   delete from public.wall_of_honor_entries where id in (
 ${idList}
   );

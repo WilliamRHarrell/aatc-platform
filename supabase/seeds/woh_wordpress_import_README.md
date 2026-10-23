@@ -31,7 +31,7 @@ node scripts/import-woh-wordpress.mjs --backup <path to the unzipped site archiv
 
 Parses the SQL dump and the uploads folder and writes
 `woh-import-report/report.md`. Nothing is uploaded and no seed is written.
-`--out <dir>` puts the report somewhere else.
+`--out <dir>` puts the report somewhere else. The report embeds family tributes and emails, so keep `--out` at its git-ignored default (or outside the repo).
 
 ## 2. Review the report
 
