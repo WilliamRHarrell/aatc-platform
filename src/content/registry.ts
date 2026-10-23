@@ -578,6 +578,40 @@ export const REGISTRY: PageDef[] = [
     },
   },
   {
+    // Defaults are the old page's own sentences minus the three claims Ryan
+    // held on 2026-10-23 (the wall as a quiet space for reflection, a separate
+    // area at the venue, and items left at the wall being returned to
+    // families). Those get NO entry until he confirms them; do not add them
+    // back here or in the admin. Submissions close on the deadline (no
+    // open-ended intake), and the receipt line says what the code does.
+    key: 'wallOfHonor',
+    title: 'Wall of Honor (/info/wall-of-honor)',
+    sections: {
+      intro_title: { label: 'About title', type: 'text', default: 'A Place of Remembrance' },
+      intro_body: {
+        label: 'About body',
+        help: 'Separate paragraphs with a blank line.',
+        type: 'markdown',
+        default:
+          'The Wall of Honor is a physical display at the convention venue where photographs, names, and stories of fallen service members are presented with dignity and care.\n\nEvery name on the wall represents a life of service, sacrifice, and love. We are honored to provide this space and deeply grateful to the families who trust us with their stories.',
+      },
+      how_title: { label: 'Submit section title', type: 'text', default: 'Submit a Tribute' },
+      how_body: {
+        label: 'Submit section body',
+        help: 'Shown above the button to the submission form. Separate paragraphs with a blank line.',
+        type: 'markdown',
+        default: `We welcome submissions from families, friends, and fellow service members who wish to honor a fallen hero on the Wall of Honor. Tributes and photos are submitted through the online form.\n\nAll submissions are reviewed with care and respect. An email confirms that your tribute was received, and we will email you when it is on the Wall. Submissions close ${WALL_OF_HONOR_DEADLINE_LABEL}.`,
+      },
+      empty_state: {
+        label: 'Empty wall message',
+        help: 'Shown while no tribute is published.',
+        type: 'text',
+        default: 'The Wall of Honor is being assembled from family submissions. Names will appear here as families share them with us.',
+      },
+      submit_cta: { label: 'Submit button', type: 'text', default: 'Submit a tribute' },
+    },
+  },
+  {
     key: 'wallOfHonorSubmit',
     title: 'Wall of Honor submission form (/info/wall-of-honor/submit)',
     sections: {
@@ -756,6 +790,7 @@ export const PAGE_ROUTE: Record<string, string | string[]> = {
   policies: '/info/policies',
   applyForms: ['/apply/artist', '/apply/vendor'],
   foodTruckApply: '/apply/food-truck',
+  wallOfHonor: '/info/wall-of-honor',
   wallOfHonorSubmit: '/info/wall-of-honor/submit',
 }
 
