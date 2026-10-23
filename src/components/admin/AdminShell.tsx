@@ -99,6 +99,15 @@ const NAV = [
     ),
   },
   {
+    href: '/admin/wall-of-honor',
+    label: 'Wall of Honor',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2l3 6.5 7 .9-5.1 4.8 1.3 7L12 17.8 5.8 21.2l1.3-7L2 9.4l7-.9z"/>
+      </svg>
+    ),
+  },
+  {
     href: '/admin/events',
     label: 'Event Settings',
     icon: (
