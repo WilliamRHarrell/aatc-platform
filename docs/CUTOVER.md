@@ -128,7 +128,20 @@ things worse, not better.
       |---|---|---|
       | `/api/pinup-entry` | POST | 5 requests / 60s per IP, Deny 403 |
       | `/api/panel-register` | POST | 5 requests / 60s per IP, Deny 403 |
-      | `/api/wall-of-honor-submit` (path prefix, covers `/files`) | POST | 5 requests / 60s per IP, Deny 403 |
+      | `/api/wall-of-honor-submit` (path prefix, covers `/files`) | POST | 10 requests / 60s per IP, Deny 403 |
+
+      The Wall of Honor rule is set to 10, not 5: Vercel counted roughly 2x
+      per request against this rule, so a setting of 5 blocked on request 3.
+      At 10 it blocks on request 6 - verified by observation 2026-10-23. The
+      pinup and panel rules still say 5; they were verified blocking on
+      request 6 under the earlier counting (2026-08-31, see the
+      PINUP_REGISTRATION_OPEN comment in src/lib/event-config.ts). Re-verify
+      their behavior the next time either rule is touched.
+
+      The Wall of Honor rule's two conditions (Request Path starts with
+      /api/wall-of-honor-submit, Method equals POST) must be joined with
+      AND. The connector was briefly OR, which rate-limited EVERY POST on
+      the site. Check the connector inside the rule editor after any edit.
 
 - [ ] **Delete the two disabled duplicate rules.** They cover the same two
       endpoints without POST in the description and are currently disabled
