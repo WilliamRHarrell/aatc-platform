@@ -6,7 +6,6 @@ import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
 import { ROUTES } from '@/lib/routes'
 import { WALL_OF_HONOR_EMAIL } from '@/lib/event-config'
-import { groupByEventYear } from '@/lib/wall-of-honor-publish'
 import { WOH_PUBLIC_BUCKET } from '@/lib/wall-of-honor-submission'
 import type { Database } from '@/types/database'
 import HonoreePhotos from './HonoreePhotos'
@@ -74,7 +73,6 @@ function HonoreeCard({ h }: { h: Honoree }) {
 
 export default async function WallOfHonorPage() {
   const [honorees, c] = await Promise.all([getHonorees(), getContent('wallOfHonor')])
-  const groups = groupByEventYear(honorees)
 
   return (
     <div className="min-h-screen">
@@ -120,7 +118,9 @@ export default async function WallOfHonorPage() {
         </div>
       </section>
 
-      {/* The wall: newest event year first, newest published first within it */}
+      {/* One continuous wall, newest published first. No year headings or year
+          labels on public cards (Ryan, 2026-10-24); the event year stays in the
+          admin and the print export. */}
       <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-2 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>
@@ -129,24 +129,13 @@ export default async function WallOfHonorPage() {
           <p className="mb-8 text-center text-xs" style={{ color: '#666' }}>
             <span className="text-emboss">Honoring their service and sacrifice</span>
           </p>
-          {groups.length === 0 ? (
+          {honorees.length === 0 ? (
             <div className="rounded-2xl px-6 py-10 text-center" style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
               <p className="text-sm" style={{ color: '#999' }}>{c.empty_state}</p>
             </div>
           ) : (
-            <div className="space-y-12">
-              {groups.map(g => (
-                <div key={g.year ?? 'no-year'}>
-                  {g.year !== null && (
-                    <h3 className="mb-6 text-center font-display text-2xl font-bold text-white">
-                      <span className="text-emboss">{g.year}</span>
-                    </h3>
-                  )}
-                  <div className="grid gap-6 md:grid-cols-2">
-                    {g.rows.map(h => <HonoreeCard key={h.id} h={h} />)}
-                  </div>
-                </div>
-              ))}
+            <div className="grid gap-6 md:grid-cols-2">
+              {honorees.map(h => <HonoreeCard key={h.id} h={h} />)}
             </div>
           )}
         </div>

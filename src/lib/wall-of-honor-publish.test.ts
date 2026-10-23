@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { canPublish, shouldSendPublishEmail, groupByEventYear } from '@/lib/wall-of-honor-publish'
+import { canPublish, shouldSendPublishEmail } from '@/lib/wall-of-honor-publish'
 import { wallOfHonorPublishedEmail } from '@/lib/email-templates'
 import { WALL_OF_HONOR_EMAIL } from '@/lib/event-config'
 
@@ -45,22 +45,6 @@ describe('shouldSendPublishEmail', () => {
   })
 })
 
-describe('groupByEventYear', () => {
-  it('orders years descending, nulls last, keeping input order within a year', () => {
-    const rows = [
-      { id: 'a', event_year: 2027 }, { id: 'b', event_year: 2026 },
-      { id: 'c', event_year: 2027 }, { id: 'd', event_year: null },
-    ]
-    const groups = groupByEventYear(rows)
-    expect(groups.map(g => g.year)).toEqual([2027, 2026, null])
-    expect(groups[0].rows.map(r => r.id)).toEqual(['a', 'c'])
-    expect(groups[1].rows.map(r => r.id)).toEqual(['b'])
-    expect(groups[2].rows.map(r => r.id)).toEqual(['d'])
-  })
-  it('returns no groups for no rows', () => {
-    expect(groupByEventYear([])).toEqual([])
-  })
-})
 
 describe('wallOfHonorPublishedEmail', () => {
   const html = wallOfHonorPublishedEmail({ honoreeName: 'John Smith', submitterName: 'Jane', wallUrl: 'https://www.example.com/wall-of-honor' })

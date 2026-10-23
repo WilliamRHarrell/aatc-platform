@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 
 /**
  * An honoree's photos: the main photo (the first) plus a row of the others.
@@ -45,9 +46,9 @@ export default function HonoreePhotos({ urls, name }: { urls: string[]; name: st
 
   return (
     <>
-      <button type="button" onClick={show(0)} className="block w-full" aria-label={`View photo of ${name}`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={main} alt={name} className="h-72 w-full object-cover" loading="lazy" />
+      {/* next/image resizes the up-to-10 MB originals; cards sit in a 2-column grid from md up. */}
+      <button type="button" onClick={show(0)} className="relative block h-72 w-full" aria-label={`View photo of ${name}`}>
+        <Image src={main} alt={name} fill className="object-cover" sizes="(min-width: 768px) 50vw, 100vw" />
       </button>
       {rest.length > 0 && (
         <div className="flex flex-wrap gap-2 px-6 pt-4">
@@ -56,12 +57,11 @@ export default function HonoreePhotos({ urls, name }: { urls: string[]; name: st
               key={url}
               type="button"
               onClick={show(i + 1)}
-              className="overflow-hidden rounded-lg"
+              className="relative h-14 w-14 overflow-hidden rounded-lg"
               style={{ border: '1px solid #2a2a2a' }}
               aria-label={`View photo ${i + 2} of ${urls.length} of ${name}`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="h-14 w-14 object-cover" loading="lazy" />
+              <Image src={url} alt="" fill className="object-cover" sizes="56px" />
             </button>
           ))}
         </div>
@@ -76,6 +76,7 @@ export default function HonoreePhotos({ urls, name }: { urls: string[]; name: st
           style={{ backgroundColor: 'rgba(0,0,0,0.92)' }}
           onClick={() => setOpen(null)}
         >
+          {/* The lightbox deliberately serves the full-size original (plain img, no resize). */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={urls[open]}

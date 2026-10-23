@@ -28,16 +28,3 @@ export function shouldSendPublishEmail(e: {
 }): boolean {
   return e.imported_at === null && e.published_email_sent_at === null && e.submitter_email !== ''
 }
-
-/** Years descending, entries with no year last, input order kept within a year. */
-export function groupByEventYear<T extends { event_year: number | null }>(rows: T[]): { year: number | null; rows: T[] }[] {
-  const byYear = new Map<number | null, T[]>()
-  for (const r of rows) {
-    const list = byYear.get(r.event_year)
-    if (list) list.push(r)
-    else byYear.set(r.event_year, [r])
-  }
-  return [...byYear.entries()]
-    .sort(([a], [b]) => (a === null ? 1 : b === null ? -1 : b - a))
-    .map(([year, list]) => ({ year, rows: list }))
-}
