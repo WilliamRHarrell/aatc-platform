@@ -49,3 +49,9 @@ supabase/.schema-dumps/
 
 # Square import working files: generated SQL and overrides hold customer data (scripts/import-square-2027.mjs)
 supabase/.imports/
+
+# Wall of Honor WordPress import (scripts/import-woh-wordpress.mjs): the generated seed and
+# teardown embed family tributes and emails, and the report lists them. Never committed.
+/supabase/seeds/woh_wordpress_import.sql
+/supabase/seeds/woh_wordpress_import_teardown.sql
+/woh-import-report/
