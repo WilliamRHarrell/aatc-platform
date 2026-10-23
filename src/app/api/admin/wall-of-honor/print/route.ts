@@ -79,16 +79,18 @@ export async function GET() {
     const folderName = uniqueFolderName(year === undefined ? e.honoree_name : `${e.honoree_name} (${year})`, usedFolders)
     const folder = zip.folder(folderName)!
 
-    folder.file('tribute.txt', [
+    // Header lines with no value are left out, not written as dangling labels.
+    const labelled = (label: string, v: string | number | null | undefined) =>
+      v === null || v === undefined || String(v).trim() === '' ? null : `${label}: ${v}`
+    const header = [
       e.honoree_name,
-      `Rank: ${e.honoree_rank ?? ''}`,
-      `Branch: ${e.branch}`,
-      `Unit: ${e.unit ?? ''}`,
-      `Service years: ${e.service_years ?? ''}`,
-      `Event year: ${year ?? ''}`,
-      '',
-      e.tribute_display ?? e.tribute,
-    ].join('\n'))
+      labelled('Rank', e.honoree_rank),
+      labelled('Branch', e.branch),
+      labelled('Unit', e.unit),
+      labelled('Service years', e.service_years),
+      labelled('Event year', year),
+    ].filter((l): l is string => l !== null)
+    folder.file('tribute.txt', [...header, '', e.tribute_display ?? e.tribute].join('\n'))
 
     for (const [i, path] of e.photo_paths.entries()) {
       const { data: blob, error: dlErr } = await service.storage.from(WOH_SUBMISSIONS_BUCKET).download(path)

@@ -27,6 +27,8 @@ describe('csv', () => {
     expect(csvField('a,b')).toBe('"a,b"')
     expect(csvField('say "hi"')).toBe('"say ""hi"""')
     expect(csvField('x\ny')).toBe('"x\ny"')
+    expect(csvField('x\ry')).toBe('"x\ry"')
+    expect(csvField('x\r\ny')).toBe('"x\r\ny"')
     expect(csvField('plain')).toBe('plain')
   })
   it('renders null and booleans', () => {
