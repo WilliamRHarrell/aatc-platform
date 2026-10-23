@@ -8,8 +8,16 @@
 -- column type or nullability changes and the view stays as 105 left it. Ryan
 -- fills the branch in the admin console before he publishes an imported row.
 --
--- APPLY ORDER: 104 and 105 must be applied first (this file reads 105's
--- imported_at column).
+-- APPLY ORDER: 104 and 105 must be applied first (this file drops and
+-- recreates 104's constraints by name and reads 105's imported_at column).
+--
+-- BEFORE APPLYING: submitter_relationship is newly required at the database
+-- for form rows (104 did not CHECK it), so one live form row with it empty
+-- would roll this whole file back. Run this first and fix any rows it returns:
+--   select id, honoree_name from public.wall_of_honor_entries
+--   where imported_at is null and btrim(submitter_relationship) = '';
+-- branch, submitter_name and submitter_email need no check: 104 already
+-- enforced them, so no live row can be empty there.
 --
 -- This changes:
 --   1. wall_of_honor_entries_nonempty (104), dropped and recreated by name:
@@ -22,6 +30,10 @@
 --      (the form already requires it: src/lib/wall-of-honor-submission.ts).
 --      imported_at itself is guard-protected from non-admins (105), so a
 --      signed-in non-admin cannot relax a row by setting it.
+--      104's partial unique index (event_id, lower(submitter_email),
+--      lower(btrim(honoree_name))) on pending/approved rows still covers
+--      imported rows: two imports on one event with the same honoree name and
+--      an empty email collide (the Task 3 importer relies on this).
 --   3. wall_of_honor_entries_publish_check (104), dropped and recreated by
 --      name: published also requires a nonempty branch, so an imported row
 --      cannot go public with the branch unknown.
