@@ -1,6 +1,7 @@
 'use client'
 
 import PublicNav from '@/components/PublicNav'
+import { WALL_OF_HONOR_EMAIL } from '@/lib/event-config'
 
 // REMOVED 2026-08-27: this held three fabricated fallen service members -
 // full names, ranks, units, service dates and family-voice tributes - rendered
@@ -147,8 +148,8 @@ export default function WallOfHonorPage() {
           >
             <p className="mb-6 text-sm leading-relaxed" style={{ color: '#999' }}>
               We welcome submissions from families, friends, and fellow service members who wish to honor a fallen hero on the Wall of Honor. To submit a tribute, please email the following information to{' '}
-              <a href="mailto:wallofhonor@allamericantattooconvention.com" style={{ color: '#C4A882' }}>
-                wallofhonor@allamericantattooconvention.com
+              <a href={`mailto:${WALL_OF_HONOR_EMAIL}`} style={{ color: '#C4A882' }}>
+                {WALL_OF_HONOR_EMAIL}
               </a>
             </p>
             <div className="space-y-4">
@@ -196,8 +197,8 @@ export default function WallOfHonorPage() {
         </p>
         <p className="text-sm" style={{ color: '#999' }}>
           <span className="text-emboss">Contact us at{' '}
-          <a href="mailto:wallofhonor@allamericantattooconvention.com" style={{ color: '#C4A882' }}>
-            wallofhonor@allamericantattooconvention.com
+          <a href={`mailto:${WALL_OF_HONOR_EMAIL}`} style={{ color: '#C4A882' }}>
+            {WALL_OF_HONOR_EMAIL}
           </a></span>
         </p>
       </div>

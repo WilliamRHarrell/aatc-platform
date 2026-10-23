@@ -33,7 +33,7 @@ export default async function ApplyPage() {
   const secondary = [
     { title: c.pinup_title, body: c.pinup_body, cta: c.pinup_cta, href: '/events/pinup-contest' },
     { title: c.contests_title, body: c.contests_body, cta: c.contests_cta, href: '/events/tattoo-contests' },
-    { title: c.honor_title, body: c.honor_body, cta: c.honor_cta, href: '/info/wall-of-honor' },
+    { title: c.honor_title, body: c.honor_body, cta: c.honor_cta, href: '/info/wall-of-honor/submit' },
     { title: c.sponsor_title, body: c.sponsor_body, cta: c.sponsor_cta, href: '/sponsors/packages' },
     { title: c.volunteer_title, body: c.volunteer_body, cta: c.volunteer_cta, href: null },
   ]

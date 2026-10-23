@@ -63,6 +63,9 @@ export const CONTACT_EMAIL = 'info@allamericantattooconvention.com'
 // The Wall of Honor inbox, confirmed working by Ryan 2026-10-22. The one home
 // for the address: the submission notice and the receipt's questions line read it.
 export const WALL_OF_HONOR_EMAIL = 'wallofhonor@allamericantattooconvention.com'
+// The Wall of Honor submissions deadline: the one code home. Registry defaults
+// (the form copy and the /apply deadline strip) read it; do not restate the date.
+export const WALL_OF_HONOR_DEADLINE_LABEL = 'March 15, 2027'
 export const CONTACT_PHONE = '(910) 850-2566'
 
 // instagram and tiktok were '/officialaatc' here but unused; the live footer
