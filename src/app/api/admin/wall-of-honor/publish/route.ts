@@ -105,6 +105,9 @@ export async function POST(req: Request) {
     .eq('id', id).maybeSingle()
   if (readErr) {
     console.error(`[admin/wall-of-honor/publish] ${id}: read failed (${readErr.code}): ${readErr.message}`)
+    if (readErr.code === '42703') {
+      return NextResponse.json({ error: 'Migration 105 is not applied yet (wall_of_honor_entries is missing a column the publish route reads)' }, { status: 500 })
+    }
     return NextResponse.json({ error: 'Could not read that tribute' }, { status: 500 })
   }
   if (!entry) return NextResponse.json({ error: 'Tribute not found' }, { status: 404 })

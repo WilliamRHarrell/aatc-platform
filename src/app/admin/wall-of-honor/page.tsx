@@ -354,7 +354,7 @@ export default function AdminWallOfHonorPage() {
             working={working}
             year={yearOf(current)}
             notice={notice}
-            emailSent={current.published_email_sent_at !== null || emailSentIds.has(current.id)}
+            emailSent={(current.published_email_sent_at ?? null) !== null || emailSentIds.has(current.id)}
             onDismissNotice={() => setNotice(null)}
             onPublish={publish => publishEntry(current, publish)}
             onClose={() => setOpenId(null)}

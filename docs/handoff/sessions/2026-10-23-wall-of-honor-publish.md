@@ -29,8 +29,9 @@ the WordPress import are PR 3.
 
 - Run migration 105, then verify_105 per its header (a FRESH session, read the
   MESSAGES pane).
-- verify_104 C1 and C4 are superseded by 105 (both describe 104's
-  active-event-only visibility). They are expected to FAIL if verify_104 is
+- verify_104 C1 and C4 are superseded by 105. C1 pins active-event-only
+  visibility (superseded by design); C4 pins the nine-column list (fails on
+  event_year). Both are expected to FAIL if verify_104 is
   re-run after 105 is applied.
 - **Deploy-before-apply is safe and verified.** Until 105 is applied the live
   view lacks `event_year`, so the page read fails cleanly (42703) and the
