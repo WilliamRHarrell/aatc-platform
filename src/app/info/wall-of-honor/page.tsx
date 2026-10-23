@@ -5,6 +5,7 @@ import { getContent } from '@/content/getContent'
 import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
 import { ROUTES } from '@/lib/routes'
+import { WALL_OF_HONOR_EMAIL } from '@/lib/event-config'
 import { groupByEventYear } from '@/lib/wall-of-honor-publish'
 import { WOH_PUBLIC_BUCKET } from '@/lib/wall-of-honor-submission'
 import type { Database } from '@/types/database'
@@ -24,20 +25,25 @@ type Honoree = Omit<PublicRow, 'photo_paths'> & { photo_urls: string[] }
 // path. A failed read shows the empty state rather than an error page.
 const getHonorees = unstable_cache(
   async (): Promise<Honoree[]> => {
-    const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
-    const { data, error } = await sb
-      .from('wall_of_honor_public')
-      .select('id, honoree_name, honoree_rank, branch, unit, service_years, tribute, photo_paths, published_at, event_year')
-      .order('published_at', { ascending: false, nullsFirst: false })
-    if (error) {
-      console.error(`[wall-of-honor] public read failed (${error.code}): ${error.message} - showing the empty state`)
+    try {
+      const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+      const { data, error } = await sb
+        .from('wall_of_honor_public')
+        .select('id, honoree_name, honoree_rank, branch, unit, service_years, tribute, photo_paths, published_at, event_year')
+        .order('published_at', { ascending: false, nullsFirst: false })
+      if (error) {
+        console.error(`[wall-of-honor] public read failed (${error.code}): ${error.message} - showing the empty state`)
+        return []
+      }
+      const bucket = sb.storage.from(WOH_PUBLIC_BUCKET)
+      return ((data ?? []) as PublicRow[]).map(({ photo_paths, ...r }) => ({
+        ...r,
+        photo_urls: (photo_paths ?? []).map(p => bucket.getPublicUrl(p).data.publicUrl),
+      }))
+    } catch (e) {
+      console.error(`[wall-of-honor] public read threw: ${e instanceof Error ? e.message : String(e)} - showing the empty state`)
       return []
     }
-    const bucket = sb.storage.from(WOH_PUBLIC_BUCKET)
-    return ((data ?? []) as PublicRow[]).map(({ photo_paths, ...r }) => ({
-      ...r,
-      photo_urls: (photo_paths ?? []).map(p => bucket.getPublicUrl(p).data.publicUrl),
-    }))
   },
   ['wall-of-honor-public'],
   { revalidate: 60, tags: ['wall-of-honor'] },
@@ -83,7 +89,7 @@ export default async function WallOfHonorPage() {
           <span className="text-emboss">Wall of Honor</span>
         </h1>
         <p className="mx-auto mt-0 max-w-xl text-sm leading-relaxed" style={{ color: '#999' }}>
-          <span className="text-emboss">A dedicated space at the All American Tattoo Convention honoring the service members who made the ultimate sacrifice. Their courage, dedication, and love of country will never be forgotten. Families and fellow service members are invited to submit photos and stories so that we may honor their memory together.</span>
+          <span className="text-emboss">The Wall of Honor at the All American Tattoo Convention honors the service members who made the ultimate sacrifice. Their courage, dedication, and love of country will never be forgotten. Families and fellow service members are invited to submit photos and stories so that we may honor their memory together.</span>
         </p>
       </div>
 
@@ -168,6 +174,12 @@ export default async function WallOfHonorPage() {
                 {c.submit_cta}
               </Link>
             </div>
+            <p className="mt-6 text-center text-xs" style={{ color: '#666' }}>
+              Questions about the Wall of Honor?{' '}
+              <a href={`mailto:${WALL_OF_HONOR_EMAIL}`} style={{ color: '#C4A882' }}>
+                {WALL_OF_HONOR_EMAIL}
+              </a>
+            </p>
           </div>
         </div>
       </section>

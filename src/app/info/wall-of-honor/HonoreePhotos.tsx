@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /**
  * An honoree's photos: the main photo (the first) plus a row of the others.
@@ -9,6 +9,21 @@ import { useEffect, useState } from 'react'
  */
 export default function HonoreePhotos({ urls, name }: { urls: string[]; name: string }) {
   const [open, setOpen] = useState<number | null>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
+  const triggerRef = useRef<HTMLElement | null>(null)
+  const isOpen = open !== null
+
+  // Focus moves to Close on open and back to the photo that opened it on close.
+  useEffect(() => {
+    if (!isOpen) return
+    closeRef.current?.focus()
+    return () => { triggerRef.current?.focus() }
+  }, [isOpen])
+
+  const show = (i: number) => (e: React.MouseEvent<HTMLElement>) => {
+    triggerRef.current = e.currentTarget
+    setOpen(i)
+  }
 
   useEffect(() => {
     if (open === null) return
@@ -30,7 +45,7 @@ export default function HonoreePhotos({ urls, name }: { urls: string[]; name: st
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(0)} className="block w-full" aria-label={`View photo of ${name}`}>
+      <button type="button" onClick={show(0)} className="block w-full" aria-label={`View photo of ${name}`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={main} alt={name} className="h-72 w-full object-cover" loading="lazy" />
       </button>
@@ -40,7 +55,7 @@ export default function HonoreePhotos({ urls, name }: { urls: string[]; name: st
             <button
               key={url}
               type="button"
-              onClick={() => setOpen(i + 1)}
+              onClick={show(i + 1)}
               className="overflow-hidden rounded-lg"
               style={{ border: '1px solid #2a2a2a' }}
               aria-label={`View photo ${i + 2} of ${urls.length} of ${name}`}
@@ -94,6 +109,7 @@ export default function HonoreePhotos({ urls, name }: { urls: string[]; name: st
             type="button"
             className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full text-white hover:opacity-70"
             style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+            ref={closeRef}
             onClick={() => setOpen(null)}
             aria-label="Close"
           >
