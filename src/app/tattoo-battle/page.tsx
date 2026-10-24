@@ -166,7 +166,12 @@ export default async function TattooBattlePage() {
       {/* About Veteran Ink */}
       <BattleSection id="veteran-ink" kicker="Every dollar supports" title={`About ${VETERAN_INK.name}`}>
         <div className="mx-auto max-w-2xl text-center">
-          <PageImage slug="tattoo-battle-veteran-ink" className="mx-auto mb-6 max-w-xs" imageClassName="mx-auto h-auto w-full" />
+          {/* TEMPORARY: the gold frame (border + padding) keeps the current
+              boxy Veteran Ink logo from looking pasted onto the dark page.
+              Remove the border/rounded/p-3 classes once Ryan has a transparent
+              horizontal Veteran Ink logo. #8B7355 matches this page's other
+              1px borders. */}
+          <PageImage slug="tattoo-battle-veteran-ink" className="mx-auto mb-6 max-w-xs rounded-xl border border-[#8B7355] p-3" imageClassName="mx-auto h-auto w-full" />
           <p className="text-sm leading-relaxed sm:text-base" style={{ color: '#ddd' }}>{VETERAN_INK.description}</p>
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
             <a href={VETERAN_INK.url} target="_blank" rel="noopener noreferrer" className="rounded-xl border-2 px-6 py-3 text-sm font-bold" style={{ borderColor: '#8B7355', color: '#C4A882' }}>Visit {VETERAN_INK.name}</a>
