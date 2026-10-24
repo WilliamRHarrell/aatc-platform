@@ -4,6 +4,37 @@ _Moved verbatim from docs/HANDOFF.md (develop b5a1d3f) on 2026-09-26._
 
 ### OPEN ITEMS (one line each, with the owner)
 
+- **Wall of Honor print layout waits on the printer's specs** (added
+  2026-10-24; spec decision 10). The print export ships originals + text;
+  the final layout is designed once the printer specifies. NOTE: 8 imported
+  tributes exceed the form's 1,500-character cap (verbatim by design) - a
+  print-fit question for the layout. Owner: Ryan.
+- **Remove the TEMPORARY gold frame on the Tattoo Battle Veteran Ink logo**
+  (added 2026-10-24, #121) once Ryan has a transparent horizontal Veteran
+  Ink logo - three classes on the PageImage in src/app/tattoo-battle/page.tsx,
+  marked TEMPORARY in a comment. Owner: Ryan (logo) / Claude (removal).
+- **Keyboard focus-setting in the admin photo-focus editor** (added
+  2026-10-24, #120). Keyboard users can Reset but not set a point (clicks
+  with detail 0 are ignored to avoid a garbage 0,0 write); add arrow-key
+  nudging or numeric inputs. Owner: Claude.
+- **Wall of Honor submit-form a11y pass** (added 2026-10-24, deferred from
+  #114): aria-describedby on field errors, a live-region tribute counter.
+  The audience is grieving families, often on phones. Owner: Claude.
+- **IMAGE_TYPES prototype-lookup hardening** (added 2026-10-24, deferred
+  from #114/#117 reviews): the plain-object MIME lookups in
+  wall-of-honor-submission.ts and food-truck-submission.ts accept
+  'constructor'/'__proto__' keys (no security impact; buckets refuse the
+  upload). Switch both to Object.hasOwn in one pass. Owner: Claude.
+- **Import script hardening, if it ever runs again** (added 2026-10-24,
+  deferred from #119's final review; the 2026 import is DONE): an
+  lstat/realpath symlink guard in scripts/import-woh-wordpress.mjs (the
+  backup is untrusted input), and a before/after non-tag character count to
+  VERIFY (not just assert) that page-tribute markup stripping changes no
+  words. Owner: Claude.
+- **Print route timeout note** (added 2026-10-24, deferred from #119): the
+  Wall of Honor print export's comment names the in-memory buffer but not
+  the Vercel function timeout, the likelier limit at scale; name it (or set
+  maxDuration) next time the route is touched. Owner: Claude.
 - **Turn on the homepage "Featured artists" section once 3 artists are
   featured** (added 2026-10-10). /admin/content → Homepage → "Featured
   artists section". It stays hidden below 3 even when on. Feature artists by
