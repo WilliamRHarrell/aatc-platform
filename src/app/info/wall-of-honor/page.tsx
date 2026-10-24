@@ -19,7 +19,7 @@ import TributeText from './TributeText'
 
 type PublicRow = Database['public']['Views']['wall_of_honor_public']['Row']
 type Focus = { x: number; y: number } | null
-type Honoree = Omit<PublicRow, 'photo_paths'> & { photo_urls: string[]; photo_focus_points: Focus[] }
+type Honoree = Omit<PublicRow, 'photo_paths' | 'photo_focus'> & { photo_urls: string[]; photo_focus_points: Focus[] }
 
 // photo_focus is jsonb { [path]: { x, y } }. It may be absent entirely (view
 // not yet migrated) or malformed: anything but numeric x and y is null.

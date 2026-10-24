@@ -20,13 +20,20 @@ export default function TributeText({ text }: { text: string }) {
     const el = ref.current
     if (!el) return
     // Only a clamped element reveals overflow; while expanded keep the last result.
+    let cancelled = false
     const measure = () => {
-      if (expanded) return
-      setOverflowing(el.scrollHeight > el.clientHeight)
+      if (cancelled || expanded) return
+      // +1 absorbs fractional line-height rounding.
+      setOverflowing(el.scrollHeight > el.clientHeight + 1)
     }
     measure()
+    // Re-measure once web fonts load: a fallback-font measurement can differ.
+    document.fonts?.ready.then(measure)
     window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
+    return () => {
+      cancelled = true
+      window.removeEventListener('resize', measure)
+    }
   }, [expanded, text])
 
   return (
