@@ -5,7 +5,7 @@ import { getContent } from '@/content/getContent'
 import PublicNav from '@/components/PublicNav'
 import Markdown from '@/components/Markdown'
 import { ROUTES } from '@/lib/routes'
-import { WALL_OF_HONOR_EMAIL } from '@/lib/event-config'
+import { GOLD_STAR_PASSES_SENTENCE, WALL_OF_HONOR_EMAIL } from '@/lib/event-config'
 import { WOH_PUBLIC_BUCKET } from '@/lib/wall-of-honor-submission'
 import type { Database } from '@/types/database'
 import HonoreePhotos from './HonoreePhotos'
@@ -100,15 +100,14 @@ export default async function WallOfHonorPage() {
               <Markdown>{c.intro_body}</Markdown>
             </div>
             <div className="mx-auto mt-6 max-w-md rounded-xl p-4" style={{ backgroundColor: '#0a0a0a', border: '1px solid #8B7355' }}>
-              {/* Same facts, same words as the Gold Star section on
-                  /events/vip-meet-greet - keep the two in step. Corrected
-                  2026-09-13: the sentence credited the Crown Complex as
-                  co-donor (it is not - ATS donates the passes and the Crown
-                  still charges ATS the ticket fee), stated an exact 50, and
-                  gave a second sign-up path ("contact us directly") alongside
-                  the ACS route on the VIP page. Deliberately plain. */}
+              {/* The sentence is GOLD_STAR_PASSES_SENTENCE in event-config,
+                  shared with /events/vip-meet-greet. As of Ryan 2026-10-23
+                  the Crown Complex is a co-donor; that supersedes the
+                  2026-09-13 note that said ATS alone donates and the Crown
+                  charges the ticket fee. Do not revert it. Deliberately plain:
+                  "around 50", one sign-up path (the ACS route below). */}
               <p className="text-sm font-semibold" style={{ color: '#C4A882' }}>
-                American Tattoo Society donates around 50 VIP passes each year for Gold Star Family members.
+                {GOLD_STAR_PASSES_SENTENCE}
               </p>
               <p className="mt-2 text-xs" style={{ color: '#999' }}>
                 To sign up, contact the Army Community Service Survivor Outreach Services Support Coordinator, USAG Fort Bragg. Passes are first come, first served.
