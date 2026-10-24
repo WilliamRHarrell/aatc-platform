@@ -1719,6 +1719,7 @@ export type Database = {
           imported_at: string | null
           include_in_print: boolean
           is_published: boolean
+          photo_focus: Json
           photo_paths: string[]
           public_photo_paths: string[]
           published_at: string | null
@@ -1748,6 +1749,7 @@ export type Database = {
           imported_at?: string | null
           include_in_print?: boolean
           is_published?: boolean
+          photo_focus?: Json
           photo_paths?: string[]
           public_photo_paths?: string[]
           published_at?: string | null
@@ -1777,6 +1779,7 @@ export type Database = {
           imported_at?: string | null
           include_in_print?: boolean
           is_published?: boolean
+          photo_focus?: Json
           photo_paths?: string[]
           public_photo_paths?: string[]
           published_at?: string | null
@@ -1804,7 +1807,7 @@ export type Database = {
       }
     }
     Views: {
-      /** Migration 104, 105 - published Wall of Honor entries of every event (permanent across years); no submitter data. */
+      /** Migration 104, 105, 107 - published Wall of Honor entries of every event (permanent across years); no submitter data. */
       wall_of_honor_public: {
         Row: {
           id: string
@@ -1818,6 +1821,8 @@ export type Database = {
           published_at: string | null
           /** 105: extract(year from the event's start_date) */
           event_year: number | null
+          /** 107: per-photo crop focus keyed by path, {x, y} percents 0-100 */
+          photo_focus: Json
         }
         Relationships: []
       }
