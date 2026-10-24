@@ -7,7 +7,7 @@ import { guardedWrite } from '@/lib/db-write'
 import { requestRevalidate } from '@/lib/revalidate'
 import { formatEastern } from '@/lib/pinup-export'
 import { canPublish } from '@/lib/wall-of-honor-publish'
-import { photoQuality, duplicateHonoreeKey, WOH_SUBMISSIONS_BUCKET, WOH_PHOTO_MAX_COUNT, TRIBUTE_MAX } from '@/lib/wall-of-honor-submission'
+import { photoQuality, duplicateHonoreeKey, WOH_SUBMISSIONS_BUCKET, WOH_PHOTO_MAX_COUNT, TRIBUTE_MAX, WALL_PHOTO_DEFAULT_FOCUS } from '@/lib/wall-of-honor-submission'
 import type { Database } from '@/types/database'
 
 // Wall of Honor submissions (104). The table is admin only (RLS "wall_of_honor:
@@ -32,7 +32,7 @@ const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
 // Every column an update here may send. tribute is deliberately not one of them.
 type EntryPatch = Partial<Pick<Entry,
   'status' | 'decided_at' | 'decided_by' | 'admin_notes' | 'include_in_print'
-  | 'honoree_name' | 'honoree_rank' | 'branch' | 'unit' | 'service_years' | 'tribute_display' | 'photo_paths'>>
+  | 'honoree_name' | 'honoree_rank' | 'branch' | 'unit' | 'service_years' | 'tribute_display' | 'photo_paths' | 'photo_focus'>>
 
 type PublishResult = { is_published: boolean; published_at: string | null; emailSent?: boolean; warning?: string }
 // Persistent banner: a publish warning (public photos not fully removed) or a failure.
@@ -661,6 +661,24 @@ function EntryDetail({ entry: e, duplicate, working, year, notice, emailSent, on
   )
 }
 
+type Focus = { x: number; y: number }
+// Same default the public card uses when a photo has no focus.
+const DEFAULT_POSITION = WALL_PHOTO_DEFAULT_FOCUS
+
+const readFocusMap = (raw: unknown): Record<string, Focus> => {
+  const out: Record<string, Focus> = {}
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    const f = v as { x?: unknown; y?: unknown } | null
+    if (f && typeof f.x === 'number' && typeof f.y === 'number') out[k] = { x: f.x, y: f.y }
+  }
+  return out
+}
+// Keep only the keys that are still on the wall.
+const pruneFocus = (m: Record<string, Focus>, paths: string[]): Record<string, Focus> =>
+  Object.fromEntries(Object.entries(m).filter(([k]) => paths.includes(k)))
+const clampPct = (n: number) => Math.min(100, Math.max(0, Math.round(n * 10) / 10))
+
 type FolderFile = { path: string; url: string | null; missing: boolean }
 
 // Which photos go on the wall, and in what order. Files come from the entry's
@@ -679,6 +697,9 @@ function WallPhotos({ entry: e, working, onSave }: {
   const [dims, setDims] = useState<Record<string, { w: number; h: number }>>({})
   const storedKey = e.photo_paths.join('|')
   const locked = e.is_published
+  const [focus, setFocus] = useState<Record<string, Focus>>(() => readFocusMap(e.photo_focus))
+  const storedFocusKey = JSON.stringify(pruneFocus(readFocusMap(e.photo_focus), e.photo_paths))
+  useEffect(() => { setFocus(readFocusMap(e.photo_focus)) }, [storedFocusKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-sync the ticks to the stored order whenever the row's photo_paths change.
   useEffect(() => { setSelected(e.photo_paths) }, [storedKey]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -721,6 +742,30 @@ function WallPhotos({ entry: e, working, onSave }: {
 
   const save = async () => {
     if (await onSave({ photo_paths: selected }, 'Wall photos')) toast.success('Wall photos saved')
+  }
+
+  // Focus is saved from the stored photo_paths (what the wall shows), not the
+  // unsaved ticks. Unlike the picker above, it is NOT locked while published:
+  // the files do not change, only which part of each is kept in the card crop,
+  // and the DB guard lets an admin write photo_focus on a published row.
+  const wallFiles = e.photo_paths.map(p => files?.find(f => f.path === p)).filter((f): f is FolderFile => !!f)
+  const prunedFocus = pruneFocus(focus, e.photo_paths)
+  const focusDirty = JSON.stringify(prunedFocus) !== storedFocusKey
+  const pick = (path: string, ev: React.MouseEvent<HTMLButtonElement>) => {
+    // A keyboard activation fires click with no pointer position; ignore it.
+    if (ev.detail === 0) return
+    const r = ev.currentTarget.getBoundingClientRect()
+    if (r.width === 0 || r.height === 0) return
+    setFocus(prev => ({
+      ...prev,
+      [path]: { x: clampPct(((ev.clientX - r.left) / r.width) * 100), y: clampPct(((ev.clientY - r.top) / r.height) * 100) },
+    }))
+  }
+  const saveFocus = async () => {
+    if (!await onSave({ photo_focus: prunedFocus }, 'Photo focus')) return
+    toast.success('Photo focus saved')
+    const purged = await requestRevalidate({ paths: ['/info/wall-of-honor'], tags: ['wall-of-honor'] })
+    if (!purged) toast('Saved. The public page may take up to a minute to update.')
   }
 
   return (
@@ -795,6 +840,62 @@ function WallPhotos({ entry: e, working, onSave }: {
               {dirty && selected.length === 0 && (
                 <span className="text-xs" style={{ color: '#eab308' }}>Publishing needs at least one.</span>
               )}
+            </div>
+          )}
+
+          {wallFiles.length > 0 && (
+            <div className="mt-5">
+              <h4 className="mb-1 text-xs font-semibold uppercase tracking-wider" style={{ color: '#C4A882' }}>Set focus</h4>
+              <p className="mb-2 text-xs" style={{ color: '#888' }}>
+                Click the part of each photo to keep in view on the wall card. The preview shows the card crop. Reset returns to the default.
+              </p>
+              <div className="space-y-4">
+                {wallFiles.map(f => {
+                  const set = focus[f.path]
+                  const name = f.path.split('/').pop()
+                  return (
+                    <div key={f.path} className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <p className="mb-1 text-xs" style={{ color: '#ccc' }}>{name}</p>
+                        {f.url ? (
+                          <button type="button" disabled={working} onClick={ev => pick(f.path, ev)}
+                            className="relative block w-full cursor-crosshair overflow-hidden rounded disabled:cursor-not-allowed disabled:opacity-60">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={f.url} alt={`Click to set the focus of ${name}`} className="block h-auto w-full" draggable={false} />
+                            {set && (
+                              <span aria-hidden="true" className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                                style={{ left: `${set.x}%`, top: `${set.y}%`, backgroundColor: '#C4A882', border: '2px solid #111' }} />
+                            )}
+                          </button>
+                        ) : (
+                          <p className="text-xs" style={{ color: '#fca5a5' }}>Could not load</p>
+                        )}
+                      </div>
+                      <div>
+                        <p className="mb-1 text-xs" style={{ color: '#ccc' }}>
+                          Card preview {set ? `(${set.x}% ${set.y}%)` : '(default)'}
+                        </p>
+                        {f.url && (
+                          <div className="aspect-[5/3] w-full overflow-hidden rounded" style={{ backgroundColor: '#111' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={f.url} alt="" className="h-full w-full object-cover"
+                              style={{ objectPosition: set ? `${set.x}% ${set.y}%` : DEFAULT_POSITION }} />
+                          </div>
+                        )}
+                        <button type="button" disabled={working || !set}
+                          onClick={() => setFocus(prev => { const n = { ...prev }; delete n[f.path]; return n })}
+                          className="mt-1 text-xs font-semibold underline disabled:opacity-40" style={{ color: '#C4A882' }}>
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <button disabled={working || !focusDirty} onClick={saveFocus}
+                className="mt-3 rounded-lg px-4 py-2 text-xs font-semibold disabled:opacity-40" style={btnStyle}>
+                Save focus
+              </button>
             </div>
           )}
         </>

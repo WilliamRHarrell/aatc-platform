@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import { getVipArtists } from '@/lib/vip-server'
 import PublicNav from '@/components/PublicNav'
-import { ROOMS } from '@/lib/event-config'
+import { GOLD_STAR_PASSES_SENTENCE, ROOMS } from '@/lib/event-config'
 import VeteranBadge from '@/components/VeteranBadge'
 import { getVeteranBadges } from '@/lib/veteran-server'
 import { VETERAN_LABEL } from '@/lib/veteran-config'
@@ -120,8 +120,7 @@ export default async function VipMeetGreetPage() {
             style={{ backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}
           >
             <p className="text-sm leading-relaxed" style={{ color: '#bbb' }}>
-              American Tattoo Society donates around 50 VIP passes each year for Gold Star
-              Family members. To sign up, contact the Army Community Service Survivor Outreach
+              {GOLD_STAR_PASSES_SENTENCE} To sign up, contact the Army Community Service Survivor Outreach
               Services Support Coordinator, USAG Fort Bragg. Passes are first come, first served.
             </p>
             <p className="mt-3 text-sm leading-relaxed" style={{ color: '#bbb' }}>

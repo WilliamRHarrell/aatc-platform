@@ -2,13 +2,27 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
+import { WALL_PHOTO_DEFAULT_FOCUS } from '@/lib/wall-of-honor-submission'
 
 /**
  * An honoree's photos: the main photo (the first) plus a row of the others.
  * Any photo opens full size; arrows and the keyboard step through them.
  * URLs are the public wall-of-honor bucket's, built by the server page.
  */
-export default function HonoreePhotos({ urls, name }: { urls: string[]; name: string }) {
+export default function HonoreePhotos({
+  urls,
+  name,
+  focus,
+}: {
+  urls: string[]
+  name: string
+  /** Parallel to urls: the crop focus point (percent) per photo; null = default upper-center. */
+  focus?: ({ x: number; y: number } | null)[]
+}) {
+  const pos = (i: number) => {
+    const f = focus?.[i]
+    return { objectPosition: f ? `${f.x}% ${f.y}%` : WALL_PHOTO_DEFAULT_FOCUS }
+  }
   const [open, setOpen] = useState<number | null>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const triggerRef = useRef<HTMLElement | null>(null)
@@ -48,7 +62,7 @@ export default function HonoreePhotos({ urls, name }: { urls: string[]; name: st
     <>
       {/* next/image resizes the up-to-10 MB originals; cards sit in a 2-column grid from md up. */}
       <button type="button" onClick={show(0)} className="relative block h-72 w-full" aria-label={`View photo of ${name}`}>
-        <Image src={main} alt={name} fill className="object-cover" sizes="(min-width: 768px) 50vw, 100vw" />
+        <Image src={main} alt={name} fill className="object-cover" style={pos(0)} sizes="(min-width: 768px) 50vw, 100vw" />
       </button>
       {rest.length > 0 && (
         <div className="flex flex-wrap gap-2 px-6 pt-4">
@@ -61,7 +75,7 @@ export default function HonoreePhotos({ urls, name }: { urls: string[]; name: st
               style={{ border: '1px solid #2a2a2a' }}
               aria-label={`View photo ${i + 2} of ${urls.length} of ${name}`}
             >
-              <Image src={url} alt="" fill className="object-cover" sizes="56px" />
+              <Image src={url} alt="" fill className="object-cover" style={pos(i + 1)} sizes="56px" />
             </button>
           ))}
         </div>

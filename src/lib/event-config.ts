@@ -385,3 +385,14 @@ export const AATC_MAILING_ADDRESS: string | null = '5439 Yadkin Rd STE 112, Faye
  */
 export const TATTOO_BATTLE_PRESENTER = 'WholeLife Aftercare'
 export const TATTOO_BATTLE_PRESENTED_BY = `Presented by ${TATTOO_BATTLE_PRESENTER}`
+
+/**
+ * The Gold Star passes sentence: one home, rendered by /info/wall-of-honor and
+ * /events/vip-meet-greet. Ryan 2026-10-23: the Cumberland County Crown Complex
+ * is now a CO-DONOR with American Tattoo Society. This supersedes the
+ * 2026-09-13 correction, which said ATS alone donates the passes and the Crown
+ * charges the ticket fee. Do not "fix" it back. "around 50" is deliberate: the
+ * number varies with Survivor Outreach Services sign-ups.
+ */
+export const GOLD_STAR_PASSES_SENTENCE =
+  'American Tattoo Society and the Cumberland County Crown Complex donate around 50 VIP passes each year for Gold Star family members.'
