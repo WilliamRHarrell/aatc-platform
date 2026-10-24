@@ -32,6 +32,9 @@ const WHERE: Record<string, { page: string; position: string; href: string }> = 
   'after-party-saturday': { page: 'After Parties', position: 'optional flyer under the Saturday card', href: '/events/after-parties' },
   'after-party-sunday':   { page: 'After Parties', position: 'optional flyer under the Sunday brunch card', href: '/events/after-parties' },
   'tattoo-battle-veteran-ink': { page: 'Tattoo Battle', position: 'About Veteran Ink section', href: '/tattoo-battle' },
+  // 108: replaces the h1 text when filled; the alt becomes the page's heading,
+  // so it should read "All American Food Truck Rodeo".
+  'food-truck-rodeo-title': { page: 'Food Truck Rodeo', position: 'the title logo, in place of the heading text', href: '/events/food-truck-rodeo' },
 }
 
 interface Row {

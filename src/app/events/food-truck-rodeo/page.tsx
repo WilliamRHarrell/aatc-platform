@@ -27,10 +27,25 @@ const DAY_LABELS: Record<string, string> = {
 export default function FoodTruckRodeoPage() {
   const [trucks, setTrucks] = useState<FoodTruck[]>([])
   const [loading, setLoading] = useState(true)
+  // The title logo from the 'food-truck-rodeo-title' page-images slot (108).
+  // Null (slot empty, not yet applied, or fetch failed) falls back to the text
+  // heading, which is also what the server render ships, so crawlers always
+  // see a real <h1>.
+  const [titleImage, setTitleImage] = useState<{ image_path: string; alt: string } | null>(null)
 
   useEffect(() => {
     async function fetchTrucks() {
       const supabase = createClient()
+
+      const { data: title } = await supabase
+        .from('page_images')
+        .select('image_path, alt')
+        .eq('slug', 'food-truck-rodeo-title')
+        .eq('active', true)
+        .maybeSingle()
+      if (title?.image_path && title.alt?.trim()) {
+        setTitleImage({ image_path: title.image_path, alt: title.alt })
+      }
 
       const { data: event } = await supabase
         .from('events')
@@ -64,7 +79,19 @@ export default function FoodTruckRodeoPage() {
           <span className="text-emboss">Fuel Up Between Sessions</span>
         </p>
         <h1 className="font-display text-4xl font-bold text-white sm:text-5xl">
-          <span className="text-emboss">Food Truck Rodeo</span>
+          {titleImage ? (
+            // The logo (white on transparent, 2123x507) carries the heading
+            // through its alt text, so the h1 stays real for screen readers
+            // and SEO. The slot's alt is admin-entered and required by 050.
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/page-images/${titleImage.image_path}`}
+              alt={titleImage.alt}
+              className="mx-auto h-auto w-full max-w-xl px-2"
+            />
+          ) : (
+            <span className="text-emboss">Food Truck Rodeo</span>
+          )}
         </h1>
         <p className="mx-auto mt-0 max-w-xl text-sm" style={{ color: '#999' }}>
           <span className="text-emboss">Step outside the convention hall and discover a lineup of the best food trucks Fayetteville and the surrounding region have to offer. From smoked BBQ to fresh ramen, there is something for every appetite.</span>
