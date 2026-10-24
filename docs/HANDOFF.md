@@ -9,9 +9,9 @@ This file is the index and the current state. Everything else lives in
 - [pre-show-email.md](handoff/pre-show-email.md) - approved pre-show venue-policies copy (Ryan sends it: box office / GHL).
 - [sessions/](handoff/sessions/) - one file per dated session, history.
 
-## START HERE - state as of 2026-10-10
+## START HERE - state as of 2026-10-24
 
-**Merged and deployed (develop = 3f3dfdb):** everything through #108. No
+**Merged and deployed (develop = 2b723a1):** everything through #121. No
 open PRs except this docs PR. Since the 2026-10-07 refresh (#62-#74 are in
 the 2026-10-07 block of git history):
 - #75-#80 food truck application, 3 PRs (091, 092, 093) + fixes: form,
@@ -75,8 +75,46 @@ the 2026-10-07 block of git history):
   "Veteran-owned" on a vendor; text label plus a starless gold flag, on
   /directory, /directory/artists, profiles, the VIP page and homepage
   featured cards. Ticked in the editor or on the booth page.
+- #109 START HERE refresh after #108
+- #110-#113 artist/vendor top social posts: 101 (foundations:
+  `artist_social_handles_v`, `artist_social_posts`, opt-outs, scrape runs,
+  private bucket), /admin/social/artist-posts with the send-to-Postiz modal
+  (#111, +102 updated_at), Google Business + YouTube channels (#112), the
+  vendor arm (#113, 103). **101-103 apply state is NOT recorded in
+  migrations.md yet** - record each alone when known; n8n must send
+  `exhibitor_type` before the first vendor refresh.
+- **Wall of Honor series COMPLETE** (#114-#120; plans
+  [PR 1](superpowers/plans/2026-10-22-wall-of-honor-submissions.md),
+  [PR 2](superpowers/plans/2026-10-23-wall-of-honor-publish.md),
+  [PR 3](superpowers/plans/2026-10-23-wall-of-honor-import.md),
+  [PR 4](superpowers/plans/2026-10-24-wall-of-honor-polish.md)):
+  - #114 intake (104): public form at /info/wall-of-honor/submit (bot trap,
+    signed uploads, receipts), admin review at /admin/wall-of-honor,
+    `events.wall_of_honor_open` switch. WAF rule verified by observation
+    2026-10-23 at **10 req/60s** (Vercel counted ~2x on this rule; pinup and
+    panel re-verified still 1x at 5) - CUTOVER B2 (#115) is the record.
+  - #116 panel-register: an empty or non-JSON body is a 400, not a 500.
+  - #117 permanent multi-year wall (105): publish/unpublish with the
+    private-to-public photo copy and rollback, first-publish email (never
+    for imports), the server-rendered page reading `wall_of_honor_public`.
+  - #118 next/image for wall photos; one continuous wall, newest first, no
+    year headings (year stays in admin and print).
+  - #119 WordPress import (106 + the generated seed, APPLIED 2026-10-23: 31
+    tributes, see migrations.md; **the 2025 page mapping was swapped from
+    the original brief** - 48157 is West, 48512 is East, asserted by the
+    script), the admin photo picker, the print export.
+  - #120 polish (107): tribute clamp with Read more (no-JS safe), per-photo
+    crop focus points with the admin editor, the Gold Star passes sentence
+    gains the Crown Complex as CO-DONOR (Ryan 2026-10-23, supersedes
+    2026-09-13) with one home `GOLD_STAR_PASSES_SENTENCE` on both pages.
+  - Ryan's remaining per-row work: fill branch, pick photos, publish each
+    imported tribute; the Perry pair (2025 East + 2026) is his either/both
+    call.
+- #121 Food Truck Rodeo title logo from the `food-truck-rodeo-title` slot
+  (108, applied; logo uploaded) with the text h1 as fallback; TEMPORARY gold
+  frame on the Tattoo Battle Veteran Ink logo (open item).
 
-Source: `gh pr list --state merged` and `gh pr list --state open`, 2026-10-10 (after #108).
+Source: `gh pr list --state merged` and `gh pr list --state open`, 2026-10-24 (after #121).
 Ryan spot-checked #84-#91 after merging: all OK (2026-10-09). Ryan tested
 #100-#106 live (2026-10-09): editor create and edit on ZZ entries (then torn
 down), vendor ID + logo save after 097, Adu Ink featured on /admin/vip, the

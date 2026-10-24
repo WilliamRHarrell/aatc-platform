@@ -42,10 +42,11 @@ things worse, not better.
 - [ ] **Freeze the URL list and build the 301 map** from every indexed WordPress
       URL to its new equivalent. Must be complete BEFORE the flip - this is the
       only thing carrying the existing domain's ranking across.
-- [ ] **Wall of Honor media off WordPress.** Tribute photos are served via
-      WordPress form-download URLs that die when WordPress is shut off. Every
-      image must be downloaded and re-hosted in Supabase Storage first. Family-
-      written tribute text should migrate verbatim, typos included.
+- [x] **Wall of Honor media off WordPress.** DONE 2026-10-23: the import seed
+      (migrations.md, seed table) landed 31 tributes with 67 original photos
+      re-hosted in the private `wall-of-honor-submissions` bucket; tribute
+      text migrated verbatim, typos included. Photos reach the public bucket
+      only when Ryan publishes an entry.
 - [ ] Confirm no remaining asset references a WordPress URL (last checked clean,
       but re-verify at the window).
 
