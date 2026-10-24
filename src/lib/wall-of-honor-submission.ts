@@ -20,6 +20,9 @@ const OTHER_MAX = 60
 /** A family's words are never shortened for them: over the cap is an error. */
 export const TRIBUTE_MAX = 1500
 
+// Upper-center default for unset photo focus; used by the public card and the admin preview.
+export const WALL_PHOTO_DEFAULT_FOCUS = '50% 25%'
+
 export const WOH_PHOTO_MIN_COUNT = 1
 export const WOH_PHOTO_MAX_COUNT = 3
 /** Exactly the private bucket's limit (104). */

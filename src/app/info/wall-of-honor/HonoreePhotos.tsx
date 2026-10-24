@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
+import { WALL_PHOTO_DEFAULT_FOCUS } from '@/lib/wall-of-honor-submission'
 
 /**
  * An honoree's photos: the main photo (the first) plus a row of the others.
@@ -20,7 +21,7 @@ export default function HonoreePhotos({
 }) {
   const pos = (i: number) => {
     const f = focus?.[i]
-    return { objectPosition: f ? `${f.x}% ${f.y}%` : '50% 25%' }
+    return { objectPosition: f ? `${f.x}% ${f.y}%` : WALL_PHOTO_DEFAULT_FOCUS }
   }
   const [open, setOpen] = useState<number | null>(null)
   const closeRef = useRef<HTMLButtonElement>(null)

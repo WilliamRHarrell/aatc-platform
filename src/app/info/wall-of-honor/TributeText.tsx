@@ -11,7 +11,7 @@ const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : use
  * (or while expanded), so short tributes never show it. Overflow is measured on
  * the clamped element itself, on mount and on every window resize.
  */
-export default function TributeText({ text }: { text: string }) {
+export default function TributeText({ text, name }: { text: string; name: string }) {
   const ref = useRef<HTMLParagraphElement>(null)
   const [expanded, setExpanded] = useState(false)
   const [overflowing, setOverflowing] = useState(false)
@@ -41,6 +41,7 @@ export default function TributeText({ text }: { text: string }) {
       {/* Families write paragraphs: keep their line breaks. */}
       <p
         ref={ref}
+        data-tribute-clamp
         className="whitespace-pre-line text-sm leading-relaxed"
         style={{
           color: '#999',
@@ -55,6 +56,7 @@ export default function TributeText({ text }: { text: string }) {
         <button
           type="button"
           aria-expanded={expanded}
+          aria-label={expanded ? `Show less of the tribute to ${name}` : `Read more of the tribute to ${name}`}
           onClick={() => setExpanded(v => !v)}
           className="mt-2 text-xs font-medium hover:opacity-80"
           style={{ color: '#C4A882' }}

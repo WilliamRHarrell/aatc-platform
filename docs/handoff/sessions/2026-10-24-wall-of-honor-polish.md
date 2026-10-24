@@ -1,6 +1,6 @@
 # 2026-10-24 - Wall of Honor polish (PR 4)
 
-Plan: docs/superpowers/plans/ (Wall of Honor PR 4 polish plan). PR 4 tidies
+Plan: docs/superpowers/plans/2026-10-24-wall-of-honor-polish.md. PR 4 tidies
 the public wall and gives the admin control over how each photo is cropped.
 
 ## Delivered (migration NOT applied)
@@ -27,7 +27,8 @@ per its header.
 The public page reads `select('*')` with a defensive reader and defaults the
 focus to upper-center (`50% 25%`). Published tributes therefore keep rendering
 through the window between merge and apply. Only the admin focus editor needs
-107: until it is applied, its saves fail cleanly.
+107: until it is applied, its saves fail cleanly (a focus save before apply shows the existing
+"Photo focus not saved" error toast).
 
 ## verify_105 block A is superseded
 

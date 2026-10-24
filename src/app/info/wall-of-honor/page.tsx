@@ -85,7 +85,7 @@ function HonoreeCard({ h }: { h: Honoree }) {
           {h.unit && <p className="mt-0.5 text-xs" style={{ color: '#999' }}>{h.unit}</p>}
           {h.service_years && <p className="mt-0.5 text-xs" style={{ color: '#666' }}>{h.service_years}</p>}
         </div>
-        <TributeText text={h.tribute.trim()} />
+        <TributeText text={h.tribute.trim()} name={h.honoree_name} />
       </div>
     </article>
   )
@@ -140,6 +140,11 @@ export default async function WallOfHonorPage() {
       {/* One continuous wall, newest published first. No year headings or year
           labels on public cards (Ryan, 2026-10-24); the event year stays in the
           admin and the print export. */}
+      {/* No-JS visitors get the full tribute (no clamp, no toggle); the selector
+          matches data-tribute-clamp in TributeText. */}
+      <noscript>
+        <style>{`[data-tribute-clamp]{display:block!important;-webkit-line-clamp:unset!important;overflow:visible!important}`}</style>
+      </noscript>
       <section className="border-t px-4 py-12" style={{ borderColor: '#2a2a2a' }}>
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-2 text-center text-sm font-bold uppercase tracking-[0.2em]" style={{ color: '#8B7355' }}>

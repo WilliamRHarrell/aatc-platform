@@ -7,7 +7,7 @@ import { guardedWrite } from '@/lib/db-write'
 import { requestRevalidate } from '@/lib/revalidate'
 import { formatEastern } from '@/lib/pinup-export'
 import { canPublish } from '@/lib/wall-of-honor-publish'
-import { photoQuality, duplicateHonoreeKey, WOH_SUBMISSIONS_BUCKET, WOH_PHOTO_MAX_COUNT, TRIBUTE_MAX } from '@/lib/wall-of-honor-submission'
+import { photoQuality, duplicateHonoreeKey, WOH_SUBMISSIONS_BUCKET, WOH_PHOTO_MAX_COUNT, TRIBUTE_MAX, WALL_PHOTO_DEFAULT_FOCUS } from '@/lib/wall-of-honor-submission'
 import type { Database } from '@/types/database'
 
 // Wall of Honor submissions (104). The table is admin only (RLS "wall_of_honor:
@@ -663,7 +663,7 @@ function EntryDetail({ entry: e, duplicate, working, year, notice, emailSent, on
 
 type Focus = { x: number; y: number }
 // Same default the public card uses when a photo has no focus.
-const DEFAULT_POSITION = '50% 25%'
+const DEFAULT_POSITION = WALL_PHOTO_DEFAULT_FOCUS
 
 const readFocusMap = (raw: unknown): Record<string, Focus> => {
   const out: Record<string, Focus> = {}
